@@ -1,0 +1,336 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+// LAYOUT GATE: Single constraint gate (LayoutBuilder + needBounded -> SizedBox, constrainedSize to layer view).
+// Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
+
+import 'controllers/page_flip_state_controller.dart';
+import 'effects/page_flip_engine.dart';
+import 'managers/pre_render_manager.dart';
+import 'models/page_flip_config.dart';
+import 'page_flip_layer_view.dart';
+
+export 'models/page_flip_config.dart';
+import 'widgets/edge_tap_feedback.dart';
+
+class PageFlipController {
+  PageFlipWidgetState? _state;
+
+  void nextPage() {
+    _state?.nextPage();
+  }
+
+  void previousPage() {
+    _state?.previousPage();
+  }
+
+  Future<void> goToPage(int index) {
+    return _state?.goToPage(index) ?? Future.value();
+  }
+}
+
+class PageFlipWidget extends StatefulWidget {
+  final PageFlipController? controller;
+  final PageFlipConfig config;
+  final IndexedWidgetBuilder itemBuilder;
+  final int itemCount;
+  final int initialIndex;
+  final void Function(int pageNumber)? onPageFlipped;
+  final void Function()? onFlipStart;
+  final void Function(int pageNumber)? onPageChanged;
+  final void Function(
+    PageFlipEvent effect, {
+    int? intensity,
+    double? volume,
+    double? texture,
+    double? resistance,
+  })? onHandleEffect;
+
+  const PageFlipWidget({
+    Key? key,
+    this.controller,
+    this.config = PageFlipConfig.defaultSettings,
+    required this.itemBuilder,
+    required this.itemCount,
+    this.initialIndex = 0,
+    this.onPageFlipped,
+    this.onFlipStart,
+    this.onPageChanged,
+    this.onHandleEffect,
+  })  : assert(initialIndex < itemCount,
+            'initialIndex cannot be greater than itemCount'),
+        super(key: key);
+
+  @override
+  PageFlipWidgetState createState() => PageFlipWidgetState();
+}
+
+class PageFlipWidgetState extends State<PageFlipWidget>
+    with TickerProviderStateMixin {
+  late final PageFlipStateController _controller;
+  final PreRenderManager _preRenderManager = PreRenderManager();
+
+  int get _totalPages => widget.itemCount;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?._state = this;
+
+    _controller = PageFlipStateController(
+      vsync: this,
+      animationDuration: widget.config.duration,
+      onUpdate: () {
+        if (mounted) setState(() {});
+      },
+      onPageFinalized: _onPageFinalized,
+      onEffectTrigger: _handleEffect,
+    );
+    _controller.setIndex(widget.initialIndex, _totalPages);
+    _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
+
+    // Initial pre-render snapshots (requires layout to be complete)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _captureSnapshots();
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(PageFlipWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller?._state = this;
+
+    // Redraw if content or count changes
+    if (widget.itemBuilder != oldWidget.itemBuilder ||
+        widget.itemCount != oldWidget.itemCount) {
+      _controller.setIndex(_controller.currentIndex, _totalPages);
+
+      // Reset pre-render manager to avoid using stale keys or snapshots
+      _preRenderManager.reset();
+
+      // Schedule a new capture frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
+        if (mounted) setState(() {});
+        _captureSnapshots();
+      });
+
+      setState(() {});
+    } else {
+      // Update pre-render keys for new structure if necessary (soft update)
+      _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _preRenderManager.dispose();
+    super.dispose();
+  }
+
+  void _onPageFinalized(int newIndex) {
+    widget.onPageChanged?.call(newIndex);
+    widget.onPageFlipped?.call(newIndex);
+    _preRenderManager.cleanup(newIndex, _totalPages);
+    _preRenderManager.prepareKeys(newIndex, _totalPages);
+    _captureSnapshots();
+  }
+
+  void _captureSnapshots() {
+    _preRenderManager.captureSnapshots(
+      _controller.currentIndex,
+      _totalPages,
+      () {
+        if (mounted) setState(() {});
+      },
+    );
+  }
+
+  void _handleEffect(
+    PageFlipEvent effect, {
+    int? intensity,
+    double? volume,
+    double? texture,
+    double? resistance,
+  }) {
+    if (widget.onHandleEffect != null) {
+      widget.onHandleEffect!(
+        effect,
+        intensity: intensity,
+        volume: volume,
+        texture: texture,
+        resistance: resistance,
+      );
+      return;
+    }
+
+    switch (effect) {
+      case PageFlipEvent.startHaptic:
+      case PageFlipEvent.stopHaptic:
+      case PageFlipEvent.impulseHaptic:
+      case PageFlipEvent.continuousHaptic:
+      case PageFlipEvent.texturedHaptic:
+        HapticFeedback.lightImpact(); // Simple default
+        break;
+      case PageFlipEvent.sound:
+        // No sound implemented by default in package
+        break;
+    }
+  }
+
+  // Public API methods via controller
+  void nextPage() {
+    widget.onFlipStart?.call();
+    if (widget.config.skipTapAnimation) {
+      goToPage(_controller.currentIndex + 1);
+    } else {
+      _controller.triggerTapFlip(true, _totalPages);
+    }
+  }
+
+  void previousPage() {
+    widget.onFlipStart?.call();
+    if (widget.config.skipTapAnimation) {
+      goToPage(_controller.currentIndex - 1);
+    } else {
+      _controller.triggerTapFlip(false, _totalPages);
+    }
+  }
+
+  Future<void> goToPage(int index) async {
+    if (index < 0 || index >= _totalPages) return;
+    widget.onFlipStart?.call();
+
+    // Immediate jump for now, as drag logic is complex to simulate
+    setState(() {
+      _controller.setIndex(index, _totalPages);
+    });
+
+    _onPageFinalized(index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Update cached width for controller logic
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _controller.updateCachedWidth(constraints.maxWidth);
+
+        // Single constraint gate: prevent unbounded height/width from propagating
+        // (e.g. Scaffold body first frame, Stack without bounded parent).
+        // All descendants (including Offstage pages) then receive finite constraints.
+        final needBounded =
+            !constraints.maxHeight.isFinite || !constraints.maxWidth.isFinite;
+        final maxW = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final maxH = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : MediaQuery.sizeOf(context).height;
+        final effectiveWidth =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : maxW;
+
+        final constrainedSize = Size(maxW, maxH);
+
+        final view = PageFlipLayerView(
+          itemBuilder: widget.itemBuilder,
+          itemCount: _totalPages,
+          currentIndex: _controller.currentIndex,
+          dragProgress: _controller.dragProgress,
+          isDragging: _controller.isDragging,
+          isForward: _controller.isForward,
+          touchPosition: _controller.touchPosition,
+          pageSnapshots: _preRenderManager.pageSnapshots,
+          pageKeys: _preRenderManager.pageKeys,
+          paperFlapColor: widget.config.backgroundColor,
+          constrainedSize: constrainedSize,
+        );
+
+        final mainContent = Stack(
+          fit: StackFit.expand,
+          children: [
+            view,
+            // Left Edge Tap (Previous Page)
+            if (widget.config.edgeTapWidthRatio > 0 &&
+                widget.config.enableSwipe)
+              EdgeTapFeedback(
+                isLeftEdge: true,
+                width: effectiveWidth * widget.config.edgeTapWidthRatio,
+                label: widget.config.edgeTapPreviousLabel ?? 'Previous page',
+                hint: widget.config.edgeTapPreviousHint ??
+                    'Tap to go to previous page',
+                onTap: () {
+                  if (_controller.currentIndex > 0) {
+                    previousPage();
+                  }
+                },
+              ),
+            // Right Edge Tap (Next Page)
+            if (widget.config.edgeTapWidthRatio > 0 &&
+                widget.config.enableSwipe)
+              EdgeTapFeedback(
+                isLeftEdge: false,
+                width: effectiveWidth * widget.config.edgeTapWidthRatio,
+                label: widget.config.edgeTapNextLabel ?? 'Next page',
+                hint: widget.config.edgeTapNextHint ?? 'Tap to go to next page',
+                onTap: () {
+                  if (_controller.currentIndex < _totalPages - 1) {
+                    nextPage();
+                  }
+                },
+              ),
+          ],
+        );
+
+        final childWidget = (!widget.config.enableSwipe)
+            ? mainContent
+            : RawGestureDetector(
+                gestures: {
+                  PageFlipGestureRecognizer:
+                      GestureRecognizerFactoryWithHandlers<
+                          PageFlipGestureRecognizer>(
+                    () => PageFlipGestureRecognizer(
+                        sensitivity: widget.config.sensitivity),
+                    (PageFlipGestureRecognizer instance) {
+                      instance.onStart =
+                          (d) => _controller.onDragStart(d, _totalPages);
+                      instance.onUpdate =
+                          (d) => _controller.onDragUpdate(d, _totalPages);
+                      instance.onEnd =
+                          (d) => _controller.onDragEnd(d, _totalPages);
+                      instance.onCancel =
+                          () => _controller.onDragCancel(_totalPages);
+                    },
+                  ),
+                },
+                child: mainContent,
+              );
+
+        final semantics = Semantics(
+          label: widget.config.semanticBuilder?.call(
+                _controller.currentIndex + 1,
+                _totalPages,
+              ) ??
+              'Page ${_controller.currentIndex + 1} of $_totalPages',
+          value: '${_controller.currentIndex + 1}',
+          increasedValue: '${_controller.currentIndex + 2}',
+          decreasedValue: '${_controller.currentIndex}',
+          onIncrease:
+              _controller.currentIndex < _totalPages - 1 ? nextPage : null,
+          onDecrease: _controller.currentIndex > 0 ? previousPage : null,
+          onScrollLeft:
+              _controller.currentIndex < _totalPages - 1 ? nextPage : null,
+          onScrollRight: _controller.currentIndex > 0 ? previousPage : null,
+          child: childWidget,
+        );
+        if (needBounded) {
+          return SizedBox(width: maxW, height: maxH, child: semantics);
+        }
+        return semantics;
+      },
+    );
+  }
+}

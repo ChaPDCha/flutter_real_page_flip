@@ -1,0 +1,25 @@
+name: real_page_flip
+description: >
+  A high-fidelity page flip animation widget for Flutter. 
+  Realistic 2D paper fold effect with shadow, highlight, 
+  and customizable haptic/sound callbacks.
+version: 1.0.0
+repository: https://github.com/ChaPDCha/Real_page_flip
+homepage: https://github.com/ChaPDCha/Real_page_flip
+issue_tracker: https://github.com/ChaPDCha/Real_page_flip/issues
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+
