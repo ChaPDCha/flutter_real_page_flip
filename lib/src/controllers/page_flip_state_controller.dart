@@ -267,12 +267,14 @@ class PageFlipStateController {
         _currentIndex--;
       }
       onPageFinalized(_currentIndex);
-      if (_lastReleaseVelocity > 0) {
-        final impulseIntensity =
-            (_lastReleaseVelocity / 4).clamp(15.0, 120.0).toInt();
-        onEffectTrigger(PageFlipEvent.impulseHaptic,
-            intensity: impulseIntensity);
-      }
+
+      // Trigger impulse haptic on successful flip
+      // If velocity is available, use it for intensity; otherwise use a decent default
+      final impulseIntensity = _lastReleaseVelocity > 0
+          ? (_lastReleaseVelocity / 4).clamp(15.0, 120.0).toInt()
+          : 60; // Default noticeable intensity
+
+      onEffectTrigger(PageFlipEvent.impulseHaptic, intensity: impulseIntensity);
     }
 
     _lastReleaseVelocity = 0.0;
