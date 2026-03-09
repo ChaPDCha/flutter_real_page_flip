@@ -80,18 +80,6 @@ class _EdgeTapFeedbackState extends State<EdgeTapFeedback>
     // 다크모드에서는 흰색 글로우, 라이트모드에서는 검은색 그림자 느낌
     final baseColor = isDark ? Colors.white : Colors.black;
 
-    // 그라데이션: 가장자리(진함) -> 안쪽(투명)
-    final gradientColors = [
-      baseColor.withValues(alpha: 0.12), // 너무 진하지 않게 12% 불투명도
-      baseColor.withValues(alpha: 0.0),
-    ];
-
-    final gradient = LinearGradient(
-      begin: widget.isLeftEdge ? Alignment.centerLeft : Alignment.centerRight,
-      end: widget.isLeftEdge ? Alignment.centerRight : Alignment.centerLeft,
-      colors: gradientColors,
-    );
-
     return Positioned(
       left: widget.isLeftEdge ? 0 : null,
       right: widget.isLeftEdge ? null : 0,
@@ -110,11 +98,27 @@ class _EdgeTapFeedbackState extends State<EdgeTapFeedback>
           child: AnimatedBuilder(
             animation: _opacityAnimation,
             builder: (context, child) {
-              return Opacity(
-                opacity: _opacityAnimation.value,
-                child: Container(
-                  decoration: BoxDecoration(gradient: gradient),
-                ),
+              // 그라데이션: 가장자리(진함) -> 안쪽(투명)
+              // 평상시에도 아주 희미한 힌트(0.02)를 남기고, 터치 시 더 명확하게(0.20) 표시
+              final currentOpacity = (_opacityAnimation.value * 0.18) + 0.02;
+
+              final gradientColors = [
+                baseColor.withValues(alpha: currentOpacity),
+                baseColor.withValues(alpha: 0.0),
+              ];
+
+              final gradient = LinearGradient(
+                begin: widget.isLeftEdge
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
+                end: widget.isLeftEdge
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                colors: gradientColors,
+              );
+
+              return Container(
+                decoration: BoxDecoration(gradient: gradient),
               );
             },
           ),
