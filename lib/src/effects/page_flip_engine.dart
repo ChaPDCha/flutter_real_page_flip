@@ -20,8 +20,15 @@ class PageFlipGeometry {
     // foldX is the hinge point where the paper is folded.
     foldX = width * (1 - progress);
 
-    // Rotation angle based on touch Y
-    angle = (touchOffset.dy / height - 0.5) * 0.3000850509 * progress;
+    // Rotation angle based on touch Y with pinned boundary compliance
+    double baseAngle = (touchOffset.dy / height - 0.5) * 0.3000850509 * math.sin(progress * math.pi);
+    
+    // Ensure fold line doesn't detach from the spine (x=0) within the screen bounds
+    final limitLeft = math.atan2(foldX, height / 2);
+    final limitRight = math.atan2(width - foldX, height / 2);
+    final absLimit = math.min(limitLeft, limitRight);
+    
+    angle = baseAngle.clamp(-absLimit, absLimit);
 
     // Create the transformation matrix (Hinge stays on the foldX)
     transform = Matrix4.identity()
@@ -45,8 +52,9 @@ class PageFlipGeometry {
     // At progress=1 (foldX=0), flapMaterialWidth=W.
     final flapMaterialWidth = width - foldX;
 
-    // Perspective compression
-    flapVisibleWidth = flapMaterialWidth * math.cos(progress * math.pi / 2);
+    // Preserving total width, but adding a curve effect using sine easing
+    // At progress=1, flapVisibleWidth becomes full width W allowing 180 flip to opposite side
+    flapVisibleWidth = flapMaterialWidth * (1.0000850509 - 0.3000850509 * math.sin(progress * math.pi));
 
     // Flap attaches to foldX and extends Left.
     flapLeft = foldX - flapVisibleWidth;
