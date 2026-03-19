@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 
 // LAYOUT GATE: Single constraint gate (LayoutBuilder + needBounded -> SizedBox, constrainedSize to layer view).
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
@@ -8,7 +8,10 @@ import 'controllers/page_flip_state_controller.dart';
 import 'effects/page_flip_engine.dart';
 import 'managers/pre_render_manager.dart';
 import 'models/page_flip_config.dart';
+import 'models/page_flip_effect_handler.dart';
 import 'page_flip_layer_view.dart';
+import 'widgets/default_page_flip_effect_handler.dart';
+
 
 export 'models/page_flip_config.dart';
 import 'widgets/edge_tap_feedback.dart';
@@ -89,6 +92,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _controller.setIndex(widget.initialIndex, _totalPages);
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
 
+    // Initialize Effect Handler
+    _effectHandler = widget.config.effectHandler ?? DefaultPageFlipEffectHandler();
+
     // Initial pre-render snapshots (requires layout to be complete)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -97,10 +103,18 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     });
   }
 
+  late final PageFlipEffectHandler _effectHandler;
+
   @override
   void didUpdateWidget(PageFlipWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller?._state = this;
+
+    // Update effect handler if changed in config
+    if (widget.config.effectHandler != oldWidget.config.effectHandler) {
+      _effectHandler.dispose();
+      _effectHandler = widget.config.effectHandler ?? DefaultPageFlipEffectHandler();
+    }
 
     // Redraw if content or count changes
     if (widget.itemBuilder != oldWidget.itemBuilder ||
@@ -128,6 +142,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   void dispose() {
     _controller.dispose();
     _preRenderManager.dispose();
+    _effectHandler.dispose();
     super.dispose();
   }
 
@@ -167,19 +182,21 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       return;
     }
 
-    switch (effect) {
-      case PageFlipEvent.startHaptic:
-      case PageFlipEvent.stopHaptic:
-      case PageFlipEvent.impulseHaptic:
-      case PageFlipEvent.continuousHaptic:
-      case PageFlipEvent.texturedHaptic:
-        HapticFeedback.lightImpact(); // Simple default
-        break;
-      case PageFlipEvent.sound:
-        // No sound implemented by default in package
-        break;
-    }
+    // Use toggles from config
+    final isHaptic = effect.name.contains('Haptic') || effect == PageFlipEvent.impulseHaptic; // Simple classification
+    if (isHaptic && !widget.config.enableHaptics) return;
+    if (effect == PageFlipEvent.sound && !widget.config.enableSound) return;
+
+    _effectHandler.onHandleEffect(
+      effect,
+      pageIndex: _controller.currentIndex,
+      intensity: intensity,
+      volume: volume,
+      texture: texture,
+      resistance: resistance,
+    );
   }
+
 
   // Public API methods via controller
   void nextPage() {

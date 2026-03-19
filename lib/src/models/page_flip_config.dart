@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'page_flip_effect_handler.dart';
+
 
 /// Configuration for PageFlipWidget behavior and styling.
 class PageFlipConfig {
@@ -17,7 +19,20 @@ class PageFlipConfig {
     this.edgeTapNextLabel,
     this.edgeTapPreviousHint,
     this.edgeTapNextHint,
+    this.enableHaptics = true,
+    this.enableSound = true,
+    this.effectHandler,
   });
+
+  /// Whether to enable haptic feedback.
+  final bool enableHaptics;
+
+  /// Whether to enable sound effects.
+  final bool enableSound;
+
+  /// Custom handler for effects. If null, a default implementation is used.
+  final PageFlipEffectHandler? effectHandler;
+
 
   /// Duration of the flip animation.
   final Duration duration;
