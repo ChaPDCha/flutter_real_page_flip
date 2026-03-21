@@ -5,9 +5,16 @@ import 'package:flutter/rendering.dart';
 
 /// Manages pre-rendering of adjacent pages to improve flip performance.
 class PreRenderManager {
+  /// Creates a new pre-render manager instance.
+  PreRenderManager();
+
+  /// Repository of global keys used to identify repaint boundaries.
   final Map<int, GlobalKey> pageKeys = {};
+
+  /// Repository of captured [ui.Image] snapshots ready for layered rendering.
   final Map<int, ui.Image> pageSnapshots = {};
 
+  /// Removes cached keys and snapshots that are outside the current [currentIndex] window.
   void cleanup(int currentIndex, int totalPages) {
     final targetIndices = _getTargetIndices(currentIndex, totalPages);
 
@@ -26,12 +33,14 @@ class PreRenderManager {
     );
   }
 
+  /// Completely flushes all caches and active timers.
   void reset() {
     cancelPreRender();
     flushSnapshots();
     pageKeys.clear();
   }
 
+  /// Initializes [GlobalKey]s for the current and immediate neighboring pages.
   void prepareKeys(int currentIndex, int totalPages) {
     // Ensure current index always has a key
     pageKeys.putIfAbsent(currentIndex, GlobalKey.new);
@@ -45,6 +54,8 @@ class PreRenderManager {
   Timer? _debounceTimer;
   bool _isDisposed = false;
 
+  /// Asynchronously captures rasterized [ui.Image] snapshots of adjacent pages.
+  /// Uses a debounce [delay] to avoid capturing during active animations.
   Future<void> captureSnapshots(
     int currentIndex,
     int totalPages,
@@ -95,6 +106,7 @@ class PreRenderManager {
     return indices;
   }
 
+  /// Immediately disposes all cached image snapshots to free memory.
   void flushSnapshots() {
     if (pageSnapshots.isEmpty) return;
     for (final image in pageSnapshots.values) {
@@ -103,10 +115,12 @@ class PreRenderManager {
     pageSnapshots.clear();
   }
 
+  /// Cancels any pending debounced snapshot capture operations.
   void cancelPreRender() {
     _debounceTimer?.cancel();
   }
 
+  /// Permanently disposes the manager and all its resources.
   void dispose() {
     _isDisposed = true;
     cancelPreRender();

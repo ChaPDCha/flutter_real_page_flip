@@ -1,3 +1,5 @@
+// ignore_for_file: public_member_api_docs
+
 import 'package:flutter/material.dart';
 import 'package:real_page_flip/page_flip.dart';
 
@@ -20,23 +22,54 @@ class RealPageFlipExampleApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const PageFlipDemoHome(),
+      home: const DemoHost(),
     );
   }
 }
 
-class PageFlipDemoHome extends StatefulWidget {
-  const PageFlipDemoHome({super.key});
+class DemoHost extends StatelessWidget {
+  const DemoHost({super.key});
 
   @override
-  State<PageFlipDemoHome> createState() => _PageFlipDemoHomeState();
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Real Page Flip Engine'),
+          centerTitle: true,
+          elevation: 4,
+          shadowColor: Colors.black26,
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.book), text: 'Standard'),
+              Tab(icon: Icon(Icons.warning_amber_rounded), text: 'Stress Test'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          physics: NeverScrollableScrollPhysics(), // Prevent swipe conflict
+          children: [
+            SimpleDemo(),
+            HeavyLoadDemo(),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _PageFlipDemoHomeState extends State<PageFlipDemoHome> {
+class SimpleDemo extends StatefulWidget {
+  const SimpleDemo({super.key});
+
+  @override
+  State<SimpleDemo> createState() => _SimpleDemoState();
+}
+
+class _SimpleDemoState extends State<SimpleDemo> {
   final PageFlipController _controller = PageFlipController();
   int _currentPage = 0;
 
-  // Premium sample content
   final List<Color> _pageColors = [
     Colors.teal.shade50,
     Colors.orange.shade50,
@@ -48,13 +81,7 @@ class _PageFlipDemoHomeState extends State<PageFlipDemoHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Real Page Flip Engine'),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.grey.shade200,
       body: PageFlipWidget(
         controller: _controller,
         itemCount: _pageColors.length,
@@ -62,7 +89,6 @@ class _PageFlipDemoHomeState extends State<PageFlipDemoHome> {
           backgroundColor: Colors.white,
           enableSound: true,
           enableHaptics: true,
-          // You can also pass a custom PageFlipEffectHandler() here
         ),
         onPageChanged: (index) {
           setState(() => _currentPage = index);
@@ -75,13 +101,14 @@ class _PageFlipDemoHomeState extends State<PageFlipDemoHome> {
         mainAxisSize: MainAxisSize.min,
         children: [
           FloatingActionButton.small(
-            heroTag: 'prev',
-            onPressed: _currentPage > 0 ? () => _controller.previousPage() : null,
+            heroTag: 'prev1',
+            onPressed:
+                _currentPage > 0 ? () => _controller.previousPage() : null,
             child: const Icon(Icons.arrow_back),
           ),
           const SizedBox(height: 12),
           FloatingActionButton(
-            heroTag: 'next',
+            heroTag: 'next1',
             onPressed: _currentPage < _pageColors.length - 1
                 ? () => _controller.nextPage()
                 : null,
@@ -97,7 +124,7 @@ class _PageFlipDemoHomeState extends State<PageFlipDemoHome> {
       color: _pageColors[index],
       child: Center(
         child: Column(
-          mainAxisAlignment: Main--;(MainAxisAlignment.center),
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               'Page ${index + 1}',
@@ -139,5 +166,142 @@ class _PageFlipDemoHomeState extends State<PageFlipDemoHome> {
       "Thank you for trying out Real Page Flip. We hope you build something beautiful with it!",
     ];
     return texts[index % texts.length];
+  }
+}
+
+class HeavyLoadDemo extends StatefulWidget {
+  const HeavyLoadDemo({super.key});
+
+  @override
+  State<HeavyLoadDemo> createState() => _HeavyLoadDemoState();
+}
+
+class _HeavyLoadDemoState extends State<HeavyLoadDemo> {
+  final PageFlipController _controller = PageFlipController();
+  int _currentPage = 0;
+  final int _totalPages = 10;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: PageFlipWidget(
+        controller: _controller,
+        itemCount: _totalPages,
+        config: const PageFlipConfig(
+          backgroundColor: Colors.grey,
+          enableSound: true,
+          enableHaptics: true,
+        ),
+        onPageChanged: (index) {
+          setState(() => _currentPage = index);
+        },
+        itemBuilder: (context, index) {
+          return _buildHeavyPage(index);
+        },
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'prev2',
+            backgroundColor: Colors.red.shade800,
+            onPressed:
+                _currentPage > 0 ? () => _controller.previousPage() : null,
+            child: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'next2',
+            backgroundColor: Colors.red.shade800,
+            onPressed: _currentPage < _totalPages - 1
+                ? () => _controller.nextPage()
+                : null,
+            child: const Icon(Icons.arrow_forward, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeavyPage(int index) {
+    // 50 complex cards per page to stress rendering
+    return Container(
+      color: Colors.white,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        itemCount: 50,
+        itemBuilder: (context, itemIndex) {
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            elevation: 4,
+            shadowColor: Colors.black38,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.primaries[
+                          (index + itemIndex) % Colors.primaries.length],
+                      shape: BoxShape.circle,
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(2, 2),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${index * 50 + itemIndex}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Complex Item $itemIndex',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Page $index rendering load test with intricate widget trees.',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Switch(
+                    value: itemIndex % 2 == 0,
+                    onChanged: (val) {},
+                    activeThumbColor: Colors.red,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

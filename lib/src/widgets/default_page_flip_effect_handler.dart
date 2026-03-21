@@ -10,6 +10,7 @@ import '../physics/paper_physics.dart';
 /// - Physics-based haptics: Uses [PaperPhysicsEngine] for realistic paper feel.
 /// - Zero-latency audio: Pre-fetched [AudioPlayer] with [AssetSource].
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
+  /// Initializes the default handler, immediately pre-fetching audio assets.
   DefaultPageFlipEffectHandler() {
     _initAudio();
   }
@@ -131,4 +132,14 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }
 }
 
-enum HapticImpactType { light, medium, heavy }
+/// Classifies the general intensity of discrete haptic feedback events.
+enum HapticImpactType {
+  /// Very light solitary vibration tap.
+  light,
+
+  /// Standard solitary vibration tap.
+  medium,
+
+  /// Heavy solitary vibration tap.
+  heavy
+}

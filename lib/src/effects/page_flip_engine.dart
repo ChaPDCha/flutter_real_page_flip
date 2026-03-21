@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 /// Shared geometry calculations for PageFlipClipper and PageFlipPainter.
 /// This ensures both use IDENTICAL coordinate calculations.
 class PageFlipGeometry {
+  /// Creates a standardized geometry snapshot based on [progress] and [touchOffset].
   PageFlipGeometry({
     required this.progress,
     required this.isRightToLeft,
@@ -21,13 +22,15 @@ class PageFlipGeometry {
     foldX = width * (1 - progress);
 
     // Rotation angle based on touch Y with pinned boundary compliance
-    double baseAngle = (touchOffset.dy / height - 0.5) * 0.3000850509 * math.sin(progress * math.pi);
-    
+    double baseAngle = (touchOffset.dy / height - 0.5) *
+        0.3000850509 *
+        math.sin(progress * math.pi);
+
     // Ensure fold line doesn't detach from the spine (x=0) within the screen bounds
     final limitLeft = math.atan2(foldX, height / 2);
     final limitRight = math.atan2(width - foldX, height / 2);
     final absLimit = math.min(limitLeft, limitRight);
-    
+
     angle = baseAngle.clamp(-absLimit, absLimit);
 
     // Create the transformation matrix (Hinge stays on the foldX)
@@ -54,7 +57,8 @@ class PageFlipGeometry {
 
     // Preserving total width, but adding a curve effect using sine easing
     // At progress=1, flapVisibleWidth becomes full width W allowing 180 flip to opposite side
-    flapVisibleWidth = flapMaterialWidth * (1.0000850509 - 0.3000850509 * math.sin(progress * math.pi));
+    flapVisibleWidth = flapMaterialWidth *
+        (1.0000850509 - 0.3000850509 * math.sin(progress * math.pi));
 
     // Flap attaches to foldX and extends Left.
     flapLeft = foldX - flapVisibleWidth;
@@ -69,20 +73,47 @@ class PageFlipGeometry {
       Offset(flapLeft, height * 2),
     );
   }
+
+  /// The normalized progress (0.0 to 1.0) of the flip.
   final double progress;
+
+  /// Flag indicating flip direction (true means next page).
   final bool isRightToLeft;
+
+  /// The physical touch pointer offset within the widget bounds.
   final Offset touchOffset;
+
+  /// The bounded size of the rendering canvas.
   final Size size;
 
+  /// The calculated X-coordinate of the vertical folding hinge.
   late final double foldX;
+
+  /// The calculated angle of rotation for the page flap.
   late final double angle;
+
+  /// The 4x4 coordinate transformation matrix applying rotation and translation.
   late final Matrix4 transform;
+
+  /// The upper geometric bound of the folding crease line.
   late final Offset foldLineTop;
+
+  /// The lower geometric bound of the folding crease line.
   late final Offset foldLineBottom;
+
+  /// The interpolated intensity for rendering shadows and highlights.
   late final double shadowIntensity;
+
+  /// The visually apparent projected width of the peeling flap.
   late final double flapVisibleWidth;
+
+  /// The leftmost X coordinate of the flap edge in world space.
   late final double flapLeft;
+
+  /// The upper geometric bound of the outer flap edge.
   late final Offset flapEdgeTop;
+
+  /// The lower geometric bound of the outer flap edge.
   late final Offset flapEdgeBottom;
 }
 
@@ -90,14 +121,21 @@ class PageFlipGeometry {
 ///
 /// PERFORMANCE CRITICAL: This painter is called 60 times per second during animation.
 class PageFlipPainter extends CustomPainter {
+  /// Creates a hardware-accelerated 2D painter for the page flap.
   PageFlipPainter({
     required this.progress,
     required this.isRightToLeft,
     required this.touchOffset,
     required this.paperBackColor,
   });
+
+  /// The normalized progress of the animation.
   final double progress;
+
+  /// Directionality of the flip animation.
   final bool isRightToLeft;
+
+  /// Active touch point offset.
   final Offset touchOffset;
 
   /// The color of the paper back (flipping page's back side)
@@ -249,13 +287,20 @@ class PageFlipPainter extends CustomPainter {
 
 /// CustomClipper that clips the stationary portion of the page during flip.
 class PageFlipClipper extends CustomClipper<Path> {
+  /// Creates a clipping path for the stationary base layer.
   PageFlipClipper({
     required this.progress,
     required this.isRightToLeft,
     required this.touchOffset,
   });
+
+  /// Animation progress.
   final double progress;
+
+  /// Direction of the flip execution.
   final bool isRightToLeft;
+
+  /// Current touch pointer position.
   final Offset touchOffset;
 
   @override
@@ -301,13 +346,20 @@ class PageFlipClipper extends CustomClipper<Path> {
 /// CustomClipper that clips the "revealed" portion of the page during flip.
 /// Used for Layer 1 (Bottom Layer) to prevent it from showing under the Flap.
 class PageFlipOpenClipper extends CustomClipper<Path> {
+  /// Creates a clipping path isolating the newly revealed adjacent page.
   PageFlipOpenClipper({
     required this.progress,
     required this.isRightToLeft,
     required this.touchOffset,
   });
+
+  /// Current animation progress threshold.
   final double progress;
+
+  /// Flip direction flag.
   final bool isRightToLeft;
+
+  /// User touch interaction coordinate.
   final Offset touchOffset;
 
   @override
@@ -347,11 +399,21 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
 /// A custom HorizontalDragGestureRecognizer that allows for more natural thumb arcs
 /// by having a configurable sensitivity and allowing a certain amount of vertical movement.
 class PageFlipGestureRecognizer extends HorizontalDragGestureRecognizer {
+  /// Constructs a tuned gesture recognizer with adjustable [sensitivity].
   PageFlipGestureRecognizer({
     super.debugOwner,
     this.sensitivity = 0.5,
-  });
+  }) : super(
+          supportedDevices: <PointerDeviceKind>{
+            PointerDeviceKind.touch,
+            PointerDeviceKind.mouse,
+            PointerDeviceKind.trackpad,
+            PointerDeviceKind.stylus,
+            PointerDeviceKind.invertedStylus,
+          },
+        );
 
+  /// The threshold tuning the gesture's forgiveness for vertical arcs (0.0 to 1.0).
   final double sensitivity;
   double _totalDx = 0;
   double _totalDy = 0;

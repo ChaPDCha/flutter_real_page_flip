@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 /// - 드래그(onPan)로 전환 시 피드백 취소 (onTapCancel)
 /// - 테마(Dark/Light)에 따른 적응형 그라데이션
 class EdgeTapFeedback extends StatefulWidget {
+  /// Creates an adaptive edge tap hint zone with specified dimensions.
   const EdgeTapFeedback({
     Key? key,
     required this.onTap,
@@ -15,10 +16,19 @@ class EdgeTapFeedback extends StatefulWidget {
     this.hint,
   }) : super(key: key);
 
+  /// Callback to execute when a successful tap resolves.
   final VoidCallback onTap;
+
+  /// Whether this tap zone is located on the left edge.
   final bool isLeftEdge;
+
+  /// Physical width dimension of the active tap zone.
   final double width;
+
+  /// Semantic label for screen readers.
   final String? label;
+
+  /// Semantic hint explaining the action for screen readers.
   final String? hint;
 
   @override
