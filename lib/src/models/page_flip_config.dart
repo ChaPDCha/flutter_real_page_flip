@@ -8,7 +8,6 @@ class PageFlipConfig {
     this.duration = const Duration(milliseconds: 450),
     this.cutoffForward = 0.8,
     this.cutoffPrevious = 0.1,
-    this.cutoffPrevious = 0.1,
     this.maxDragDistance,
     this.backgroundColor = Colors.white,
     this.isRightSwipe = false,
