@@ -1,48 +1,68 @@
-/// Types of distinct friction feedback events.
-enum StickSlipEventType {
-  /// No notable friction change.
-  none,
+/// Defines the type of friction-related events produced by the [StickSlipController].
+sealed class StickSlipEvent {
+  const StickSlipEvent();
 
-  /// A sudden slip release of built-up static friction energy.
-  slipRelease,
+  /// No significant friction state change.
+  const factory StickSlipEvent.none() = _NoneEvent;
 
-  /// A minor fluctuation in dynamic friction.
-  microSlip,
+  /// Transition from stick (stationary) to slip (moving).
+  const factory StickSlipEvent.slip() = _SlipEvent;
+
+  /// Micro-vibration event caused by slip instability.
+  const factory StickSlipEvent.microSlip({required double intensity}) =
+      _MicroSlipEvent;
+
+  /// Sudden energy release when a stick condition breaks.
+  const factory StickSlipEvent.slipRelease({required double intensity}) =
+      _SlipReleaseEvent;
+
+  /// Transition from slip (moving) back to stick (stationary).
+  const factory StickSlipEvent.stick() = _StickEvent;
+
+  double get amplitude => switch (this) {
+        _NoneEvent() => 0.0,
+        _SlipEvent() => 0.4,
+        _MicroSlipEvent(intensity: final i) => i,
+        _SlipReleaseEvent(intensity: final i) => i,
+        _StickEvent() => 0.05,
+      };
 }
 
-/// Describes an asynchronous friction event in the page flip engine.
-class StickSlipEvent {
-  const StickSlipEvent._(this.type, this.intensity);
+class _NoneEvent extends StickSlipEvent {
+  const _NoneEvent();
+}
 
-  /// Creates a [StickSlipEventType.slipRelease] event.
-  factory StickSlipEvent.slipRelease({required double intensity}) =>
-      StickSlipEvent._(StickSlipEventType.slipRelease, intensity);
+class _SlipEvent extends StickSlipEvent {
+  const _SlipEvent();
+}
 
-  /// Creates a [StickSlipEventType.microSlip] event.
-  factory StickSlipEvent.microSlip({required double intensity}) =>
-      StickSlipEvent._(StickSlipEventType.microSlip, intensity);
-
-  /// An empty stick-slip event.
-  static const none = StickSlipEvent._(StickSlipEventType.none, 0);
-
-  /// The designated category of friction release.
-  final StickSlipEventType type;
-
-  /// The modeled intensity (0.0 to 1.0) of the friction release.
+class _MicroSlipEvent extends StickSlipEvent {
   final double intensity;
+  const _MicroSlipEvent({required this.intensity});
 }
 
-/// A specialized controller for modeling Stribeck curve dry friction.
-class StickSlipController {
-  /// Defines parameters mapping velocity changes into sensory feedback events.
-  StickSlipController({
-    int stationaryThresholdMs = 50,
-    double slipVelocityThreshold = 0.02,
-  })  : _stationaryThresholdMs = stationaryThresholdMs,
-        _slipVelocityThreshold = slipVelocityThreshold;
+class _SlipReleaseEvent extends StickSlipEvent {
+  final double intensity;
+  const _SlipReleaseEvent({required this.intensity});
+}
 
-  int _stationaryThresholdMs;
-  double _slipVelocityThreshold;
+class _StickEvent extends StickSlipEvent {
+  const _StickEvent();
+}
+
+/// A specialized controller for simulating stick-slip friction oscillations.
+///
+/// Models the accumulation of elastic energy during "stick" phases and the
+/// sudden release of that energy during "slip" transitions.
+class StickSlipController {
+  bool _initialized = false;
+  bool _wasStationary = true;
+  double _lastVelocity = 0;
+  double _stickEnergy = 0;
+  int _lastMoveTimeMs = DateTime.now().millisecondsSinceEpoch;
+
+  int _stationaryThresholdMs = 50;
+  double _slipVelocityThreshold = 0.05;
 
   /// Time limit before zero-velocity qualifies as strongly adhered stiction.
   set stationaryThresholdMs(int value) => _stationaryThresholdMs = value;
@@ -50,61 +70,62 @@ class StickSlipController {
   /// Point at which sliding becomes continuous.
   set slipVelocityThreshold(double value) => _slipVelocityThreshold = value;
 
-  bool _initialized = false;
-  bool _wasStationary = true;
-  double _lastVelocity = 0;
-  double _stickEnergy = 0;
-  DateTime _lastMoveTime = DateTime.now();
-
   /// Ticks the internal simulation according to the instantaneous [velocity].
-  StickSlipEvent update(double velocity) {
-    final now = DateTime.now();
-    final dt = now.difference(_lastMoveTime).inMilliseconds;
+  /// [timestampMs] allows callers to inject a monotonic timestamp for
+  /// deterministic testing and to avoid DateTime.now() jitter.
+  StickSlipEvent update(double velocity, {int? timestampMs}) {
+    final now = timestampMs ?? DateTime.now().millisecondsSinceEpoch;
+    final dt = (now - _lastMoveTimeMs).clamp(1, 100);
 
     if (!_initialized) {
       _initialized = true;
       _lastVelocity = velocity;
-      _lastMoveTime = now;
+      _lastMoveTimeMs = now;
       _wasStationary = velocity < _slipVelocityThreshold;
-      return StickSlipEvent.none;
+      return const StickSlipEvent.none();
     }
+
+    final accel = (velocity - _lastVelocity).abs();
 
     if (velocity < _slipVelocityThreshold) {
-      if (dt > _stationaryThresholdMs) {
-        _wasStationary = true;
+      if (!_wasStationary) {
+        if (dt > _stationaryThresholdMs) {
+          _wasStationary = true;
+          _stickEnergy = 0.0;
+        }
+      } else {
         _stickEnergy = (_stickEnergy + dt * 0.001).clamp(0.0, 1.0);
       }
-      _lastMoveTime = now;
+      _lastMoveTimeMs = now;
       _lastVelocity = velocity;
-      return StickSlipEvent.none;
+      return const StickSlipEvent.none();
     }
 
-    if (_wasStationary && velocity > _slipVelocityThreshold) {
+    if (_wasStationary) {
       _wasStationary = false;
       final releaseEnergy = _stickEnergy;
       _stickEnergy = 0.0;
       _lastVelocity = velocity;
-      _lastMoveTime = now;
+      _lastMoveTimeMs = now;
       return StickSlipEvent.slipRelease(intensity: releaseEnergy);
     }
 
-    final accel = (velocity - _lastVelocity).abs();
     _lastVelocity = velocity;
-    _lastMoveTime = now;
+    _lastMoveTimeMs = now;
 
     if (accel > 0.15) {
       return StickSlipEvent.microSlip(intensity: (accel * 2).clamp(0.0, 0.6));
     }
 
-    return StickSlipEvent.none;
+    return const StickSlipEvent.none();
   }
 
-  /// Clears friction constraints and energy accumulators back to baseline.
+  /// Resets the controller state.
   void reset() {
     _initialized = false;
     _wasStationary = true;
     _lastVelocity = 0.0;
     _stickEnergy = 0.0;
-    _lastMoveTime = DateTime.now();
+    _lastMoveTimeMs = DateTime.now().millisecondsSinceEpoch;
   }
 }

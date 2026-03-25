@@ -123,8 +123,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
 
     // Initialize Effect Handler
-    _effectHandler =
-        widget.config.effectHandler ?? DefaultPageFlipEffectHandler();
+    _effectHandler = widget.config.effectHandler ??
+        DefaultPageFlipEffectHandler(
+          screenWidth: _controller.cachedWidth,
+        );
 
     // Initial pre-render snapshots (requires layout to be complete)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -144,8 +146,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // Update effect handler if changed in config
     if (widget.config.effectHandler != oldWidget.config.effectHandler) {
       _effectHandler.dispose();
-      _effectHandler =
-          widget.config.effectHandler ?? DefaultPageFlipEffectHandler();
+      _effectHandler = widget.config.effectHandler ??
+          DefaultPageFlipEffectHandler(
+            screenWidth: _controller.cachedWidth,
+          );
     }
 
     // Redraw if content or count changes
@@ -271,6 +275,12 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     return LayoutBuilder(
       builder: (context, constraints) {
         _controller.updateCachedWidth(constraints.maxWidth);
+
+        // Sync screen width to effect handler for physics normalization
+        if (_effectHandler is DefaultPageFlipEffectHandler) {
+          (_effectHandler as DefaultPageFlipEffectHandler).screenWidth =
+              constraints.maxWidth;
+        }
 
         // Single constraint gate: prevent unbounded height/width from propagating
         // (e.g. Scaffold body first frame, Stack without bounded parent).

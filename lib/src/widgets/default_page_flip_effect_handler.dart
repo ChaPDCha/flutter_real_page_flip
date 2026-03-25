@@ -11,12 +11,15 @@ import '../physics/paper_physics.dart';
 /// - Zero-latency audio: Pre-fetched [AudioPlayer] with [AssetSource].
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   /// Initializes the default handler, immediately pre-fetching audio assets.
-  DefaultPageFlipEffectHandler() {
+  DefaultPageFlipEffectHandler({this.screenWidth = 400.0}) {
     _initAudio();
   }
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _audioReady = false;
+
+  /// Reference screen width for physics normalization.
+  double screenWidth;
 
   /// Cache of physics engines per page to ensure consistent texture per page.
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
@@ -83,11 +86,10 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       () => PaperPhysicsEngine(pageNumber: pageIndex),
     );
 
-    // Calculate frame (dx is approximated from intensity for now)
     final frame = engine.calculate(
-      dx: velocityIntensity.toDouble() * 0.1,
-      foldAngle: texture, // map texture param to fold angle for resistance calc
-      screenWidth: 400, // standard reference
+      dx: resistance,
+      foldAngle: texture,
+      screenWidth: screenWidth,
     );
 
     // Execute via Vibration for granular control

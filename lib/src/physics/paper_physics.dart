@@ -11,10 +11,7 @@ class PaperPhysicsEngine {
     required int pageNumber,
     this.config = PaperPhysicsConfig.standard,
   })  : _textureNoise = PaperTextureNoise(seed: pageNumber),
-        _stickSlip = StickSlipController(
-          stationaryThresholdMs: config.stationaryThresholdMs,
-          slipVelocityThreshold: config.slipVelocityThreshold,
-        );
+        _stickSlip = StickSlipController();
   final PaperTextureNoise _textureNoise;
   final StickSlipController _stickSlip;
 
@@ -32,10 +29,11 @@ class PaperPhysicsEngine {
   }) {
     final activeConfig = customConfig ?? config;
 
-    final normalizedDx = dx.abs() / screenWidth;
-    final velocity = (normalizedDx * 10).clamp(0.0, 1.0);
+    // Preserve direction: dragging back should revisit same texture positions
+    final normalizedDx = dx / screenWidth;
+    final velocityAbs = normalizedDx.abs() * 10;
 
-    _accumulatedDistance += normalizedDx;
+    _accumulatedDistance += normalizedDx; // Signed — allows bidirectional texture
 
     final texture = _textureNoise.paperTextureFromConfig(
       position: _accumulatedDistance,
@@ -52,7 +50,7 @@ class PaperPhysicsEngine {
     );
 
     final friction = PaperResistanceModel.frictionCoefficient(
-      velocity: velocity,
+      velocity: velocityAbs.clamp(0.0, 1.0),
       muStatic: activeConfig.muStatic,
       muKinetic: activeConfig.muKinetic,
       stribeckV0: activeConfig.stribeckV0,
@@ -60,10 +58,10 @@ class PaperPhysicsEngine {
 
     _stickSlip.stationaryThresholdMs = activeConfig.stationaryThresholdMs;
     _stickSlip.slipVelocityThreshold = activeConfig.slipVelocityThreshold;
-    final stickSlipEvent = _stickSlip.update(velocity);
+    final stickSlipEvent = _stickSlip.update(velocityAbs);
 
     final amplitude = PaperResistanceModel.hapticAmplitude(
-      velocity: velocity,
+      velocity: velocityAbs,
       friction: friction,
       texture: texture,
       resistance: resistance,
@@ -76,7 +74,7 @@ class PaperPhysicsEngine {
       maxDurationMs: activeConfig.maxDurationMs,
     );
 
-    final sharpness = (velocity * 0.5 + texture * 0.4 + 0.1).clamp(0.0, 1.0);
+    final sharpness = (velocityAbs * 0.5 + texture * 0.4 + 0.1).clamp(0.0, 1.0);
 
     return PaperPhysicsFrame(
       amplitude: amplitude,

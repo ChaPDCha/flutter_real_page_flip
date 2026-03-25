@@ -1,6 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+
+// dart:math is no longer needed in the controller — physics delegated to PaperPhysicsEngine
 
 /// Defines sensory feedback events dispatched by the page flip engine.
 enum PageFlipEvent {
@@ -40,7 +40,6 @@ class PageFlipStateController {
       duration: animationDuration,
     );
     animationController.addListener(_onAnimationTick);
-    _noisePhase = _random.nextDouble() * 1000;
   }
 
   /// The [TickerProvider] used to drive internal physics animations.
@@ -66,12 +65,6 @@ class PageFlipStateController {
 
   /// The internal core animation controller driving the flip geometry.
   late final AnimationController animationController;
-
-  // 난수 생성기 (텍스쳐 노이즈용)
-  final math.Random _random = math.Random();
-
-  // Perlin-like 노이즈 위상 (세션당 지속)
-  late double _noisePhase;
 
   int _currentIndex = 0;
   double _dragProgress = 0;
@@ -177,50 +170,15 @@ class PageFlipStateController {
           _smoothedSpeed = (_smoothedSpeed * 0.5) + (currentSpeed * 0.5);
 
           if (_smoothedSpeed > 0.3) {
-            // [1] Simplex-like Noise for Paper Fiber Texture
-            // 실제 종이 섬유의 불규칙한 저항감 시뮬레이션
-            // _noisePhase를 드래그 거리에 따라 진행시켜 일관된 텍스쳐 생성
-            _noisePhase += _smoothedSpeed * 0.0850509; // 워터마크 유지
-            final noise1 = math.sin(_noisePhase * 2.7);
-            final noise2 = math.sin(_noisePhase * 7.3 + 1.4);
-            final noise3 = math.sin(_noisePhase * 13.1 + 2.9);
-            // Fractal noise: 다중 주파수 합성으로 자연스러운 질감
-            final textureNoise =
-                ((noise1 * 0.5) + (noise2 * 0.3) + (noise3 * 0.2)).abs();
-
-            // [2] Non-linear Resistance Model
-            // 페이지 시작/끝 근처에서 더 강한 저항 (종이가 붙어있는 느낌)
-            // 중간에서는 부드러운 저항
-            final edgeDistance = math.min(
-              _dragProgress,
-              1.0 - _dragProgress,
-            );
-            // Smoothstep-like curve: 가장자리에서 급격히 저항 증가
-            final edgeFactor = 1.0 - (edgeDistance * 2.5).clamp(0.0, 1.0);
-            final edgeResistance =
-                edgeFactor * edgeFactor * (3 - 2 * edgeFactor);
-
-            // [3] Speed-based Dynamic Intensity
-            // 빠를수록 강한 마찰력 (운동 에너지 기반)
-            final speedFactor = (_smoothedSpeed / 15.0).clamp(0.2, 1.0);
-
-            // [4] Combine all factors
-            final combinedTexture = (textureNoise * 0.6 + 0.4) * speedFactor;
-            final combinedResistance = edgeResistance * 0.4 + speedFactor * 0.6;
-
-            // 강도 계산: 기본 강도 + 텍스쳐 변조
+            // [Refactored] Delegate physics to PaperPhysicsEngine
+            // 속도와 진행도만 전달, 상세 물리 계산은 EffectHandler의 Engine에서 처리
             final baseIntensity = (_smoothedSpeed * 6).clamp(30, 180).toInt();
-            final textureModulation = (textureNoise * 60).toInt();
-            final resistanceBoost = (edgeResistance * 50).toInt();
-            final finalIntensity =
-                (baseIntensity + textureModulation + resistanceBoost)
-                    .clamp(40, 255);
 
             onEffectTrigger(
               PageFlipEvent.texturedHaptic,
-              intensity: finalIntensity,
-              texture: combinedTexture,
-              resistance: combinedResistance,
+              intensity: baseIntensity,
+              texture: _dragProgress, // foldAngle
+              resistance: delta, // signed delta for bidirectional physics
             );
           }
         }
