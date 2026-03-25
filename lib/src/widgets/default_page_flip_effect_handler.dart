@@ -42,6 +42,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     double? volume,
     double? texture,
     double? resistance,
+    int? timestampMs,
   }) {
     switch (event) {
       case PageFlipEvent.startHaptic:
@@ -51,6 +52,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         Vibration.cancel();
         if (pageIndex != null) {
           _physicsEngines[pageIndex]?.reset();
+          _evictStaleEngines(pageIndex);
         }
         break;
       case PageFlipEvent.impulseHaptic:
@@ -64,6 +66,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
             velocityIntensity: intensity ?? 60,
             texture: texture,
             resistance: resistance ?? 0.5,
+            timestampMs: timestampMs,
           );
         } else {
           _triggerImpact(HapticImpactType.light);
@@ -80,6 +83,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     required int velocityIntensity,
     required double texture,
     required double resistance,
+    int? timestampMs,
   }) {
     final engine = _physicsEngines.putIfAbsent(
       pageIndex,
@@ -90,6 +94,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       dx: resistance,
       foldAngle: texture,
       screenWidth: screenWidth,
+      timestampMs: timestampMs,
     );
 
     // Execute via Vibration for granular control
@@ -103,6 +108,14 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         HapticFeedback.selectionClick();
       }
     });
+  }
+
+  /// Evicts physics engines for pages far from [currentPageIndex].
+  /// Keeps only pages within ±2 of the current page to prevent memory leaks.
+  void _evictStaleEngines(int currentPageIndex) {
+    _physicsEngines.removeWhere(
+      (key, _) => (key - currentPageIndex).abs() > 2,
+    );
   }
 
   void _triggerImpact(HapticImpactType type) {

@@ -23,6 +23,7 @@ class PaperPhysicsEngine {
     required double dx,
     required double foldAngle,
     double screenWidth = 1.0,
+    int? timestampMs,
     PaperPhysicsConfig? customConfig,
   }) {
     final activeConfig = customConfig ?? config;
@@ -57,7 +58,7 @@ class PaperPhysicsEngine {
 
     _stickSlip.stationaryThresholdMs = activeConfig.stationaryThresholdMs;
     _stickSlip.slipVelocityThreshold = activeConfig.slipVelocityThreshold;
-    final stickSlipEvent = _stickSlip.update(velocityAbs);
+    final stickSlipEvent = _stickSlip.update(velocityAbs, timestampMs: timestampMs);
 
     final amplitude = PaperResistanceModel.hapticAmplitude(
       velocity: velocityAbs,

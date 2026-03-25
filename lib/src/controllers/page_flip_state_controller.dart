@@ -61,6 +61,7 @@ class PageFlipStateController {
     double? volume,
     double? texture,
     double? resistance,
+    int? timestampMs,
   }) onEffectTrigger;
 
   /// The internal core animation controller driving the flip geometry.
@@ -128,6 +129,8 @@ class PageFlipStateController {
     _isDragging = false;
     _dragProgress = 0.0;
     _hasPlayedSound = false;
+    _hapticFrameCounter = 0;
+    _smoothedSpeed = 0.0;
     
     // Clear the engine for this page
     onEffectTrigger(PageFlipEvent.startHaptic, pageIndex: _currentIndex);
@@ -192,6 +195,7 @@ class PageFlipStateController {
               texture: _dragProgress, // foldAngle
               resistance: delta, // signed delta for bidirectional physics
               pageIndex: _currentIndex, // CRITICAL: Identify which page's physics engine to run!
+              timestampMs: details.sourceTimeStamp?.inMilliseconds,
             );
           }
         }

@@ -11,7 +11,8 @@ class NoOpPageFlipEffectHandler implements PageFlipEffectHandler {
       int? intensity,
       double? volume,
       double? texture,
-      double? resistance}) {}
+      double? resistance,
+      int? timestampMs}) {}
   @override
   void dispose() {}
 }

@@ -76,6 +76,7 @@ class PageFlipWidget extends StatefulWidget {
     double? volume,
     double? texture,
     double? resistance,
+    int? timestampMs,
   })? onHandleEffect;
 
   /// Creates a [PageFlipWidget] with realistic Physics and effects.
@@ -208,6 +209,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     double? volume,
     double? texture,
     double? resistance,
+    int? timestampMs,
   }) {
     if (widget.onHandleEffect != null) {
       widget.onHandleEffect!(
@@ -217,6 +219,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         volume: volume,
         texture: texture,
         resistance: resistance,
+        timestampMs: timestampMs,
       );
       return;
     }
@@ -234,6 +237,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       volume: volume,
       texture: texture,
       resistance: resistance,
+      timestampMs: timestampMs,
     );
   }
 
