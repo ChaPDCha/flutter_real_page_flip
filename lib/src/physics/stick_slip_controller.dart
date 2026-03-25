@@ -1,3 +1,21 @@
+/// Types of distinct friction feedback events.
+enum StickSlipEventType {
+  /// No notable friction change.
+  none,
+
+  /// Shift from stick state to slip state.
+  slip,
+
+  /// A sudden slip release of built-up static friction energy.
+  slipRelease,
+
+  /// A minor fluctuation in dynamic friction.
+  microSlip,
+
+  /// Shift from slip state back to stationary stick.
+  stick,
+}
+
 /// Defines the type of friction-related events produced by the [StickSlipController].
 sealed class StickSlipEvent {
   const StickSlipEvent();
@@ -19,6 +37,12 @@ sealed class StickSlipEvent {
   /// Transition from slip (moving) back to stick (stationary).
   const factory StickSlipEvent.stick() = _StickEvent;
 
+  /// The designated category of friction release.
+  StickSlipEventType get type;
+
+  /// The modeled intensity (0.0 to 1.0) of the friction release.
+  double get intensity;
+
   /// Returns the simulated vibration amplitude (0.0 to 1.0) for this event.
   double get amplitude => switch (this) {
         _NoneEvent() => 0.0,
@@ -31,24 +55,42 @@ sealed class StickSlipEvent {
 
 class _NoneEvent extends StickSlipEvent {
   const _NoneEvent();
+  @override
+  StickSlipEventType get type => StickSlipEventType.none;
+  @override
+  double get intensity => 0.0;
 }
 
 class _SlipEvent extends StickSlipEvent {
   const _SlipEvent();
+  @override
+  StickSlipEventType get type => StickSlipEventType.slip;
+  @override
+  double get intensity => 0.4;
 }
 
 class _MicroSlipEvent extends StickSlipEvent {
+  @override
   final double intensity;
   const _MicroSlipEvent({required this.intensity});
+  @override
+  StickSlipEventType get type => StickSlipEventType.microSlip;
 }
 
 class _SlipReleaseEvent extends StickSlipEvent {
+  @override
   final double intensity;
   const _SlipReleaseEvent({required this.intensity});
+  @override
+  StickSlipEventType get type => StickSlipEventType.slipRelease;
 }
 
 class _StickEvent extends StickSlipEvent {
   const _StickEvent();
+  @override
+  StickSlipEventType get type => StickSlipEventType.stick;
+  @override
+  double get intensity => 0.05;
 }
 
 /// A specialized controller for simulating stick-slip friction oscillations.
