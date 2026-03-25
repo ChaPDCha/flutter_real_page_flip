@@ -57,6 +57,7 @@ class PageFlipStateController {
   /// Callback fired when the physics engine determines a sensory effect should occur.
   final Function(
     PageFlipEvent effect, {
+    int? pageIndex,
     int? intensity,
     double? volume,
     double? texture,
@@ -128,6 +129,10 @@ class PageFlipStateController {
     _isDragging = false;
     _dragProgress = 0.0;
     _hasPlayedSound = false;
+    
+    // Clear the engine for this page
+    onEffectTrigger(PageFlipEvent.startHaptic, pageIndex: _currentIndex);
+    
     onUpdate();
   }
 
@@ -148,7 +153,8 @@ class PageFlipStateController {
         return;
       }
       final startIntensity = (delta.abs() * 5).clamp(10, 80).toInt();
-      onEffectTrigger(PageFlipEvent.startHaptic, intensity: startIntensity);
+      // Ensure pageIndex is passed so DefaultPageFlipEffectHandler can use the Physics engine
+      onEffectTrigger(PageFlipEvent.startHaptic, intensity: startIntensity, pageIndex: _currentIndex);
     }
 
     if (_isDragging) {
@@ -179,6 +185,7 @@ class PageFlipStateController {
               intensity: baseIntensity,
               texture: _dragProgress, // foldAngle
               resistance: delta, // signed delta for bidirectional physics
+              pageIndex: _currentIndex, // CRITICAL: Identify which page's physics engine to run!
             );
           }
         }
@@ -187,7 +194,7 @@ class PageFlipStateController {
         if (_dragProgress > 0.1 && !_hasPlayedSound) {
           final flipSpeed = delta.abs();
           final dynamicVolume = (flipSpeed / 50.0).clamp(0.1, 1.0);
-          onEffectTrigger(PageFlipEvent.sound, volume: dynamicVolume);
+          onEffectTrigger(PageFlipEvent.sound, volume: dynamicVolume, pageIndex: _currentIndex);
           _hasPlayedSound = true;
         }
       }
@@ -247,8 +254,8 @@ class PageFlipStateController {
 
     animationController.stop();
     animationController.value = 0.0;
-    onEffectTrigger(PageFlipEvent.sound);
-    onEffectTrigger(PageFlipEvent.impulseHaptic);
+    onEffectTrigger(PageFlipEvent.sound, pageIndex: _currentIndex);
+    onEffectTrigger(PageFlipEvent.impulseHaptic, pageIndex: _currentIndex);
 
     animationController
         .animateTo(
@@ -260,6 +267,9 @@ class PageFlipStateController {
   }
 
   void _finalizePageChange(bool success, int totalPages) {
+    // Determine the page that was being interacted with BEFORE any index shift
+    final actingPageIndex = _currentIndex;
+
     if (success) {
       if (_isForward) {
         _currentIndex++;
@@ -274,7 +284,7 @@ class PageFlipStateController {
           ? (_lastReleaseVelocity / 4).clamp(15.0, 120.0).toInt()
           : 60; // Default noticeable intensity
 
-      onEffectTrigger(PageFlipEvent.impulseHaptic, intensity: impulseIntensity);
+      onEffectTrigger(PageFlipEvent.impulseHaptic, intensity: impulseIntensity, pageIndex: actingPageIndex);
     }
 
     _lastReleaseVelocity = 0.0;
@@ -282,7 +292,7 @@ class PageFlipStateController {
     animationController.value = 0.0;
     _isDragging = false;
     _hasPlayedSound = false;
-    onEffectTrigger(PageFlipEvent.stopHaptic);
+    onEffectTrigger(PageFlipEvent.stopHaptic, pageIndex: actingPageIndex);
     onUpdate();
   }
 

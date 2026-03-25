@@ -14,7 +14,7 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect, {intensity, volume, texture, resistance}) {},
+        onEffectTrigger: (effect, {pageIndex, intensity, volume, texture, resistance}) {},
       );
 
       expect(controller.currentIndex, 0);
@@ -32,7 +32,7 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect, {intensity, volume, texture, resistance}) {},
+        onEffectTrigger: (effect, {pageIndex, intensity, volume, texture, resistance}) {},
       );
 
       controller.setIndex(5, 10);
@@ -57,7 +57,7 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect, {intensity, volume, texture, resistance}) {
+        onEffectTrigger: (effect, {pageIndex, intensity, volume, texture, resistance}) {
           effects.add(effect);
         },
       );
@@ -91,7 +91,7 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect, {intensity, volume, texture, resistance}) {
+        onEffectTrigger: (effect, {pageIndex, intensity, volume, texture, resistance}) {
           // texturedHaptic uses texture/resistance
           if (effect == PageFlipEvent.texturedHaptic && intensity != null) {
             intensities.add(intensity);

@@ -1,0 +1,9 @@
+Analyzing flutter_real_page_flip...
+
+  error - lib\src\page_flip_widget.dart:120:24 - The argument type 'void Function(PageFlipEvent, {int? intensity, double? resistance, double? texture, double? volume})' can't be assigned to the parameter type 'dynamic Function(PageFlipEvent, {int? intensity, int? pageIndex, double? resistance, double? texture, double? volume})'.  - argument_type_not_assignable
+  error - test\controllers\page_flip_state_controller_test.dart:17:26 - The argument type 'Null Function(PageFlipEvent, {int? intensity, double? resistance, double? texture, double? volume})' can't be assigned to the parameter type 'dynamic Function(PageFlipEvent, {int? intensity, int? pageIndex, double? resistance, double? texture, double? volume})'.  - argument_type_not_assignable
+  error - test\controllers\page_flip_state_controller_test.dart:35:26 - The argument type 'Null Function(PageFlipEvent, {int? intensity, double? resistance, double? texture, double? volume})' can't be assigned to the parameter type 'dynamic Function(PageFlipEvent, {int? intensity, int? pageIndex, double? resistance, double? texture, double? volume})'.  - argument_type_not_assignable
+  error - test\controllers\page_flip_state_controller_test.dart:60:26 - The argument type 'Null Function(PageFlipEvent, {int? intensity, double? resistance, double? texture, double? volume})' can't be assigned to the parameter type 'dynamic Function(PageFlipEvent, {int? intensity, int? pageIndex, double? resistance, double? texture, double? volume})'.  - argument_type_not_assignable
+  error - test\controllers\page_flip_state_controller_test.dart:94:26 - The argument type 'Null Function(PageFlipEvent, {int? intensity, double? resistance, double? texture, double? volume})' can't be assigned to the parameter type 'dynamic Function(PageFlipEvent, {int? intensity, int? pageIndex, double? resistance, double? texture, double? volume})'.  - argument_type_not_assignable
+
+5 issues found.

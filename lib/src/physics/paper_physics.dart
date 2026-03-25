@@ -18,8 +18,6 @@ class PaperPhysicsEngine {
   /// The active configuration defining tuning parameters.
   final PaperPhysicsConfig config;
 
-  double _accumulatedDistance = 0;
-
   /// Calculates the current physical forces based on drag kinematics.
   PaperPhysicsFrame calculate({
     required double dx,
@@ -29,14 +27,15 @@ class PaperPhysicsEngine {
   }) {
     final activeConfig = customConfig ?? config;
 
-    // Preserve direction: dragging back should revisit same texture positions
+    // Preserving kinetic velocity mapping for friction logic
     final normalizedDx = dx / screenWidth;
     final velocityAbs = normalizedDx.abs() * 10;
 
-    _accumulatedDistance += normalizedDx; // Signed — allows bidirectional texture
-
+    // Use absolute spatial position (foldAngle) instead of accumulated delta
+    // This perfectly binds the texture feeling to the physical pixel location on the screen,
+    // avoiding floating-point drift and remaining synced even if snap animations occur.
     final texture = _textureNoise.paperTextureFromConfig(
-      position: _accumulatedDistance,
+      position: foldAngle,
       persistence: activeConfig.perlinPersistence,
       octaves: activeConfig.perlinOctaves,
       baseFrequency: activeConfig.perlinBaseFreq,
@@ -89,7 +88,6 @@ class PaperPhysicsEngine {
 
   /// Resets internal accumulators and physics state logic.
   void reset() {
-    _accumulatedDistance = 0.0;
     _stickSlip.reset();
   }
 }

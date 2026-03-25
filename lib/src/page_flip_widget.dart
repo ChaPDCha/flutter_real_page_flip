@@ -71,6 +71,7 @@ class PageFlipWidget extends StatefulWidget {
   /// Callback to intercept and handle sensory effects (sound/haptics) manually.
   final void Function(
     PageFlipEvent effect, {
+    int? pageIndex,
     int? intensity,
     double? volume,
     double? texture,
@@ -202,6 +203,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   void _handleEffect(
     PageFlipEvent effect, {
+    int? pageIndex,
     int? intensity,
     double? volume,
     double? texture,
@@ -210,6 +212,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     if (widget.onHandleEffect != null) {
       widget.onHandleEffect!(
         effect,
+        pageIndex: pageIndex ?? _controller.currentIndex,
         intensity: intensity,
         volume: volume,
         texture: texture,
@@ -226,7 +229,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
     _effectHandler.onHandleEffect(
       effect,
-      pageIndex: _controller.currentIndex,
+      pageIndex: pageIndex ?? _controller.currentIndex,
       intensity: intensity,
       volume: volume,
       texture: texture,
