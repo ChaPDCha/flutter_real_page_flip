@@ -277,6 +277,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // Update cached width for controller logic
     return LayoutBuilder(
       builder: (context, constraints) {
+        _controller.setMaxDragDistance(widget.config.maxDragDistance);
         _controller.updateCachedWidth(constraints.maxWidth);
 
         // Sync screen width to effect handler for physics normalization

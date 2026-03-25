@@ -8,6 +8,8 @@ class PageFlipConfig {
     this.duration = const Duration(milliseconds: 450),
     this.cutoffForward = 0.8,
     this.cutoffPrevious = 0.1,
+    this.cutoffPrevious = 0.1,
+    this.maxDragDistance,
     this.backgroundColor = Colors.white,
     this.isRightSwipe = false,
     this.enableSwipe = true,
@@ -44,6 +46,11 @@ class PageFlipConfig {
   /// Cutoff point for previous flip (0.0 to 1.0).
   /// Reserved for future per-direction threshold; see [cutoffForward].
   final double cutoffPrevious;
+
+  /// The maximum physical logical pixels required to complete a full page swipe.
+  /// If null, defaults to the full width of the widget.
+  /// Setting this improves ergonomics on very wide screens (e.g. tablets).
+  final double? maxDragDistance;
 
   /// Background color of the page.
   final Color backgroundColor;
@@ -89,6 +96,7 @@ class PageFlipConfig {
           duration == other.duration &&
           cutoffForward == other.cutoffForward &&
           cutoffPrevious == other.cutoffPrevious &&
+          maxDragDistance == other.maxDragDistance &&
           backgroundColor == other.backgroundColor &&
           isRightSwipe == other.isRightSwipe &&
           enableSwipe == other.enableSwipe &&
@@ -105,6 +113,7 @@ class PageFlipConfig {
       duration.hashCode ^
       cutoffForward.hashCode ^
       cutoffPrevious.hashCode ^
+      maxDragDistance.hashCode ^
       backgroundColor.hashCode ^
       isRightSwipe.hashCode ^
       enableSwipe.hashCode ^

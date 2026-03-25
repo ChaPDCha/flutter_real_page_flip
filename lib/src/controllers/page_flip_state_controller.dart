@@ -74,6 +74,7 @@ class PageFlipStateController {
   bool _isDragging = false;
   bool _hasPlayedSound = false;
   double _cachedWidth = 1;
+  double? _maxDragDistance;
   double _lastReleaseVelocity = 0.0;
   double _smoothedSpeed = 0.0;
   // 연속 햅틱 타이밍 (프레임 스킵 방지)
@@ -121,6 +122,11 @@ class PageFlipStateController {
     _cachedWidth = width;
   }
 
+  /// Sets the maximum physical drag distance to complete a page turn.
+  void setMaxDragDistance(double? distance) {
+    _maxDragDistance = distance;
+  }
+
   /// Handles the initiation of a user drag gesture.
   void onDragStart(DragStartDetails details, int totalPages) {
     if (animationController.isAnimating) return;
@@ -158,7 +164,9 @@ class PageFlipStateController {
     }
 
     if (_isDragging) {
-      final width = _cachedWidth;
+      final width = _maxDragDistance != null 
+          ? _cachedWidth.clamp(1.0, _maxDragDistance!) 
+          : _cachedWidth;
       // Fix: Use signed delta based on direction to allow reversing the gesture
       final progressDelta = (_isForward ? -delta : delta) / width;
       final oldProgress = _dragProgress;
