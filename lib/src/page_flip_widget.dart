@@ -104,6 +104,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     with TickerProviderStateMixin {
   late final PageFlipStateController _controller;
   final PreRenderManager _preRenderManager = PreRenderManager();
+  bool _ownsEffectHandler = false;
 
   int get _totalPages => widget.itemCount;
 
@@ -125,10 +126,15 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
 
     // Initialize Effect Handler
-    _effectHandler = widget.config.effectHandler ??
-        DefaultPageFlipEffectHandler(
-          screenWidth: _controller.cachedWidth,
-        );
+    if (widget.config.effectHandler != null) {
+      _effectHandler = widget.config.effectHandler!;
+      _ownsEffectHandler = false;
+    } else {
+      _effectHandler = DefaultPageFlipEffectHandler(
+        screenWidth: _controller.cachedWidth,
+      );
+      _ownsEffectHandler = true;
+    }
 
     // Initial pre-render snapshots (requires layout to be complete)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -147,11 +153,21 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
     // Update effect handler if changed in config
     if (widget.config.effectHandler != oldWidget.config.effectHandler) {
-      _effectHandler.dispose();
-      _effectHandler = widget.config.effectHandler ??
-          DefaultPageFlipEffectHandler(
-            screenWidth: _controller.cachedWidth,
-          );
+      if (_ownsEffectHandler) {
+        _effectHandler.dispose();
+      }
+      if (widget.config.effectHandler != null) {
+        _effectHandler = widget.config.effectHandler!;
+        _ownsEffectHandler = false;
+      } else {
+        _effectHandler = DefaultPageFlipEffectHandler(
+          screenWidth: _controller.cachedWidth,
+        );
+        _ownsEffectHandler = true;
+      }
+    } else if (_ownsEffectHandler && _effectHandler is DefaultPageFlipEffectHandler) {
+      // Keep physics scaling updated if screen width changes
+      (_effectHandler as DefaultPageFlipEffectHandler).screenWidth = _controller.cachedWidth;
     }
 
     // Redraw if content or count changes
@@ -180,7 +196,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   void dispose() {
     _controller.dispose();
     _preRenderManager.dispose();
-    _effectHandler.dispose();
+    if (_ownsEffectHandler) {
+      _effectHandler.dispose();
+    }
     super.dispose();
   }
 
