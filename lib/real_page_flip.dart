@@ -1,7 +1,5 @@
 library real_page_flip;
 
-library real_page_flip;
-
 export 'src/page_flip_widget.dart';
 export 'src/models/page_flip_config.dart';
 export 'src/models/page_flip_effect_handler.dart';
