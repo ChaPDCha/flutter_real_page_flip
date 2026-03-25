@@ -138,7 +138,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     });
   }
 
-  late final PageFlipEffectHandler _effectHandler;
+  late PageFlipEffectHandler _effectHandler;
 
   @override
   void didUpdateWidget(PageFlipWidget oldWidget) {
