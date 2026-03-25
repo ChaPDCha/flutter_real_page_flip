@@ -19,6 +19,7 @@ sealed class StickSlipEvent {
   /// Transition from slip (moving) back to stick (stationary).
   const factory StickSlipEvent.stick() = _StickEvent;
 
+  /// Returns the simulated vibration amplitude (0.0 to 1.0) for this event.
   double get amplitude => switch (this) {
         _NoneEvent() => 0.0,
         _SlipEvent() => 0.4,

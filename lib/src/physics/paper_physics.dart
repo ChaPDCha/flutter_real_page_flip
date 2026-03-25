@@ -24,7 +24,7 @@ class PaperPhysicsEngine {
   PaperPhysicsFrame calculate({
     required double dx,
     required double foldAngle,
-    required double screenWidth,
+    double screenWidth = 1.0,
     PaperPhysicsConfig? customConfig,
   }) {
     final activeConfig = customConfig ?? config;

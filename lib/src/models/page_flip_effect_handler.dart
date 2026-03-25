@@ -11,6 +11,8 @@ abstract class PageFlipEffectHandler {
     int? intensity,
     double? volume,
     double? texture,
+    /// The resistance factor. In the default physics implementation, 
+    /// this carries the instantaneous [delta] of the movement.
     double? resistance,
   });
 
