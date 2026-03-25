@@ -1,6 +1,5 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
-
-// dart:math is no longer needed in the controller — physics delegated to PaperPhysicsEngine
 
 /// Defines sensory feedback events dispatched by the page flip engine.
 enum PageFlipEvent {
@@ -74,7 +73,6 @@ class PageFlipStateController {
   bool _isDragging = false;
   bool _hasPlayedSound = false;
   double _cachedWidth = 1;
-  double? _maxDragDistance;
   double _lastReleaseVelocity = 0.0;
   double _smoothedSpeed = 0.0;
   // 연속 햅틱 타이밍 (프레임 스킵 방지)
@@ -122,11 +120,6 @@ class PageFlipStateController {
     _cachedWidth = width;
   }
 
-  /// Sets the maximum physical drag distance to complete a page turn.
-  void setMaxDragDistance(double? distance) {
-    _maxDragDistance = distance;
-  }
-
   /// Handles the initiation of a user drag gesture.
   void onDragStart(DragStartDetails details, int totalPages) {
     if (animationController.isAnimating) return;
@@ -164,11 +157,16 @@ class PageFlipStateController {
     }
 
     if (_isDragging) {
-      final width = _maxDragDistance != null 
-          ? _cachedWidth.clamp(1.0, _maxDragDistance!) 
-          : _cachedWidth;
-      // Fix: Use signed delta based on direction to allow reversing the gesture
-      final progressDelta = (_isForward ? -delta : delta) / width;
+      // [Tablet Ergonomic Scale: Non-Linear Acceleration]
+      // Wide screens cause drag fatigue if mapped linearly.
+      // We dynamically accelerate the gesture across the mid-screen while keeping
+      // a 1:1 tactile adhesion at the edges (when dragProgress is near 0 or 1).
+      final widthPenalty = ((_cachedWidth - 400) / 400).clamp(0.0, 2.5);
+      final progressiveMultiplier = 1.0 + (math.sin(_dragProgress * math.pi) * widthPenalty);
+
+      // Apply signed delta with dynamic ergonomic multiplier
+      final progressDelta = ((_isForward ? -delta : delta) * progressiveMultiplier) / _cachedWidth;
+      
       final oldProgress = _dragProgress;
       _dragProgress = (_dragProgress + progressDelta).clamp(0.0, 1.0);
 
