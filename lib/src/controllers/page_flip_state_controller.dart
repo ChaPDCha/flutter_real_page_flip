@@ -216,21 +216,46 @@ class PageFlipStateController {
   void onDragEnd(DragEndDetails details, int totalPages) {
     if (!_isDragging) return;
 
-    final velocity = details.primaryVelocity ?? 0.0;
-    _lastReleaseVelocity = velocity.abs();
-    final isFastFlip = _lastReleaseVelocity > 300;
-    // Drag-success threshold (0.4). Config cutoffForward/cutoffPrevious are
-    // reserved for future per-direction use.
-    const double dragSuccessThreshold = 0.4;
-    final isSuccess = isFastFlip || _dragProgress > dragSuccessThreshold;
+    final primaryVelocity = details.primaryVelocity ?? 0.0;
+    _lastReleaseVelocity = primaryVelocity.abs();
 
-    // Sync animation value to current drag progress to prevent jumps
+    // Flutter convention:
+    // - primaryVelocity < 0 : user swiped Left (forward flip in our engine)
+    // - primaryVelocity > 0 : user swiped Right (backward flip in our engine)
+    final velocityMatchesDirection =
+        _isForward ? primaryVelocity < 0 : primaryVelocity > 0;
+
+    // Make early-release feel natural:
+    // - If user releases with a meaningful velocity in the same direction, finish the flip.
+    // - Otherwise, fall back to a progress threshold snap.
+    const double dragSuccessThreshold = 0.4;
+    const double minFlingVelocityPxPerSec = 180.0;
+
+    final shouldFlingFinish =
+        velocityMatchesDirection && _lastReleaseVelocity >= minFlingVelocityPxPerSec;
+    final isSuccess = shouldFlingFinish || _dragProgress > dragSuccessThreshold;
+
+    // Sync animation value to current drag progress to prevent jumps.
     animationController.value = _dragProgress;
+
+    final target = isSuccess ? 1.0 : 0.0;
+    final remaining = (target - _dragProgress).abs().clamp(0.0, 1.0);
+
+    // Dynamic duration based on remaining distance + release velocity.
+    // This keeps "early finger lift" smooth, and makes fast swipes finish faster.
+    final normalizedSpeed = _cachedWidth <= 0
+        ? 0.0
+        : (_lastReleaseVelocity / _cachedWidth).clamp(0.0, 6.0); // progress/sec
+    final effectiveSpeed = math.max(normalizedSpeed, 1.2); // avoid slow crawl
+    final estimatedMs = (remaining / effectiveSpeed * 1000).round();
+    final minMs = math.min(160, animationDuration.inMilliseconds);
+    final maxMs = animationDuration.inMilliseconds;
+    final snapMs = estimatedMs.clamp(minMs, maxMs);
 
     animationController
         .animateTo(
-          isSuccess ? 1 : 0,
-          duration: animationDuration,
+          target,
+          duration: Duration(milliseconds: snapMs),
           curve: Curves.easeOutCubic,
         )
         .then((_) => _finalizePageChange(isSuccess, totalPages));
