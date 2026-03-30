@@ -58,7 +58,8 @@ class PaperPhysicsEngine {
 
     _stickSlip.stationaryThresholdMs = activeConfig.stationaryThresholdMs;
     _stickSlip.slipVelocityThreshold = activeConfig.slipVelocityThreshold;
-    final stickSlipEvent = _stickSlip.update(velocityAbs, timestampMs: timestampMs);
+    final stickSlipEvent =
+        _stickSlip.update(velocityAbs, timestampMs: timestampMs);
 
     final amplitude = PaperResistanceModel.hapticAmplitude(
       velocity: velocityAbs,

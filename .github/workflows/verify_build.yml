@@ -30,3 +30,9 @@ jobs:
 
       - name: Run tests
         run: flutter test
+
+      - name: Analyze example app
+        run: |
+          cd example
+          flutter pub get
+          flutter analyze

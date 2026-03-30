@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+- **Documentation**: Added [README_LAYOUT_CONSTRAINTS.md](README_LAYOUT_CONSTRAINTS.md) and [doc/flutter_layout_constraints_guide.md](doc/flutter_layout_constraints_guide.md) referenced by engine source comments.
+- **README**: Installation, quick start, programmatic control, sound/haptics customization, layout links; clearer commercial vs non-commercial license guidance in English and Korean ([README.md](README.md), [README_KR.md](README_KR.md)).
+
 ## 1.1.0
 
 - **Initial High-Fidelity Release**: Re-engineered for production-ready performance.

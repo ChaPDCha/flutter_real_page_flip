@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'effects/page_flip_engine.dart';
 
 // LAYOUT GATE: constrainedSize + _wrapWithConstraints for Offstage/current/flip pages.
-// Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
+// Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and doc/flutter_layout_constraints_guide.md.
 
 /// Renders the page layers (Bottom, Middle, Flap) based on the current drag state.
 class PageFlipLayerView extends StatelessWidget {

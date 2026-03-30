@@ -131,10 +131,10 @@ class PageFlipStateController {
     _hasPlayedSound = false;
     _hapticFrameCounter = 0;
     _smoothedSpeed = 0.0;
-    
+
     // Clear the engine for this page
     onEffectTrigger(PageFlipEvent.startHaptic, pageIndex: _currentIndex);
-    
+
     onUpdate();
   }
 
@@ -156,7 +156,8 @@ class PageFlipStateController {
       }
       final startIntensity = (delta.abs() * 5).clamp(10, 80).toInt();
       // Ensure pageIndex is passed so DefaultPageFlipEffectHandler can use the Physics engine
-      onEffectTrigger(PageFlipEvent.startHaptic, intensity: startIntensity, pageIndex: _currentIndex);
+      onEffectTrigger(PageFlipEvent.startHaptic,
+          intensity: startIntensity, pageIndex: _currentIndex);
     }
 
     if (_isDragging) {
@@ -165,11 +166,14 @@ class PageFlipStateController {
       // We dynamically accelerate the gesture across the mid-screen while keeping
       // a 1:1 tactile adhesion at the edges (when dragProgress is near 0 or 1).
       final widthPenalty = ((_cachedWidth - 400) / 400).clamp(0.0, 2.5);
-      final progressiveMultiplier = 1.0 + (math.sin(_dragProgress * math.pi) * widthPenalty);
+      final progressiveMultiplier =
+          1.0 + (math.sin(_dragProgress * math.pi) * widthPenalty);
 
       // Apply signed delta with dynamic ergonomic multiplier
-      final progressDelta = ((_isForward ? -delta : delta) * progressiveMultiplier) / _cachedWidth;
-      
+      final progressDelta =
+          ((_isForward ? -delta : delta) * progressiveMultiplier) /
+              _cachedWidth;
+
       final oldProgress = _dragProgress;
       _dragProgress = (_dragProgress + progressDelta).clamp(0.0, 1.0);
 
@@ -194,7 +198,8 @@ class PageFlipStateController {
               intensity: baseIntensity,
               texture: _dragProgress, // foldAngle
               resistance: delta, // signed delta for bidirectional physics
-              pageIndex: _currentIndex, // CRITICAL: Identify which page's physics engine to run!
+              pageIndex:
+                  _currentIndex, // CRITICAL: Identify which page's physics engine to run!
               timestampMs: details.sourceTimeStamp?.inMilliseconds,
             );
           }
@@ -204,7 +209,8 @@ class PageFlipStateController {
         if (_dragProgress > 0.1 && !_hasPlayedSound) {
           final flipSpeed = delta.abs();
           final dynamicVolume = (flipSpeed / 50.0).clamp(0.1, 1.0);
-          onEffectTrigger(PageFlipEvent.sound, volume: dynamicVolume, pageIndex: _currentIndex);
+          onEffectTrigger(PageFlipEvent.sound,
+              volume: dynamicVolume, pageIndex: _currentIndex);
           _hasPlayedSound = true;
         }
       }
@@ -231,8 +237,8 @@ class PageFlipStateController {
     const double dragSuccessThreshold = 0.4;
     const double minFlingVelocityPxPerSec = 180.0;
 
-    final shouldFlingFinish =
-        velocityMatchesDirection && _lastReleaseVelocity >= minFlingVelocityPxPerSec;
+    final shouldFlingFinish = velocityMatchesDirection &&
+        _lastReleaseVelocity >= minFlingVelocityPxPerSec;
     final isSuccess = shouldFlingFinish || _dragProgress > dragSuccessThreshold;
 
     // Sync animation value to current drag progress to prevent jumps.
@@ -319,7 +325,8 @@ class PageFlipStateController {
           ? (_lastReleaseVelocity / 4).clamp(15.0, 120.0).toInt()
           : 60; // Default noticeable intensity
 
-      onEffectTrigger(PageFlipEvent.impulseHaptic, intensity: impulseIntensity, pageIndex: actingPageIndex);
+      onEffectTrigger(PageFlipEvent.impulseHaptic,
+          intensity: impulseIntensity, pageIndex: actingPageIndex);
     }
 
     _lastReleaseVelocity = 0.0;

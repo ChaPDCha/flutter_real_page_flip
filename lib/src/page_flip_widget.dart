@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 // LAYOUT GATE: Single constraint gate (LayoutBuilder + needBounded -> SizedBox, constrainedSize to layer view).
-// Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
+// Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and doc/flutter_layout_constraints_guide.md.
 
 import 'controllers/page_flip_state_controller.dart';
 import 'effects/page_flip_engine.dart';
@@ -165,9 +165,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         );
         _ownsEffectHandler = true;
       }
-    } else if (_ownsEffectHandler && _effectHandler is DefaultPageFlipEffectHandler) {
+    } else if (_ownsEffectHandler &&
+        _effectHandler is DefaultPageFlipEffectHandler) {
       // Keep physics scaling updated if screen width changes
-      (_effectHandler as DefaultPageFlipEffectHandler).screenWidth = _controller.cachedWidth;
+      (_effectHandler as DefaultPageFlipEffectHandler).screenWidth =
+          _controller.cachedWidth;
     }
 
     // Redraw if content or count changes
