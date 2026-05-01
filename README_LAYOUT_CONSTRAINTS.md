@@ -1,29 +1,20 @@
-# Layout constraints and PageFlipWidget
+# 레이아웃 제약 게이트 (무한 높이 방지)
 
-This package renders a multi-layer page stack (`Stack`, offstage pages, `RepaintBoundary`). Those layouts only work when children receive **finite** width and height. If a parent passes **unbounded** max height or max width (common on the first frame of `Scaffold.body`, or inside some scrollables), Flutter may throw constraint errors or behave unpredictably.
+## 왜 있는가
 
-## What PageFlipWidget does
+페이지 플립 사용 시 **성경 본문이 안 보이는** "RenderBox was not laid out" / "BoxConstraints forces an infinite height" 오류가 **여러 번 재발**했음.  
+`Stack(fit: StackFit.expand)` 와 **Offstage** 로 숨긴 페이지도 레이아웃은 수행되므로, 무한 제약이 한 번 들어오면 모든 페이지(표시/비표시)가 깨짐.
 
-`PageFlipWidget` wraps its content in a `LayoutBuilder` and:
+## 이 패키지에서 건드리면 안 되는 부분
 
-1. Reads the incoming `constraints`.
-2. If either max width or max height is not finite, it wraps the subtree in a `SizedBox` sized from `MediaQuery` so descendants always see a **bounded** box.
-3. Passes an explicit `constrainedSize` into `PageFlipLayerView`, which wraps each page layer in `_wrapWithConstraints` (`SizedBox`) so `Stack(fit: StackFit.expand)` does not propagate infinite constraints to page content.
+| 파일 | 역할 | 제거/완화 시 재발 |
+|------|------|-------------------|
+| **lib/src/page_flip_widget.dart** | `LayoutBuilder` 내 `needBounded` 일 때 `SizedBox(width: maxW, height: maxH)` 로 감싸기. `constrainedSize` 를 `PageFlipLayerView` 에 전달 | O |
+| **lib/src/page_flip_layer_view.dart** | `constrainedSize` 파라미터 및 `_wrapWithConstraints()` 로 Offstage·현재·플립 중 페이지에 유한 크기 강제 | O |
 
-See the implementation in `lib/src/page_flip_widget.dart` and `lib/src/page_flip_layer_view.dart`.
+## 수정 전에
 
-## Do / don’t (practical)
+- **단일 제약 게이트** 로직(무한이면 MediaQuery 로 유한 크기 계산 후 SizedBox/constrainedSize) 을 제거하거나 조건을 완화하지 말 것.
+- **로컬 패키지** 이므로 수정 후 반드시 **전체 재빌드** (`flutter clean` 후 `flutter run`). 핫 리로드/리스타트로는 반영 안 됨.
 
-**Do**
-
-- Place `PageFlipWidget` where it normally gets a bounded area: for example under `Scaffold.body`, inside `Expanded`, or inside a `SizedBox` with explicit height.
-- Keep complex scrollable content *inside* each page; the engine snapshots adjacent pages and expects each page to lay out within the flip area.
-
-**Don’t**
-
-- Avoid putting `PageFlipWidget` as the only child of a vertical scrollable when that scrollable does not give the flip a finite height (the parent must constrain height).
-- If you nest flips or overlays, ensure each layer still receives finite constraints from its parent.
-
-## More detail
-
-For a short Flutter constraints refresher and troubleshooting, see [doc/flutter_layout_constraints_guide.md](doc/flutter_layout_constraints_guide.md).
+전체 가이드: **`docs/flutter_layout_constraints_guide.md`** (재발 방지, 교훈, 체크리스트).

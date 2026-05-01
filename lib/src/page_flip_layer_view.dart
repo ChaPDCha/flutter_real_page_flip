@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'effects/page_flip_engine.dart';
 
 // LAYOUT GATE: constrainedSize + _wrapWithConstraints for Offstage/current/flip pages.
-// Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and doc/flutter_layout_constraints_guide.md.
+// Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
 
 /// Renders the page layers (Bottom, Middle, Flap) based on the current drag state.
 class PageFlipLayerView extends StatelessWidget {
-  /// Constructs the composite layer view managing active, next, and previous pages.
   const PageFlipLayerView({
     this.itemBuilder,
     required this.itemCount,
@@ -23,34 +22,15 @@ class PageFlipLayerView extends StatelessWidget {
     super.key,
   });
 
-  /// Builder function to generate page content widgets.
   final IndexedWidgetBuilder? itemBuilder;
-
-  /// Total number of pages available.
   final int itemCount;
-
-  /// The index of the currently active page.
   final int currentIndex;
-
-  /// Normalized progress of the current flip animation (0.0 to 1.0).
   final double dragProgress;
-
-  /// Whether the user is actively dragging the page.
   final bool isDragging;
-
-  /// Whether the flip is progressing forward (next page).
   final bool isForward;
-
-  /// Current touch point offset from the gesture recognizer.
   final Offset touchPosition;
-
-  /// Cached pre-rendered images of adjacent pages to optimize rendering.
   final Map<int, ui.Image> pageSnapshots;
-
-  /// Pre-assigned global keys for maintaining state of adjacent pages.
   final Map<int, GlobalKey> pageKeys;
-
-  /// Optional color to render on the backside of the flipping flap.
   final Color? paperFlapColor;
 
   /// Optional explicit size to constrain children (prevents infinite height from Stack).

@@ -11,14 +11,7 @@ abstract class PageFlipEffectHandler {
     int? intensity,
     double? volume,
     double? texture,
-
-    /// The resistance factor. In the default physics implementation,
-    /// this carries the instantaneous [delta] of the movement.
     double? resistance,
-
-    /// Monotonic timestamp from the pointer event, in milliseconds.
-    /// Used for jitter-free stick-slip physics timing.
-    int? timestampMs,
   });
 
   /// Dispose any resources (audio players, etc.) used by the handler.

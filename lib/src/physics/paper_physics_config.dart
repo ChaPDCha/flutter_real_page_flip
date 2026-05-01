@@ -1,6 +1,4 @@
-/// Configuration class defining the physical parameters of the page flip engine.
 class PaperPhysicsConfig {
-  /// Creates a [PaperPhysicsConfig] with customizable physical parameters.
   const PaperPhysicsConfig({
     this.sigmoidK = 6.0,
     this.sigmoidCenter = 0.5,
@@ -18,52 +16,23 @@ class PaperPhysicsConfig {
     this.slipVelocityThreshold = 0.02,
   });
 
-  /// Steepness curve of the resistance near the binding.
   final double sigmoidK;
-
-  /// Center point of the resistance sigmoid curve.
   final double sigmoidCenter;
-
-  /// Fundamental stiffness at the spine/binding.
   final double bindingStiffness;
-
-  /// Static friction coefficient (grip).
   final double muStatic;
-
-  /// Kinetic friction coefficient (slip).
   final double muKinetic;
-
-  /// Stribeck velocity threshold parameter.
   final double stribeckV0;
-
-  /// Persistence parameter for paper noise fractal.
   final double perlinPersistence;
-
-  /// Number of octaves for paper noise fractal.
   final int perlinOctaves;
-
-  /// Base frequency for paper noise fractal.
   final double perlinBaseFreq;
-
-  /// Throttle interval for event generation in milliseconds.
   final int throttleIntervalMs;
-
-  /// Minimum duration for a single physical haptic sensation.
   final int minDurationMs;
-
-  /// Maximum duration for a single physical haptic sensation.
   final int maxDurationMs;
-
-  /// Time threshold to consider the finger stationary.
   final int stationaryThresholdMs;
-
-  /// Threshold velocity to trigger the slip state.
   final double slipVelocityThreshold;
 
-  /// Standard paper configuration, mimicking a typical book page.
   static const standard = PaperPhysicsConfig();
 
-  /// Configuration mimicking a thin, lightweight paper (e.g., bible paper).
   static const thinBible = PaperPhysicsConfig(
     sigmoidK: 7.5,
     bindingStiffness: 0.7,
@@ -73,7 +42,6 @@ class PaperPhysicsConfig {
     perlinBaseFreq: 0.12,
   );
 
-  /// Configuration mimicking a rough, heavy antique paper.
   static const roughAntique = PaperPhysicsConfig(
     sigmoidK: 5,
     bindingStiffness: 0.3,
@@ -84,7 +52,6 @@ class PaperPhysicsConfig {
     maxDurationMs: 180,
   );
 
-  /// Creates a copy of this config, optionally replacing specific parameters.
   PaperPhysicsConfig copyWith({
     double? sigmoidK,
     double? sigmoidCenter,

@@ -3,7 +3,6 @@ import 'page_flip_effect_handler.dart';
 
 /// Configuration for PageFlipWidget behavior and styling.
 class PageFlipConfig {
-  /// Creates a configuration profile to customize the behavior and styling of [PageFlipWidget].
   const PageFlipConfig({
     this.duration = const Duration(milliseconds: 450),
     this.cutoffForward = 0.8,

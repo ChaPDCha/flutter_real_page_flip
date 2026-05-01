@@ -10,27 +10,32 @@ import '../physics/paper_physics.dart';
 /// - Physics-based haptics: Uses [PaperPhysicsEngine] for realistic paper feel.
 /// - Zero-latency audio: Pre-fetched [AudioPlayer] with [AssetSource].
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
-  /// Initializes the default handler, immediately pre-fetching audio assets.
-  DefaultPageFlipEffectHandler({this.screenWidth = 400.0}) {
+  DefaultPageFlipEffectHandler() {
     _initAudio();
   }
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _audioReady = false;
 
-  /// Reference screen width for physics normalization.
-  double screenWidth;
-
   /// Cache of physics engines per page to ensure consistent texture per page.
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
 
   Future<void> _initAudio() async {
     try {
-      await _audioPlayer.setSource(AssetSource('assets/sounds/page_flip.mp3'));
+      // 1. Try Opus first (More efficient, supported on Android 5.0+, iOS 11+)
+      await _audioPlayer.setSource(AssetSource('assets/sounds/page_flip.opus'));
       await _audioPlayer.setReleaseMode(ReleaseMode.stop);
       _audioReady = true;
     } catch (e) {
-      _audioReady = false;
+      try {
+        // 2. Fallback to MP3 (Legacy support)
+        await _audioPlayer
+            .setSource(AssetSource('assets/sounds/page_flip.mp3'));
+        await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+        _audioReady = true;
+      } catch (innerE) {
+        _audioReady = false;
+      }
     }
   }
 
@@ -42,7 +47,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     double? volume,
     double? texture,
     double? resistance,
-    int? timestampMs,
   }) {
     switch (event) {
       case PageFlipEvent.startHaptic:
@@ -52,7 +56,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         Vibration.cancel();
         if (pageIndex != null) {
           _physicsEngines[pageIndex]?.reset();
-          _evictStaleEngines(pageIndex);
         }
         break;
       case PageFlipEvent.impulseHaptic:
@@ -66,7 +69,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
             velocityIntensity: intensity ?? 60,
             texture: texture,
             resistance: resistance ?? 0.5,
-            timestampMs: timestampMs,
           );
         } else {
           _triggerImpact(HapticImpactType.light);
@@ -83,18 +85,17 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     required int velocityIntensity,
     required double texture,
     required double resistance,
-    int? timestampMs,
   }) {
     final engine = _physicsEngines.putIfAbsent(
       pageIndex,
       () => PaperPhysicsEngine(pageNumber: pageIndex),
     );
 
+    // Calculate frame (dx is approximated from intensity for now)
     final frame = engine.calculate(
-      dx: resistance,
-      foldAngle: texture,
-      screenWidth: screenWidth,
-      timestampMs: timestampMs,
+      dx: velocityIntensity.toDouble() * 0.1,
+      foldAngle: texture, // map texture param to fold angle for resistance calc
+      screenWidth: 400, // standard reference
     );
 
     // Execute via Vibration for granular control
@@ -108,14 +109,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         HapticFeedback.selectionClick();
       }
     });
-  }
-
-  /// Evicts physics engines for pages far from [currentPageIndex].
-  /// Keeps only pages within ±2 of the current page to prevent memory leaks.
-  void _evictStaleEngines(int currentPageIndex) {
-    _physicsEngines.removeWhere(
-      (key, _) => (key - currentPageIndex).abs() > 2,
-    );
   }
 
   void _triggerImpact(HapticImpactType type) {
@@ -147,14 +140,4 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }
 }
 
-/// Classifies the general intensity of discrete haptic feedback events.
-enum HapticImpactType {
-  /// Very light solitary vibration tap.
-  light,
-
-  /// Standard solitary vibration tap.
-  medium,
-
-  /// Heavy solitary vibration tap.
-  heavy
-}
+enum HapticImpactType { light, medium, heavy }

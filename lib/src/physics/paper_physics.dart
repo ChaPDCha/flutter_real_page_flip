@@ -6,37 +6,35 @@ import 'stick_slip_controller.dart';
 
 /// Façade that orchestrates all paper physics components.
 class PaperPhysicsEngine {
-  /// Creates a physics engine parameterized uniquely by [pageNumber] seed.
   PaperPhysicsEngine({
     required int pageNumber,
     this.config = PaperPhysicsConfig.standard,
   })  : _textureNoise = PaperTextureNoise(seed: pageNumber),
-        _stickSlip = StickSlipController();
+        _stickSlip = StickSlipController(
+          stationaryThresholdMs: config.stationaryThresholdMs,
+          slipVelocityThreshold: config.slipVelocityThreshold,
+        );
   final PaperTextureNoise _textureNoise;
   final StickSlipController _stickSlip;
-
-  /// The active configuration defining tuning parameters.
   final PaperPhysicsConfig config;
 
-  /// Calculates the current physical forces based on drag kinematics.
+  double _accumulatedDistance = 0;
+
   PaperPhysicsFrame calculate({
     required double dx,
     required double foldAngle,
-    double screenWidth = 1.0,
-    int? timestampMs,
+    required double screenWidth,
     PaperPhysicsConfig? customConfig,
   }) {
     final activeConfig = customConfig ?? config;
 
-    // Preserving kinetic velocity mapping for friction logic
-    final normalizedDx = dx / screenWidth;
-    final velocityAbs = normalizedDx.abs() * 10;
+    final normalizedDx = dx.abs() / screenWidth;
+    final velocity = (normalizedDx * 10).clamp(0.0, 1.0);
 
-    // Use absolute spatial position (foldAngle) instead of accumulated delta
-    // This perfectly binds the texture feeling to the physical pixel location on the screen,
-    // avoiding floating-point drift and remaining synced even if snap animations occur.
+    _accumulatedDistance += normalizedDx;
+
     final texture = _textureNoise.paperTextureFromConfig(
-      position: foldAngle,
+      position: _accumulatedDistance,
       persistence: activeConfig.perlinPersistence,
       octaves: activeConfig.perlinOctaves,
       baseFrequency: activeConfig.perlinBaseFreq,
@@ -50,7 +48,7 @@ class PaperPhysicsEngine {
     );
 
     final friction = PaperResistanceModel.frictionCoefficient(
-      velocity: velocityAbs.clamp(0.0, 1.0),
+      velocity: velocity,
       muStatic: activeConfig.muStatic,
       muKinetic: activeConfig.muKinetic,
       stribeckV0: activeConfig.stribeckV0,
@@ -58,11 +56,10 @@ class PaperPhysicsEngine {
 
     _stickSlip.stationaryThresholdMs = activeConfig.stationaryThresholdMs;
     _stickSlip.slipVelocityThreshold = activeConfig.slipVelocityThreshold;
-    final stickSlipEvent =
-        _stickSlip.update(velocityAbs, timestampMs: timestampMs);
+    final stickSlipEvent = _stickSlip.update(velocity);
 
     final amplitude = PaperResistanceModel.hapticAmplitude(
-      velocity: velocityAbs,
+      velocity: velocity,
       friction: friction,
       texture: texture,
       resistance: resistance,
@@ -75,7 +72,7 @@ class PaperPhysicsEngine {
       maxDurationMs: activeConfig.maxDurationMs,
     );
 
-    final sharpness = (velocityAbs * 0.5 + texture * 0.4 + 0.1).clamp(0.0, 1.0);
+    final sharpness = (velocity * 0.5 + texture * 0.4 + 0.1).clamp(0.0, 1.0);
 
     return PaperPhysicsFrame(
       amplitude: amplitude,
@@ -88,8 +85,8 @@ class PaperPhysicsEngine {
     );
   }
 
-  /// Resets internal accumulators and physics state logic.
   void reset() {
+    _accumulatedDistance = 0.0;
     _stickSlip.reset();
   }
 }

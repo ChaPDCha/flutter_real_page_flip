@@ -1,11 +1,8 @@
 import 'dart:math';
 
-/// Provides mathematical models for paper resistance, friction, and haptic feedback.
 abstract class PaperResistanceModel {
   const PaperResistanceModel._();
 
-  /// Calculates structural resistance based on the [foldAngle].
-  /// Uses a sigmoid function to represent the increasing stiffness near the binding.
   static double resistance({
     required double foldAngle,
     double sigmoidK = 6.0,
@@ -19,7 +16,6 @@ abstract class PaperResistanceModel {
     return (sigmoidValue * 0.3 + bindingComponent + edgeBoost).clamp(0.0, 1.0);
   }
 
-  /// Calculates the dynamic friction coefficient using the Stribeck curve model.
   static double frictionCoefficient({
     required double velocity,
     double muStatic = 0.6,
@@ -28,7 +24,6 @@ abstract class PaperResistanceModel {
   }) =>
       muKinetic + (muStatic - muKinetic) * exp(-velocity / stribeckV0);
 
-  /// Synthesizes the final haptic vibration amplitude from various physical factors.
   static double hapticAmplitude({
     required double velocity,
     required double friction,
@@ -46,7 +41,6 @@ abstract class PaperResistanceModel {
     return raw.clamp(0.05, 1.0);
   }
 
-  /// Determines the auditory/haptic effect duration based on structural resistance.
   static int hapticDuration({
     required double resistance,
     required double friction,

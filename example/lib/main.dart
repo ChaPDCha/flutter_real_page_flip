@@ -1,14 +1,12 @@
-// ignore_for_file: public_member_api_docs
-
 import 'package:flutter/material.dart';
-import 'package:real_page_flip/page_flip.dart';
+import 'package:real_page_flip/real_page_flip.dart';
 
 void main() {
-  runApp(const RealPageFlipExampleApp());
+  runApp(const MyApp());
 }
 
-class RealPageFlipExampleApp extends StatelessWidget {
-  const RealPageFlipExampleApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,292 +14,231 @@ class RealPageFlipExampleApp extends StatelessWidget {
       title: 'Real Page Flip Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
-          brightness: Brightness.light,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6750A4)),
         useMaterial3: true,
       ),
-      home: const DemoHost(),
+      home: const PageFlipShowcase(),
     );
   }
 }
 
-class DemoHost extends StatelessWidget {
-  const DemoHost({super.key});
+class PageFlipShowcase extends StatefulWidget {
+  const PageFlipShowcase({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Real Page Flip Engine'),
-          centerTitle: true,
-          elevation: 4,
-          shadowColor: Colors.black26,
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.book), text: 'Standard'),
-              Tab(icon: Icon(Icons.warning_amber_rounded), text: 'Stress Test'),
-            ],
-          ),
-        ),
-        body: const TabBarView(
-          physics: NeverScrollableScrollPhysics(), // Prevent swipe conflict
-          children: [
-            SimpleDemo(),
-            HeavyLoadDemo(),
-          ],
-        ),
-      ),
-    );
-  }
+  State<PageFlipShowcase> createState() => _PageFlipShowcaseState();
 }
 
-class SimpleDemo extends StatefulWidget {
-  const SimpleDemo({super.key});
-
-  @override
-  State<SimpleDemo> createState() => _SimpleDemoState();
-}
-
-class _SimpleDemoState extends State<SimpleDemo> {
+class _PageFlipShowcaseState extends State<PageFlipShowcase> {
   final PageFlipController _controller = PageFlipController();
-  int _currentPage = 0;
-
-  final List<Color> _pageColors = [
-    Colors.teal.shade50,
-    Colors.orange.shade50,
-    Colors.blue.shade50,
-    Colors.purple.shade50,
-    Colors.green.shade50,
-  ];
+  
+  // Config state
+  bool _enableHaptics = true;
+  bool _enableSound = true;
+  double _sensitivity = 0.5;
+  double _edgeTapRatio = 0.15;
+  bool _skipTapAnimation = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade200,
-      body: PageFlipWidget(
-        controller: _controller,
-        itemCount: _pageColors.length,
-        config: const PageFlipConfig(
-          backgroundColor: Colors.white,
-          enableSound: true,
-          enableHaptics: true,
-        ),
-        onPageChanged: (index) {
-          setState(() => _currentPage = index);
-        },
-        itemBuilder: (context, index) {
-          return _buildPage(index);
-        },
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'prev1',
-            onPressed:
-                _currentPage > 0 ? () => _controller.previousPage() : null,
-            child: const Icon(Icons.arrow_back),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: 'next1',
-            onPressed: _currentPage < _pageColors.length - 1
-                ? () => _controller.nextPage()
-                : null,
-            child: const Icon(Icons.arrow_forward),
+      appBar: AppBar(
+        title: const Text('Real Page Flip Engine'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => _showSettings(context),
           ),
         ],
+      ),
+      body: Center(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.85,
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: PageFlipWidget(
+            controller: _controller,
+            config: PageFlipConfig(
+              enableHaptics: _enableHaptics,
+              enableSound: _enableSound,
+              sensitivity: _sensitivity,
+              edgeTapWidthRatio: _edgeTapRatio,
+              skipTapAnimation: _skipTapAnimation,
+              backgroundColor: const Color(0xFFF5F5F5),
+            ),
+            itemCount: 10,
+            itemBuilder: (context, index) {
+              return _buildPage(index);
+            },
+            onPageChanged: (page) {
+              print('Page changed to: $page');
+            },
+          ),
+        ),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () => _controller.previousPage(),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Prev'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => _controller.nextPage(),
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text('Next'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildPage(int index) {
+    final colors = [
+      Colors.blueGrey[50]!,
+      Colors.orange[50]!,
+      Colors.green[50]!,
+      Colors.red[50]!,
+      Colors.purple[50]!,
+    ];
+    
+    final pageContent = [
+      "The journey of a thousand miles begins with a single step. This engine brings that journey to life through tactile interaction.",
+      "In the middle of every difficulty lies opportunity. Experience the smooth resistance of our physics-based paper modeling.",
+      "Simplicity is the ultimate sophistication. Our API is designed to be powerful yet incredibly easy to integrate.",
+      "Imagination is more important than knowledge. Visualize your content in a high-fidelity 3D-like flip environment.",
+      "Quality is not an act, it is a habit. Every frame of this animation is calculated for maximum realism.",
+      "Design is not just what it looks like and feels like. Design is how it works. And this engine works beautifully.",
+      "The best way to predict the future is to create it. We are redefining reading experiences on mobile and web.",
+      "Focus is a matter of deciding what things you're not going to do. We focused on the perfect flip, so you don't have to.",
+      "Strive for excellence, not perfection. But in this engine, we've come pretty close to the perfect paper feel.",
+      "The only limit to our realization of tomorrow will be our doubts of today. Flip the page to see what's next.",
+    ];
+
+    final color = colors[index % colors.length];
+    final content = pageContent[index % pageContent.length];
+
     return Container(
-      color: _pageColors[index],
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Page ${index + 1}',
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.bold,
-                  ),
+      color: color,
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'CHAPTER ${index + 1}',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
             ),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
+          ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 20),
+          Expanded(
+            child: SingleChildScrollView(
               child: Text(
-                _getSampleText(index),
+                content + "\n\n" + 
+                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '
+                'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. '
+                'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris '
+                'nisi ut aliquip ex ea commodo consequat.',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.black.withOpacity(0.8),
+                  height: 1.6,
+                  fontStyle: FontStyle.italic,
+                ),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      height: 1.6,
-                      color: Colors.black54,
-                    ),
               ),
             ),
-            if (index == 0) ...[
-              const SizedBox(height: 48),
-              const Icon(Icons.swipe, size: 48, color: Colors.teal),
-              const SizedBox(height: 8),
-              const Text('Try swiping the edge!'),
-            ]
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getSampleText(int index) {
-    const texts = [
-      "Experience the tactile feel of physical paper. Our engine uses real physics to calculate shadows and highlights.",
-      "Integrated sound effects and haptic feedback provide a deep, immersive sensory experience on every flip.",
-      "Engineered for high performance. Stable 60FPS across all mobile platforms with robust layout management.",
-      "Fully customizable. Swap out sound assets or implement your own effect handlers to match your brand.",
-      "Thank you for trying out Real Page Flip. We hope you build something beautiful with it!",
-    ];
-    return texts[index % texts.length];
-  }
-}
-
-class HeavyLoadDemo extends StatefulWidget {
-  const HeavyLoadDemo({super.key});
-
-  @override
-  State<HeavyLoadDemo> createState() => _HeavyLoadDemoState();
-}
-
-class _HeavyLoadDemoState extends State<HeavyLoadDemo> {
-  final PageFlipController _controller = PageFlipController();
-  int _currentPage = 0;
-  final int _totalPages = 10;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: PageFlipWidget(
-        controller: _controller,
-        itemCount: _totalPages,
-        config: const PageFlipConfig(
-          backgroundColor: Colors.grey,
-          enableSound: true,
-          enableHaptics: true,
-        ),
-        onPageChanged: (index) {
-          setState(() => _currentPage = index);
-        },
-        itemBuilder: (context, index) {
-          return _buildHeavyPage(index);
-        },
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'prev2',
-            backgroundColor: Colors.red.shade800,
-            onPressed:
-                _currentPage > 0 ? () => _controller.previousPage() : null,
-            child: const Icon(Icons.arrow_back, color: Colors.white),
           ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: 'next2',
-            backgroundColor: Colors.red.shade800,
-            onPressed: _currentPage < _totalPages - 1
-                ? () => _controller.nextPage()
-                : null,
-            child: const Icon(Icons.arrow_forward, color: Colors.white),
+          const SizedBox(height: 20),
+          Text(
+            '- Page ${index + 1} -',
+            style: const TextStyle(fontWeight: FontWeight.w400, color: Colors.grey),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeavyPage(int index) {
-    // 50 complex cards per page to stress rendering
-    return Container(
-      color: Colors.white,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        itemCount: 50,
-        itemBuilder: (context, itemIndex) {
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            elevation: 4,
-            shadowColor: Colors.black38,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
+  void _showSettings(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.primaries[
-                          (index + itemIndex) % Colors.primaries.length],
-                      shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 4,
-                          offset: Offset(2, 2),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${index * 50 + itemIndex}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                  const Text(
+                    'Engine Settings',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Complex Item $itemIndex',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Page $index rendering load test with intricate widget trees.',
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 16),
+                  SwitchListTile(
+                    title: const Text('Haptic Feedback'),
+                    value: _enableHaptics,
+                    onChanged: (val) {
+                      setState(() => _enableHaptics = val);
+                      setModalState(() {});
+                    },
                   ),
-                  const SizedBox(width: 8),
-                  Switch(
-                    value: itemIndex % 2 == 0,
-                    onChanged: (val) {},
-                    activeThumbColor: Colors.red,
+                  SwitchListTile(
+                    title: const Text('Sound Effects'),
+                    value: _enableSound,
+                    onChanged: (val) {
+                      setState(() => _enableSound = val);
+                      setModalState(() {});
+                    },
+                  ),
+                  const Text('Drag Sensitivity'),
+                  Slider(
+                    value: _sensitivity,
+                    onChanged: (val) {
+                      setState(() => _sensitivity = val);
+                      setModalState(() {});
+                    },
+                  ),
+                  const Text('Edge Tap Area Width'),
+                  Slider(
+                    value: _edgeTapRatio,
+                    max: 0.4,
+                    onChanged: (val) {
+                      setState(() => _edgeTapRatio = val);
+                      setModalState(() {});
+                    },
+                  ),
+                  SwitchListTile(
+                    title: const Text('Instant Tap Flip'),
+                    value: _skipTapAnimation,
+                    onChanged: (val) {
+                      setState(() => _skipTapAnimation = val);
+                      setModalState(() {});
+                    },
                   ),
                 ],
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }

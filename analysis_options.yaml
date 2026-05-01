@@ -1,8 +1,11 @@
 include: package:flutter_lints/flutter.yaml
 
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
-
 linter:
   rules:
     - public_member_api_docs
+    - always_declare_return_types
+    - prefer_final_locals
+    - avoid_print
+    - prefer_const_constructors
+    - prefer_const_literals_to_create_immutables
+
