@@ -1,4 +1,4 @@
-# Real Page Flip Engine for Flutter 📖✨
+# Real Page Flip Engine for Flutter
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
 [![License](https://img.shields.io/badge/license-Dual--License-blue.svg)](LICENSE)
