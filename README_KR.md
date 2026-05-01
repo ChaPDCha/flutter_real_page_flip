@@ -7,12 +7,21 @@
 플러터를 위한 전문가용 고성능 3D 스타일 페이지 플립 엔진입니다. 독보적인 렌더링 최적화 기술을 통해 **저사양 기기에서도 안정적인 60/120 FPS 성능**을 제공하도록 설계되었습니다.
 
 <p align="center">
-  <a href="https://github.com/ChaPDCha/flutter_real_page_flip">
-    <img src="https://raw.githubusercontent.com/ChaPDCha/flutter_real_page_flip/main/doc/assets/realpageflip_sample.webp" width="600" alt="Real Page Flip Demo">
-  </a>
+  <img src="https://github.com/user-attachments/assets/f9b19621-af97-4ffc-b1bb-7626b9e3b99e" width="600" alt="Real Page Flip Engine Full Demo">
 </p>
 
-## 왜 Real Page Flip인가요? (기술적 차별점) 🚀
+## 데모 시연 🎬
+### 전체 성능 데모 (v1.2+)
+최적화된 렌더링과 확장된 상호작용 시나리오를 포함합니다.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/f9b19621-af97-4ffc-b1bb-7626b9e3b99e" width="600" alt="Full Demo">
+</p>
+
+### 레거시 상호작용 데모
+핵심 물리 엔진과 제스처 판정 로직을 보여주는 초기 시연 영상입니다.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b8337766-993d-4c3d-8255-7b6e92736484" width="400" alt="Legacy Demo">
+</p>
 
 기존의 페이지 플립 라이브러리들은 UI가 복잡해질수록 성능 저하가 발생하기 쉽습니다. Real Page Flip은 근본적으로 다른 접근 방식을 취합니다:
 
@@ -46,7 +55,7 @@
 
 ```yaml
 dependencies:
-  real_page_flip: ^1.2.0
+  real_page_flip: ^1.2.1
 ```
 
 ## 라이선스 📜

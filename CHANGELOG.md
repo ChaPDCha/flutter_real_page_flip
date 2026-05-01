@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-05-02
+### Added
+- Replaced main demo with a high-fidelity, extended interaction recording.
+- Added "Legacy Interaction Demo" section to showcase core physics and gesture arbitration.
+- Integrated direct GitHub user-attachment URLs for robust documentation rendering.
+
 ## [1.2.0] - 2026-05-02
 ### Added
 - Replaced demo assets with high-fidelity production sample (`realpageflip_sample.webp`).
