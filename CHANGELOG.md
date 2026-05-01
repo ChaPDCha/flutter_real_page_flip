@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-05-02
+### Fixed
+- Fixed broken video tags on pub.dev by replacing them with clickable animated WebP thumbnails and Markdown text links.
+- Removed redundant demo sections to ensure exactly two primary demo links are prominently displayed.
+
 ## [1.2.1] - 2026-05-02
 ### Added
 - Replaced main demo with a high-fidelity, extended interaction recording.
