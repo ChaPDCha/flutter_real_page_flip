@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-05-02
+### Added
+- Professional high-fidelity teaser video (demo.webp) for documentation.
+- Comprehensive technical differentiation and GPU optimization guides in README.
+- Standardized high-efficiency Opus audio assets for better performance.
+- Enhanced example application with unique page content and heavy-load stress tests.
+- GitHub repository SEO optimization (topics, description).
+
+### Fixed
+- Sync issues between internal package and public repository.
+
 ## [1.1.0] - 2026-05-01
 ### Added
 - Physics-based interaction logic for realistic paper friction.
