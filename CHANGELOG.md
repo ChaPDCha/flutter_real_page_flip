@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2026-05-02
+### Added
+- Improved snappy demo video with immediate interaction start (zero delay).
+- Switched to absolute asset URLs in documentation for better rendering on pub.dev and other platforms.
+
 ## [1.1.1] - 2026-05-02
 ### Added
 - Professional high-fidelity teaser video (demo.webp) for documentation.
