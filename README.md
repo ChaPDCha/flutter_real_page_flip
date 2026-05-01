@@ -7,7 +7,9 @@
 A professional, high-fidelity 3D-like page flip engine for Flutter. Specifically engineered to deliver **ultra-smooth 60/120 FPS performance even on low-end devices** through advanced rendering optimizations.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ChaPDCha/flutter_real_page_flip/main/doc/assets/demo.webp" width="400" alt="Real Page Flip Demo">
+  <a href="https://github.com/ChaPDCha/flutter_real_page_flip">
+    <img src="https://raw.githubusercontent.com/ChaPDCha/flutter_real_page_flip/main/doc/assets/realpageflip_sample.webp" width="600" alt="Real Page Flip Engine Demo">
+  </a>
 </p>
 
 [English] | [한국어](#한국어-korean)
@@ -46,7 +48,7 @@ Add `real_page_flip` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  real_page_flip: ^1.1.3
+  real_page_flip: ^1.2.0
 ```
 
 ## Quick Start 🚀
