@@ -4,32 +4,41 @@
 [![License](https://img.shields.io/badge/license-Dual--License-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-SDK-%2302569B?logo=flutter)](https://flutter.dev)
 
-A professional, high-fidelity 3D-like page flip engine for Flutter. Engineered for performance, realism, and sensory immersion.
+A professional, high-fidelity 3D-like page flip engine for Flutter. Specifically engineered to deliver **ultra-smooth 60/120 FPS performance even on low-end devices** through advanced rendering optimizations.
 
 <p align="center">
   <img src="doc/assets/demo.webp" width="400" alt="Real Page Flip Demo">
 </p>
 
-## Overview
+[English] | [한국어](#한국어-korean)
 
-Welcome! This is a Flutter library designed to give your app a highly realistic, 3D-like page turning effect. We focused on recreating the physical feel of paper, complete with proper shadow rendering, specular highlights, and fluid, natural motion.
+## Why Real Page Flip? (The Technical Edge) 🚀
 
-Whether you're building a digital magazine, a realistic book reader, or a presentation app, this engine makes the reading experience feel tactile and beautiful.
+Most page flip libraries struggle with performance as UI complexity increases. Real Page Flip is built differently:
 
-## Key Features ✨
+### 1. Hybrid Snapshot Engine (GPU Optimization)
+Unlike other libraries that attempt to render live widget trees during heavy animations, our engine **captures high-resolution snapshots** of your pages. 
+- **The Benefit**: During a flip, the GPU only handles a single flattened texture (RawImage) instead of hundreds of nested widgets. This guarantees silky-smooth motion even with extremely complex page layouts.
 
-- **Physics-Based Interaction**: Real-time modeling of paper friction and mechanical resistance during drag.
-- **Hardware-Accelerated Rendering**: Custom geometry engine with optimized clipping for smooth 60/120 FPS performance.
-- **Tactile Feedback**: Integrated haptic feedback and synchronized sound effects for a truly immersive experience.
-- **Single Constraint Gate**: Robust layout handling to prevent "Unbounded Height/Width" errors in complex widget trees.
-- **Accessibility**: Full semantics support for screen readers.
+### 2. Intelligent Memory Windowing
+Whether your book has 10 pages or 10,000, the memory footprint remains constant.
+- **The Benefit**: We only maintain the current, previous, and next pages in the widget tree. This prevents the "Memory Bloat" common in standard PageView-based implementations.
+
+### 3. Zero-Overhead Geometry Engine
+We avoid heavy 3D perspective transforms that can be jittery on older hardware. Instead, we use a **custom math-based Path Clipping engine**.
+- **The Benefit**: Perfectly clean curls, dynamic shadows, and specular highlights with minimal computational overhead.
+
+### 4. Production-Hardened Layouts (Single Constraint Gate)
+Ever had a "Vertical viewport was given unbounded height" error? Not here.
+- **The Benefit**: Our internal "Constraint Gate" ensures the engine works perfectly inside any parent—be it a Stack, Column, or Scaffold—without manual size adjustments.
+
+---
 
 ## Sensory Experience: Sound and Haptics 🎧
 
 What truly sets this engine apart is the immersive sensory feedback:
-- **Physical Sound Effects**: Each flip triggers a high-quality sound effect that mimics the rustle of a real page, varying naturally with the speed of your gesture.
+- **Physical Sound Effects**: High-quality rustle sounds that vary naturally with your gesture speed.
 - **Tactile Haptics**: Feel the friction and the "snap" of the paper through your device's haptic engine.
-- **Customizable**: Toggle feedback with `PageFlipConfig.enableSound` / `enableHaptics`, or plug in a fully custom `effectHandler`.
 
 ## Installation 📦
 
@@ -43,52 +52,33 @@ dependencies:
 ## Quick Start 🚀
 
 ```dart
-import 'package:flutter/material.dart';
 import 'package:real_page_flip/real_page_flip.dart';
 
-class MyBook extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return PageFlipWidget(
-      itemCount: 10,
-      itemBuilder: (context, index) {
-        return Container(
-          color: Colors.orange[50],
-          child: Center(child: Text('Page ${index + 1}')),
-        );
-      },
-    );
-  }
-}
+PageFlipWidget(
+  itemCount: 10,
+  itemBuilder: (context, index) => MyPage(index),
+)
 ```
-
-## Technical Documentation 🛠️
-
-- **[Layout Constraints Guide](README_LAYOUT_CONSTRAINTS.md)**: How the engine handles Flutter's layout system.
-- **[Contributing Guidelines](CONTRIBUTING.md)**: How to help improve the engine.
-- **[Security Policy](SECURITY.md)**: Reporting vulnerabilities.
 
 ## License 📜
 
 This project uses a **Dual License** model:
-
-- **Non-commercial (free)**: Personal projects, non-profit apps, academic tools.
-- **Commercial (paid)**: Any product that generates revenue or commercial benefit (including ad-supported apps) requires a commercial license.
-
-See [LICENSE](LICENSE) for the full text.
+- **Non-commercial**: Free for personal/open-source projects.
+- **Commercial**: Requires a paid license for revenue-generating products.
+See [LICENSE](LICENSE) for details.
 
 ---
 
 ## 한국어 (Korean)
 
-**Real Page Flip Engine**은 플러터를 위한 고성능 물리 기반 페이지 전환 엔진입니다. 단순한 2D 변환을 넘어, 실제 종이의 마찰력과 저항감을 수학적으로 모델링하여 최상의 독서 경험을 제공합니다.
+**Real Page Flip Engine**은 플러터를 위한 고성능 물리 기반 페이지 전환 엔진입니다. 특히 **저사양 기기에서도 끊김 없는 60/120 FPS 성능**을 보장하기 위해 설계된 독보적인 렌더링 최적화 기술이 적용되었습니다.
 
-### 주요 기능
-- **실감나는 물리 모델링**: 드래그 속도와 위치에 따른 종이의 휘어짐과 저항을 실시간 계산합니다.
-- **하드웨어 가속 렌더링**: 최적화된 클리핑 기술을 통해 부드러운 애니메이션을 구현합니다.
-- **입체적 피드백**: 진동과 사운드 효과를 통해 손끝으로 느껴지는 조작감을 완성했습니다.
+### 기술적 차별점 (Professional Edge) 🛠️
 
-한글 라이선스 안내: [LICENSE_KR](LICENSE_KR)
+1. **하이브리드 스냅샷 엔진**: 애니메이션 중 복잡한 위젯 트리를 매 프레임 다시 그리는 대신, 페이지를 고해상도 이미지로 캡처하여 처리합니다. 덕분에 아무리 복잡한 UI라도 GPU 부하 없이 부드럽게 넘어갑니다.
+2. **지능형 메모리 윈도잉**: 수만 장의 페이지가 있어도 현재와 앞뒤 페이지, 단 3장만 메모리에 유지하여 리소스 낭비를 원천 차단합니다.
+3. **제로-오버헤드 지오메트리**: 무거운 3D 변환 대신 정교한 수학적 경로 클리핑(Path Clipping)을 사용하여 깨끗한 종이 휘어짐과 그림자 효과를 구현했습니다.
+4. **견고한 레이아웃 설계**: 'Constraint Gate' 구조를 통해 어떤 복잡한 위젯 트리 안에서도 레이아웃 에러 없이 안정적으로 작동합니다.
 
 ---
 
