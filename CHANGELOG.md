@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.4] - 2026-05-02
+### Fixed
+- Fixed a 404 error on the legacy interaction demo video URL which caused it to render as a plain link instead of embedding as a video player.
+
+## [1.2.3] - 2026-05-02
+### Fixed
+- Replaced WebP and <img> tags with raw markdown video links to allow native video embedding on GitHub and clean fallback links on pub.dev.
+- Removed legacy `realpageflip_sample.webp` to prevent display of inaccurate static recordings.
+
 ## [1.2.2] - 2026-05-02
 ### Fixed
 - Fixed broken video tags on pub.dev by replacing them with clickable animated WebP thumbnails and Markdown text links.
