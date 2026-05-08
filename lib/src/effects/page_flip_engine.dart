@@ -120,7 +120,13 @@ class PageFlipPainter extends CustomPainter {
       size: size,
     );
 
-    final isPaperLight = paperBackColor.computeLuminance() > 0.5;
+    // Determine dark mode from paper luminance.
+    // Luminance < 0.10 → dark background (e.g. pure black or very dark grey).
+    // Luminance 0.10–0.20 → mid-dark (dark navy / charcoal).
+    // Luminance > 0.50 → light paper (standard light mode).
+    final luminance = paperBackColor.computeLuminance();
+    final isPaperLight = luminance > 0.5;
+    final isPaperDark = luminance < 0.20; // catches dark mode backgrounds
 
     canvas.save();
     canvas.transform(geo.transform.storage);
@@ -141,7 +147,9 @@ class PageFlipPainter extends CustomPainter {
     );
 
     // Layer 2: Soft Highlight
-    final highlightAlpha = isPaperLight ? 0.05 : 0.12;
+    // In dark mode, a slightly stronger highlight preserves the 3-D fold illusion
+    // without looking washed out against an already-dark background.
+    final highlightAlpha = isPaperLight ? 0.05 : (isPaperDark ? 0.18 : 0.12);
     if (highlightAlpha > 0.01) {
       canvas.drawRect(
         flapRect,
@@ -160,8 +168,11 @@ class PageFlipPainter extends CustomPainter {
     }
 
     // Layer 3: Inner Shadow
-    final shadowBase = 0.35 * geo.shadowIntensity;
-    final shadowMid = 0.10 * geo.shadowIntensity;
+    // In dark mode the multiply blend is too strong — dark canvas × dark shadow
+    // produces near-black streaks that look unnatural. We reduce intensity so
+    // the fold crease stays visible but subtle.
+    final shadowBase = (isPaperDark ? 0.20 : 0.35) * geo.shadowIntensity;
+    final shadowMid  = (isPaperDark ? 0.06 : 0.10) * geo.shadowIntensity;
     if (shadowBase > 0.01) {
       canvas.drawRect(
         flapRect,

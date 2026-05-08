@@ -2,12 +2,40 @@ import 'package:flutter/material.dart';
 import 'page_flip_effect_handler.dart';
 
 /// Configuration for PageFlipWidget behavior and styling.
+///
+/// ## Dark Mode Support
+///
+/// The engine automatically adapts to the current Flutter theme.
+/// When [backgroundColor] is `null` (the default), the flipping page back
+/// uses `Theme.of(context).scaffoldBackgroundColor`, so setting
+/// `MaterialApp.darkTheme` is all that is needed:
+///
+/// ```dart
+/// // Automatic dark mode — no extra config needed
+/// PageFlipWidget(
+///   itemCount: pages.length,
+///   itemBuilder: (context, index) => MyPage(index),
+/// )
+/// ```
+///
+/// To pin the paper back to a specific color (e.g. a custom dark shade),
+/// pass an explicit [backgroundColor]:
+///
+/// ```dart
+/// // Custom dark paper color
+/// PageFlipWidget(
+///   config: PageFlipConfig(
+///     backgroundColor: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEEEEEE),
+///   ),
+///   ...
+/// )
+/// ```
 class PageFlipConfig {
   const PageFlipConfig({
     this.duration = const Duration(milliseconds: 450),
     this.cutoffForward = 0.8,
     this.cutoffPrevious = 0.1,
-    this.backgroundColor = Colors.white,
+    this.backgroundColor,
     this.isRightSwipe = false,
     this.enableSwipe = true,
     this.sensitivity = 0.5,
@@ -44,8 +72,17 @@ class PageFlipConfig {
   /// Reserved for future per-direction threshold; see [cutoffForward].
   final double cutoffPrevious;
 
-  /// Background color of the page.
-  final Color backgroundColor;
+  /// Background color of the page-flip flap (the paper back side).
+  ///
+  /// When `null` (default), the engine reads
+  /// `Theme.of(context).scaffoldBackgroundColor` at render time, which
+  /// means **dark mode works automatically** when the host app has a dark
+  /// [ThemeData] applied.
+  ///
+  /// The shadow intensity is also adjusted automatically:
+  /// darker backgrounds receive softer shadows so the flip stays natural
+  /// in both light and dark environments.
+  final Color? backgroundColor;
 
   /// Whether the swipe direction is right-to-left.
   final bool isRightSwipe;

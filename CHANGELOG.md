@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-05-09
+### Added
+- **Dark Mode Support**: `PageFlipConfig.backgroundColor` now defaults to `null`
+  instead of `Colors.white`. When `null`, the engine reads
+  `Theme.of(context).scaffoldBackgroundColor` at render time, so dark mode
+  works automatically without any extra configuration.
+- Adaptive shadow intensity in `PageFlipPainter`: backgrounds with luminance
+  below 0.20 (dark mode) receive softer inner shadows (35 % → 20 %) and
+  stronger fold highlights (12 % → 18 %) for a more natural flip appearance.
+- New **Dark Mode Support** section in `README.md` with zero-config and
+  custom-color examples.
+
+### Changed
+- `PageFlipConfig.backgroundColor` type changed from `Color` to `Color?`.
+  Existing callers that explicitly pass a colour are unaffected; callers that
+  relied on the `Colors.white` default now automatically inherit the host
+  app's scaffold background colour.
+
 ## [1.2.4] - 2026-05-02
 ### Fixed
 - Fixed a 404 error on the legacy interaction demo video URL which caused it to render as a plain link instead of embedding as a video player.

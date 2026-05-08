@@ -51,7 +51,7 @@ Add `real_page_flip` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  real_page_flip: ^1.2.2
+  real_page_flip: ^1.3.0
 ```
 
 ## Quick Start 🚀
@@ -64,6 +64,58 @@ PageFlipWidget(
   itemBuilder: (context, index) => MyPage(index),
 )
 ```
+
+## Dark Mode Support 🌙
+
+The engine is **theme-aware by default**. With `backgroundColor: null` (the
+default since v1.3.0), the flipping page automatically uses the host app's
+`scaffoldBackgroundColor`, and shadow/highlight intensities are calculated from
+the background luminance at paint time.
+
+### Zero-config automatic dark mode
+
+```dart
+MaterialApp(
+  theme: ThemeData.light(),
+  darkTheme: ThemeData.dark(),
+  themeMode: ThemeMode.system,
+  home: Scaffold(
+    body: PageFlipWidget(
+      itemCount: pages.length,
+      itemBuilder: (context, index) => MyPage(index),
+      // No config needed — dark mode just works ✅
+    ),
+  ),
+)
+```
+
+### Custom dark paper color
+
+```dart
+final isDark = Theme.of(context).brightness == Brightness.dark;
+
+PageFlipWidget(
+  config: PageFlipConfig(
+    backgroundColor: isDark
+        ? const Color(0xFF1A1F3A)  // dark navy
+        : const Color(0xFFEEEEEE), // warm paper
+  ),
+  itemCount: pages.length,
+  itemBuilder: (context, index) => MyPage(index),
+)
+```
+
+### What adapts automatically
+
+| Element | Light mode | Dark mode |
+|---------|------------|-----------|
+| Paper back color | `scaffoldBackgroundColor` | `scaffoldBackgroundColor` |
+| Inner shadow strength | 35 % | 20 % (softer) |
+| Fold highlight | 5 % | 18 % (stronger for depth) |
+| Edge tap indicator | Dark glow | Light glow |
+
+> **Note**: Page *content* (text, images, backgrounds) is controlled by your
+> `itemBuilder`. The engine only manages the flip animation layer.
 
 ## License 📜
 
