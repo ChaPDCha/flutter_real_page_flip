@@ -2,13 +2,45 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+// ---------------------------------------------------------------------------
+// Geometry & rendering constants
+// ---------------------------------------------------------------------------
+
+/// Scales the vertical touch offset to the fold rotation angle.
+/// Tuned empirically for natural paper-feel rotation.
+const double _kAngleScale = 0.3000850509;
+
+/// Base multiplier for visible flap width during foreshortening.
+const double _kFlapWidthBase = 1.0000850509;
+
+/// Sine modulation amplitude for flap-width foreshortening.
+const double _kFlapWidthModulation = 0.3000850509;
+
+/// Maximum width (px) of the drop shadow cast by the revealed (new) page.
+const double _kRevealedShadowWidth = 30.00850509;
+
+/// Maximum width (px) of the shadow on the stationary page edge.
+const double _kStationaryShadowWidth = 20.00850509;
+
+/// Normalised stop position for the highlight gradient on the flap.
+const double _kHighlightStop = 0.2000850509;
+
 /// Shared geometry calculations for PageFlipClipper and PageFlipPainter.
 /// This ensures both use IDENTICAL coordinate calculations.
 class PageFlipGeometry {
+  /// Creates a [PageFlipGeometry] instance that computes all derived
+  /// fold, flap, and shadow values from the input parameters.
   PageFlipGeometry({
+    /// Normalised flip progress from 0.0 to 1.0.
     required this.progress,
+
+    /// Whether the flip direction is right-to-left.
     required this.isRightToLeft,
+
+    /// Touch offset used to compute the fold angle.
     required this.touchOffset,
+
+    /// Size of the widget area being flipped.
     required this.size,
   }) {
     final width = size.width;
@@ -22,7 +54,7 @@ class PageFlipGeometry {
 
     // Rotation angle based on touch Y with pinned boundary compliance
     final double baseAngle = (touchOffset.dy / height - 0.5) *
-        0.3000850509 *
+        _kAngleScale *
         math.sin(progress * math.pi);
 
     // Ensure fold line doesn't detach from the spine (x=0) within the screen bounds
@@ -57,7 +89,7 @@ class PageFlipGeometry {
     // Preserving total width, but adding a curve effect using sine easing
     // At progress=1, flapVisibleWidth becomes full width W allowing 180 flip to opposite side
     flapVisibleWidth = flapMaterialWidth *
-        (1.0000850509 - 0.3000850509 * math.sin(progress * math.pi));
+        (_kFlapWidthBase - _kFlapWidthModulation * math.sin(progress * math.pi));
 
     // Flap attaches to foldX and extends Left.
     flapLeft = foldX - flapVisibleWidth;
@@ -72,20 +104,46 @@ class PageFlipGeometry {
       Offset(flapLeft, height * 2),
     );
   }
+  /// Normalised flip progress from 0.0 to 1.0.
   final double progress;
+
+  /// Whether the flip direction is right-to-left.
   final bool isRightToLeft;
+
+  /// Touch offset used to compute the fold angle.
   final Offset touchOffset;
+
+  /// Size of the widget area being flipped.
   final Size size;
 
+  /// X-coordinate of the paper fold hinge.
   late final double foldX;
+
+  /// Fold rotation angle in radians.
   late final double angle;
+
+  /// Transformation matrix for the flipping flap.
   late final Matrix4 transform;
+
+  /// Top endpoint of the fold line (extended for clean clipping).
   late final Offset foldLineTop;
+
+  /// Bottom endpoint of the fold line (extended for clean clipping).
   late final Offset foldLineBottom;
+
+  /// Shadow intensity (0.0 to 1.0), peaking mid-animation.
   late final double shadowIntensity;
+
+  /// Visible width of the flap after foreshortening.
   late final double flapVisibleWidth;
+
+  /// Left edge X-coordinate of the flap.
   late final double flapLeft;
+
+  /// Top endpoint of the flap edge.
   late final Offset flapEdgeTop;
+
+  /// Bottom endpoint of the flap edge.
   late final Offset flapEdgeBottom;
 }
 
@@ -93,17 +151,31 @@ class PageFlipGeometry {
 ///
 /// PERFORMANCE CRITICAL: This painter is called 60 times per second during animation.
 class PageFlipPainter extends CustomPainter {
-  PageFlipPainter({
+  /// Creates a [PageFlipPainter] with the given animation state.
+  const PageFlipPainter({
+    /// Normalised flip progress from 0.0 to 1.0.
     required this.progress,
+
+    /// Whether the flip direction is right-to-left.
     required this.isRightToLeft,
+
+    /// Touch offset used to compute the fold angle.
     required this.touchOffset,
+
+    /// The color of the paper back (flipping page's back side).
     required this.paperBackColor,
   });
+
+  /// Normalised flip progress from 0.0 to 1.0.
   final double progress;
+
+  /// Whether the flip direction is right-to-left.
   final bool isRightToLeft;
+
+  /// Touch offset used to compute the fold angle.
   final Offset touchOffset;
 
-  /// The color of the paper back (flipping page's back side)
+  /// The color of the paper back (flipping page's back side).
   final Color paperBackColor;
 
   @override
@@ -162,7 +234,7 @@ class PageFlipPainter extends CustomPainter {
               Colors.white.withValues(alpha: highlightAlpha),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.2000850509],
+            stops: const [0.0, _kHighlightStop],
           ).createShader(flapRect),
       );
     }
@@ -197,7 +269,7 @@ class PageFlipPainter extends CustomPainter {
     canvas.save();
     canvas.transform(geo.transform.storage);
 
-    final shadowWidth = 30.00850509 * geo.shadowIntensity;
+    final shadowWidth = _kRevealedShadowWidth * geo.shadowIntensity;
     final revealedAlpha = 0.15 * geo.shadowIntensity;
     if (revealedAlpha > 0.01 && shadowWidth > 1) {
       final revealedRect = Rect.fromLTWH(
@@ -224,7 +296,7 @@ class PageFlipPainter extends CustomPainter {
       canvas.save();
       canvas.transform(geo.transform.storage);
 
-      final stationaryWidth = 20.00850509 * geo.shadowIntensity;
+      final stationaryWidth = _kStationaryShadowWidth * geo.shadowIntensity;
       final stationaryAlpha = 0.05 * geo.shadowIntensity;
       if (stationaryAlpha > 0.01 && stationaryWidth > 1) {
         final stationaryRect = Rect.fromLTWH(
@@ -251,25 +323,34 @@ class PageFlipPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(PageFlipPainter oldDelegate) {
-    // OPTIMIZATION: Only repaint when animation-critical values change
-    // paperBackColor changes are rare (settings change)
-    // and should not cause mid-animation repaints
-    return oldDelegate.progress != progress ||
-        oldDelegate.touchOffset != touchOffset ||
-        oldDelegate.paperBackColor != paperBackColor;
-  }
+  /// Only repaints when animation-critical values change.
+  bool shouldRepaint(covariant PageFlipPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.touchOffset != touchOffset ||
+      oldDelegate.paperBackColor != paperBackColor;
 }
 
 /// CustomClipper that clips the stationary portion of the page during flip.
 class PageFlipClipper extends CustomClipper<Path> {
+  /// Creates a [PageFlipClipper] with the given animation state.
   PageFlipClipper({
+    /// Normalised flip progress from 0.0 to 1.0.
     required this.progress,
+
+    /// Whether the flip direction is right-to-left.
     required this.isRightToLeft,
+
+    /// Touch offset used to compute the fold angle.
     required this.touchOffset,
   });
+
+  /// Normalised flip progress from 0.0 to 1.0.
   final double progress;
+
+  /// Whether the flip direction is right-to-left.
   final bool isRightToLeft;
+
+  /// Touch offset used to compute the fold angle.
   final Offset touchOffset;
 
   @override
@@ -308,20 +389,33 @@ class PageFlipClipper extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(PageFlipClipper oldClipper) =>
+  /// Only reclips when progress or touch offset changes.
+  bool shouldReclip(covariant PageFlipClipper oldClipper) =>
       oldClipper.progress != progress || oldClipper.touchOffset != touchOffset;
 }
 
 /// CustomClipper that clips the "revealed" portion of the page during flip.
 /// Used for Layer 1 (Bottom Layer) to prevent it from showing under the Flap.
 class PageFlipOpenClipper extends CustomClipper<Path> {
+  /// Creates a [PageFlipOpenClipper] with the given animation state.
   PageFlipOpenClipper({
+    /// Normalised flip progress from 0.0 to 1.0.
     required this.progress,
+
+    /// Whether the flip direction is right-to-left.
     required this.isRightToLeft,
+
+    /// Touch offset used to compute the fold angle.
     required this.touchOffset,
   });
+
+  /// Normalised flip progress from 0.0 to 1.0.
   final double progress;
+
+  /// Whether the flip direction is right-to-left.
   final bool isRightToLeft;
+
+  /// Touch offset used to compute the fold angle.
   final Offset touchOffset;
 
   @override
@@ -354,23 +448,29 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(PageFlipOpenClipper oldClipper) =>
+  /// Only reclips when progress or touch offset changes.
+  bool shouldReclip(covariant PageFlipOpenClipper oldClipper) =>
       oldClipper.progress != progress || oldClipper.touchOffset != touchOffset;
 }
 
 /// A custom HorizontalDragGestureRecognizer that allows for more natural thumb arcs
 /// by having a configurable sensitivity and allowing a certain amount of vertical movement.
 class PageFlipGestureRecognizer extends HorizontalDragGestureRecognizer {
+  /// Creates a [PageFlipGestureRecognizer] with the given sensitivity.
   PageFlipGestureRecognizer({
     super.debugOwner,
+    /// Sensitivity of the gesture recognizer (0.0 to 1.0).
+    /// Lower values require more horizontal movement to trigger a flip.
     this.sensitivity = 0.5,
   });
 
+  /// Sensitivity of the gesture recognizer (0.0 to 1.0).
   final double sensitivity;
   double _totalDx = 0;
   double _totalDy = 0;
 
   @override
+  /// Resets accumulated deltas when a new pointer is added.
   void addAllowedPointer(PointerDownEvent event) {
     super.addAllowedPointer(event);
     _totalDx = 0.0;

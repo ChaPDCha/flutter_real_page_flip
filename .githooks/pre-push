@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# pre-push hook: run flutter test and flutter analyze before pushing.
+# Block push only on failures.
+
+set -euo pipefail
+
+echo "============================================"
+echo " pre-push: Running pre-push checks..."
+echo "============================================"
+
+# Run flutter test
+echo ""
+echo " [1/2] Running flutter test..."
+if ! flutter test; then
+    echo ""
+    echo " ERROR: flutter test failed. Push aborted."
+    exit 1
+fi
+echo " [1/2] flutter test passed."
+echo ""
+
+# Run flutter analyze
+echo ""
+echo " [2/2] Running flutter analyze..."
+if ! flutter analyze; then
+    echo ""
+    echo " ERROR: flutter analyze failed. Push aborted."
+    exit 1
+fi
+echo " [2/2] flutter analyze passed."
+echo ""
+
+echo "============================================"
+echo " All pre-push checks passed. Pushing..."
+echo "============================================"

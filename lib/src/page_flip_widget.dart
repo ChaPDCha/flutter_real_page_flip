@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 // LAYOUT GATE: Single constraint gate (LayoutBuilder + needBounded -> SizedBox, constrainedSize to layer view).
@@ -14,39 +16,33 @@ import 'widgets/default_page_flip_effect_handler.dart';
 export 'models/page_flip_config.dart';
 import 'widgets/edge_tap_feedback.dart';
 
+/// Controller for programmatic page navigation on a [PageFlipWidget].
 class PageFlipController {
   PageFlipWidgetState? _state;
 
+  /// Navigates to the next page.
   void nextPage() {
     _state?.nextPage();
   }
 
+  /// Navigates to the previous page.
   void previousPage() {
     _state?.previousPage();
   }
 
+  /// Navigates to the specified page index.
   Future<void> goToPage(int index) {
     return _state?.goToPage(index) ?? Future.value();
   }
 }
 
+/// A high-fidelity, physics-based page flip widget for Flutter.
+///
+/// Displays a book-like page-flipping interface with drag and tap gestures.
+/// Supports dark mode, haptic feedback, sound effects, and custom
+/// effect handlers.
 class PageFlipWidget extends StatefulWidget {
-  final PageFlipController? controller;
-  final PageFlipConfig config;
-  final IndexedWidgetBuilder itemBuilder;
-  final int itemCount;
-  final int initialIndex;
-  final void Function(int pageNumber)? onPageFlipped;
-  final void Function()? onFlipStart;
-  final void Function(int pageNumber)? onPageChanged;
-  final void Function(
-    PageFlipEvent effect, {
-    int? intensity,
-    double? volume,
-    double? texture,
-    double? resistance,
-  })? onHandleEffect;
-
+  /// Creates a [PageFlipWidget] with the given pages and configuration.
   const PageFlipWidget({
     Key? key,
     this.controller,
@@ -62,10 +58,54 @@ class PageFlipWidget extends StatefulWidget {
             'initialIndex cannot be greater than itemCount'),
         super(key: key);
 
+  /// Optional external controller for programmatic navigation.
+  final PageFlipController? controller;
+
+  /// Configuration for animations, gestures, haptics, and effects.
+  final PageFlipConfig config;
+
+  /// Builder for individual page widgets.
+  final IndexedWidgetBuilder itemBuilder;
+
+  /// Total number of pages.
+  final int itemCount;
+
+  /// Index of the initially visible page.
+  final int initialIndex;
+
+  /// Called when a page flip animation completes successfully.
+  ///
+  /// The `pageNumber` parameter is the new current page index.
+  ///
+  /// This fires at the same time as [onPageChanged]. Prefer [onPageChanged]
+  /// for reacting to page transitions; [onPageFlipped] is kept for
+  /// backward compatibility.
+  final void Function(int pageNumber)? onPageFlipped;
+
+  /// Called when a flip gesture starts (drag or tap).
+  final void Function()? onFlipStart;
+
+  /// Called when the current page index changes.
+  ///
+  /// The `pageNumber` parameter is the new page index.
+  ///
+  /// This is the primary callback for reacting to page transitions.
+  /// See also [onPageFlipped] which fires at the same point.
+  final void Function(int pageNumber)? onPageChanged;
+  /// Custom callback for handling effects. Overrides the built-in handler.
+  final FutureOr<void> Function(
+    PageFlipEvent effect, {
+    int? intensity,
+    double? volume,
+    double? texture,
+    double? resistance,
+  })? onHandleEffect;
+
   @override
   PageFlipWidgetState createState() => PageFlipWidgetState();
 }
 
+/// State class for [PageFlipWidget] that manages animation and effects.
 class PageFlipWidgetState extends State<PageFlipWidget>
     with TickerProviderStateMixin {
   late final PageFlipStateController _controller;
@@ -81,6 +121,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _controller = PageFlipStateController(
       vsync: this,
       animationDuration: widget.config.duration,
+      cutoffForward: widget.config.cutoffForward,
+      cutoffPrevious: widget.config.cutoffPrevious,
       onUpdate: () {
         if (mounted) setState(() {});
       },
@@ -172,13 +214,18 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     double? resistance,
   }) {
     if (widget.onHandleEffect != null) {
-      widget.onHandleEffect!(
+      final result = widget.onHandleEffect!(
         effect,
         intensity: intensity,
         volume: volume,
         texture: texture,
         resistance: resistance,
       );
+      if (result is Future) {
+        result.catchError((Object e) {
+          debugPrint('PageFlip onHandleEffect error: $e');
+        });
+      }
       return;
     }
 
@@ -188,7 +235,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     if (isHaptic && !widget.config.enableHaptics) return;
     if (effect == PageFlipEvent.sound && !widget.config.enableSound) return;
 
-    _effectHandler.onHandleEffect(
+    final handlerResult = _effectHandler.onHandleEffect(
       effect,
       pageIndex: _controller.currentIndex,
       intensity: intensity,
@@ -196,9 +243,14 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       texture: texture,
       resistance: resistance,
     );
+    if (handlerResult is Future) {
+      handlerResult.catchError((Object e) {
+        debugPrint('PageFlip effectHandler error: $e');
+      });
+    }
   }
 
-  // Public API methods via controller
+  /// Navigates to the next page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
   void nextPage() {
     widget.onFlipStart?.call();
     if (widget.config.skipTapAnimation) {
@@ -208,6 +260,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     }
   }
 
+  /// Navigates to the previous page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
   void previousPage() {
     widget.onFlipStart?.call();
     if (widget.config.skipTapAnimation) {
@@ -217,6 +270,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     }
   }
 
+  /// Jumps directly to the given page index without animation.
   Future<void> goToPage(int index) async {
     if (index < 0 || index >= _totalPages) return;
     widget.onFlipStart?.call();

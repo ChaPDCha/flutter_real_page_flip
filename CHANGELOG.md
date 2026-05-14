@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-05-14
+### Added
+- **Direction-aware flip thresholds**: `cutoffForward` and `cutoffPrevious`
+  independently control drag-release completion (both default to `0.4`).
+- **12 new test files** covering `PageFlipConfig`, `PageFlipGeometry`,
+  `PageFlipPainter`, `PaperPhysicsConfig`, `PaperPhysicsFrame`,
+  `PaperResistanceModel`, `PaperTextureNoise`, `StickSlipController`,
+  `PageFlipStateController`, `PreRenderManager`, and `EdgeTapFeedback`.
+- **Named geometry constants**: 6 rendering constants extracted from inline
+  magic numbers.
+
+### Changed
+- `PageFlipStateController` accepts `cutoffForward`/`cutoffPrevious` from
+  `PageFlipConfig` instead of a hardcoded threshold.
+- `PageFlipPainter` constructor is now `const`.
+- `cutoffForward` default: `0.8` → `0.4`.
+- `cutoffPrevious` default: `0.1` → `0.4`.
+
+### Fixed
+- `PageFlipConfig` equality: `==`/`hashCode` now include `enableHaptics`,
+  `enableSound`, and `effectHandler`.
+- `PaperPhysicsConfig` and `PaperPhysicsFrame` added `==`/`hashCode` overrides.
+
 ## [1.3.0] - 2026-05-09
 ### Added
 - **Dark Mode Support**: `PageFlipConfig.backgroundColor` now defaults to `null`

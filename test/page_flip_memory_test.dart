@@ -1,8 +1,29 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:real_page_flip/page_flip.dart';
+import 'package:real_page_flip/real_page_flip.dart';
+
+/// Effect handler that does nothing — avoids creating [AudioPlayer] instances
+/// in the test environment where platform channels are unavailable.
+class _NoOpEffectHandler implements PageFlipEffectHandler {
+  const _NoOpEffectHandler();
+
+  @override
+  FutureOr<void> onHandleEffect(
+    PageFlipEvent event, {
+    int? intensity,
+    int? pageIndex,
+    double? volume,
+    double? texture,
+    double? resistance,
+  }) {}
+
+  @override
+  void dispose() {}
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -15,37 +36,27 @@ void main() {
   }
 
   setUpAll(() {
-    mockChannel('xyz.luan/audioplayers');
-    mockChannel('xyz.luan/audioplayers.global');
     mockChannel('vibration');
     mockChannel('flutter.baseflow.com/vibration');
-
-    // For EventChannels, we need to intercept the 'listen' and 'cancel' messages
-    // which are sent as standard MethodCalls to the channel name.
-    // However, audioplayers uses dynamic IDs for events.
-    // We'll use the low-level messenger to intercept EVERYTHING from xyz.luan.
-
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-            const MethodChannel('xyz.luan/audioplayers/events'),
-            (call) async => null);
   });
 
   testWidgets('PageFlipWidget Memory Test: Manual WeakReference tracking',
       (tester) async {
-    // We use a custom messenger handler to ignore all audioplayer event channel registration
-    // This is more robust than matching specific UUIDs.
+    // Suppress audioplayers event channels (dynamic UUID-based)
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      const MethodChannel('xyz.luan/audioplayers/events'),
+      const MethodChannel('xyz.luan/audioplayers.global/events'),
       (methodCall) async => null,
     );
 
     await tester.runAsync(() async {
-      // 1. Inflate Widget
+      // 1. Inflate Widget with no-op effect handler to avoid platform channels
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: PageFlipWidget(
+              config: const PageFlipConfig(
+                effectHandler: _NoOpEffectHandler(),
+              ),
               itemCount: 10,
               itemBuilder: (context, index) => Container(
                 key: ValueKey('page_$index'),

@@ -1,4 +1,4 @@
-# Flutter 실시간 페이지 플립 엔진 (Real Page Flip) 📖✨
+# Flutter 실시간 페이지 플립 엔진 (Real Page Flip)
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
 [![License](https://img.shields.io/badge/license-듀얼--라이선스-blue.svg)](LICENSE_KR)
@@ -6,7 +6,7 @@
 
 플러터를 위한 전문가용 고성능 3D 스타일 페이지 플립 엔진입니다. 독보적인 렌더링 최적화 기술을 통해 **저사양 기기에서도 안정적인 60/120 FPS 성능**을 제공하도록 설계되었습니다.
 
-## 데모 시연 🎬
+## 데모 시연
 
 ### 1. 전체 성능 데모 (v1.2+)
 https://github.com/user-attachments/assets/f9b19621-af97-4ffc-b1bb-7626b9e3b99e
@@ -34,22 +34,22 @@ https://github.com/user-attachments/assets/656892d5-a426-4161-9630-511447a1b347
 
 ---
 
-## 감각적인 경험: 사운드와 진동 🎧
+## 감각적인 경험: 사운드와 진동
 
 오감을 자극하는 피드백으로 완성도를 높였습니다:
 - **실감 나는 사운드**: 드래그 속도에 따라 자연스럽게 변화하는 고품질 종이 질감 사운드.
 - **정밀한 햅틱**: 종이의 마찰력과 마지막에 붙는 느낌을 손끝으로 전달합니다.
 
-## 설치 방법 📦
+## 설치 방법
 
 `pubspec.yaml`에 `real_page_flip`을 추가하세요:
 
 ```yaml
 dependencies:
-  real_page_flip: ^1.2.2
+  real_page_flip: ^1.4.0
 ```
 
-## 라이선스 📜
+## 라이선스
 
 이 프로젝트는 **듀얼 라이선스** 모델로 제공됩니다:
 - **비상업적 이용**: 개인 프로젝트, 오픈소스 프로젝트 등에서 무료로 사용 가능.
@@ -59,4 +59,4 @@ dependencies:
 
 ---
 
-Built with ❤️ by [ChaPDCha](https://github.com/ChaPDCha)
+Built by [ChaPDCha](https://github.com/ChaPDCha)

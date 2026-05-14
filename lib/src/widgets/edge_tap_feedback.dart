@@ -1,24 +1,43 @@
 import 'package:flutter/material.dart';
 
-/// 직관적인 페이지 넘김을 위한 가장자리 탭 피드백 위젯
+/// Edge tap feedback widget for intuitive page navigation.
 ///
-/// - 탭 시작 시(onTapDown) 즉각적인 시각적 피드백 제공
-/// - 드래그(onPan)로 전환 시 피드백 취소 (onTapCancel)
-/// - 테마(Dark/Light)에 따른 적응형 그라데이션
+/// - Provides immediate visual feedback on tap-down.
+/// - Cancels feedback when a drag gesture takes over (onTapCancel).
+/// - Adapts gradient to the current theme (dark/light mode).
 class EdgeTapFeedback extends StatefulWidget {
+  /// Creates an [EdgeTapFeedback] widget for the given edge.
   const EdgeTapFeedback({
     Key? key,
+    /// Callback invoked when the edge tap area is tapped.
     required this.onTap,
+
+    /// Whether this is the left edge (true) or right edge (false).
     required this.isLeftEdge,
+
+    /// The width of the tap area in pixels.
     required this.width,
+
+    /// Accessibility label for the edge tap area.
     this.label,
+
+    /// Accessibility hint for the edge tap area.
     this.hint,
   }) : super(key: key);
 
+  /// Callback invoked when the edge tap area is tapped.
   final VoidCallback onTap;
+
+  /// Whether this is the left edge (true) or right edge (false).
   final bool isLeftEdge;
+
+  /// The width of the tap area in pixels.
   final double width;
+
+  /// Accessibility label for the edge tap area.
   final String? label;
+
+  /// Accessibility hint for the edge tap area.
   final String? hint;
 
   @override

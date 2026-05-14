@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 import 'package:vibration/vibration.dart';
@@ -10,6 +12,7 @@ import '../physics/paper_physics.dart';
 /// - Physics-based haptics: Uses [PaperPhysicsEngine] for realistic paper feel.
 /// - Zero-latency audio: Pre-fetched [AudioPlayer] with [AssetSource].
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
+  /// Creates a [DefaultPageFlipEffectHandler] and initialises audio.
   DefaultPageFlipEffectHandler() {
     _initAudio();
   }
@@ -17,20 +20,23 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _audioReady = false;
 
-  /// Cache of physics engines per page to ensure consistent texture per page.
+  /// Cache of physics engines per page index for consistent texture.
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
 
   Future<void> _initAudio() async {
     try {
       // 1. Try Opus first (More efficient, supported on Android 5.0+, iOS 11+)
-      await _audioPlayer.setSource(AssetSource('assets/sounds/page_flip.opus'));
+      await _audioPlayer.setSource(
+        AssetSource('packages/real_page_flip/assets/sounds/page_flip.opus'),
+      );
       await _audioPlayer.setReleaseMode(ReleaseMode.stop);
       _audioReady = true;
     } catch (e) {
       try {
         // 2. Fallback to MP3 (Legacy support)
-        await _audioPlayer
-            .setSource(AssetSource('assets/sounds/page_flip.mp3'));
+        await _audioPlayer.setSource(
+          AssetSource('packages/real_page_flip/assets/sounds/page_flip.mp3'),
+        );
         await _audioPlayer.setReleaseMode(ReleaseMode.stop);
         _audioReady = true;
       } catch (innerE) {
@@ -40,7 +46,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }
 
   @override
-  void onHandleEffect(
+  FutureOr<void> onHandleEffect(
     PageFlipEvent event, {
     int? pageIndex,
     int? intensity,
@@ -140,4 +146,14 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }
 }
 
-enum HapticImpactType { light, medium, heavy }
+/// Types of haptic impact feedback intensities.
+enum HapticImpactType {
+  /// Light impact feedback.
+  light,
+
+  /// Medium impact feedback.
+  medium,
+
+  /// Heavy impact feedback.
+  heavy,
+}

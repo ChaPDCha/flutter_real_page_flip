@@ -2,27 +2,56 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+/// Events that can be triggered by the page flip engine for haptic/sound effects.
 enum PageFlipEvent {
+  /// Haptic feedback for the start of a drag gesture.
   startHaptic,
+
+  /// Haptic feedback to stop/cancel any ongoing vibration.
   stopHaptic,
+
+  /// Short impulse haptic for tap flips and page change confirmations.
   impulseHaptic,
+
+  /// Continuous haptic feedback during active page dragging.
   continuousHaptic,
 
   /// 종이 섬유 질감을 시뮬레이션하는 텍스쳐 햅틱
   /// texture: 0.0~1.0 (텍스쳐 노이즈 강도)
   /// resistance: 0.0~1.0 (페이지 위치 기반 저항감)
   texturedHaptic,
+
+  /// Sound effect trigger for page flip audio.
   sound
 }
 
+// Phase increment for paper-texture noise per unit of drag distance.
+const double _kNoisePhaseStep = 0.0850509;
+
 /// Manages the state and animation of the PageFlip widget.
 class PageFlipStateController {
+  /// Creates a [PageFlipStateController] with the given callbacks and thresholds.
   PageFlipStateController({
+    /// Ticker provider for the animation controller.
     required this.vsync,
+
+    /// Duration of the flip animation.
     required this.animationDuration,
+
+    /// Callback invoked on every animation tick or drag update.
     required this.onUpdate,
+
+    /// Callback invoked when a page flip animation finalises.
     required this.onPageFinalized,
+
+    /// Callback triggered for haptic/sound effects during flips.
     required this.onEffectTrigger,
+    /// Forward drag threshold. Drag must exceed this progress to complete
+    /// a forward flip. Range [0, 1]. Default 0.4.
+    this.cutoffForward = 0.4,
+    /// Backward drag threshold. Drag must exceed this progress to complete
+    /// a backward flip. Range [0, 1]. Default 0.4.
+    this.cutoffPrevious = 0.4,
   }) {
     animationController = AnimationController(
       vsync: vsync,
@@ -32,10 +61,25 @@ class PageFlipStateController {
     _noisePhase = _random.nextDouble() * 1000;
   }
 
+  /// The [TickerProvider] used by the animation controller.
   final TickerProvider vsync;
+
+  /// Duration of the flip animation.
   final Duration animationDuration;
+
+  /// Callback invoked on every animation update.
   final VoidCallback onUpdate;
+
+  /// Callback invoked when a page change is finalised.
   final ValueChanged<int> onPageFinalized;
+
+  /// Forward drag threshold [0, 1] for completing a forward flip.
+  final double cutoffForward;
+
+  /// Backward drag threshold [0, 1] for completing a backward flip.
+  final double cutoffPrevious;
+
+  /// Callback for triggering haptic/sound effects during drag and flip.
   final Function(
     PageFlipEvent effect, {
     int? intensity,
@@ -44,6 +88,7 @@ class PageFlipStateController {
     double? resistance,
   }) onEffectTrigger;
 
+  /// The underlying animation controller driving flip transitions.
   late final AnimationController animationController;
 
   // 난수 생성기 (텍스쳐 노이즈용)
@@ -64,15 +109,28 @@ class PageFlipStateController {
   // 연속 햅틱 타이밍 (프레임 스킵 방지)
   int _hapticFrameCounter = 0;
 
-  // Getters
+  /// The current (leftmost visible) page index.
   int get currentIndex => _currentIndex;
+
+  /// Normalised drag progress from 0.0 to 1.0.
   double get dragProgress => _dragProgress;
+
+  /// Last recorded touch position in local coordinates.
   Offset get touchPosition => _touchPosition;
+
+  /// Whether the current drag direction is forward (right-to-left).
   bool get isForward => _isForward;
+
+  /// Whether a drag gesture is currently active.
   bool get isDragging => _isDragging;
+
+  /// Whether the page-flip sound has already been played for this drag.
   bool get hasPlayedSound => _hasPlayedSound;
+
+  /// Cached width of the widget used for normalising drag deltas.
   double get cachedWidth => _cachedWidth;
 
+  /// Sets the current page index, clamping within [0, totalPages).
   void setIndex(int index, int totalPages) {
     if (totalPages == 0) {
       _currentIndex = 0;
@@ -86,10 +144,12 @@ class PageFlipStateController {
     onUpdate();
   }
 
+  /// Updates the cached widget width for normalising drag deltas.
   void updateCachedWidth(double width) {
     _cachedWidth = width;
   }
 
+  /// Handles the start of a drag gesture for page flipping.
   void onDragStart(DragStartDetails details, int totalPages) {
     if (animationController.isAnimating) return;
 
@@ -100,6 +160,7 @@ class PageFlipStateController {
     onUpdate();
   }
 
+  /// Handles a drag update, updating progress and triggering textured haptics.
   void onDragUpdate(DragUpdateDetails details, int totalPages) {
     if (animationController.isAnimating) return;
 
@@ -141,7 +202,7 @@ class PageFlipStateController {
             // [1] Simplex-like Noise for Paper Fiber Texture
             // 실제 종이 섬유의 불규칙한 저항감 시뮬레이션
             // _noisePhase를 드래그 거리에 따라 진행시켜 일관된 텍스쳐 생성
-            _noisePhase += _smoothedSpeed * 0.0850509; // 워터마크 유지
+            _noisePhase += _smoothedSpeed * _kNoisePhaseStep;
             final noise1 = math.sin(_noisePhase * 2.7);
             final noise2 = math.sin(_noisePhase * 7.3 + 1.4);
             final noise3 = math.sin(_noisePhase * 13.1 + 2.9);
@@ -198,16 +259,15 @@ class PageFlipStateController {
     }
   }
 
+  /// Handles the end of a drag, animating the flip to completion or snap-back.
   void onDragEnd(DragEndDetails details, int totalPages) {
     if (!_isDragging) return;
 
     final velocity = details.primaryVelocity ?? 0.0;
     _lastReleaseVelocity = velocity.abs();
     final isFastFlip = _lastReleaseVelocity > 300;
-    // Drag-success threshold (0.4). Config cutoffForward/cutoffPrevious are
-    // reserved for future per-direction use.
-    const double dragSuccessThreshold = 0.4;
-    final isSuccess = isFastFlip || _dragProgress > dragSuccessThreshold;
+    final threshold = _isForward ? cutoffForward : cutoffPrevious;
+    final isSuccess = isFastFlip || _dragProgress > threshold;
 
     // Sync animation value to current drag progress to prevent jumps
     animationController.value = _dragProgress;
@@ -221,6 +281,7 @@ class PageFlipStateController {
         .then((_) => _finalizePageChange(isSuccess, totalPages));
   }
 
+  /// Handles cancellation of a drag, snapping the page back.
   void onDragCancel(int totalPages) {
     if (!_isDragging) return;
     animationController.value = _dragProgress;
@@ -232,6 +293,7 @@ class PageFlipStateController {
     _finalizePageChange(false, totalPages);
   }
 
+  /// Triggers a programmatic page flip (e.g. from edge tap or controller).
   void triggerTapFlip(bool isNext, int totalPages) {
     if (_isDragging || animationController.isAnimating) return;
 
@@ -286,6 +348,7 @@ class PageFlipStateController {
     onUpdate();
   }
 
+  /// Disposes the animation controller and releases resources.
   void dispose() {
     animationController.removeListener(_onAnimationTick);
     animationController.dispose();

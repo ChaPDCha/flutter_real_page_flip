@@ -31,10 +31,11 @@ import 'page_flip_effect_handler.dart';
 /// )
 /// ```
 class PageFlipConfig {
+  /// Creates a [PageFlipConfig] with the given settings.
   const PageFlipConfig({
     this.duration = const Duration(milliseconds: 450),
-    this.cutoffForward = 0.8,
-    this.cutoffPrevious = 0.1,
+    this.cutoffForward = 0.4,
+    this.cutoffPrevious = 0.4,
     this.backgroundColor,
     this.isRightSwipe = false,
     this.enableSwipe = true,
@@ -63,13 +64,18 @@ class PageFlipConfig {
   /// Duration of the flip animation.
   final Duration duration;
 
-  /// Cutoff point for forward flip (0.0 to 1.0).
-  /// Reserved for future per-direction threshold; drag success currently uses
-  /// a fixed threshold in [PageFlipStateController].
+  /// Drag progress threshold (0.0 to 1.0, default 0.4) for a successful forward flip.
+  ///
+  /// When the user releases a forward drag beyond this progress, the flip
+  /// completes; otherwise the page snaps back. Higher values require dragging
+  /// further across the page.
   final double cutoffForward;
 
-  /// Cutoff point for previous flip (0.0 to 1.0).
-  /// Reserved for future per-direction threshold; see [cutoffForward].
+  /// Drag progress threshold (0.0 to 1.0, default 0.4) for a successful backward flip.
+  ///
+  /// When the user releases a backward drag beyond this progress, the flip
+  /// completes; otherwise the page snaps back. Higher values require dragging
+  /// further across the page.
   final double cutoffPrevious;
 
   /// Background color of the page-flip flap (the paper back side).
@@ -131,6 +137,9 @@ class PageFlipConfig {
           sensitivity == other.sensitivity &&
           edgeTapWidthRatio == other.edgeTapWidthRatio &&
           skipTapAnimation == other.skipTapAnimation &&
+          enableHaptics == other.enableHaptics &&
+          enableSound == other.enableSound &&
+          effectHandler == other.effectHandler &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
           edgeTapNextLabel == other.edgeTapNextLabel &&
           edgeTapPreviousHint == other.edgeTapPreviousHint &&
@@ -147,6 +156,9 @@ class PageFlipConfig {
       sensitivity.hashCode ^
       edgeTapWidthRatio.hashCode ^
       skipTapAnimation.hashCode ^
+      enableHaptics.hashCode ^
+      enableSound.hashCode ^
+      effectHandler.hashCode ^
       edgeTapPreviousLabel.hashCode ^
       edgeTapNextLabel.hashCode ^
       edgeTapPreviousHint.hashCode ^

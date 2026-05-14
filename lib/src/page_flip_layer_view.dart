@@ -7,30 +7,71 @@ import 'effects/page_flip_engine.dart';
 
 /// Renders the page layers (Bottom, Middle, Flap) based on the current drag state.
 class PageFlipLayerView extends StatelessWidget {
+  /// Creates a [PageFlipLayerView].
   const PageFlipLayerView({
+    /// Builder for page widgets.
     this.itemBuilder,
+
+    /// Total number of pages.
     required this.itemCount,
+
+    /// Currently visible page index.
     required this.currentIndex,
+
+    /// Normalised drag progress (0.0 to 1.0).
     required this.dragProgress,
+
+    /// Whether a drag gesture is active.
     required this.isDragging,
+
+    /// Whether the drag direction is forward.
     required this.isForward,
+
+    /// Current touch position in local coordinates.
     required this.touchPosition,
+
+    /// Cached snapshots of pre-rendered pages.
     required this.pageSnapshots,
+
+    /// GlobalKeys for tracking rendered pages.
     required this.pageKeys,
+
+    /// Color of the paper flap back side.
     this.paperFlapColor,
+
+    /// Optional explicit size to constrain children.
     this.constrainedSize,
     super.key,
   });
 
+  /// Builder for page widgets.
   final IndexedWidgetBuilder? itemBuilder;
+
+  /// Total number of pages.
   final int itemCount;
+
+  /// Currently visible page index.
   final int currentIndex;
+
+  /// Normalised drag progress (0.0 to 1.0).
   final double dragProgress;
+
+  /// Whether a drag gesture is active.
   final bool isDragging;
+
+  /// Whether the drag direction is forward.
   final bool isForward;
+
+  /// Current touch position in local coordinates.
   final Offset touchPosition;
+
+  /// Cached snapshots of pre-rendered pages.
   final Map<int, ui.Image> pageSnapshots;
+
+  /// GlobalKeys for tracking rendered pages.
   final Map<int, GlobalKey> pageKeys;
+
+  /// Color of the paper flap back side.
   final Color? paperFlapColor;
 
   /// Optional explicit size to constrain children (prevents infinite height from Stack).

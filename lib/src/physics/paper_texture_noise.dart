@@ -1,7 +1,10 @@
 import 'dart:math';
 
+/// Generates 1D Perlin-like noise for paper texture simulation.
 class PaperTextureNoise {
+  /// Creates a [PaperTextureNoise] with an optional seed value.
   PaperTextureNoise({int seed = 42}) : _perm = _buildPermutation(seed);
+
   final List<int> _perm;
 
   static List<int> _buildPermutation(int seed) {
@@ -21,11 +24,24 @@ class PaperTextureNoise {
     return a + u * (b - a);
   }
 
+  /// Generates a paper texture value using fractal Brownian motion noise.
+  ///
+  /// Uses multiple octaves of 1D Perlin-like noise to produce a natural
+  /// paper fibre texture (0.0 to 1.0).
   double paperTexture({
+    /// Position along the paper surface.
     required double position,
+
+    /// Number of noise octaves to layer.
     int octaves = 4,
+
+    /// Frequency multiplier between octaves.
     double lacunarity = 2.0,
+
+    /// Amplitude persistence (how quickly amplitude decays per octave).
     double persistence = 0.45,
+
+    /// Base frequency for the first octave.
     double baseFrequency = 0.08,
   }) {
     double value = 0;
@@ -41,10 +57,18 @@ class PaperTextureNoise {
     return ((value / maxValue) + 1.0) / 2.0;
   }
 
+  /// Convenience wrapper around [paperTexture] that reads config values directly.
   double paperTextureFromConfig({
+    /// Position along the paper surface.
     required double position,
+
+    /// Amplitude persistence (from config).
     required double persistence,
+
+    /// Number of noise octaves (from config).
     required int octaves,
+
+    /// Base frequency (from config).
     required double baseFrequency,
   }) =>
       paperTexture(

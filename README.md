@@ -6,18 +6,18 @@
 
 A professional, high-fidelity 3D-like page flip engine for Flutter. Specifically engineered to deliver **ultra-smooth 60/120 FPS performance even on low-end devices** through advanced rendering optimizations.
 
-[English] | [한국어](#한국어-korean)
+English | [한국어](#한국어-korean)
 
-## Demos 🎬
+## Demos
 
 ### 1. Full Performance Demo (v1.2+)
-https://github.com/user-attachments/assets/f9b19621-af97-4ffc-b1bb-7626b9e3b99e
+![Performance Demo](doc/screenshots/performance_demo.webp)
 
 ### 2. Legacy Interaction Demo (Core Physics)
-https://github.com/user-attachments/assets/656892d5-a426-4161-9630-511447a1b347
+![Interaction Demo](doc/screenshots/interaction_demo.webp)
 
 
-## Why Real Page Flip? (The Technical Edge) 🚀
+## Why Real Page Flip? (The Technical Edge)
 
 Most page flip libraries struggle with performance as UI complexity increases. Real Page Flip is built differently:
 
@@ -39,22 +39,22 @@ Ever had a "Vertical viewport was given unbounded height" error? Not here.
 
 ---
 
-## Sensory Experience: Sound and Haptics 🎧
+## Sensory Experience: Sound and Haptics
 
 What truly sets this engine apart is the immersive sensory feedback:
 - **Physical Sound Effects**: High-quality rustle sounds that vary naturally with your gesture speed.
 - **Tactile Haptics**: Feel the friction and the "snap" of the paper through your device's haptic engine.
 
-## Installation 📦
+## Installation
 
 Add `real_page_flip` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  real_page_flip: ^1.3.0
+  real_page_flip: ^1.4.0
 ```
 
-## Quick Start 🚀
+## Quick Start
 
 ```dart
 import 'package:real_page_flip/real_page_flip.dart';
@@ -65,7 +65,30 @@ PageFlipWidget(
 )
 ```
 
-## Dark Mode Support 🌙
+## Flip Sensitivity
+
+Control the drag-release threshold for completing page flips in each direction:
+
+```dart
+PageFlipWidget(
+  config: PageFlipConfig(
+    // Forward flip completes when drag exceeds 40 % (default 0.4)
+    cutoffForward: 0.35,
+    // Backward flip threshold (default 0.4)
+    cutoffPrevious: 0.5,
+    // Overall gesture sensitivity (0.0 = firm, 1.0 = light touch)
+    sensitivity: 0.5,
+  ),
+  itemCount: 10,
+  itemBuilder: (context, index) => MyPage(index),
+)
+```
+
+Higher values require dragging further across the page to complete a flip.
+Setting forward/previous independently lets you tune bias (e.g. easier to go
+forward than backward).
+
+## Dark Mode Support
 
 The engine is **theme-aware by default**. With `backgroundColor: null` (the
 default since v1.3.0), the flipping page automatically uses the host app's
@@ -117,7 +140,7 @@ PageFlipWidget(
 > **Note**: Page *content* (text, images, backgrounds) is controlled by your
 > `itemBuilder`. The engine only manages the flip animation layer.
 
-## License 📜
+## License
 
 This project uses a **Dual License** model:
 - **Non-commercial**: Free for personal/open-source projects.
@@ -130,7 +153,7 @@ See [LICENSE](LICENSE) for details.
 
 **Real Page Flip Engine**은 플러터를 위한 고성능 물리 기반 페이지 전환 엔진입니다. 특히 **저사양 기기에서도 끊김 없는 60/120 FPS 성능**을 보장하기 위해 설계된 독보적인 렌더링 최적화 기술이 적용되었습니다.
 
-### 기술적 차별점 (Professional Edge) 🛠️
+### 기술적 차별점 (Professional Edge)
 
 1. **하이브리드 스냅샷 엔진**: 애니메이션 중 복잡한 위젯 트리를 매 프레임 다시 그리는 대신, 페이지를 고해상도 이미지로 캡처하여 처리합니다. 덕분에 아무리 복잡한 UI라도 GPU 부하 없이 부드럽게 넘어갑니다.
 2. **지능형 메모리 윈도잉**: 수만 장의 페이지가 있어도 현재와 앞뒤 페이지, 단 3장만 메모리에 유지하여 리소스 낭비를 원천 차단합니다.
@@ -139,4 +162,4 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-Built with ❤️ by [ChaPDCha](https://github.com/ChaPDCha)
+Built with by [ChaPDCha](https://github.com/ChaPDCha)

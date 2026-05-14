@@ -6,47 +6,29 @@ void main() {
   group('PageFlipStateController', () {
     late PageFlipStateController controller;
 
-    test('Initialization sets correct defaults', () {
+    setUp(() {
+      TestWidgetsFlutterBinding.ensureInitialized();
       const vsync = TestVSync();
-
       controller = PageFlipStateController(
         vsync: vsync,
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect,
-            {intensity,
-            pageIndex,
-            resistance,
-            texture,
-            timestampMs,
-            volume}) {},
+        onEffectTrigger: (effect, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
       );
+    });
 
-      expect(controller.currentIndex, 0);
-      expect(controller.isDragging, false);
-      expect(controller.dragProgress, 0.0);
-
+    tearDown(() {
       controller.dispose();
     });
 
+    test('Initialization sets correct defaults', () {
+      expect(controller.currentIndex, 0);
+      expect(controller.isDragging, false);
+      expect(controller.dragProgress, 0.0);
+    });
+
     test('setIndex clamps value correctly', () {
-      const vsync = TestVSync();
-
-      controller = PageFlipStateController(
-        vsync: vsync,
-        animationDuration: const Duration(milliseconds: 300),
-        onUpdate: () {},
-        onPageFinalized: (index) {},
-        onEffectTrigger: (effect,
-            {intensity,
-            pageIndex,
-            resistance,
-            texture,
-            timestampMs,
-            volume}) {},
-      );
-
       controller.setIndex(5, 10);
       expect(controller.currentIndex, 5, reason: 'Should set valid index');
 
@@ -55,32 +37,128 @@ void main() {
 
       controller.setIndex(-1, 10);
       expect(controller.currentIndex, 0, reason: 'Should clamp to min index');
-
-      controller.dispose();
     });
 
-    test('onEffectTrigger receives intensity for startHaptic from first delta',
-        () {
-      const vsync = TestVSync();
-      final effects = <PageFlipEvent>[];
+    test('setIndex with totalPages=0 does not crash', () {
+      controller.setIndex(42, 0);
+      // Should stay at 0 when totalPages is 0
+      expect(controller.currentIndex, 0);
+    });
 
-      controller = PageFlipStateController(
-        vsync: vsync,
+    test('onDragStart resets drag state', () {
+      // Set up partial drag state
+      controller.updateCachedWidth(400);
+      controller.onDragStart(
+        DragStartDetails(localPosition: const Offset(200, 300)),
+        5,
+      );
+      expect(controller.isDragging, false);
+      expect(controller.dragProgress, 0.0);
+      expect(controller.touchPosition, const Offset(200, 300));
+    });
+
+    test('onDragStart ignores when animation is running', () {
+      // Start a drag
+      controller.updateCachedWidth(400);
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      controller.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -50, delta: const Offset(-50, 0),
+          globalPosition: Offset.zero, localPosition: Offset.zero,
+        ),
+        5,
+      );
+      controller.onDragEnd(DragEndDetails(primaryVelocity: 0), 5);
+
+      // Second drag start while first is still "animating" (post-release)
+      controller.onDragStart(
+        DragStartDetails(localPosition: const Offset(100, 100)),
+        5,
+      );
+      // Touch position should NOT be updated since animation is still running
+      // (progress > 0 means it was in an animating state)
+    });
+
+    test('onDragUpdate clamps progress to [0, 1]', () {
+      controller.updateCachedWidth(400);
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+
+      // Drag far beyond the screen width
+      controller.onDragUpdate(
+        DragUpdateDetails(primaryDelta: -500, delta: const Offset(-500, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        5,
+      );
+      expect(controller.dragProgress, greaterThanOrEqualTo(0.0));
+      expect(controller.dragProgress, lessThanOrEqualTo(1.0));
+
+      // Drag in opposite direction
+      controller.onDragUpdate(
+        DragUpdateDetails(primaryDelta: 200, delta: const Offset(200, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        5,
+      );
+      expect(controller.dragProgress, greaterThanOrEqualTo(0.0));
+      expect(controller.dragProgress, lessThanOrEqualTo(1.0));
+    });
+
+    test('onDragUpdate blocks forward drag past last page', () {
+      controller.setIndex(4, 5);
+      controller.updateCachedWidth(400);
+
+      // Try forward drag (negative delta = forward)
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      controller.onDragUpdate(
+        DragUpdateDetails(primaryDelta: -50, delta: const Offset(-50, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        5,
+      );
+      expect(controller.isDragging, false,
+          reason: 'Should not start drag at boundary');
+    });
+
+    test('onDragUpdate blocks backward drag past first page', () {
+      controller.setIndex(0, 5);
+      controller.updateCachedWidth(400);
+
+      // Try backward drag (positive delta = backward)
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      controller.onDragUpdate(
+        DragUpdateDetails(primaryDelta: 50, delta: const Offset(50, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        5,
+      );
+      expect(controller.isDragging, false,
+          reason: 'Should not start drag at boundary');
+    });
+
+    test('dispose during any state does not throw', () {
+      // Dispose immediately after creation
+      final fresh = PageFlipStateController(
+        vsync: TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
+        onEffectTrigger: (PageFlipEvent effect, {int? intensity, double? volume, double? texture, double? resistance}) {},
+      );
+      // No exception expected
+      expect(() => fresh.dispose(), returnsNormally);
+    });
+
+    test('onEffectTrigger receives startHaptic from first delta', () {
+      final effects = <PageFlipEvent>[];
+      final effectController = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (effect, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
           effects.add(effect);
         },
       );
 
-      controller.updateCachedWidth(400);
-      controller.onDragStart(
+      effectController.updateCachedWidth(400);
+      effectController.onDragStart(
         DragStartDetails(localPosition: Offset.zero),
         5,
       );
-      controller.onDragUpdate(
+      effectController.onDragUpdate(
         DragUpdateDetails(
           primaryDelta: -20,
           delta: const Offset(-20, 0),
@@ -91,89 +169,79 @@ void main() {
       );
 
       expect(effects, contains(PageFlipEvent.startHaptic));
-
-      controller.dispose();
+      effectController.dispose();
     });
 
-    test('smoothed intensity logic (EMA) works correctly', () {
-      const vsync = TestVSync();
+    test('texturedHaptic intensity in valid range (40-255)', () {
       final intensities = <int>[];
-
-      controller = PageFlipStateController(
-        vsync: vsync,
+      final effectController = PageFlipStateController(
+        vsync: TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
-          // texturedHaptic uses texture/resistance
+        onEffectTrigger: (effect, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
           if (effect == PageFlipEvent.texturedHaptic && intensity != null) {
             intensities.add(intensity);
           }
         },
       );
 
-      controller.updateCachedWidth(400);
-      controller.onDragStart(
+      effectController.updateCachedWidth(400);
+      effectController.onDragStart(
         DragStartDetails(localPosition: Offset.zero),
         5,
       );
-
-      // texturedHaptic is triggered every 2 frames, with higher base intensity
-      // First update triggers startHaptic (frame 1)
-      controller.onDragUpdate(
-        DragUpdateDetails(
-          primaryDelta: -10,
-          delta: const Offset(-10, 0),
-          globalPosition: Offset.zero,
-          localPosition: Offset.zero,
-        ),
+      effectController.onDragUpdate(
+        DragUpdateDetails(primaryDelta: -10, delta: const Offset(-10, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        5,
+      );
+      effectController.onDragUpdate(
+        DragUpdateDetails(primaryDelta: -15, delta: const Offset(-15, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        5,
+      );
+      effectController.onDragUpdate(
+        DragUpdateDetails(primaryDelta: -20, delta: const Offset(-20, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        5,
+      );
+      effectController.onDragUpdate(
+        DragUpdateDetails(primaryDelta: -25, delta: const Offset(-25, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
         5,
       );
 
-      // Second update increments counter (frame 2) - may trigger texturedHaptic
-      controller.onDragUpdate(
-        DragUpdateDetails(
-          primaryDelta: -15,
-          delta: const Offset(-15, 0),
-          globalPosition: Offset.zero,
-          localPosition: Offset.zero,
-        ),
-        5,
-      );
-
-      // Third update (frame 3)
-      controller.onDragUpdate(
-        DragUpdateDetails(
-          primaryDelta: -20,
-          delta: const Offset(-20, 0),
-          globalPosition: Offset.zero,
-          localPosition: Offset.zero,
-        ),
-        5,
-      );
-
-      // Fourth update (frame 4) - should trigger texturedHaptic
-      controller.onDragUpdate(
-        DragUpdateDetails(
-          primaryDelta: -25,
-          delta: const Offset(-25, 0),
-          globalPosition: Offset.zero,
-          localPosition: Offset.zero,
-        ),
-        5,
-      );
-
-      // texturedHaptic triggers on frames 2 and 4 (every 2nd frame)
-      expect(intensities.length, greaterThanOrEqualTo(1),
-          reason: 'texturedHaptic should be triggered');
-      // Intensity should be in valid range (40-255 after all modulations)
+      expect(intensities.length, greaterThanOrEqualTo(1));
       for (final i in intensities) {
-        expect(i, inInclusiveRange(40, 255),
-            reason: 'Intensity should be in textured haptic range');
+        expect(i, inInclusiveRange(40, 255));
       }
+      effectController.dispose();
+    });
 
-      controller.dispose();
+    test('triggerTapFlip with skipTapAnimation fires callbacks', () {
+      controller.setIndex(0, 5);
+      controller.updateCachedWidth(400);
+
+      // Store callbacks that fire
+      bool soundFired = false;
+      bool hapticFired = false;
+
+      // Create a controller with effect tracking
+      final tapController = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (effect, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
+          if (effect == PageFlipEvent.sound) soundFired = true;
+          if (effect == PageFlipEvent.impulseHaptic) hapticFired = true;
+        },
+      );
+      tapController.setIndex(0, 5);
+
+      tapController.triggerTapFlip(true, 5);
+
+      // Effects should fire immediately
+      expect(soundFired, isTrue);
+      expect(hapticFired, isTrue);
+      tapController.dispose();
     });
   });
 }

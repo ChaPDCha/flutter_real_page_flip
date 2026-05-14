@@ -5,9 +5,13 @@ import 'package:flutter/rendering.dart';
 
 /// Manages pre-rendering of adjacent pages to improve flip performance.
 class PreRenderManager {
+  /// GlobalKeys for tracking rendered pages.
   final Map<int, GlobalKey> pageKeys = {};
+
+  /// Cached snapshots (ui.Image) of pre-rendered pages.
   final Map<int, ui.Image> pageSnapshots = {};
 
+  /// Removes snapshots and keys for pages that are no longer adjacent.
   void cleanup(int currentIndex, int totalPages) {
     final targetIndices = _getTargetIndices(currentIndex, totalPages);
 
@@ -26,12 +30,14 @@ class PreRenderManager {
     );
   }
 
+  /// Resets the manager: cancels pending renders, clears snapshots and keys.
   void reset() {
     cancelPreRender();
     flushSnapshots();
     pageKeys.clear();
   }
 
+  /// Ensures that keys exist for the current page and adjacent pages.
   void prepareKeys(int currentIndex, int totalPages) {
     // Ensure current index always has a key
     pageKeys.putIfAbsent(currentIndex, GlobalKey.new);
@@ -45,6 +51,7 @@ class PreRenderManager {
   Timer? _debounceTimer;
   bool _isDisposed = false;
 
+  /// Captures snapshots of adjacent pages for smooth flip transitions.
   Future<void> captureSnapshots(
     int currentIndex,
     int totalPages,
@@ -95,6 +102,7 @@ class PreRenderManager {
     return indices;
   }
 
+  /// Disposes all cached snapshots and clears the snapshot map.
   void flushSnapshots() {
     if (pageSnapshots.isEmpty) return;
     for (final image in pageSnapshots.values) {
@@ -103,10 +111,12 @@ class PreRenderManager {
     pageSnapshots.clear();
   }
 
+  /// Cancels any pending pre-render timer.
   void cancelPreRender() {
     _debounceTimer?.cancel();
   }
 
+  /// Disposes the manager: cancels renders, disposes all snapshots.
   void dispose() {
     _isDisposed = true;
     cancelPreRender();

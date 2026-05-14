@@ -6,24 +6,36 @@ import 'stick_slip_controller.dart';
 
 /// Façade that orchestrates all paper physics components.
 class PaperPhysicsEngine {
+  /// Creates a [PaperPhysicsEngine] for the given page number.
   PaperPhysicsEngine({
     required int pageNumber,
+    /// Configuration for paper physics parameters.
     this.config = PaperPhysicsConfig.standard,
   })  : _textureNoise = PaperTextureNoise(seed: pageNumber),
         _stickSlip = StickSlipController(
           stationaryThresholdMs: config.stationaryThresholdMs,
           slipVelocityThreshold: config.slipVelocityThreshold,
         );
-  final PaperTextureNoise _textureNoise;
-  final StickSlipController _stickSlip;
+
+  /// Configuration for paper physics parameters.
   final PaperPhysicsConfig config;
 
+  final PaperTextureNoise _textureNoise;
+  final StickSlipController _stickSlip;
   double _accumulatedDistance = 0;
 
+  /// Calculates a physics frame for the given drag input.
   PaperPhysicsFrame calculate({
+    /// Drag delta in pixels.
     required double dx,
+
+    /// Current fold angle in radians.
     required double foldAngle,
+
+    /// Screen width in pixels for normalization.
     required double screenWidth,
+
+    /// Optional override config for this calculation.
     PaperPhysicsConfig? customConfig,
   }) {
     final activeConfig = customConfig ?? config;
@@ -85,6 +97,7 @@ class PaperPhysicsEngine {
     );
   }
 
+  /// Resets the accumulated distance and stick-slip state.
   void reset() {
     _accumulatedDistance = 0.0;
     _stickSlip.reset();

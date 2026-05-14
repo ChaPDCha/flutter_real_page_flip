@@ -27,8 +27,41 @@ jobs:
       - name: Analyze project
         run: flutter analyze
 
-      - name: Run tests
-        run: flutter test
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Generate coverage summary
+        run: |
+          echo "Coverage report generated at coverage/lcov.info"
+          if command -v lcov &> /dev/null; then
+            genhtml coverage/lcov.info -o coverage/html
+            echo "HTML coverage report available at coverage/html/index.html"
+          else
+            echo "lcov not installed; skipping HTML report generation."
+          fi
+
+      - name: Test count regression check
+        run: |
+          BASELINE=113
+          MINIMUM=100
+          TEST_OUTPUT=$(flutter test --coverage 2>&1 | tail -5)
+          echo "$TEST_OUTPUT"
+          # Extract number of tests from the test output line like "X tests passed."
+          if echo "$TEST_OUTPUT" | grep -qE '([0-9]+) tests?'; then
+            COUNT=$(echo "$TEST_OUTPUT" | grep -oE '[0-9]+' | head -1)
+            echo "Test count: $COUNT"
+            if [ "$COUNT" -lt "$MINIMUM" ]; then
+              echo "ERROR: Test count ($COUNT) dropped below minimum ($MINIMUM)"
+              exit 1
+            fi
+            if [ "$COUNT" -lt "$BASELINE" ]; then
+              echo "WARNING: Test count ($COUNT) is below baseline ($BASELINE) — consider adding tests for new code."
+            else
+              echo "Test count ($COUNT) at or above baseline ($BASELINE)."
+            fi
+          else
+            echo "WARNING: Could not parse test count from output."
+          fi
 
       - name: Check publishing readiness
         run: dart pub publish --dry-run

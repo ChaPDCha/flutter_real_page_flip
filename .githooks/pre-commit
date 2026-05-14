@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# pre-commit hook: run dart format and flutter analyze before committing.
+# Block commit only on failures.
+
+set -euo pipefail
+
+echo "============================================"
+echo " pre-commit: Running pre-commit checks..."
+echo "============================================"
+
+# Run dart format check
+echo ""
+echo " [1/2] Checking dart formatting..."
+if ! dart format --output=none --set-exit-if-changed .; then
+    echo ""
+    echo " ERROR: Dart formatting issues found. Run 'dart format .' to fix."
+    exit 1
+fi
+echo " [1/2] Formatting check passed."
+echo ""
+
+# Run flutter analyze
+echo ""
+echo " [2/2] Running flutter analyze..."
+if ! flutter analyze; then
+    echo ""
+    echo " ERROR: flutter analyze failed. Commit aborted."
+    exit 1
+fi
+echo " [2/2] flutter analyze passed."
+echo ""
+
+echo "============================================"
+echo " All pre-commit checks passed. Committing..."
+echo "============================================"
