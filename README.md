@@ -106,7 +106,7 @@ MaterialApp(
     body: PageFlipWidget(
       itemCount: pages.length,
       itemBuilder: (context, index) => MyPage(index),
-      // No config needed — dark mode just works ✅
+      // No config needed — dark mode just works
     ),
   ),
 )
