@@ -64,5 +64,16 @@ coverage/
 # Artifacts
 analyze_output.txt
 
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# Golden / emulator test failure outputs (not CI baselines)
+test/failures/
+
+# Local editor / agent tooling (not shipped)
+.antigravityignore
+
 # Generated documentation (dart doc output)
 doc/api/
