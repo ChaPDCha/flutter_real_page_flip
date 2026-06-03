@@ -150,7 +150,6 @@ class PreRenderManager {
       _activeCaptures.contains(index) || _pendingRetryIndices.contains(index);
 
   /// Returns true when every adjacent snapshot needed for a flip is cached.
-  @visibleForTesting
   bool hasAdjacentSnapshots(
     int currentIndex,
     int totalPages, {

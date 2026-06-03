@@ -311,7 +311,6 @@ Widget clipSpreadPageHalf({
 ///
 /// Snapshots are captured at logical viewport dimensions; [BoxFit.fill] in a
 /// matching [SizedBox] preserves proportions identical to the idle live page.
-@visibleForTesting
 Widget buildViewportSnapshotImage(
   ui.Image image, {
   required Size viewportSize,
