@@ -1,30 +1,44 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:real_page_flip_example/main.dart';
+import 'package:real_page_flip_example/features/bookshelf/domain/book_repository.dart';
+import 'package:real_page_flip_example/features/bookshelf/data/book_repository_provider.dart';
+import 'package:real_page_flip_example/features/sync/application/sync_provider.dart';
+
+class MockBookRepository extends Mock implements BookRepository {}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Bookshelf screen smoke test', (WidgetTester tester) async {
+    // Mock SharedPreferences values for testing environment
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final mockRepository = MockBookRepository();
+    when(() => mockRepository.getBooks()).thenAnswer((_) async => []);
+
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bookRepositoryProvider.overrideWithValue(mockRepository),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+        child: const MyApp(),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    // Pump the initial loading frame (rendering Skeletonizer)
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Re-pump with a delay to let the mocked future resolve to empty state
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Verify that the bookshelf title and empty state text are visible.
+    expect(find.text('Realbook 서재'), findsOneWidget);
+    expect(find.text('서재가 비어 있습니다'), findsOneWidget);
   });
 }
