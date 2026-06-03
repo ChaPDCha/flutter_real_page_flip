@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 import 'package:real_page_flip/src/models/flip_layer_policy.dart';
+import 'package:real_page_flip/src/widgets/flip_middle_layer_stack.dart';
 
 // LAYOUT GATE: constrainedSize + _wrapWithConstraints for Offstage/current/flip pages.
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
@@ -281,7 +282,21 @@ class PageFlipLayerView extends StatelessWidget {
         // (PageFlipOpenClipper inside [_buildMiddleLayerStack]). Wrapping the whole
         // stack in PageFlipClipper (left-of-fold) exposed the bottom layer's previous
         // spread on the right where the current right page should remain fixed.
-        _buildMiddleLayer(context, geo, middleLayerContent, floatProgress, policy),
+        FlipMiddleLayerStack(
+          middleLayerContent: middleLayerContent,
+          geo: geo,
+          policy: policy,
+          floatProgress: floatProgress,
+          isDoubleSpread: isDoubleSpread,
+          isForward: isForward,
+          touchPosition: touchPosition,
+          spreadHalfBuilder: (spreadIndex, alignment) =>
+              _buildSpreadHalfContent(
+            context,
+            spreadIndex: spreadIndex,
+            alignment: alignment,
+          ),
+        ),
         // Layer 3: Flap shadow & highlight effects
         IgnorePointer(
           child: CustomPaint(
@@ -327,109 +342,6 @@ class PageFlipLayerView extends StatelessWidget {
 
     return _wrapWithConstraints(
       RepaintBoundary(child: _buildSnapshotImage(pageImage)),
-    );
-  }
-
-  /// Layer 2 wrapper: applies fold clip for forward/single; backward double-spread
-  /// clips stationary right and spine reveal separately inside the stack.
-  Widget _buildMiddleLayer(
-    BuildContext context,
-    PageFlipGeometry geo,
-    Widget middleLayerContent,
-    double floatProgress,
-    FlipLayerPolicy policy,
-  ) {
-    final stack = _buildMiddleLayerStack(context, geo, middleLayerContent, policy);
-
-    if (isDoubleSpread && !isForward) {
-      return stack;
-    }
-
-    return ClipPath(
-      clipper: PageFlipClipper(
-        progress: floatProgress,
-        isRightToLeft: true,
-        touchOffset: touchPosition,
-        isDoubleSpread: isDoubleSpread,
-        isForward: isForward,
-        geo: geo,
-      ),
-      child: stack,
-    );
-  }
-
-  /// Composes middle-layer children for double spread vs single page.
-  Widget _buildMiddleLayerStack(
-    BuildContext context,
-    PageFlipGeometry geo,
-    Widget middleLayerContent,
-    FlipLayerPolicy policy,
-  ) {
-    if (!isDoubleSpread) {
-      return middleLayerContent;
-    }
-
-    final spineReveal = _buildSpineRevealBand(context, geo, policy);
-    final stationaryHalf = _buildStationarySpreadHalf(middleLayerContent);
-
-    if (!isForward) {
-      final stationaryClipper = PageFlipOpenClipper(
-        progress: geo.progress,
-        isRightToLeft: true,
-        touchOffset: touchPosition,
-        isDoubleSpread: true,
-        isForward: false,
-        geo: geo,
-      );
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          if (spineReveal != null) spineReveal,
-          ClipPath(
-            clipper: stationaryClipper,
-            child: stationaryHalf,
-          ),
-        ],
-      );
-    }
-
-    if (spineReveal == null) {
-      return stationaryHalf;
-    }
-
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        stationaryHalf,
-        spineReveal,
-      ],
-    );
-  }
-
-  /// Stationary half of the middle spread (left on forward, right on backward).
-  Widget _buildStationarySpreadHalf(Widget spreadContent) {
-    return clipFullSpreadHalf(
-      alignment: isForward ? Alignment.centerLeft : Alignment.centerRight,
-      child: spreadContent,
-    );
-  }
-
-  /// Spine-band reveal of the adjacent spread page, or null when unavailable.
-  Widget? _buildSpineRevealBand(
-    BuildContext context,
-    PageFlipGeometry geo,
-    FlipLayerPolicy policy,
-  ) {
-    if (buildDoubleSpreadSpineRevealPath(geo) == null) return null;
-    final spreadIndex = policy.spineRevealSpreadIndex;
-    if (spreadIndex == null) return null;
-    return ClipPath(
-      clipper: PageFlipSpineRevealClipper(geo: geo),
-      child: _buildSpreadHalfContent(
-        context,
-        spreadIndex: spreadIndex,
-        alignment: Alignment.centerLeft,
-      ),
     );
   }
 
