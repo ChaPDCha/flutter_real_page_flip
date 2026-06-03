@@ -1,0 +1,25 @@
+---
+description: Rules for local/remote database interactions and state management in Realbible.
+globs: lib/**/*.dart
+---
+
+# Database, Persistence & State Rules
+
+## 1. Local Database (`CommonDatabase`)
+- **Strict Requirement**: Use the `CommonDatabase` abstraction for all local persistence.
+- **Forbidden**: DO NOT import `sqflite` or `drift` directly in feature-level presentation/domain code.
+- **Platform Integrity**: Web uses Drift/WASM, Mobile uses sqflite. Both unified under `CommonDatabase`.
+
+## 2. Remote Database (Supabase)
+- **Primary Source**: Supabase is the "Source of Truth" for user data and shared resources.
+- **Security (RLS)**: Every query must respect Row Level Security (RLS).
+- **Service Pattern**: Access Supabase through specific Services in the `infrastructure/` or `data/` layers.
+
+## 3. Data Mapping (DTOs)
+- Always use `fromSqlite`, `fromJson`, and `toSqlite`, `toJson` patterns.
+- Expose only pure Domain Entities to the `Presentation` and `Application` layers. Keep raw maps in the Data layer.
+
+## 4. State Management (Riverpod)
+- **Riverpod Safety**: Use `AsyncValue` extensively to handle Loading, Data, and Error states cleanly.
+- **Immutability**: State classes must be immutable (`Freezed` recommended).
+- **No Business Logic in UI**: UI should only read state or call methods on the Notifier.

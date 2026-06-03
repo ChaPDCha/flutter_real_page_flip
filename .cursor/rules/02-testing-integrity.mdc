@@ -1,0 +1,90 @@
+---
+description: "[CRITICAL] Rules for testing quality and architectural integrity. Code value is proven only by its tests."
+globs: lib/**/*.dart, test/**/*.dart
+---
+
+# Testing Integrity & Hardened Design Standard
+
+Untestable code is a **design flaw**. Features completed without tests are **technical debt**.
+
+## 1. Critical Thinking & Verification Mindset
+> **"Do not write tests mechanically. Always assume the existing code is flawed and work critically."**
+
+### 1.1 Pre-Test Critical Analysis
+Before writing any test, critically review the source code for:
+1. **Logical Integrity**: Is the logic truly correct? Are there hidden fallacies?
+2. **Code Hygiene**: Identify dead code, unimplemented branches (TODOs), or hardcoded values that should be dynamic.
+3. **Semantic Alignment**: Do method/variable names accurately reflect their actual behavior?
+
+### 1.2 Verification, Not Translation
+Tests must verify requirements, not just mirror the current implementation.
+- ❌ **Translation**: "The code returns A, so I'll test that it returns A." (This propagates existing bugs).
+- ⭕ **Verification**: "This function *should* perform B. Let's verify if it actually does, regardless of current behavior."
+
+---
+
+## 2. Testable Architecture
+- **Dependency Inversion Principle (DIP)**:
+    - Never depend directly on external libraries or platform APIs. Use abstractions (Interfaces/Abstract Classes).
+    - Minimize singleton access. Inject all dependencies via Riverpod Providers.
+- **Side-Effect Isolation**:
+    - Do not hide side effects (e.g., `print`, platform calls) inside business logic. All side effects must occur via injected services.
+
+---
+
+## 3. Strict TDD Implementation Flow
+> **"Modifying business logic without tests is strictly prohibited."**
+
+### 3.1 RED — Test First
+**Rule: Test code must exist before implementation code.**
+- Write tests that verify requirements first.
+- Always include edge cases (null, empty lists, non-existent IDs).
+
+### 3.2 GREEN — Minimal Implementation
+**Rule: Implement only what is necessary to pass the test.**
+- Hardcoding is acceptable temporarily if the RED test forces it to be broken later.
+- No "refactor later" comments—do it right now.
+
+### 3.3 REFACTOR — Refine While Passing
+**Rule: If a test breaks during refactoring, rollback immediately.**
+- Never change the order: RED → GREEN → REFACTOR.
+- Do not modify tests during the REFACTOR phase (behavioral changes require a new RED cycle).
+
+---
+
+## 4. Test Coverage Mandate
+
+| Condition | Min Coverage |
+|-----------|--------------|
+| New Features (3+ files) | 90%+ |
+| Bug Fixes | 100% of the modified method |
+| Refactoring | 100% pass of existing tests |
+| Overall Project | 80%+ |
+| Core Infrastructure (`core/data/`, etc.) | 100% path coverage |
+
+---
+
+## 5. Real-World Simulation
+- **Avoid Over-Mocking**: Use `NativeDatabase.memory()` or similar to verify actual behavior when possible.
+- **Fake Data**: Use Fake data that reproduces real JSON structures for external API responses.
+- **Cross-Platform**: Write separate scenarios for platform-specific behavior (File system, Auth) on Web vs. Mobile.
+
+## 6. AI Workflow Enforcement
+- **Before Start**: State "How will this change be verified?".
+- **During Work**: Submit functional code and test code **simultaneously**.
+- **After Completion**: Report `flutter test` results. The task is incomplete if even one test fails.
+
+## 7. Fail-Check Protocol (Test Validation)
+> **"A test that never fails is not a test; it is a decoration."**
+
+To ensure tests are not "false positives" (passing due to incorrect test logic or environmental coincidences), follow the **Fail-Check** mandate:
+
+1. **Write/Modify Test**: Complete your test case.
+2. **Confirm GREEN**: Ensure the test passes with the current production code.
+3. **Intentional Sabotage (Fail-Check)**: Manually damage the production code's core logic (e.g., flip an operator `>` to `<`, negate a boolean, or return an incorrect hardcoded value).
+4. **Verify RED**: Run the test and confirm it **fails** exactly as expected. If it still passes, your test logic is flawed.
+5. **Restore & Confirm GREEN**: Revert the sabotage and ensure the test passes again.
+
+**Every new test case MUST undergo at least one Fail-Check cycle before being considered complete.**
+
+> "Code without tests only appears to work; it is a house of cards ready to collapse."

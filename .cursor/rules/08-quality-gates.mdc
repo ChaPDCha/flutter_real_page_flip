@@ -1,0 +1,61 @@
+---
+description: "Realbook Quality Gates — Mandatory validation commands to run before/after code changes."
+globs: lib/**/*.dart, test/**/*.dart
+---
+
+# Quality Gates (Harness Engineering)
+
+Execute these commands before and after every code change. They should be copy-pasteable for immediate execution.
+
+## 1. Fast Health Check — Static Analysis
+```bash
+dart analyze
+```
+> Must have 0 warnings and 0 errors to pass.
+
+## 2. Auto-Fix (dart fix)
+```bash
+dart fix --apply
+```
+> Batch apply all auto-fixable analysis warnings.
+
+## 3. Code Formatting
+```bash
+dart format .
+```
+> Do not commit if any file has formatting issues.
+
+## 4. Run Tests
+```bash
+# Test specific module (example: epub)
+flutter test test/features/epub/
+
+# Run all tests
+flutter test
+```
+
+## 5. Coverage Gate
+```bash
+flutter test --coverage
+# Verify results in: coverage/lcov.info
+```
+
+## 6. One-Command Quality Gate (CI Simulation)
+```bash
+dart analyze && dart format --set-exit-if-changed . && flutter test && echo "ALL GATES PASSED"
+```
+> Do not commit unless this command succeeds.
+
+---
+
+## Pre-Commit Checklist (Execute in Order)
+```
+[ ] dart fix --apply            (Auto-fix)
+[ ] dart analyze                (Zero analysis errors)
+[ ] dart format .               (Formatting verification)
+[ ] flutter test <target>       (Relevant tests pass)
+[ ] Fail-Check performed        (Verify tests fail when code is damaged)
+[ ] flutter test --coverage     (Check coverage status)
+[ ] git diff --stat             (Final review of changes)
+```
+
