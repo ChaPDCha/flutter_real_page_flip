@@ -77,3 +77,6 @@ test/failures/
 
 # Generated documentation (dart doc output)
 doc/api/
+
+# Temp artifacts from tooling harness
+/example/_attach_in.txt
