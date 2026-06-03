@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/managers/pre_render_manager.dart';
@@ -129,6 +130,71 @@ void main() {
 
       expect(mgr.spreadSnapshots.containsKey(5), isTrue);
       expect(mgr.spreadSnapshots.containsKey(99), isFalse);
+    });
+    test('hasAdjacentSnapshots returns false until snapshots exist', () {
+      final mgr = PreRenderManager();
+      mgr.prepareKeys(5, 10);
+
+      expect(
+        mgr.hasAdjacentSnapshots(5, 10, includeCurrentSpread: true),
+        isFalse,
+      );
+    });
+
+    test('hasAdjacentSnapshots returns true when all targets are cached', () async {
+      final mgr = PreRenderManager();
+      mgr.prepareKeys(5, 10);
+      final image = await _createTestImage();
+
+      mgr.pageSnapshots[4] = image;
+      mgr.pageSnapshots[6] = image;
+      mgr.spreadSnapshots[4] = image;
+      mgr.spreadSnapshots[5] = image;
+      mgr.spreadSnapshots[6] = image;
+
+      expect(
+        mgr.hasAdjacentSnapshots(5, 10, includeCurrentSpread: true),
+        isTrue,
+      );
+    });
+
+    testWidgets('retries capture on next frame when boundary is not ready', (
+      tester,
+    ) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(2, 3);
+      final previousKey = mgr.pageKeys[1]!;
+      var captureCount = 0;
+
+      final captureFuture = mgr.captureSnapshots(
+        2,
+        3,
+        () => captureCount++,
+        immediate: true,
+      );
+      await tester.pump();
+      expect(mgr.hasSnapshot(1), isFalse);
+      expect(mgr.isCapturePending(1), isTrue);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: RepaintBoundary(
+              key: previousKey,
+              child: const ColoredBox(color: Color(0xFFE53935)),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(mgr.hasSnapshot(1), isTrue);
+      expect(captureCount, greaterThan(0));
+      expect(mgr.isCapturePending(1), isFalse);
+      await captureFuture;
     });
   });
 }

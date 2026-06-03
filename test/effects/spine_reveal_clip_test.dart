@@ -48,7 +48,8 @@ void main() {
       final path = buildDoubleSpreadSpineRevealPath(g);
       expect(path, isNotNull);
       expect(path!.getBounds().width, greaterThan(0));
-      expect(path.getBounds().left, greaterThanOrEqualTo(g.spineX - 1));
+      expect(path.getBounds().left, lessThanOrEqualTo(1));
+      expect(path.getBounds().right, greaterThan(g.spineX));
     });
 
     test('backward reveal band grows as progress decreases past spine crossing', () {
@@ -95,10 +96,10 @@ void main() {
       expect(edges!.overlapShift, kSpineRevealOverlapPx * -1);
     });
 
-    test('backward edges use positive overlap shift', () {
+    test('backward edges use negative overlap shift on flap trailing edge', () {
       final edges = spineRevealClipEdges(geo(progress: 0.15, isForward: false));
       expect(edges, isNotNull);
-      expect(edges!.overlapShift, kSpineRevealOverlapPx);
+      expect(edges!.overlapShift, kSpineRevealOverlapPx * -1);
     });
   });
 

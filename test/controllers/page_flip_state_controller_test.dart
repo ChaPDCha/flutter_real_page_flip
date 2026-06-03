@@ -79,6 +79,56 @@ void main() {
       // (progress > 0 means it was in an animating state)
     });
 
+    test('progressFromHorizontalDelta uses flip drag extent', () {
+      controller.updateCachedWidth(200);
+      expect(controller.progressFromHorizontalDelta(-180), closeTo(0.9, 0.001));
+      expect(controller.progressFromHorizontalDelta(50), closeTo(0.25, 0.001));
+    });
+
+    test('onDragStart credits accumulated slop toward flip progress', () {
+      controller.updateCachedWidth(400);
+      controller.onDragStart(
+        DragStartDetails(localPosition: const Offset(300, 200)),
+        5,
+        accumulatedTotalDx: -200,
+      );
+      expect(controller.isDragging, isTrue);
+      expect(controller.dragProgress, closeTo(0.5, 0.001));
+      expect(controller.isForward, isTrue);
+    });
+
+    test('full-width swipe completes flip at release', () {
+      controller.updateCachedWidth(400);
+      controller.onDragStart(
+        DragStartDetails(localPosition: Offset.zero),
+        5,
+        accumulatedTotalDx: -10,
+      );
+      controller.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -390,
+          delta: const Offset(-390, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+      expect(controller.dragProgress, 1.0);
+      controller.onDragEnd(
+        DragEndDetails(primaryVelocity: 0, velocity: Velocity.zero),
+        5,
+      );
+      // Animation runs async; finalize happens after animateTo completes.
+    });
+
+    test('updateCachedWidth ignores non-finite extent', () {
+      controller.updateCachedWidth(400);
+      controller.updateCachedWidth(double.infinity);
+      expect(controller.cachedWidth, 400);
+      controller.updateCachedWidth(double.nan);
+      expect(controller.cachedWidth, 400);
+    });
+
     test('onDragUpdate clamps progress to [0, 1]', () {
       controller.updateCachedWidth(400);
       controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
@@ -213,6 +263,37 @@ void main() {
         expect(i, inInclusiveRange(40, 255));
       }
       effectController.dispose();
+    });
+
+    testWidgets('successful finalize resets drag before onPageFinalized',
+        (tester) async {
+      var finalizedIndex = -1;
+      var dragProgressAtFinalize = -1.0;
+      var isDraggingAtFinalize = true;
+
+      late PageFlipStateController flipController;
+      flipController = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 50),
+        onUpdate: () {},
+        onPageFinalized: (index) {
+          finalizedIndex = index;
+          dragProgressAtFinalize = flipController.dragProgress;
+          isDraggingAtFinalize = flipController.isDragging;
+        },
+        onEffectTrigger: (_, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+      );
+      flipController.setIndex(0, 3);
+      flipController.updateCachedWidth(400);
+      flipController.triggerTapFlip(true, 3);
+
+      await tester.pump(const Duration(milliseconds: 60));
+      await tester.pump(const Duration(milliseconds: 60));
+
+      expect(finalizedIndex, 1);
+      expect(dragProgressAtFinalize, 0.0);
+      expect(isDraggingAtFinalize, isFalse);
+      flipController.dispose();
     });
 
     test('triggerTapFlip with skipTapAnimation fires callbacks', () {

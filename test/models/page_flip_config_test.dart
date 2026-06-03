@@ -74,5 +74,12 @@ void main() {
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
+
+    test('equality respects flapContentRevealStart', () {
+      const a = PageFlipConfig(flapContentRevealStart: 0.85);
+      const b = PageFlipConfig(flapContentRevealStart: 0.75);
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
   });
 }

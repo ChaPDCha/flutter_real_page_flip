@@ -191,41 +191,103 @@ void main() {
   });
 
   group('PageFlipPainter Texture Mapping Behavior', () {
-    test('forward flip uses drawImageRect when texture is available', () {
-      final canvas = MockCanvas();
-      final mockImage = MockImage();
-
-      final painter = PageFlipPainter(
+    test('shouldRepaint returns true when flapContentRevealStart changes', () {
+      final painter1 = PageFlipPainter(
         progress: 0.5,
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: mockImage,
-        flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 100, 100),
+        flapContentRevealStart: 0.85,
       );
+      final painter2 = PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        flapContentRevealStart: 0.75,
+      );
+      expect(painter1.shouldRepaint(painter2), isTrue);
+    });
 
-      painter.paint(canvas, const Size(800, 600));
+    test('mid fold skips texture when reveal opacity is zero', () {
+      final canvas = MockCanvas();
 
-      // Fix: forward flip now shows texture when available (eliminates "blank paper" feel)
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        flapFrontImage: MockImage(),
+        flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
+        flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
+        flapContentFadeOutEnd: 0.20,
+        flapContentRevealStart: 0.85,
+        flapContentRevealEnd: 0.95,
+      ).paint(canvas, const Size(800, 600));
+
+      expect(canvas.didDrawImageRect, isFalse);
+      expect(canvas.didDrawRect, isTrue);
+    });
+
+    test('late progress draws texture when reveal opacity is full', () {
+      final canvas = MockCanvas();
+
+      PageFlipPainter(
+        progress: 0.96,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        flapFrontImage: MockImage(),
+        flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
+        flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
+        isDoubleSpread: true,
+        isForward: true,
+        flapContentFadeOutEnd: 0.20,
+        flapContentRevealStart: 0.85,
+        flapContentRevealEnd: 0.95,
+      ).paint(canvas, const Size(800, 600));
+
       expect(canvas.didDrawImageRect, isTrue);
     });
 
-    test('backward flip uses drawImageRect when texture is available', () {
+    test('early progress draws texture when fade-out window includes progress', () {
       final canvas = MockCanvas();
-      final mockImage = MockImage();
 
-      final painter = PageFlipPainter(
-        progress: 0.5,
+      PageFlipPainter(
+        progress: 0.10,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        flapFrontImage: MockImage(),
+        flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
+        flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
+        isDoubleSpread: true,
+        isForward: true,
+        flapContentFadeOutEnd: 0.20,
+        flapContentRevealStart: 0.85,
+        flapContentRevealEnd: 0.95,
+      ).paint(canvas, const Size(800, 600));
+
+      expect(canvas.didDrawImageRect, isTrue);
+    });
+
+    test('backward flip uses drawImageRect when late reveal is active', () {
+      final canvas = MockCanvas();
+
+      PageFlipPainter(
+        progress: 0.92,
         isRightToLeft: false,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: mockImage,
-        flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 100, 100),
-      );
-
-      painter.paint(canvas, const Size(800, 600));
+        flapFrontImage: MockImage(),
+        flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+        flapFrontDestRect: const Rect.fromLTWH(0, 0, 400, 600),
+        isDoubleSpread: true,
+        isForward: false,
+        flapContentFadeOutEnd: 0.20,
+        flapContentRevealStart: 0.85,
+        flapContentRevealEnd: 0.95,
+      ).paint(canvas, const Size(800, 600));
 
       expect(canvas.didDrawImageRect, isTrue);
     });
