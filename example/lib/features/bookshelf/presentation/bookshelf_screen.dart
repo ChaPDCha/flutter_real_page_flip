@@ -8,6 +8,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import '../../../shared/theme/app_theme_controller.dart';
 import '../../../shared/theme/reader_theme.dart';
+import '../../../shared/theme/reader_theme_dialogs.dart';
 import 'bookshelf_controller.dart';
 import '../domain/book.dart';
 import '../../reader/presentation/book_reader_screen.dart';
@@ -56,7 +57,7 @@ class BookshelfScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const Icon(Icons.error_outline, size: 48, color: ReaderThemeData.errorColor),
               const SizedBox(height: 16),
               Text(
                 '오류가 발생했습니다:\n$err',
@@ -216,7 +217,7 @@ class BookshelfScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: themeData.shadowColor,
                     blurRadius: 8,
                     offset: const Offset(2, 4),
                   ),
@@ -261,15 +262,10 @@ class BookshelfScreen extends ConsumerWidget {
   }
 
   Widget _buildDefaultCover(Book book, ReaderThemeData themeData) {
-    final bgColor = themeData.isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF5F3EF);
-    final borderColor = themeData.isDark ? const Color(0xFF3A3A3A) : themeData.dividerColor;
-    final textCol = themeData.isDark ? const Color(0xFFD0D0D0) : const Color(0xFF4A453F);
-    final subTextCol = themeData.secondaryTextColor;
-
     return Container(
       decoration: BoxDecoration(
-        color: bgColor,
-        border: Border.all(color: borderColor, width: 1),
+        color: themeData.coverBackgroundColor,
+        border: Border.all(color: themeData.coverBorderColor, width: 1),
       ),
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -278,7 +274,7 @@ class BookshelfScreen extends ConsumerWidget {
         children: [
           Icon(
             Icons.menu_book_outlined,
-            color: subTextCol.withValues(alpha: 0.5),
+            color: themeData.secondaryTextColor.withValues(alpha: 0.5),
             size: 16,
           ),
           Expanded(
@@ -292,7 +288,7 @@ class BookshelfScreen extends ConsumerWidget {
                   fontFamily: 'serif',
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: textCol,
+                  color: themeData.coverTitleColor,
                   height: 1.4,
                 ),
               ),
@@ -306,7 +302,7 @@ class BookshelfScreen extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 9,
-                color: subTextCol,
+                color: themeData.secondaryTextColor,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -363,6 +359,7 @@ class BookshelfScreen extends ConsumerWidget {
       context: context,
       pageListBuilder: (modalContext) => [
         WoltModalSheetPage(
+          backgroundColor: themeData.panelColor,
           topBarTitle: Text(
             book.title,
             style: TextStyle(
@@ -400,21 +397,32 @@ class BookshelfScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 ShadButton.destructive(
                   onPressed: () async {
-                    final confirm = await showAdaptiveDialog<bool>(
+                    final confirm = await showThemedAdaptiveDialog<bool>(
                       context: modalContext,
+                      theme: themeData,
                       builder: (dialogContext) => AlertDialog.adaptive(
-                        title: const Text('책 삭제'),
-                        content: Text('"${book.title}" 책을 서재에서 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+                        backgroundColor: themeData.panelColor,
+                        title: Text(
+                          '책 삭제',
+                          style: TextStyle(color: themeData.textColor),
+                        ),
+                        content: Text(
+                          '"${book.title}" 책을 서재에서 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+                          style: TextStyle(color: themeData.secondaryTextColor),
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(dialogContext).pop(false),
-                            child: const Text('취소'),
+                            child: Text(
+                              '취소',
+                              style: TextStyle(color: themeData.secondaryTextColor),
+                            ),
                           ),
                           TextButton(
                             onPressed: () => Navigator.of(dialogContext).pop(true),
                             child: const Text(
                               '삭제',
-                              style: TextStyle(color: Colors.red),
+                              style: TextStyle(color: ReaderThemeData.errorColor),
                             ),
                           ),
                         ],
@@ -425,12 +433,12 @@ class BookshelfScreen extends ConsumerWidget {
                       await ref.read(bookshelfControllerProvider.notifier).removeBook(book.id);
                     }
                   },
-                  child: const Text('서재에서 삭제'),
+                  child: Text('서재에서 삭제', style: TextStyle(color: themeData.textColor)),
                 ),
                 const SizedBox(height: 12),
                 ShadButton.ghost(
                   onPressed: () => Navigator.of(modalContext).pop(),
-                  child: const Text('닫기'),
+                  child: Text('닫기', style: TextStyle(color: themeData.textColor)),
                 ),
               ],
             ),

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/theme/app_theme_controller.dart';
+import '../../../shared/theme/reader_theme.dart';
 import '../application/sync_provider.dart';
 import 'sync_status_badge.dart';
 
@@ -27,9 +29,13 @@ class _SyncWrapperState extends ConsumerState<SyncWrapper> with WidgetsBindingOb
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // 1. Trigger background sync upon first launch
-    Future.microtask(() {
-      ref.read(syncControllerProvider.notifier).sync();
+    // 1. Defer first sync until after the first frame (avoid blocking cold start).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          ref.read(syncControllerProvider.notifier).sync();
+        }
+      });
     });
 
     // 2. 5-Minute background periodic sync timer
@@ -72,7 +78,10 @@ class _SyncWrapperState extends ConsumerState<SyncWrapper> with WidgetsBindingOb
 
   @override
   Widget build(BuildContext context) {
+    final themeData = ReaderThemeData.get(ref.watch(appThemeControllerProvider));
+
     return Scaffold(
+      backgroundColor: themeData.backgroundColor,
       body: Stack(
         children: [
           widget.child,

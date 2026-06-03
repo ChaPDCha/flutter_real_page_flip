@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:epubx/epubx.dart';
+import 'package:html/dom.dart' show Element;
 import 'package:html/parser.dart' show parse;
 
 class EpubService {
@@ -44,20 +45,20 @@ class EpubService {
     final buffer = StringBuffer();
     for (final block in blocks) {
       final text = block.text.trim();
-      if (text.isNotEmpty) {
-        // Skip child text of other parsed block-level elements to prevent duplicates
-        // (e.g. div containing a p, we only want the text once)
-        if (block.localName == 'div' && block.querySelector('p, div') != null) {
-          continue; 
-        }
-        
-        // Add double spacing for paragraphs, single for list items or table rows
-        buffer.writeln(text);
-        if (block.localName == 'p' || block.localName?.startsWith('h') == true) {
-          buffer.writeln(); 
-        } else {
-          buffer.writeln();
-        }
+      if (text.isEmpty) {
+        continue;
+      }
+
+      // Skip wrapper blocks when a descendant block already carries the same text.
+      if (_hasDescendantTextBlock(block)) {
+        continue;
+      }
+
+      buffer.writeln(text);
+      if (block.localName == 'p' || block.localName?.startsWith('h') == true) {
+        buffer.writeln();
+      } else {
+        buffer.writeln();
       }
     }
     final text = buffer.toString().trim();
@@ -72,6 +73,20 @@ class EpubService {
       _addChapterToList(chapter, list);
     }
     return list;
+  }
+
+  /// True when a nested block-level element already contributes non-empty text.
+  bool _hasDescendantTextBlock(Element block) {
+    const blockTags = {'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'tr'};
+    for (final descendant in block.querySelectorAll(blockTags.join(', '))) {
+      if (identical(descendant, block)) {
+        continue;
+      }
+      if (descendant.text.trim().isNotEmpty) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void _addChapterToList(EpubChapter chapter, List<EpubChapter> list) {

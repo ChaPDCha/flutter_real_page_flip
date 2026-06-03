@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/theme/reader_theme.dart';
+import '../../../../shared/theme/reader_theme_dialogs.dart';
 import '../../../bookshelf/domain/book.dart';
 import '../reader_controller.dart';
 
@@ -24,10 +25,10 @@ Widget buildSelectionToolbar({
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildColorOption(ref, pageStart, sel, txt, 'FFEB3B', Colors.yellow, state, book, currentChapterIndex),
-          _buildColorOption(ref, pageStart, sel, txt, '4CAF50', Colors.green, state, book, currentChapterIndex),
-          _buildColorOption(ref, pageStart, sel, txt, 'F44336', Colors.red, state, book, currentChapterIndex),
-          _buildColorOption(ref, pageStart, sel, txt, '2196F3', Colors.blue, state, book, currentChapterIndex),
+          _buildColorOption(ref, pageStart, sel, txt, 'FFEB3B', Colors.yellow, state, book, currentChapterIndex, theme),
+          _buildColorOption(ref, pageStart, sel, txt, '4CAF50', Colors.green, state, book, currentChapterIndex, theme),
+          _buildColorOption(ref, pageStart, sel, txt, 'F44336', Colors.red, state, book, currentChapterIndex, theme),
+          _buildColorOption(ref, pageStart, sel, txt, '2196F3', Colors.blue, state, book, currentChapterIndex, theme),
           IconButton(
             icon: Icon(Icons.note_add, size: 18, color: theme.textColor),
             onPressed: () {
@@ -64,6 +65,7 @@ Widget _buildColorOption(
   EditableTextState state,
   Book book,
   int currentChapterIndex,
+  ReaderThemeData theme,
 ) {
   return GestureDetector(
     onTap: () async {
@@ -84,10 +86,13 @@ Widget _buildColorOption(
       decoration: BoxDecoration(
         color: col,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.5),
+        border: Border.all(
+          color: theme.isDark ? theme.textColor : Colors.white,
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: theme.shadowColor,
             blurRadius: 2,
             offset: const Offset(0, 1),
           ),
@@ -108,8 +113,9 @@ void _showNoteDialog(
   ReaderThemeData theme,
 ) {
   final noteController = TextEditingController();
-  showDialog(
+  showThemedDialog(
     context: context,
+    theme: theme,
     builder: (context) => AlertDialog(
       backgroundColor: theme.panelColor,
       title: Text(

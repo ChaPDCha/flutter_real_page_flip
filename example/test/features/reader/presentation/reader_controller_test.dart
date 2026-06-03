@@ -164,6 +164,17 @@ void main() {
       }
     }
 
+    Future<void> waitForPagination(ProviderContainer container) async {
+      final provider = readerControllerProvider(testBook);
+      for (var attempt = 0; attempt < 200; attempt++) {
+        final state = container.read(provider);
+        if (state.viewportWidth > 0 && state.pages.isNotEmpty) {
+          return;
+        }
+        await Future.delayed(const Duration(milliseconds: 5));
+      }
+    }
+
     test('ReaderController initializes and loads EPUB chapters and settings', () async {
       final container = createContainer();
       await waitForInitialization(container);
@@ -188,6 +199,7 @@ void main() {
 
       // Set standard viewport size
       controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
       state = container.read(readerControllerProvider(testBook));
 
       expect(state.viewportWidth, equals(375.0));
@@ -206,6 +218,7 @@ void main() {
 
       final controller = container.read(readerControllerProvider(testBook).notifier);
       controller.setViewportSize(375.0, 300.0); // Small height to ensure multiple pages
+      await waitForPagination(container);
 
       var state = container.read(readerControllerProvider(testBook));
       expect(state.pages.length, greaterThan(1));
@@ -228,6 +241,7 @@ void main() {
 
       final controller = container.read(readerControllerProvider(testBook).notifier);
       controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
 
       var state = container.read(readerControllerProvider(testBook));
       expect(state.currentChapterIndex, equals(0));
@@ -236,6 +250,7 @@ void main() {
 
       // Next page should move to chapter 1 (index 1), page 0
       controller.nextPage();
+      await waitForPagination(container);
       state = container.read(readerControllerProvider(testBook));
 
       expect(state.currentChapterIndex, equals(1));
@@ -255,9 +270,11 @@ void main() {
 
       final controller = container.read(readerControllerProvider(testBook).notifier);
       controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
 
       // Start at chapter 1, page 0
       controller.nextPage();
+      await waitForPagination(container);
       var state = container.read(readerControllerProvider(testBook));
       expect(state.currentChapterIndex, equals(1));
 
@@ -282,12 +299,14 @@ void main() {
 
       final controller = container.read(readerControllerProvider(testBook).notifier);
       controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
 
       var state = container.read(readerControllerProvider(testBook));
       final originalFontSize = state.settings.fontSize;
 
       // Increase font size
       await controller.updateFontSize(2.0);
+      await waitForPagination(container);
       state = container.read(readerControllerProvider(testBook));
       expect(state.settings.fontSize, equals(originalFontSize + 2.0));
 
@@ -315,9 +334,11 @@ void main() {
 
       final controller = container.read(readerControllerProvider(testBook).notifier);
       controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
 
       // Move to chapter 1
       controller.nextPage();
+      await waitForPagination(container);
       var state = container.read(readerControllerProvider(testBook));
       expect(state.currentChapterIndex, equals(1));
       
@@ -332,7 +353,11 @@ void main() {
       expect(progressMap['pageIndex'], equals(0));
 
       // Create a brand new container (simulating app relaunch)
-      final newContainer = ProviderContainer();
+      final newContainer = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
       newContainer.listen(readerControllerProvider(testBook), (_, __) {});
       addTearDown(newContainer.dispose);
 

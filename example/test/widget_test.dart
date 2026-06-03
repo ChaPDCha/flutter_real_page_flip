@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +7,7 @@ import 'package:real_page_flip_example/main.dart';
 import 'package:real_page_flip_example/features/bookshelf/domain/book_repository.dart';
 import 'package:real_page_flip_example/features/bookshelf/data/book_repository_provider.dart';
 import 'package:real_page_flip_example/features/sync/application/sync_provider.dart';
+import 'package:real_page_flip_example/shared/theme/reader_theme.dart';
 
 class MockBookRepository extends Mock implements BookRepository {}
 
@@ -40,5 +42,8 @@ void main() {
     // Verify that the bookshelf title and empty state text are visible.
     expect(find.text('Realbook 서재'), findsOneWidget);
     expect(find.text('서재가 비어 있습니다'), findsOneWidget);
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+    expect(scaffold.backgroundColor, ReaderThemeData.charcoal.backgroundColor);
   });
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/theme/app_theme_controller.dart';
+import '../../../shared/theme/reader_theme.dart';
 import '../application/sync_provider.dart';
 import '../domain/sync_state.dart';
 
@@ -26,7 +28,8 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _updateBadge(ref.read(syncControllerProvider));
+        final themeData = ReaderThemeData.get(ref.read(appThemeControllerProvider));
+        _updateBadge(ref.read(syncControllerProvider), themeData);
       }
     });
   }
@@ -37,7 +40,7 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
     super.dispose();
   }
 
-  void _updateBadge(SyncState syncState) {
+  void _updateBadge(SyncState syncState, ReaderThemeData themeData) {
     final status = syncState.status;
 
     if (status == SyncStatus.idle) {
@@ -51,13 +54,13 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
       case SyncStatus.authenticating:
       case SyncStatus.pulling:
       case SyncStatus.pushing:
-        _dotColor = const Color(0xFFD4AF37); // Soft elegant gold
+        _dotColor = themeData.accentColor;
         if (!_pulseController.isAnimating) {
           _pulseController.repeat(reverse: true);
         }
         break;
       case SyncStatus.success:
-        _dotColor = const Color(0xFF4CAF50); // Soft green
+        _dotColor = ReaderThemeData.successColor;
         _pulseController.stop();
         _pulseController.value = 1.0;
         // Automatically fade out after 2 seconds of success state
@@ -68,7 +71,7 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
         });
         break;
       case SyncStatus.error:
-        _dotColor = const Color(0xFFE53935); // Soft red
+        _dotColor = ReaderThemeData.errorColor;
         _pulseController.stop();
         _pulseController.value = 1.0;
         // Auto fade out error after 3 seconds
@@ -85,8 +88,10 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
 
   @override
   Widget build(BuildContext context) {
+    final themeData = ReaderThemeData.get(ref.watch(appThemeControllerProvider));
+
     ref.listen(syncControllerProvider, (_, next) {
-      _updateBadge(next);
+      _updateBadge(next, themeData);
     });
 
     return AnimatedOpacity(

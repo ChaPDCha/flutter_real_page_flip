@@ -95,8 +95,8 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
           // 1. Core Page Flip Viewer
           Positioned.fill(
             child: readerState.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF8C6239)),
+                ? Center(
+                    child: CircularProgressIndicator(color: themeData.accentColor),
                   )
                 : LayoutBuilder(
                     builder: (context, constraints) {
@@ -124,27 +124,27 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                       final isDouble = readerState.isDoublePage;
                       final step = (isDouble && !readerState.isPdfLandscape) ? 2 : 1;
 
-                      return GestureDetector(
+                      // Raw [Listener] avoids competing with [PageFlipGestureLayer] in the
+                      // gesture arena (fixes PDF letterbox swipes not completing flips).
+                      return Listener(
                         behavior: HitTestBehavior.translucent,
-                        onTapDown: (details) {
-                          _readerTapDownPosition = details.localPosition;
+                        onPointerDown: (event) {
+                          _readerTapDownPosition = event.localPosition;
                         },
-                        onTapCancel: () {
+                        onPointerCancel: (_) {
                           _readerTapDownPosition = null;
                         },
-                        onTapUp: (details) {
-                          // Ignore taps while a page flip animation is in progress
+                        onPointerUp: (event) {
                           if (_isFlipping) return;
 
-                          // Ignore tap if the pointer moved enough to be a swipe/drag
                           final down = _readerTapDownPosition;
                           _readerTapDownPosition = null;
                           if (down != null &&
-                              (details.localPosition - down).distance > 20) {
+                              (event.localPosition - down).distance > 20) {
                             return;
                           }
 
-                          final x = details.localPosition.dx;
+                          final x = event.localPosition.dx;
                           final screenWidth = constraints.maxWidth;
                           final leftEdge = screenWidth * 0.25;
                           final rightEdge = screenWidth * 0.75;
@@ -156,13 +156,14 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                               controller.previousPage();
                             }
                           } else if (x > rightEdge) {
-                            if (readerState.currentPageIndex + step < readerState.pages.length) {
+                            if (readerState.currentPageIndex + step <
+                                readerState.pages.length) {
                               _pageFlipController.nextPage();
-                            } else if (readerState.currentChapterIndex < readerState.chapters.length - 1) {
+                            } else if (readerState.currentChapterIndex <
+                                readerState.chapters.length - 1) {
                               controller.nextPage();
                             }
                           } else {
-                            // Center tap only — toggle UI
                             _toggleUi();
                           }
                         },
@@ -314,6 +315,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                         ? PdfPageRenderer(
                             filePath: widget.book.filePath,
                             pageIndex: spreadIndex,
+                            theme: themeData,
                           )
                         : ReflowablePageContent(
                             state: readerState,
@@ -329,6 +331,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                         ? PdfPageRenderer(
                             filePath: widget.book.filePath,
                             pageIndex: spreadIndex,
+                            theme: themeData,
                           )
                         : ReflowablePageContent(
                             state: readerState,
@@ -368,6 +371,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                         ? PdfPageRenderer(
                             filePath: widget.book.filePath,
                             pageIndex: leftIndex,
+                            theme: themeData,
                           )
                         : ReflowablePageContent(
                             state: readerState,
@@ -384,6 +388,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                             ? PdfPageRenderer(
                                 filePath: widget.book.filePath,
                                 pageIndex: rightIndex,
+                                theme: themeData,
                               )
                             : ReflowablePageContent(
                                 state: readerState,
@@ -443,6 +448,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
       return PdfPageRenderer(
         filePath: widget.book.filePath,
         pageIndex: spreadIndex,
+        theme: themeData,
       );
     }
 

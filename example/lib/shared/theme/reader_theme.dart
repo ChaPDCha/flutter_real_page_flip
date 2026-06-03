@@ -58,6 +58,52 @@ class ReaderThemeData {
 
   Color get buttonForegroundColor => isDark ? Colors.black : Colors.white;
 
+  static const Color errorColor = Color(0xFFE53935);
+
+  static const Color successColor = Color(0xFF4CAF50);
+
+  Color get shadowColor => textColor.withValues(alpha: 0.15);
+
+  Color get coverBackgroundColor => isDark ? const Color(0xFF2A2A2A) : panelColor;
+
+  Color get coverBorderColor => isDark ? const Color(0xFF3A3A3A) : dividerColor;
+
+  Color get coverTitleColor => isDark ? const Color(0xFFD0D0D0) : textColor;
+
+  ThemeData toMaterialTheme() {
+    final brightness = isDark ? Brightness.dark : Brightness.light;
+    return ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
+      scaffoldBackgroundColor: backgroundColor,
+      colorScheme: ColorScheme(
+        brightness: brightness,
+        primary: accentColor,
+        onPrimary: buttonForegroundColor,
+        secondary: accentColor,
+        onSecondary: buttonForegroundColor,
+        surface: panelColor,
+        onSurface: textColor,
+        error: errorColor,
+        onError: Colors.white,
+      ),
+      dialogTheme: DialogThemeData(backgroundColor: panelColor),
+      dividerColor: dividerColor,
+      textTheme: TextTheme(
+        bodyMedium: TextStyle(color: textColor),
+        bodySmall: TextStyle(color: secondaryTextColor),
+        titleMedium: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+        ),
+        labelLarge: TextStyle(color: textColor),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: accentColor),
+      ),
+    );
+  }
+
   ShadThemeData toShadTheme() {
     return ShadThemeData(
       brightness: isDark ? Brightness.dark : Brightness.light,

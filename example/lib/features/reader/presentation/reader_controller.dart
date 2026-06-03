@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../bookshelf/domain/book.dart';
 import '../../epub/data/epub_service.dart';
 import '../domain/reader_settings.dart';
@@ -17,6 +17,7 @@ import 'package:epubx/epubx.dart';
 import 'package:drift/drift.dart';
 import '../../bookshelf/data/book_repository_provider.dart';
 import '../../bookshelf/data/database.dart';
+import '../../sync/application/sync_provider.dart';
 
 part 'reader_controller.g.dart';
 
@@ -25,6 +26,7 @@ class ReaderController extends _$ReaderController {
   final EpubService _epubService = EpubService();
   static const _settingsKey = 'reader_settings';
   static const _progressKeyPrefix = 'reader_progress_';
+  int _paginationGeneration = 0;
 
   @override
   ReaderState build(Book book) {
@@ -48,9 +50,14 @@ class ReaderController extends _$ReaderController {
   Future<void> _init(Book book) async {
     try {
       final format = book.format;
-      final settings = await _loadSettings();
-      final progress = await _loadProgress(book.id);
-      final highlights = await ref.read(appDatabaseProvider).getHighlightsForBook(book.id);
+      final initData = await Future.wait([
+        _loadSettings(),
+        _loadProgress(book.id),
+        ref.read(appDatabaseProvider).getHighlightsForBook(book.id),
+      ]);
+      final settings = initData[0] as ReaderSettings;
+      final progress = initData[1] as ReadingProgress;
+      final highlights = initData[2] as List<Highlight>;
 
       if (format == BookFormat.epub) {
         final epubBook = await _epubService.loadBook(book.filePath);
@@ -68,7 +75,7 @@ class ReaderController extends _$ReaderController {
         );
 
         if (state.viewportWidth > 0 && state.viewportHeight > 0) {
-          _recalculatePages();
+          unawaited(_recalculatePages());
         }
       } else if (format == BookFormat.txt) {
         final txtService = TxtService();
@@ -85,12 +92,15 @@ class ReaderController extends _$ReaderController {
         );
 
         if (state.viewportWidth > 0 && state.viewportHeight > 0) {
-          _recalculatePages();
+          unawaited(_recalculatePages());
         }
       } else if (format == BookFormat.pdf) {
-        final pdfService = PdfService();
-        final pageCount = await pdfService.getPagesCount(book.filePath);
-        final isLandscape = await PdfService.isLandscapeDocument(book.filePath);
+        final pdfResults = await Future.wait([
+          PdfService().getPagesCount(book.filePath),
+          PdfService.isLandscapeDocument(book.filePath),
+        ]);
+        final pageCount = pdfResults[0] as int;
+        final isLandscape = pdfResults[1] as bool;
 
         // Keep PDF as 1 single virtual chapter representing the whole book
         final mockChapter = EpubChapter()
@@ -128,7 +138,7 @@ class ReaderController extends _$ReaderController {
     _recalculatePages();
   }
 
-  void _recalculatePages() {
+  Future<void> _recalculatePages() async {
     final format = book.format;
     if (format == BookFormat.pdf) return; // PDF pages are fixed-layout
 
@@ -141,20 +151,24 @@ class ReaderController extends _$ReaderController {
     final isDouble = state.isDoublePage;
     final spacing = isDouble ? 56.0 : 0.0;
     final activeWidth = isDouble ? (state.viewportWidth - spacing) / 2 : state.viewportWidth;
+    final baseStyle = ReaderTypography.getBookStyle(
+      fontSize: state.settings.fontSize,
+      color: themeData.textColor,
+    );
 
-    final pages = EpubPagingCalculator.splitIntoPages(
+    final generation = ++_paginationGeneration;
+    final pages = await EpubPagingCalculator.splitIntoPagesAsync(
       text: text,
       viewportWidth: activeWidth,
       viewportHeight: state.viewportHeight,
       fontSize: state.settings.fontSize,
       lineHeight: state.settings.lineHeight,
-      baseStyle: ReaderTypography.getBookStyle(
-        fontSize: state.settings.fontSize,
-        color: themeData.textColor,
-      ),
+      baseStyle: baseStyle,
     );
 
-    int pageIndex = state.currentPageIndex;
+    if (generation != _paginationGeneration) return;
+
+    var pageIndex = state.currentPageIndex;
     // Align starting index to the left page of a spread in double-page mode
     if (isDouble && !state.isPdfLandscape && pageIndex > 0 && pageIndex % 2 != 0) {
       pageIndex--;
@@ -279,7 +293,7 @@ class ReaderController extends _$ReaderController {
   }
 
   Future<ReaderSettings> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     final jsonStr = prefs.getString(_settingsKey);
     if (jsonStr != null) {
       try {
@@ -290,12 +304,12 @@ class ReaderController extends _$ReaderController {
   }
 
   Future<void> _saveSettings() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(_settingsKey, json.encode(state.settings.toJson()));
   }
 
   Future<ReadingProgress> _loadProgress(String bookId) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     final jsonStr = prefs.getString('$_progressKeyPrefix$bookId');
     if (jsonStr != null) {
       try {
@@ -309,7 +323,7 @@ class ReaderController extends _$ReaderController {
   }
 
   Future<void> _saveProgress() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     final progress = ReadingProgress(
       bookId: state.book.id,
       chapterIndex: state.currentChapterIndex,

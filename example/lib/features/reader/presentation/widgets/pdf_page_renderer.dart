@@ -1,16 +1,19 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
+import '../../../../shared/theme/reader_theme.dart';
 import '../../application/pdf_service.dart';
 
 class PdfPageRenderer extends StatefulWidget {
   final String filePath;
   final int pageIndex; // 0-indexed page index
+  final ReaderThemeData theme;
 
   const PdfPageRenderer({
     super.key,
     required this.filePath,
     required this.pageIndex,
+    required this.theme,
   });
 
   @override
@@ -103,8 +106,8 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF8C6239)),
+      return Center(
+        child: CircularProgressIndicator(color: widget.theme.accentColor),
       );
     }
 
@@ -113,12 +116,12 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 40),
+            const Icon(Icons.error_outline, color: ReaderThemeData.errorColor, size: 40),
             const SizedBox(height: 8),
             Text(
               '페이지를 로드할 수 없습니다.\n$_error',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red, fontSize: 12),
+              style: const TextStyle(color: ReaderThemeData.errorColor, fontSize: 12),
             ),
           ],
         ),
@@ -126,8 +129,11 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
     }
 
     if (_imageBytes == null) {
-      return const Center(
-        child: Text('빈 페이지'),
+      return Center(
+        child: Text(
+          '빈 페이지',
+          style: TextStyle(color: widget.theme.secondaryTextColor),
+        ),
       );
     }
 

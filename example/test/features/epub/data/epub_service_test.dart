@@ -55,6 +55,23 @@ void main() {
       expect(text.contains('This is inside a div.'), isTrue);
     });
 
+    test('getChapterText keeps text when div only wraps empty layout divs', () {
+      final chapter = MockEpubChapter();
+      const html = '''
+        <body>
+          <div class="chapter">
+            Chapter body text without paragraph tags.
+            <div class="spacer"></div>
+          </div>
+        </body>
+      ''';
+      when(() => chapter.HtmlContent).thenReturn(html);
+
+      final text = service.getChapterText(chapter);
+
+      expect(text.contains('Chapter body text'), isTrue);
+    });
+
     test('getChapterText skips sub-elements in div to avoid duplication', () {
       final chapter = MockEpubChapter();
       // Outer div contains a p tag. The text should only appear once.

@@ -24,6 +24,22 @@ void main() {
       expect(pages, equals(['']));
     });
 
+    testWidgets('Whitespace gaps do not produce blank pages', (WidgetTester tester) async {
+      const text = 'A\n\n\n\n\n\n\n\n\n\n\n\n\n\nB';
+
+      final pages = EpubPagingCalculator.splitIntoPages(
+        text: text,
+        viewportWidth: 120.0,
+        viewportHeight: 30.0,
+        fontSize: 16.0,
+        lineHeight: 1.6,
+        baseStyle: baseStyle,
+      );
+
+      expect(pages.every((page) => page.trim().isNotEmpty), isTrue);
+      expect(pages.join(), equals('AB'));
+    });
+
     test('Whitespace-only text returns single empty page', () {
       final pages = EpubPagingCalculator.splitIntoPages(
         text: '   \n  \t ',
@@ -201,6 +217,30 @@ void main() {
           }
         }
       }
+    });
+
+    test('splitIntoPages returns cached result for identical inputs', () {
+      EpubPagingCalculator.clearCache();
+      const text = 'Cached paging should reuse the same page boundaries.';
+
+      final first = EpubPagingCalculator.splitIntoPages(
+        text: text,
+        viewportWidth: defaultWidth,
+        viewportHeight: defaultHeight,
+        fontSize: 16.0,
+        lineHeight: 1.2,
+        baseStyle: baseStyle,
+      );
+      final second = EpubPagingCalculator.splitIntoPages(
+        text: text,
+        viewportWidth: defaultWidth,
+        viewportHeight: defaultHeight,
+        fontSize: 16.0,
+        lineHeight: 1.2,
+        baseStyle: baseStyle,
+      );
+
+      expect(identical(first, second), isTrue);
     });
 
     testWidgets('High-Load Performance Benchmark Stress Test', (WidgetTester tester) async {

@@ -1,6 +1,119 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+/// Serializable paging input for [compute] isolates.
+@immutable
+class EpubPagingParams {
+  const EpubPagingParams({
+    required this.text,
+    required this.viewportWidth,
+    required this.viewportHeight,
+    required this.fontSize,
+    required this.lineHeight,
+    required this.textColorArgb,
+    this.fontFamily,
+  });
+
+  final String text;
+  final double viewportWidth;
+  final double viewportHeight;
+  final double fontSize;
+  final double lineHeight;
+  final int textColorArgb;
+  final String? fontFamily;
+}
+
+List<String> _splitIntoPagesIsolate(EpubPagingParams params) {
+  return EpubPagingCalculator.splitIntoPages(
+    text: params.text,
+    viewportWidth: params.viewportWidth,
+    viewportHeight: params.viewportHeight,
+    fontSize: params.fontSize,
+    lineHeight: params.lineHeight,
+    baseStyle: TextStyle(
+      fontSize: params.fontSize,
+      height: params.lineHeight,
+      color: Color(params.textColorArgb),
+      fontWeight: FontWeight.w400,
+      letterSpacing: -0.2,
+      fontFamily: params.fontFamily,
+    ),
+    useCache: false,
+  );
+}
+
 class EpubPagingCalculator {
+  static final Map<String, List<String>> _pageCache = {};
+
+  @visibleForTesting
+  static void clearCache() => _pageCache.clear();
+
+  static String _cacheKey({
+    required String text,
+    required double viewportWidth,
+    required double viewportHeight,
+    required double fontSize,
+    required double lineHeight,
+    required TextStyle baseStyle,
+  }) {
+    return '${text.hashCode}|'
+        '${viewportWidth.toStringAsFixed(1)}|'
+        '${viewportHeight.toStringAsFixed(1)}|'
+        '$fontSize|$lineHeight|'
+        '${baseStyle.color?.value}|'
+        '${baseStyle.fontFamily}|'
+        '${baseStyle.letterSpacing}|'
+        '${baseStyle.fontWeight?.index}';
+  }
+
+  /// Splits chapter text off the UI thread for long chapters.
+  static Future<List<String>> splitIntoPagesAsync({
+    required String text,
+    required double viewportWidth,
+    required double viewportHeight,
+    required double fontSize,
+    required double lineHeight,
+    required TextStyle baseStyle,
+  }) async {
+    final cacheKey = _cacheKey(
+      text: text,
+      viewportWidth: viewportWidth,
+      viewportHeight: viewportHeight,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      baseStyle: baseStyle,
+    );
+    final cached = _pageCache[cacheKey];
+    if (cached != null) {
+      return cached;
+    }
+
+    // Isolate spawn overhead dominates for short chapters.
+    if (text.length < 8000) {
+      return splitIntoPages(
+        text: text,
+        viewportWidth: viewportWidth,
+        viewportHeight: viewportHeight,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        baseStyle: baseStyle,
+      );
+    }
+
+    final params = EpubPagingParams(
+      text: text,
+      viewportWidth: viewportWidth,
+      viewportHeight: viewportHeight,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      textColorArgb: baseStyle.color?.value ?? 0xFF000000,
+      fontFamily: baseStyle.fontFamily,
+    );
+    final pages = await compute(_splitIntoPagesIsolate, params);
+    _pageCache[cacheKey] = pages;
+    return pages;
+  }
+
   /// Splits the text of a chapter into pages based on display constraints.
   static List<String> splitIntoPages({
     required String text,
@@ -9,11 +122,58 @@ class EpubPagingCalculator {
     required double fontSize,
     required double lineHeight,
     required TextStyle baseStyle,
+    bool useCache = true,
   }) {
     if (text.trim().isEmpty) {
       return [''];
     }
 
+    if (useCache) {
+      final cacheKey = _cacheKey(
+        text: text,
+        viewportWidth: viewportWidth,
+        viewportHeight: viewportHeight,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        baseStyle: baseStyle,
+      );
+      final cached = _pageCache[cacheKey];
+      if (cached != null) {
+        return cached;
+      }
+    }
+
+    final pages = _splitIntoPagesImpl(
+      text: text,
+      viewportWidth: viewportWidth,
+      viewportHeight: viewportHeight,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      baseStyle: baseStyle,
+    );
+
+    if (useCache) {
+      _pageCache[_cacheKey(
+        text: text,
+        viewportWidth: viewportWidth,
+        viewportHeight: viewportHeight,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        baseStyle: baseStyle,
+      )] = pages;
+    }
+
+    return pages;
+  }
+
+  static List<String> _splitIntoPagesImpl({
+    required String text,
+    required double viewportWidth,
+    required double viewportHeight,
+    required double fontSize,
+    required double lineHeight,
+    required TextStyle baseStyle,
+  }) {
     final pages = <String>[];
     int startOffset = 0;
     
@@ -37,6 +197,21 @@ class EpubPagingCalculator {
     final int minCharsPerPage = (expectedChars * 0.4).toInt().clamp(100, 2000);
 
     while (startOffset < text.length) {
+      // Skip whitespace between pages so paragraph gaps do not become blank pages.
+      while (startOffset < text.length) {
+        final codeUnit = text.codeUnitAt(startOffset);
+        if (codeUnit != 0x20 &&
+            codeUnit != 0x0A &&
+            codeUnit != 0x0D &&
+            codeUnit != 0x09) {
+          break;
+        }
+        startOffset++;
+      }
+      if (startOffset >= text.length) {
+        break;
+      }
+
       final int remainingLength = text.length - startOffset;
 
       // OPTIMIZATION 1: Shortcut for short chapters or final page
@@ -139,8 +314,14 @@ class EpubPagingCalculator {
       }
 
       final pageText = text.substring(startOffset, bestEnd).trim();
-      pages.add(pageText.isNotEmpty ? pageText : '');
+      if (pageText.isNotEmpty) {
+        pages.add(pageText);
+      }
       startOffset = bestEnd;
+    }
+
+    if (pages.isEmpty) {
+      return [''];
     }
 
     return pages;

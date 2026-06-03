@@ -48,6 +48,8 @@ class MyApp extends ConsumerWidget {
     final themeData = ReaderThemeData.get(themeType);
     final shadTheme = themeData.toShadTheme();
 
+    final materialTheme = themeData.toMaterialTheme();
+
     return ShadApp(
       title: 'Realbook Reader',
       debugShowCheckedModeBanner: false,
@@ -55,6 +57,7 @@ class MyApp extends ConsumerWidget {
       theme: shadTheme,
       darkTheme: shadTheme,
       themeMode: themeData.isDark ? ThemeMode.dark : ThemeMode.light,
+      materialThemeBuilder: (context, theme) => materialTheme,
       home: const SyncWrapper(
         child: BookshelfScreen(),
       ),
