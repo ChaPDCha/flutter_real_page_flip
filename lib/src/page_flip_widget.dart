@@ -11,7 +11,7 @@ import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/page_flip_layer_view.dart';
 import 'package:real_page_flip/src/widgets/default_page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/widgets/edge_tap_feedback.dart';
-import 'package:real_page_flip/src/widgets/page_flip_pointer_handler.dart';
+import 'package:real_page_flip/src/widgets/page_flip_gesture_layer.dart';
 
 export 'models/page_flip_config.dart';
 
@@ -117,8 +117,10 @@ class PageFlipWidget extends StatefulWidget {
 class PageFlipWidgetState extends State<PageFlipWidget>
     with TickerProviderStateMixin {
   late final PageFlipStateController _controller;
-  late PageFlipPointerHandler _pointerHandler;
   final PreRenderManager _preRenderManager = PreRenderManager();
+
+  /// Holds the last captured frame for one paint cycle after a successful flip.
+  bool _settleBridgeActive = false;
 
   int get _totalPages => widget.itemCount;
 
@@ -142,27 +144,37 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     );
     _controller.setIndex(widget.initialIndex, _totalPages);
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
-    _pointerHandler = PageFlipPointerHandler(
-      controller: _controller,
-      sensitivity: widget.config.sensitivity,
-      totalPages: _totalPages,
-    );
-
     // Initialize Effect Handler
     _effectHandler =
         widget.config.effectHandler ?? DefaultPageFlipEffectHandler();
 
-    // Initial pre-render snapshots (requires layout to be complete)
+    // Warm snapshots after first frame settles (idle), not on the critical path.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _captureSnapshotsImmediate(includeCurrentSpread: true);
+        _captureSnapshots();
       }
     });
   }
 
   void _onFlipStart() {
     widget.onFlipStart?.call();
-    _captureSnapshotsImmediate(includeCurrentSpread: true);
+    if (!_preRenderManager.hasAdjacentSnapshots(
+      _controller.currentIndex,
+      _totalPages,
+      includeCurrentSpread: true,
+    )) {
+      // Defer GPU readback (boundary.toImage) to after the current frame
+      // renders. During a drag start, the GPU is busy rendering the first
+      // animation frame; triggering a readback synchronously would flush the
+      // GPU pipeline and drop frames on low-end devices. By deferring to a
+      // post-frame callback, the first frame renders uninterrupted and the
+      // snapshot arrives 1-2 frames later (still early in the drag).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _captureSnapshotsImmediate(includeCurrentSpread: true);
+        }
+      });
+    }
   }
 
   void _onFlipEnd() {
@@ -175,11 +187,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   void didUpdateWidget(PageFlipWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller?._state = this;
-    _pointerHandler.totalPages = _totalPages;
-    if (widget.config.sensitivity != oldWidget.config.sensitivity) {
-      _pointerHandler.sensitivity = widget.config.sensitivity;
-    }
-
     // Update effect handler if changed in config
     if (widget.config.effectHandler != oldWidget.config.effectHandler) {
       _effectHandler.dispose();
@@ -230,8 +237,22 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     widget.onPageFlipped?.call(newIndex);
     _preRenderManager.cleanup(newIndex, _totalPages);
     _preRenderManager.prepareKeys(newIndex, _totalPages);
-    // Immediate capture (no debounce) so the next flip has snapshots ready
-    _captureSnapshotsImmediate(includeCurrentSpread: true);
+
+    _settleBridgeActive = widget.spreadMode.isDoubleSpread
+        ? _preRenderManager.hasSpreadSnapshot(newIndex)
+        : _preRenderManager.hasSnapshot(newIndex);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_settleBridgeActive) {
+        setState(() => _settleBridgeActive = false);
+      }
+      _captureSnapshots();
+    });
+
+    if (!_settleBridgeActive) {
+      _captureSnapshots();
+    }
   }
 
   void _captureSnapshots() {
@@ -340,8 +361,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // Update cached width for controller logic
     return LayoutBuilder(
       builder: (context, constraints) {
-        _controller.updateCachedWidth(constraints.maxWidth);
-
         // Single constraint gate: prevent unbounded height/width from propagating
         // (e.g. Scaffold body first frame, Stack without bounded parent).
         // All descendants (including Offstage pages) then receive finite constraints.
@@ -350,6 +369,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         final maxW = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
+        final flipDragExtent = widget.spreadMode.isDoubleSpread
+            ? maxW / 2
+            : maxW;
+        _controller.updateCachedWidth(flipDragExtent);
         final maxH = constraints.maxHeight.isFinite
             ? constraints.maxHeight
             : MediaQuery.sizeOf(context).height;
@@ -358,27 +381,45 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
         final constrainedSize = Size(maxW, maxH);
 
-        final view = PageFlipLayerView(
-          itemBuilder: widget.itemBuilder,
-          itemCount: _totalPages,
-          currentIndex: _controller.currentIndex,
-          dragProgress: _controller.dragProgress,
-          isDragging: _controller.isDragging,
-          isForward: _controller.isForward,
-          touchPosition: _controller.touchPosition,
-          pageSnapshots: _preRenderManager.pageSnapshots,
-          spreadSnapshots: _preRenderManager.spreadSnapshots,
-          pageKeys: _preRenderManager.pageKeys,
-          paperFlapColor: widget.config.backgroundColor,
-          paperOpacity: widget.config.paperOpacity,
-          constrainedSize: constrainedSize,
-          isDoubleSpread: widget.spreadMode.isDoubleSpread,
+        // PERFORMANCE: flip layers update through a ValueListenableBuilder so they
+        // rebuild independently of the parent widget tree. During animation frames,
+        // only the animated layers (PageFlipLayerView) are rebuilt — EdgeTapFeedback,
+        // PageFlipGestureLayer, and Semantics stay unchanged.
+        // progressNotifier fires every animation tick; isDragging/touch/forward
+        // are read from the controller getters (always current in memory).
+        final animatedFlipLayer = ValueListenableBuilder<double>(
+          valueListenable: _controller.progressNotifier,
+          builder: (context, progress, _) {
+            return PageFlipLayerView(
+              itemBuilder: widget.itemBuilder,
+              itemCount: _totalPages,
+              currentIndex: _controller.currentIndex,
+              dragProgress: progress,
+              isDragging: _controller.isDragging,
+              isForward: _controller.isForward,
+              touchPosition: _controller.touchPosition,
+              pageSnapshots: _preRenderManager.pageSnapshots,
+              spreadSnapshots: _preRenderManager.spreadSnapshots,
+              pageKeys: _preRenderManager.pageKeys,
+              paperFlapColor: widget.config.backgroundColor,
+              paperOpacity: widget.config.paperOpacity,
+              flapContentFadeOutEnd: widget.config.flapContentFadeOutEnd,
+              flapContentRevealStart: widget.config.flapContentRevealStart,
+              flapContentRevealEnd: widget.config.flapContentRevealEnd,
+              constrainedSize: constrainedSize,
+              isDoubleSpread: widget.spreadMode.isDoubleSpread,
+              settleBridgeActive: _settleBridgeActive,
+            );
+          },
         );
 
         final mainContent = Stack(
           fit: StackFit.expand,
           children: [
-            view,
+            IgnorePointer(
+              ignoring: _controller.blocksContentPointers,
+              child: animatedFlipLayer,
+            ),
             // Left Edge Tap (Previous Page)
             if (widget.config.edgeTapWidthRatio > 0 &&
                 widget.config.enableSwipe)
@@ -408,19 +449,15 @@ class PageFlipWidgetState extends State<PageFlipWidget>
                   }
                 },
               ),
+            // Last in stack (center): raw pointer flip above selectable content.
+            if (widget.config.enableSwipe)
+              PageFlipGestureLayer(
+                controller: _controller,
+                sensitivity: widget.config.sensitivity,
+                totalPages: _totalPages,
+              ),
           ],
         );
-
-        final childWidget = (!widget.config.enableSwipe)
-            ? mainContent
-            : Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: _pointerHandler.handlePointerDown,
-                onPointerMove: _pointerHandler.handlePointerMove,
-                onPointerUp: _pointerHandler.handlePointerUp,
-                onPointerCancel: _pointerHandler.handlePointerCancel,
-                child: mainContent,
-              );
 
         final semantics = Semantics(
           label: widget.config.semanticBuilder?.call(
@@ -437,7 +474,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           onScrollLeft:
               _controller.currentIndex < _totalPages - 1 ? nextPage : null,
           onScrollRight: _controller.currentIndex > 0 ? previousPage : null,
-          child: childWidget,
+          child: mainContent,
         );
         if (needBounded) {
           return SizedBox(width: maxW, height: maxH, child: semantics);

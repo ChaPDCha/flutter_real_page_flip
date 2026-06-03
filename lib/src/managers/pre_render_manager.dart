@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Manages pre-rendering of adjacent pages to improve flip performance.
 class PreRenderManager {
@@ -88,7 +89,13 @@ class PreRenderManager {
   /// Resets the manager: cancels pending renders, clears snapshots and keys.
   void reset() {
     _captureGeneration++; // Cancel any running async captures
+    _retryScheduled = false;
+    _retryCurrentIndex = null;
+    _retryTotalPages = null;
+    _retryOnCaptured = null;
     _activeCaptures.clear();
+    _pendingRetryIndices.clear();
+    _captureRetryCounts.clear();
     cancelPreRender();
     flushSnapshots();
     pageKeys.clear();
@@ -115,11 +122,60 @@ class PreRenderManager {
   /// Set of indices currently being captured to prevent redundant overlapping captures.
   final Set<int> _activeCaptures = {};
 
+  /// Indices waiting for a post-frame retry (layout not ready yet).
+  final Set<int> _pendingRetryIndices = {};
+
+  /// Post-frame callback token for batched capture retries.
+  bool _retryScheduled = false;
+
+  /// Last capture context used to retry pending indices.
+  int? _retryCurrentIndex;
+  int? _retryTotalPages;
+  VoidCallback? _retryOnCaptured;
+  int _retryGeneration = 0;
+  bool _retryIncludeCurrentSpread = false;
+
+  static const int _maxCaptureRetriesPerIndex = 12;
+  final Map<int, int> _captureRetryCounts = {};
+
   /// Returns true if a snapshot has been captured for the given [index].
   bool hasSnapshot(int index) => pageSnapshots.containsKey(index);
 
   /// Returns true if a spread snapshot exists for the given [index].
   bool hasSpreadSnapshot(int index) => spreadSnapshots.containsKey(index);
+
+  /// True when [index] is queued or actively being captured.
+  @visibleForTesting
+  bool isCapturePending(int index) =>
+      _activeCaptures.contains(index) || _pendingRetryIndices.contains(index);
+
+  /// Returns true when every adjacent snapshot needed for a flip is cached.
+  @visibleForTesting
+  bool hasAdjacentSnapshots(
+    int currentIndex,
+    int totalPages, {
+    bool includeCurrentSpread = false,
+  }) {
+    final targetIndices = getCaptureIndices(
+      currentIndex,
+      totalPages,
+      includeCurrent: includeCurrentSpread,
+    );
+    final spreadIndices = getSpreadCaptureIndices(
+      currentIndex,
+      totalPages,
+      includeCurrent: includeCurrentSpread,
+    );
+
+    for (final index in targetIndices) {
+      if (spreadIndices.contains(index)) {
+        if (!spreadSnapshots.containsKey(index)) return false;
+      } else if (!pageSnapshots.containsKey(index)) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   /// Captures snapshots of adjacent pages for smooth flip transitions.
   ///
@@ -196,22 +252,38 @@ class PreRenderManager {
       final key = pageKeys[index];
       if (key == null) {
         _activeCaptures.remove(index);
+        _scheduleCaptureRetry(
+          index,
+          currentIndex,
+          totalPages,
+          onSnapshotCaptured,
+          generation,
+          includeCurrentSpread: includeCurrentSpread,
+        );
         continue;
       }
 
       try {
         final boundary = _findRepaintBoundary(key);
-        if (boundary == null) {
+        if (boundary == null || boundary.debugNeedsPaint) {
           _activeCaptures.remove(index);
-          continue;
-        }
-        if (boundary.debugNeedsPaint) {
-          _activeCaptures.remove(index);
+          _scheduleCaptureRetry(
+            index,
+            currentIndex,
+            totalPages,
+            onSnapshotCaptured,
+            generation,
+            includeCurrentSpread: includeCurrentSpread,
+          );
           continue;
         }
 
-        final image = await boundary.toImage();
+        // Logical-pixel capture so snapshot dimensions match [constrainedSize]
+        // and flip layers scale 1:1 with the idle live page (no aspect stretch).
+        final image = await boundary.toImage(pixelRatio: 1.0);
         _activeCaptures.remove(index);
+        _captureRetryCounts.remove(index);
+        _pendingRetryIndices.remove(index);
 
         if (_isDisposed || generation != _captureGeneration) {
           image.dispose();
@@ -231,9 +303,73 @@ class PreRenderManager {
         onSnapshotCaptured();
       } catch (e) {
         _activeCaptures.remove(index);
-        // Ignore capture errors
+        _scheduleCaptureRetry(
+          index,
+          currentIndex,
+          totalPages,
+          onSnapshotCaptured,
+          generation,
+          includeCurrentSpread: includeCurrentSpread,
+        );
       }
     }
+  }
+
+  void _scheduleCaptureRetry(
+    int index,
+    int currentIndex,
+    int totalPages,
+    VoidCallback onSnapshotCaptured,
+    int generation, {
+    required bool includeCurrentSpread,
+  }) {
+    if (_isDisposed || generation != _captureGeneration) return;
+
+    final retries = (_captureRetryCounts[index] ?? 0) + 1;
+    if (retries > _maxCaptureRetriesPerIndex) {
+      _captureRetryCounts.remove(index);
+      _pendingRetryIndices.remove(index);
+      return;
+    }
+    _captureRetryCounts[index] = retries;
+    _pendingRetryIndices.add(index);
+
+    _retryCurrentIndex = currentIndex;
+    _retryTotalPages = totalPages;
+    _retryOnCaptured = onSnapshotCaptured;
+    _retryGeneration = generation;
+    _retryIncludeCurrentSpread = includeCurrentSpread;
+
+    if (_retryScheduled) return;
+    _retryScheduled = true;
+
+    SchedulerBinding.instance.scheduleFrameCallback((_) async {
+      _retryScheduled = false;
+      if (_isDisposed ||
+          generation != _captureGeneration ||
+          _pendingRetryIndices.isEmpty) {
+        return;
+      }
+
+      final retryCurrent = _retryCurrentIndex;
+      final retryTotal = _retryTotalPages;
+      final retryCallback = _retryOnCaptured;
+      final retryGen = _retryGeneration;
+      final retryIncludeSpread = _retryIncludeCurrentSpread;
+      if (retryCurrent == null ||
+          retryTotal == null ||
+          retryCallback == null) {
+        return;
+      }
+
+      await _doCaptureSnapshots(
+        retryCurrent,
+        retryTotal,
+        retryCallback,
+        retryGen,
+        includeCurrentSpread: retryIncludeSpread,
+      );
+    });
   }
 
   RenderRepaintBoundary? _findRepaintBoundary(GlobalKey key) {
@@ -279,7 +415,13 @@ class PreRenderManager {
   void dispose() {
     _isDisposed = true;
     _captureGeneration++;
+    _retryScheduled = false;
+    _retryCurrentIndex = null;
+    _retryTotalPages = null;
+    _retryOnCaptured = null;
     _activeCaptures.clear();
+    _pendingRetryIndices.clear();
+    _captureRetryCounts.clear();
     cancelPreRender();
     flushSnapshots();
     pageKeys.clear();

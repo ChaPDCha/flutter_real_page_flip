@@ -75,10 +75,27 @@ class PageFlipConfig {
     this.enableSound = true,
     this.effectHandler,
     this.paperOpacity = 1.0,
+    this.flapContentFadeOutEnd = 0.20,
+    this.flapContentRevealStart = 0.85,
+    this.flapContentRevealEnd = 0.95,
   });
 
   /// The opacity of the page-flip flap (paper back side). Defaults to 1.0 (fully opaque).
   final double paperOpacity;
+
+  /// Flip progress (0–1) by which flap-front content is fully hidden during fold.
+  ///
+  /// Text fades out quickly between progress 0 and this value so bent flap
+  /// shows paper back only during the main peel.
+  final double flapContentFadeOutEnd;
+
+  /// Flip progress (0–1) before late settle content begins fading in.
+  ///
+  /// Keeps the flap blank (paper back) from [flapContentFadeOutEnd] until here.
+  final double flapContentRevealStart;
+
+  /// Flip progress (0–1) at which flap-front content reaches full opacity.
+  final double flapContentRevealEnd;
 
   /// Whether to enable haptic feedback.
   final bool enableHaptics;
@@ -169,6 +186,9 @@ class PageFlipConfig {
           enableSound == other.enableSound &&
           effectHandler == other.effectHandler &&
           paperOpacity == other.paperOpacity &&
+          flapContentFadeOutEnd == other.flapContentFadeOutEnd &&
+          flapContentRevealStart == other.flapContentRevealStart &&
+          flapContentRevealEnd == other.flapContentRevealEnd &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
           edgeTapNextLabel == other.edgeTapNextLabel &&
           edgeTapPreviousHint == other.edgeTapPreviousHint &&
@@ -189,6 +209,9 @@ class PageFlipConfig {
       enableSound.hashCode ^
       effectHandler.hashCode ^
       paperOpacity.hashCode ^
+      flapContentFadeOutEnd.hashCode ^
+      flapContentRevealStart.hashCode ^
+      flapContentRevealEnd.hashCode ^
       edgeTapPreviousLabel.hashCode ^
       edgeTapNextLabel.hashCode ^
       edgeTapPreviousHint.hashCode ^

@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/models/flip_layer_policy.dart';
 
 // LAYOUT GATE: constrainedSize + _wrapWithConstraints for Offstage/current/flip pages.
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
@@ -27,11 +28,24 @@ class PageFlipLayerView extends StatelessWidget {
     /// Opacity of the paper flap back side.
     this.paperOpacity = 1.0,
 
+    /// Progress by which flap-front content is fully hidden during fold.
+    this.flapContentFadeOutEnd = 0.20,
+
+    /// Progress before late settle content fades in.
+    this.flapContentRevealStart = 0.85,
+
+    /// Progress at which flap-front content is fully visible.
+    this.flapContentRevealEnd = 0.95,
+
     /// Optional explicit size to constrain children.
     this.constrainedSize,
 
     /// True if rendering for a dual spread book
     this.isDoubleSpread = false,
+
+    /// One-frame bridge after a successful flip: show cached snapshot while
+    /// the live [currentIndex] page paints in [Offstage] (avoids settle flicker).
+    this.settleBridgeActive = false,
     super.key,
   });
 
@@ -71,11 +85,23 @@ class PageFlipLayerView extends StatelessWidget {
   /// Opacity of the paper flap back side.
   final double paperOpacity;
 
+  /// Progress by which flap-front content is fully hidden during fold.
+  final double flapContentFadeOutEnd;
+
+  /// Progress before late settle content fades in.
+  final double flapContentRevealStart;
+
+  /// Progress at which flap-front content is fully visible.
+  final double flapContentRevealEnd;
+
   /// Optional explicit size to constrain children (prevents infinite height from Stack).
   final Size? constrainedSize;
 
   /// True if rendering for a dual spread book
   final bool isDoubleSpread;
+
+  /// One-frame snapshot bridge after page index changes (see [settleBridgeActive]).
+  final bool settleBridgeActive;
 
   /// Wraps a widget with SizedBox if constrainedSize is provided.
   /// Prevents infinite height propagation from Stack(fit: StackFit.expand).
@@ -105,8 +131,7 @@ class PageFlipLayerView extends StatelessWidget {
     // Background pre-renders: Only build CURRENT window (prev, next)
     // to avoid layout overhead of 1000s of Offstage pages.
     // IMPORTANT: These are ALWAYS kept in the tree (even during drag/animation)
-    // so that _buildPageContent can fall back to a live widget that is already
-    // laid out, preventing blank-frame flashes when snapshots are unavailable.
+    // so PreRenderManager can capture snapshots from keyed Offstage RepaintBoundaries.
     final backgroundWidgets = <Widget>[];
 
     // Windowing: Only keep -1 and +1 in the tree
@@ -115,22 +140,7 @@ class PageFlipLayerView extends StatelessWidget {
       if (currentIndex < itemCount - 1) currentIndex + 1,
     };
 
-    // Skip indices already painted in visible flip layers to avoid duplicate
-    // compositing (e.g. next page in bottom layer during forward drag).
-    final visibleDuringFlip = <int>{};
-    if (dragProgress > 0 && isDragging) {
-      if (isForward) {
-        if (currentIndex < itemCount - 1) {
-          visibleDuringFlip.add(currentIndex + 1);
-        }
-      } else if (currentIndex > 0) {
-        visibleDuringFlip.add(currentIndex - 1);
-      }
-    }
-
     for (final index in windowIndices) {
-      if (visibleDuringFlip.contains(index)) continue;
-
       final key = pageKeys[index];
       if (key == null) continue;
 
@@ -144,13 +154,10 @@ class PageFlipLayerView extends StatelessWidget {
       );
     }
 
-    // Forward flip: keep a keyed Offstage copy for snapshot capture while the
-    // visible middle layer uses [_buildPageContent] (opaque snapshot), matching
-    // backward flip where the middle layer never hosts the GlobalKey.
-    if (dragProgress > 0 &&
-        isDragging &&
-        isForward &&
-        !visibleDuringFlip.contains(currentIndex)) {
+    // During drag keep current page's keyed Offstage in tree so PreRenderManager
+    // can capture snapshots (the visible flip layers use snapshot images, not
+    // live GlobalKey widgets, so the Offstage is the only live copy in the tree).
+    if (dragProgress > 0 && isDragging) {
       final currentKey = pageKeys[currentIndex];
       if (currentKey != null) {
         backgroundWidgets.add(
@@ -167,6 +174,19 @@ class PageFlipLayerView extends StatelessWidget {
     }
 
     if (dragProgress <= 0 || !isDragging) {
+      final bridgeLayer = settleBridgeActive
+          ? _buildSettleBridgeSnapshotLayer(context)
+          : null;
+      if (bridgeLayer != null) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            ...backgroundWidgets,
+            bridgeLayer,
+            Offstage(offstage: true, child: keyedCurrentPage),
+          ],
+        );
+      }
       return Stack(
         fit: StackFit.expand,
         children: [...backgroundWidgets, keyedCurrentPage],
@@ -175,39 +195,39 @@ class PageFlipLayerView extends StatelessWidget {
 
     final floatProgress = isForward ? dragProgress : 1.0 - dragProgress;
 
-    Widget? nextPageContent;
-    if (currentIndex < itemCount - 1) {
-      nextPageContent = _buildPageContent(context, currentIndex + 1);
-    }
+    final policy = FlipLayerPolicy(
+      isDoubleSpread: isDoubleSpread,
+      isForward: isForward,
+      currentIndex: currentIndex,
+      itemCount: itemCount,
+    );
 
-    Widget? previousPageContent;
-    if (currentIndex > 0) {
-      previousPageContent = _buildPageContent(context, currentIndex - 1);
-    }
-
+    // Bottom layer: content revealed behind the fold
     final Widget bottomLayerContent;
-    final Widget middleLayerContent;
-
-    if (isForward) {
-      // Double-spread: bottom keeps the current spread under the right fold;
-      // next spread left page appears only via [_buildSpineRevealBand] on the left.
-      // Single-page: bottom reveals the next page behind the fold.
-      bottomLayerContent = isDoubleSpread
-          ? _buildPageContent(context, currentIndex)
-          : (nextPageContent ?? _buildOpaquePaperUnderlay(context));
-      // Double-spread: stationary left half of current spread in layer 2.
-      // Single-page: opaque paper underlay (left of fold) — flap texture in
-      // layer 3 shows the turning page; do not duplicate page content here.
-      middleLayerContent = isDoubleSpread
-          ? _buildPageContent(context, currentIndex)
-          : _buildOpaquePaperUnderlay(context);
+    final bottomHalf = policy.bottomSpreadHalf;
+    if (bottomHalf != null) {
+      bottomLayerContent = _buildSpreadHalfContent(
+        context,
+        spreadIndex: bottomHalf.index,
+        alignment: bottomHalf.alignment,
+      );
+    } else if (policy.bottomPageIndex case final int index?) {
+      bottomLayerContent = _buildPageContent(context, index);
     } else {
-      middleLayerContent =
-          previousPageContent ?? _buildOpaquePaperUnderlay(context);
-      bottomLayerContent = keyedCurrentPage;
+      bottomLayerContent = _buildOpaquePaperUnderlay(context);
     }
 
-    final flapSpreadIndex = _flapSpreadSnapshotIndex();
+    // Middle layer: stationary content under the flap
+    final Widget middleLayerContent;
+    if (policy.middleSpreadIndex case final int index?) {
+      middleLayerContent = _buildPageContent(context, index);
+    } else if (policy.middlePageIndex case final int index?) {
+      middleLayerContent = _buildPageContent(context, index);
+    } else {
+      middleLayerContent = _buildOpaquePaperUnderlay(context);
+    }
+
+    final flapSpreadIndex = policy.flapSnapshotSpreadIndex;
     final flapFrontImage = flapSpreadIndex != null
         ? spreadSnapshots[flapSpreadIndex]
         : null;
@@ -252,20 +272,16 @@ class PageFlipLayerView extends StatelessWidget {
             touchOffset: touchPosition,
             isDoubleSpread: isDoubleSpread,
             isForward: isForward,
+            geo: geo,
           ),
           child: bottomLayerContent,
         ),
         // Layer 2: Middle (stationary spread half + spine reveal band + clip)
-        ClipPath(
-          clipper: PageFlipClipper(
-            progress: floatProgress,
-            isRightToLeft: true,
-            touchOffset: touchPosition,
-            isDoubleSpread: isDoubleSpread,
-            isForward: isForward,
-          ),
-          child: _buildMiddleLayerStack(context, geo, middleLayerContent),
-        ),
+        // Backward double-spread: stationary RIGHT half must stay right-of-fold
+        // (PageFlipOpenClipper inside [_buildMiddleLayerStack]). Wrapping the whole
+        // stack in PageFlipClipper (left-of-fold) exposed the bottom layer's previous
+        // spread on the right where the current right page should remain fixed.
+        _buildMiddleLayer(context, geo, middleLayerContent, floatProgress, policy),
         // Layer 3: Flap shadow & highlight effects
         IgnorePointer(
           child: CustomPaint(
@@ -279,9 +295,13 @@ class PageFlipLayerView extends StatelessWidget {
               isDoubleSpread: isDoubleSpread,
               isForward: isForward,
               paperOpacity: paperOpacity,
+              flapContentFadeOutEnd: flapContentFadeOutEnd,
+              flapContentRevealStart: flapContentRevealStart,
+              flapContentRevealEnd: flapContentRevealEnd,
               flapFrontImage: flapFrontImage,
               flapFrontSrcRect: flapFrontSrcRect,
               flapFrontDestRect: resolvedFlapDestRect,
+              geo: geo,
             ),
           ),
         ),
@@ -291,18 +311,87 @@ class PageFlipLayerView extends StatelessWidget {
 
   Widget _buildPage(BuildContext context, int index) => itemBuilder!(context, index);
 
+  /// Full-viewport snapshot of [currentIndex] for the post-flip settle bridge.
+  Widget? _buildSettleBridgeSnapshotLayer(BuildContext context) {
+    if (isDoubleSpread) {
+      final spreadImage = spreadSnapshots[currentIndex];
+      if (spreadImage != null) {
+        return _wrapWithConstraints(
+          RepaintBoundary(child: _buildSnapshotImage(spreadImage)),
+        );
+      }
+    }
+
+    final pageImage = pageSnapshots[currentIndex];
+    if (pageImage == null) return null;
+
+    return _wrapWithConstraints(
+      RepaintBoundary(child: _buildSnapshotImage(pageImage)),
+    );
+  }
+
+  /// Layer 2 wrapper: applies fold clip for forward/single; backward double-spread
+  /// clips stationary right and spine reveal separately inside the stack.
+  Widget _buildMiddleLayer(
+    BuildContext context,
+    PageFlipGeometry geo,
+    Widget middleLayerContent,
+    double floatProgress,
+    FlipLayerPolicy policy,
+  ) {
+    final stack = _buildMiddleLayerStack(context, geo, middleLayerContent, policy);
+
+    if (isDoubleSpread && !isForward) {
+      return stack;
+    }
+
+    return ClipPath(
+      clipper: PageFlipClipper(
+        progress: floatProgress,
+        isRightToLeft: true,
+        touchOffset: touchPosition,
+        isDoubleSpread: isDoubleSpread,
+        isForward: isForward,
+        geo: geo,
+      ),
+      child: stack,
+    );
+  }
+
   /// Composes middle-layer children for double spread vs single page.
   Widget _buildMiddleLayerStack(
     BuildContext context,
     PageFlipGeometry geo,
     Widget middleLayerContent,
+    FlipLayerPolicy policy,
   ) {
     if (!isDoubleSpread) {
       return middleLayerContent;
     }
 
-    final spineReveal = _buildSpineRevealBand(context, geo);
+    final spineReveal = _buildSpineRevealBand(context, geo, policy);
     final stationaryHalf = _buildStationarySpreadHalf(middleLayerContent);
+
+    if (!isForward) {
+      final stationaryClipper = PageFlipOpenClipper(
+        progress: geo.progress,
+        isRightToLeft: true,
+        touchOffset: touchPosition,
+        isDoubleSpread: true,
+        isForward: false,
+        geo: geo,
+      );
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (spineReveal != null) spineReveal,
+          ClipPath(
+            clipper: stationaryClipper,
+            child: stationaryHalf,
+          ),
+        ],
+      );
+    }
 
     if (spineReveal == null) {
       return stationaryHalf;
@@ -319,37 +408,27 @@ class PageFlipLayerView extends StatelessWidget {
 
   /// Stationary half of the middle spread (left on forward, right on backward).
   Widget _buildStationarySpreadHalf(Widget spreadContent) {
-    return clipSpreadPageHalf(
+    return clipFullSpreadHalf(
       alignment: isForward ? Alignment.centerLeft : Alignment.centerRight,
       child: spreadContent,
     );
   }
 
   /// Spine-band reveal of the adjacent spread page, or null when unavailable.
-  Widget? _buildSpineRevealBand(BuildContext context, PageFlipGeometry geo) {
-    if (buildDoubleSpreadSpineRevealPath(geo) == null) {
-      return null;
-    }
-
-    if (isForward) {
-      if (currentIndex >= itemCount - 1) return null;
-      return ClipPath(
-        clipper: PageFlipSpineRevealClipper(geo: geo),
-        child: _buildSpreadHalfContent(
-          context,
-          spreadIndex: currentIndex + 1,
-          alignment: Alignment.centerLeft,
-        ),
-      );
-    }
-
-    if (currentIndex <= 0) return null;
+  Widget? _buildSpineRevealBand(
+    BuildContext context,
+    PageFlipGeometry geo,
+    FlipLayerPolicy policy,
+  ) {
+    if (buildDoubleSpreadSpineRevealPath(geo) == null) return null;
+    final spreadIndex = policy.spineRevealSpreadIndex;
+    if (spreadIndex == null) return null;
     return ClipPath(
       clipper: PageFlipSpineRevealClipper(geo: geo),
       child: _buildSpreadHalfContent(
         context,
-        spreadIndex: currentIndex - 1,
-        alignment: Alignment.centerRight,
+        spreadIndex: spreadIndex,
+        alignment: Alignment.centerLeft,
       ),
     );
   }
@@ -362,17 +441,29 @@ class PageFlipLayerView extends StatelessWidget {
   }) {
     final spreadImage = spreadSnapshots[spreadIndex];
     if (spreadImage != null) {
-      return clipSpreadPageHalf(
+      return clipFullSpreadHalf(
         alignment: alignment,
-        child: RawImage(image: spreadImage, fit: BoxFit.fill),
+        child: _buildSnapshotImage(spreadImage),
       );
     }
 
-    // Fallback: live spread from itemBuilder (must be full double-spread layout).
-    return clipSpreadPageHalf(
+    // During flip, never fall back to live widgets — paper underlay until snapshot arrives.
+    return clipFullSpreadHalf(
       alignment: alignment,
-      child: _buildPageContent(context, spreadIndex),
+      child: _buildOpaquePaperUnderlay(context),
     );
+  }
+
+  /// Renders a captured snapshot at [constrainedSize] (logical viewport).
+  Widget _buildSnapshotImage(ui.Image image) {
+    final viewport = constrainedSize ?? Size.zero;
+    final snapshot = buildViewportSnapshotImage(
+      image,
+      viewportSize: viewport,
+    );
+    return viewport.width > 0 && viewport.height > 0
+        ? snapshot
+        : _wrapWithConstraints(snapshot);
   }
 
   /// Opaque paper underlay for the stationary strip (matches [PageFlipPainter] paper back).
@@ -387,42 +478,30 @@ class PageFlipLayerView extends StatelessWidget {
     return ColoredBox(color: paperColor.withValues(alpha: alpha));
   }
 
-  /// Spread snapshot index used for flap front texture, or null if unavailable.
-  int? _flapSpreadSnapshotIndex() {
-    if (isDoubleSpread) {
-      if (isForward) {
-        if (currentIndex < itemCount - 1) return currentIndex + 1;
-        return null;
-      } else {
-        if (currentIndex > 0) return currentIndex - 1;
-        return null;
-      }
-    }
-    // Single page mode:
-    if (isForward) return currentIndex;
-    return null;
-  }
-
   /// Builds the content widget for a target page during an active flip.
   ///
-  /// Priority order:
-  /// 1. Pre-captured snapshot (RawImage) — fastest, pixel-perfect.
-  /// 2. Fresh widget build — always shows real content since the Offstage
-  ///    widgets are kept alive in the tree for snapshot capture.
-  ///
-  /// NOTE: We intentionally do NOT reuse GlobalKeys here to avoid
-  /// "Multiple widgets used the same GlobalKey" errors. The Offstage
-  /// widgets already use the GlobalKeys for snapshot capture.
+  /// Uses pre-captured snapshots only. Live [itemBuilder] widgets are never
+  /// shown in flip layers — Offstage copies hold GlobalKeys for capture.
+  /// When a snapshot is not ready yet, an opaque paper underlay is shown.
   Widget _buildPageContent(BuildContext context, int index) {
-    // 1st priority: pre-captured page snapshot
-    final snapshot = pageSnapshots[index];
-    if (snapshot != null) {
-      return RawImage(image: snapshot, fit: BoxFit.fill);
+    // Double-spread: full spread snapshots (current index is spread-only in PreRenderManager).
+    if (isDoubleSpread) {
+      final spreadImage = spreadSnapshots[index];
+      if (spreadImage != null) {
+        return _wrapWithConstraints(
+          RepaintBoundary(child: _buildSnapshotImage(spreadImage)),
+        );
+      }
     }
 
-    // 2nd priority: fresh build (live content, no GlobalKey conflict)
-    return _wrapWithConstraints(
-      RepaintBoundary(child: _buildPage(context, index)),
-    );
+    // Single-page (or spread fallback): per-page snapshot
+    final snapshot = pageSnapshots[index];
+    if (snapshot != null) {
+      return _wrapWithConstraints(
+        RepaintBoundary(child: _buildSnapshotImage(snapshot)),
+      );
+    }
+
+    return _buildOpaquePaperUnderlay(context);
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 
 /// Events that can be triggered by the page flip engine for haptic/sound effects.
 enum PageFlipEvent {
@@ -100,6 +101,14 @@ class PageFlipStateController {
   /// Called when a flip gesture or animation completes (whether successful or cancelled).
   final VoidCallback? onFlipEnd;
 
+  /// Notified on every animation tick or drag update so the flip layer
+  /// widget can rebuild independently of [onUpdate]'s full-tree rebuild.
+  /// Access via a [ValueListenableBuilder] to avoid `setState` on every frame.
+  final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
+
+  /// Notified when the touch position changes during a drag.
+  final ValueNotifier<Offset> touchNotifier = ValueNotifier<Offset>(Offset.zero);
+
   /// The underlying animation controller driving flip transitions.
   late final AnimationController animationController;
 
@@ -114,6 +123,7 @@ class PageFlipStateController {
   Offset _touchPosition = Offset.zero;
   bool _isForward = true;
   bool _isDragging = false;
+  bool _blocksContentPointers = false;
   bool _hasPlayedSound = false;
   double _cachedWidth = 1;
   double _lastReleaseVelocity = 0;
@@ -136,6 +146,23 @@ class PageFlipStateController {
   /// Whether a drag gesture is currently active.
   bool get isDragging => _isDragging;
 
+  /// True while a horizontal flip drag blocks hits to page content.
+  bool get blocksContentPointers => _blocksContentPointers;
+
+  /// Called when horizontal flip intent is detected (before [onDragStart]).
+  void beginPointerCapture() {
+    if (_blocksContentPointers) return;
+    _blocksContentPointers = true;
+    onUpdate();
+  }
+
+  /// Releases content hit blocking after flip drag ends or is canceled.
+  void endPointerCapture() {
+    if (!_blocksContentPointers) return;
+    _blocksContentPointers = false;
+    onUpdate();
+  }
+
   /// Whether the page-flip sound has already been played for this drag.
   bool get hasPlayedSound => _hasPlayedSound;
 
@@ -153,16 +180,35 @@ class PageFlipStateController {
 
   void _onAnimationTick() {
     _dragProgress = animationController.value;
-    onUpdate();
+    progressNotifier.value = _dragProgress;
   }
 
-  /// Updates the cached widget width for normalising drag deltas.
+  /// Updates the horizontal drag distance that maps to flip progress 0→1.
+  ///
+  /// In double-spread mode this should be half the viewport width (one turning
+  /// page), matching [PageFlipGeometry] page width.
   void updateCachedWidth(double width) {
+    if (!width.isFinite || width <= 0) return;
     _cachedWidth = width;
   }
 
+  /// Maps accumulated horizontal pointer movement to normalised flip progress.
+  @visibleForTesting
+  double progressFromHorizontalDelta(double totalDx) {
+    if (!_cachedWidth.isFinite || _cachedWidth <= 0) return 0;
+    return (totalDx.abs() / _cachedWidth).clamp(0.0, 1.0);
+  }
+
   /// Handles the start of a drag gesture for page flipping.
-  void onDragStart(DragStartDetails details, int totalPages) {
+  ///
+  /// [accumulatedTotalDx] is horizontal movement already consumed before flip
+  /// intent was accepted (touch slop). Crediting it prevents under-counting
+  /// progress when the user starts a decisive horizontal swipe.
+  void onDragStart(
+    DragStartDetails details,
+    int totalPages, {
+    double accumulatedTotalDx = 0,
+  }) {
     if (animationController.isAnimating) return;
 
     onFlipStart?.call();
@@ -170,6 +216,21 @@ class PageFlipStateController {
     _isDragging = false;
     _dragProgress = 0.0;
     _hasPlayedSound = false;
+
+    if (accumulatedTotalDx.abs() > 0.5) {
+      _isForward = accumulatedTotalDx < 0;
+      if ((_isForward && _currentIndex >= totalPages - 1) ||
+          (!_isForward && _currentIndex <= 0)) {
+        onUpdate();
+        return;
+      }
+      _isDragging = true;
+      _dragProgress = progressFromHorizontalDelta(accumulatedTotalDx);
+      final startIntensity =
+          (accumulatedTotalDx.abs() * 5).clamp(10, 80).toInt();
+      onEffectTrigger(PageFlipEvent.startHaptic, intensity: startIntensity);
+    }
+
     onUpdate();
   }
 
@@ -178,7 +239,7 @@ class PageFlipStateController {
     if (animationController.isAnimating) return;
 
     _touchPosition = details.localPosition;
-    final delta = details.primaryDelta ?? 0.0;
+    final delta = details.primaryDelta ?? details.delta.dx;
 
     if (!_isDragging && delta.abs() > 0.1) {
       _isDragging = true;
@@ -268,18 +329,23 @@ class PageFlipStateController {
           _hasPlayedSound = true;
         }
       }
-      onUpdate();
+      // Propagate animation state via notifier — avoids full setState
+      // for every animation frame (see PageFlipWidget / ValueListenableBuilder).
+      progressNotifier.value = _dragProgress;
+      touchNotifier.value = _touchPosition;
     }
   }
 
   /// Handles the end of a drag, animating the flip to completion or snap-back.
   void onDragEnd(DragEndDetails details, int totalPages) {
     if (!_isDragging) {
+      endPointerCapture();
       onFlipEnd?.call();
       return;
     }
 
-    final velocity = details.primaryVelocity ?? 0.0;
+    final velocity =
+        details.primaryVelocity ?? details.velocity.pixelsPerSecond.dx;
     _lastReleaseVelocity = velocity.abs();
     final isFastFlip = _lastReleaseVelocity > 300;
     final threshold = _isForward ? cutoffForward : cutoffPrevious;
@@ -292,7 +358,7 @@ class PageFlipStateController {
         .animateTo(
           isSuccess ? 1 : 0,
           duration: animationDuration,
-          curve: Curves.easeOutCubic,
+          curve: const PaperFlipCurve(),
         )
         .then((_) => _finalizePageChange(isSuccess, totalPages));
   }
@@ -300,6 +366,7 @@ class PageFlipStateController {
   /// Handles cancellation of a drag, snapping the page back.
   void onDragCancel(int totalPages) {
     if (!_isDragging) {
+      endPointerCapture();
       onFlipEnd?.call();
       return;
     }
@@ -307,7 +374,7 @@ class PageFlipStateController {
     animationController.animateTo(
       0,
       duration: animationDuration,
-      curve: Curves.easeOutCubic,
+      curve: const PaperFlipCurve(),
     );
     _finalizePageChange(false, totalPages);
   }
@@ -328,6 +395,11 @@ class PageFlipStateController {
 
     onFlipStart?.call();
 
+    // Propagate structural state (isDragging) before animation starts.
+    // Subsequent animation frames come through progressNotifier from _onAnimationTick.
+    onUpdate();
+    progressNotifier.value = _dragProgress;
+
     animationController.stop();
     animationController.value = 0.0;
     onEffectTrigger(PageFlipEvent.sound);
@@ -337,12 +409,13 @@ class PageFlipStateController {
         .animateTo(
           1,
           duration: animationDuration,
-          curve: Curves.easeInOutSine,
+          curve: const TapFlipCurve(),
         )
         .then((_) => _finalizePageChange(true, totalPages));
   }
 
   void _finalizePageChange(bool success, int totalPages) {
+    endPointerCapture();
     if (success) {
       if (_isForward) {
         _currentIndex++;
@@ -387,9 +460,11 @@ class PageFlipStateController {
     }
   }
 
-  /// Disposes the animation controller and releases resources.
+  /// Disposes the animation controller, notifiers, and releases resources.
   void dispose() {
     animationController.removeListener(_onAnimationTick);
     animationController.dispose();
+    progressNotifier.dispose();
+    touchNotifier.dispose();
   }
 }
