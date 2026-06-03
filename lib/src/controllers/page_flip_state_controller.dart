@@ -46,6 +46,12 @@ class PageFlipStateController {
 
     /// Callback triggered for haptic/sound effects during flips.
     required this.onEffectTrigger,
+
+    /// Called when a flip gesture begins (drag start or tap flip).
+    this.onFlipStart,
+
+    /// Called when a flip gesture or animation completes (whether successful or cancelled).
+    this.onFlipEnd,
     /// Forward drag threshold. Drag must exceed this progress to complete
     /// a forward flip. Range [0, 1]. Default 0.4.
     this.cutoffForward = 0.4,
@@ -88,6 +94,12 @@ class PageFlipStateController {
     double? resistance,
   }) onEffectTrigger;
 
+  /// Called when a flip gesture begins (drag start or tap flip).
+  final VoidCallback? onFlipStart;
+
+  /// Called when a flip gesture or animation completes (whether successful or cancelled).
+  final VoidCallback? onFlipEnd;
+
   /// The underlying animation controller driving flip transitions.
   late final AnimationController animationController;
 
@@ -104,8 +116,8 @@ class PageFlipStateController {
   bool _isDragging = false;
   bool _hasPlayedSound = false;
   double _cachedWidth = 1;
-  double _lastReleaseVelocity = 0.0;
-  double _smoothedSpeed = 0.0;
+  double _lastReleaseVelocity = 0;
+  double _smoothedSpeed = 0;
   // 연속 햅틱 타이밍 (프레임 스킵 방지)
   int _hapticFrameCounter = 0;
 
@@ -153,6 +165,7 @@ class PageFlipStateController {
   void onDragStart(DragStartDetails details, int totalPages) {
     if (animationController.isAnimating) return;
 
+    onFlipStart?.call();
     _touchPosition = details.localPosition;
     _isDragging = false;
     _dragProgress = 0.0;
@@ -261,7 +274,10 @@ class PageFlipStateController {
 
   /// Handles the end of a drag, animating the flip to completion or snap-back.
   void onDragEnd(DragEndDetails details, int totalPages) {
-    if (!_isDragging) return;
+    if (!_isDragging) {
+      onFlipEnd?.call();
+      return;
+    }
 
     final velocity = details.primaryVelocity ?? 0.0;
     _lastReleaseVelocity = velocity.abs();
@@ -283,7 +299,10 @@ class PageFlipStateController {
 
   /// Handles cancellation of a drag, snapping the page back.
   void onDragCancel(int totalPages) {
-    if (!_isDragging) return;
+    if (!_isDragging) {
+      onFlipEnd?.call();
+      return;
+    }
     animationController.value = _dragProgress;
     animationController.animateTo(
       0,
@@ -307,6 +326,8 @@ class PageFlipStateController {
     _dragProgress = 0.0;
     _hasPlayedSound = false;
 
+    onFlipStart?.call();
+
     animationController.stop();
     animationController.value = 0.0;
     onEffectTrigger(PageFlipEvent.sound);
@@ -328,24 +349,42 @@ class PageFlipStateController {
       } else {
         _currentIndex--;
       }
-      onPageFinalized(_currentIndex);
+
+      // CRITICAL FIX: Reset drag state BEFORE calling onPageFinalized/onUpdate.
+      // This ensures the very next frame renders the NEW page as `keyedCurrentPage`
+      // at progress=0 (idle state), preventing the 1-frame visual discontinuity
+      // where the old flip layers (with stale snapshot/opacity) would briefly flash
+      // before being replaced by the new idle page.
+      _dragProgress = 0.0;
+      animationController.value = 0.0;
+      _isDragging = false;
+      _hasPlayedSound = false;
+      _lastReleaseVelocity = 0.0;
+
+      onEffectTrigger(PageFlipEvent.stopHaptic);
 
       // Trigger impulse haptic on successful flip
-      // If velocity is available, use it for intensity; otherwise use a decent default
       final impulseIntensity = _lastReleaseVelocity > 0
           ? (_lastReleaseVelocity / 4).clamp(15.0, 120.0).toInt()
-          : 60; // Default noticeable intensity
-
+          : 60;
       onEffectTrigger(PageFlipEvent.impulseHaptic, intensity: impulseIntensity);
-    }
 
-    _lastReleaseVelocity = 0.0;
-    _dragProgress = 0.0;
-    animationController.value = 0.0;
-    _isDragging = false;
-    _hasPlayedSound = false;
-    onEffectTrigger(PageFlipEvent.stopHaptic);
-    onUpdate();
+      // Now notify: the page index is updated, drag state is clean,
+      // so the next build will render the new page cleanly in idle mode.
+      onPageFinalized(_currentIndex);
+      onUpdate();
+      onFlipEnd?.call();
+    } else {
+      // Cancelled flip: snap back
+      _lastReleaseVelocity = 0.0;
+      _dragProgress = 0.0;
+      animationController.value = 0.0;
+      _isDragging = false;
+      _hasPlayedSound = false;
+      onEffectTrigger(PageFlipEvent.stopHaptic);
+      onUpdate();
+      onFlipEnd?.call();
+    }
   }
 
   /// Disposes the animation controller and releases resources.

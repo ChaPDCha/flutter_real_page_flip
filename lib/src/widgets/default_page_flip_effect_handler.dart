@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
+import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
+import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/physics/paper_physics.dart';
 import 'package:vibration/vibration.dart';
-import '../controllers/page_flip_state_controller.dart';
-import '../models/page_flip_effect_handler.dart';
-import '../physics/paper_physics.dart';
 
 /// Professional-grade implementation of [PageFlipEffectHandler].
 /// Highlights:

@@ -1,8 +1,8 @@
-import 'paper_physics_config.dart';
-import 'paper_physics_frame.dart';
-import 'paper_resistance_model.dart';
-import 'paper_texture_noise.dart';
-import 'stick_slip_controller.dart';
+import 'package:real_page_flip/src/physics/paper_physics_config.dart';
+import 'package:real_page_flip/src/physics/paper_physics_frame.dart';
+import 'package:real_page_flip/src/physics/paper_resistance_model.dart';
+import 'package:real_page_flip/src/physics/paper_texture_noise.dart';
+import 'package:real_page_flip/src/physics/stick_slip_controller.dart';
 
 /// Façade that orchestrates all paper physics components.
 class PaperPhysicsEngine {

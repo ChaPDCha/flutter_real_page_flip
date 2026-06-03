@@ -1,4 +1,4 @@
-import 'stick_slip_controller.dart';
+import 'package:real_page_flip/src/physics/stick_slip_controller.dart';
 
 /// A single frame of output from the paper physics engine.
 class PaperPhysicsFrame {

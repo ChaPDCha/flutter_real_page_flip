@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import '../controllers/page_flip_state_controller.dart';
+import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 
 /// Interface for handling effects triggered by the PageFlip engine.
 /// This allows the core engine to remain generic and dependency-free,

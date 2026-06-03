@@ -92,24 +92,15 @@ void main() {
   });
 }
 
-/// PageFlipGestureRecognizer의 hasSufficientGlobalDistanceToAccept 로직 시뮬레이션
 bool _simulateGestureDirection({
   required double dx,
   required double dy,
   required double checkSlop,
 }) {
-  // 수직 스크롤 우선 체크 (line 377-381)
-  if (dy.abs() > checkSlop && dy.abs() > dx.abs() * 1.2) {
-    return false;
-  }
-
-  // 수평 드래그 체크 (line 383-390)
-  if (dx.abs() > checkSlop) {
-    if (dx.abs() * 2.5 > dy.abs()) {
-      return true;
-    }
-  }
-
-  // 기본 거부 (line 395)
-  return false;
+  final sensitivity = (18.0 - checkSlop) / 17.0;
+  return PageFlipGestureArbitration.shouldAcceptFlipDrag(
+    totalDx: dx,
+    totalDy: dy,
+    sensitivity: sensitivity,
+  );
 }

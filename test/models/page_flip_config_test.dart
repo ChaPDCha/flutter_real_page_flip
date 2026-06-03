@@ -67,5 +67,12 @@ void main() {
       final b = PageFlipConfig(effectHandler: _TestEffectHandler());
       expect(a == b, isFalse);
     });
+
+    test('equality respects paperOpacity', () {
+      const a = PageFlipConfig(paperOpacity: 1.0);
+      const b = PageFlipConfig(paperOpacity: 0.5);
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
   });
 }

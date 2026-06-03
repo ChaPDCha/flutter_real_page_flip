@@ -1,20 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-
 // LAYOUT GATE: Single constraint gate (LayoutBuilder + needBounded -> SizedBox, constrainedSize to layer view).
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
 
-import 'controllers/page_flip_state_controller.dart';
-import 'effects/page_flip_engine.dart';
-import 'managers/pre_render_manager.dart';
-import 'models/page_flip_config.dart';
-import 'models/page_flip_effect_handler.dart';
-import 'page_flip_layer_view.dart';
-import 'widgets/default_page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
+import 'package:real_page_flip/src/managers/pre_render_manager.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
+import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/page_flip_layer_view.dart';
+import 'package:real_page_flip/src/widgets/default_page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/widgets/edge_tap_feedback.dart';
+import 'package:real_page_flip/src/widgets/page_flip_pointer_handler.dart';
 
 export 'models/page_flip_config.dart';
-import 'widgets/edge_tap_feedback.dart';
 
 /// Controller for programmatic page navigation on a [PageFlipWidget].
 class PageFlipController {
@@ -31,9 +30,7 @@ class PageFlipController {
   }
 
   /// Navigates to the specified page index.
-  Future<void> goToPage(int index) {
-    return _state?.goToPage(index) ?? Future.value();
-  }
+  Future<void> goToPage(int index) => _state?.goToPage(index) ?? Future.value();
 }
 
 /// A high-fidelity, physics-based page flip widget for Flutter.
@@ -43,20 +40,22 @@ class PageFlipController {
 /// effect handlers.
 class PageFlipWidget extends StatefulWidget {
   /// Creates a [PageFlipWidget] with the given pages and configuration.
-  const PageFlipWidget({
-    Key? key,
+  PageFlipWidget({
+    required this.itemBuilder, required this.itemCount, super.key,
     this.controller,
     this.config = PageFlipConfig.defaultSettings,
-    required this.itemBuilder,
-    required this.itemCount,
     this.initialIndex = 0,
+    this.isDoubleSpread = false,
+    PageFlipSpreadMode? spreadMode,
     this.onPageFlipped,
     this.onFlipStart,
+    this.onFlipEnd,
     this.onPageChanged,
     this.onHandleEffect,
-  })  : assert(initialIndex < itemCount,
-            'initialIndex cannot be greater than itemCount'),
-        super(key: key);
+  })  : spreadMode = spreadMode ??
+            PageFlipSpreadModeCompat.fromIsDoubleSpread(isDoubleSpread),
+        assert(initialIndex < itemCount,
+            'initialIndex cannot be greater than itemCount',);
 
   /// Optional external controller for programmatic navigation.
   final PageFlipController? controller;
@@ -73,6 +72,12 @@ class PageFlipWidget extends StatefulWidget {
   /// Index of the initially visible page.
   final int initialIndex;
 
+  /// True if rendering for a dual spread book (legacy; prefer [spreadMode]).
+  final bool isDoubleSpread;
+
+  /// Spread layout mode (defaults from [isDoubleSpread] when omitted).
+  final PageFlipSpreadMode spreadMode;
+
   /// Called when a page flip animation completes successfully.
   ///
   /// The `pageNumber` parameter is the new current page index.
@@ -84,6 +89,9 @@ class PageFlipWidget extends StatefulWidget {
 
   /// Called when a flip gesture starts (drag or tap).
   final void Function()? onFlipStart;
+
+  /// Called when a flip gesture or animation completes (whether successful or cancelled).
+  final void Function()? onFlipEnd;
 
   /// Called when the current page index changes.
   ///
@@ -109,6 +117,7 @@ class PageFlipWidget extends StatefulWidget {
 class PageFlipWidgetState extends State<PageFlipWidget>
     with TickerProviderStateMixin {
   late final PageFlipStateController _controller;
+  late PageFlipPointerHandler _pointerHandler;
   final PreRenderManager _preRenderManager = PreRenderManager();
 
   int get _totalPages => widget.itemCount;
@@ -128,9 +137,16 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       },
       onPageFinalized: _onPageFinalized,
       onEffectTrigger: _handleEffect,
+      onFlipStart: _onFlipStart,
+      onFlipEnd: _onFlipEnd,
     );
     _controller.setIndex(widget.initialIndex, _totalPages);
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
+    _pointerHandler = PageFlipPointerHandler(
+      controller: _controller,
+      sensitivity: widget.config.sensitivity,
+      totalPages: _totalPages,
+    );
 
     // Initialize Effect Handler
     _effectHandler =
@@ -139,9 +155,18 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // Initial pre-render snapshots (requires layout to be complete)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _captureSnapshots();
+        _captureSnapshotsImmediate(includeCurrentSpread: true);
       }
     });
+  }
+
+  void _onFlipStart() {
+    widget.onFlipStart?.call();
+    _captureSnapshotsImmediate(includeCurrentSpread: true);
+  }
+
+  void _onFlipEnd() {
+    widget.onFlipEnd?.call();
   }
 
   late final PageFlipEffectHandler _effectHandler;
@@ -150,6 +175,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   void didUpdateWidget(PageFlipWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller?._state = this;
+    _pointerHandler.totalPages = _totalPages;
+    if (widget.config.sensitivity != oldWidget.config.sensitivity) {
+      _pointerHandler.sensitivity = widget.config.sensitivity;
+    }
 
     // Update effect handler if changed in config
     if (widget.config.effectHandler != oldWidget.config.effectHandler) {
@@ -158,19 +187,27 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           widget.config.effectHandler ?? DefaultPageFlipEffectHandler();
     }
 
-    // Redraw if content or count changes
-    if (widget.itemBuilder != oldWidget.itemBuilder ||
-        widget.itemCount != oldWidget.itemCount) {
-      _controller.setIndex(_controller.currentIndex, _totalPages);
+    final indexChangedExternally = widget.initialIndex != _controller.currentIndex;
+    // Do not reset on itemBuilder identity: hosts often pass a new closure each
+    // build; snapshots are refreshed on flip start and after page changes.
+    final contentOrCountChanged = widget.itemCount != oldWidget.itemCount ||
+        widget.spreadMode != oldWidget.spreadMode;
+
+    // Redraw if content, count, or initialIndex changed externally
+    if (contentOrCountChanged || indexChangedExternally) {
+      final newIndex = indexChangedExternally ? widget.initialIndex : _controller.currentIndex;
+      _controller.setIndex(newIndex, _totalPages);
 
       // Reset pre-render manager to avoid using stale keys or snapshots
       _preRenderManager.reset();
 
       // Schedule a new capture frame
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
-        if (mounted) setState(() {});
-        _captureSnapshots();
+        if (mounted) {
+          _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
+          setState(() {});
+          _captureSnapshots();
+        }
       });
 
       setState(() {});
@@ -193,7 +230,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     widget.onPageFlipped?.call(newIndex);
     _preRenderManager.cleanup(newIndex, _totalPages);
     _preRenderManager.prepareKeys(newIndex, _totalPages);
-    _captureSnapshots();
+    // Immediate capture (no debounce) so the next flip has snapshots ready
+    _captureSnapshotsImmediate(includeCurrentSpread: true);
   }
 
   void _captureSnapshots() {
@@ -203,6 +241,21 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       () {
         if (mounted) setState(() {});
       },
+      includeCurrentSpread: true,
+    );
+  }
+
+  /// Captures snapshots without debounce delay. Used after page changes
+  /// to guarantee the next flip animation has pre-rendered content.
+  void _captureSnapshotsImmediate({bool includeCurrentSpread = false}) {
+    _preRenderManager.captureSnapshots(
+      _controller.currentIndex,
+      _totalPages,
+      () {
+        if (mounted) setState(() {});
+      },
+      immediate: true,
+      includeCurrentSpread: includeCurrentSpread,
     );
   }
 
@@ -252,7 +305,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   /// Navigates to the next page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
   void nextPage() {
-    widget.onFlipStart?.call();
     if (widget.config.skipTapAnimation) {
       goToPage(_controller.currentIndex + 1);
     } else {
@@ -262,7 +314,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   /// Navigates to the previous page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
   void previousPage() {
-    widget.onFlipStart?.call();
     if (widget.config.skipTapAnimation) {
       goToPage(_controller.currentIndex - 1);
     } else {
@@ -273,7 +324,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   /// Jumps directly to the given page index without animation.
   Future<void> goToPage(int index) async {
     if (index < 0 || index >= _totalPages) return;
-    widget.onFlipStart?.call();
+    _onFlipStart();
 
     // Immediate jump for now, as drag logic is complex to simulate
     setState(() {
@@ -281,6 +332,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     });
 
     _onPageFinalized(index);
+    _onFlipEnd();
   }
 
   @override
@@ -315,9 +367,12 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           isForward: _controller.isForward,
           touchPosition: _controller.touchPosition,
           pageSnapshots: _preRenderManager.pageSnapshots,
+          spreadSnapshots: _preRenderManager.spreadSnapshots,
           pageKeys: _preRenderManager.pageKeys,
           paperFlapColor: widget.config.backgroundColor,
+          paperOpacity: widget.config.paperOpacity,
           constrainedSize: constrainedSize,
+          isDoubleSpread: widget.spreadMode.isDoubleSpread,
         );
 
         final mainContent = Stack(
@@ -358,25 +413,12 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
         final childWidget = (!widget.config.enableSwipe)
             ? mainContent
-            : RawGestureDetector(
-                gestures: {
-                  PageFlipGestureRecognizer:
-                      GestureRecognizerFactoryWithHandlers<
-                          PageFlipGestureRecognizer>(
-                    () => PageFlipGestureRecognizer(
-                        sensitivity: widget.config.sensitivity),
-                    (PageFlipGestureRecognizer instance) {
-                      instance.onStart =
-                          (d) => _controller.onDragStart(d, _totalPages);
-                      instance.onUpdate =
-                          (d) => _controller.onDragUpdate(d, _totalPages);
-                      instance.onEnd =
-                          (d) => _controller.onDragEnd(d, _totalPages);
-                      instance.onCancel =
-                          () => _controller.onDragCancel(_totalPages);
-                    },
-                  ),
-                },
+            : Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _pointerHandler.handlePointerDown,
+                onPointerMove: _pointerHandler.handlePointerMove,
+                onPointerUp: _pointerHandler.handlePointerUp,
+                onPointerCancel: _pointerHandler.handlePointerCancel,
                 child: mainContent,
               );
 

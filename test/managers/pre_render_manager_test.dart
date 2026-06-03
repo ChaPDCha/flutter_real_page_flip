@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/managers/pre_render_manager.dart';
@@ -78,5 +80,63 @@ void main() {
       // dispose should not throw when no pending work
       expect(() => mgr.dispose(), returnsNormally);
     });
+
+    test('getCaptureIndices includes current index when includeCurrent is true', () {
+      final mgr = PreRenderManager();
+
+      expect(
+        mgr.getCaptureIndices(5, 10, includeCurrent: true),
+        equals([4, 5, 6]),
+      );
+    });
+
+    test('getCaptureIndices excludes current index by default', () {
+      final mgr = PreRenderManager();
+
+      expect(mgr.getCaptureIndices(5, 10), equals([4, 6]));
+    });
+
+    test('spread capture indices include previous when warming spreads', () {
+      final mgr = PreRenderManager();
+
+      expect(
+        mgr.getSpreadCaptureIndices(5, 10, includeCurrent: true),
+        equals([4, 5, 6]),
+      );
+      expect(mgr.getSpreadCaptureIndices(0, 10, includeCurrent: true), equals([0, 1]));
+      expect(mgr.getSpreadCaptureIndices(5, 10), isEmpty);
+    });
+
+    test('cleanup disposes shared page and spread snapshots once', () async {
+      final mgr = PreRenderManager();
+      final shared = await _createTestImage();
+      mgr.pageSnapshots[99] = shared;
+      mgr.spreadSnapshots[99] = shared;
+
+      expect(() => mgr.cleanup(5, 10), returnsNormally);
+      expect(mgr.pageSnapshots.containsKey(99), isFalse);
+      expect(mgr.spreadSnapshots.containsKey(99), isFalse);
+    });
+
+    test('cleanup removes stale spread snapshots', () async {
+      final mgr = PreRenderManager();
+      mgr.prepareKeys(5, 10);
+
+      mgr.spreadSnapshots[5] = await _createTestImage();
+      mgr.spreadSnapshots[99] = await _createTestImage();
+
+      mgr.cleanup(5, 10);
+
+      expect(mgr.spreadSnapshots.containsKey(5), isTrue);
+      expect(mgr.spreadSnapshots.containsKey(99), isFalse);
+    });
   });
+}
+
+Future<ui.Image> _createTestImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawRect(const Rect.fromLTWH(0, 0, 10, 10), Paint());
+  final picture = recorder.endRecording();
+  return picture.toImage(10, 10);
 }

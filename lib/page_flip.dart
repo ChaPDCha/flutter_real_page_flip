@@ -4,6 +4,9 @@
 /// control. Prefer importing `package:real_page_flip/real_page_flip.dart`.
 library page_flip;
 
-export 'src/page_flip_widget.dart';
+import 'package:real_page_flip/page_flip.dart' show PageFlipWidget, PageFlipEvent;
+import 'package:real_page_flip/real_page_flip.dart' show PageFlipWidget, PageFlipEvent;
+
 // State controller for programmatic control
 export 'src/controllers/page_flip_state_controller.dart' show PageFlipEvent;
+export 'src/page_flip_widget.dart';

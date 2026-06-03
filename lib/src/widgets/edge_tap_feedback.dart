@@ -8,22 +8,17 @@ import 'package:flutter/material.dart';
 class EdgeTapFeedback extends StatefulWidget {
   /// Creates an [EdgeTapFeedback] widget for the given edge.
   const EdgeTapFeedback({
-    Key? key,
     /// Callback invoked when the edge tap area is tapped.
-    required this.onTap,
-
-    /// Whether this is the left edge (true) or right edge (false).
-    required this.isLeftEdge,
-
-    /// The width of the tap area in pixels.
-    required this.width,
+    required this.onTap, /// Whether this is the left edge (true) or right edge (false).
+    required this.isLeftEdge, /// The width of the tap area in pixels.
+    required this.width, super.key,
 
     /// Accessibility label for the edge tap area.
     this.label,
 
     /// Accessibility hint for the edge tap area.
     this.hint,
-  }) : super(key: key);
+  });
 
   /// Callback invoked when the edge tap area is tapped.
   final VoidCallback onTap;
@@ -56,7 +51,7 @@ class _EdgeTapFeedbackState extends State<EdgeTapFeedback>
     _controller = AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 250),
-        reverseDuration: const Duration(milliseconds: 50));
+        reverseDuration: const Duration(milliseconds: 50),);
 
     // Decelerate 커브로 자연스러운 감속 효과
     _opacityAnimation =
@@ -123,7 +118,7 @@ class _EdgeTapFeedbackState extends State<EdgeTapFeedback>
 
               final gradientColors = [
                 baseColor.withValues(alpha: currentOpacity),
-                baseColor.withValues(alpha: 0.0),
+                baseColor.withValues(alpha: 0),
               ];
 
               final gradient = LinearGradient(

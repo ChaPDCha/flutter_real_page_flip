@@ -1,6 +1,101 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+
+// ---------------------------------------------------------------------------
+// Flap front texture helpers
+// ---------------------------------------------------------------------------
+
+/// Returns the source rect within a spread snapshot for the flipping flap front.
+///
+/// Forward double-spread flips use the left half of the next spread snapshot;
+/// backward use the right half of the previous spread. Single-page backward
+/// flips use paper back only.
+Rect? flapFrontSourceRect({
+  required Size imageSize,
+  required bool isDoubleSpread,
+  required bool isForward,
+}) {
+  if (isDoubleSpread) {
+    final halfWidth = imageSize.width / 2;
+    if (isForward) {
+      // Forward flip: Flap represents next left page (Page 4) -> Left half of next spread snapshot
+      return Rect.fromLTWH(0, 0, halfWidth, imageSize.height);
+    }
+    // Backward flip: Flap represents previous right page (Page 3) -> Right half of previous spread snapshot
+    return Rect.fromLTWH(halfWidth, 0, halfWidth, imageSize.height);
+  }
+
+  if (!isForward) return null;
+
+  return Rect.fromLTWH(0, 0, imageSize.width, imageSize.height);
+}
+
+/// Destination rect on the canvas for mapping [flapFrontSourceRect] onto the flap.
+Rect flapFrontDestRect({
+  required Size size,
+  required bool isDoubleSpread,
+  required bool isForward,
+}) {
+  if (isDoubleSpread) {
+    final halfWidth = size.width / 2;
+    if (isForward) {
+      // Forward flip: Next left page lands on the left half of the screen
+      return Rect.fromLTWH(0, 0, halfWidth, size.height);
+    }
+    // Backward flip: Previous right page lands on the right half of the screen
+    return Rect.fromLTWH(halfWidth, 0, halfWidth, size.height);
+  }
+
+  return Rect.fromLTWH(0, 0, size.width, size.height);
+}
+
+/// Sub-pixel overlap (px) between spine-reveal clip and flap layer 3.
+///
+/// Prevents hairline gaps between [PageFlipSpineRevealClipper] and
+/// [PageFlipPainter] without changing visible fold geometry when
+/// [PageFlipGeometry.curvatureAmount] is 0.
+const double kSpineRevealOverlapPx = 1.5;
+
+/// Clip rect for flap-side drop shadows in [PageFlipPainter].
+///
+/// Double-spread: right half only. Single-page: region to the right of the fold
+/// so shadows are not painted over the stationary middle layer (layer 2).
+@visibleForTesting
+Rect flipSideShadowClipRect(PageFlipGeometry geo) {
+  if (geo.isDoubleSpread) {
+    return Rect.fromLTWH(
+      geo.spineX,
+      0,
+      geo.size.width - geo.spineX,
+      geo.size.height,
+    );
+  }
+  final left = geo.foldX.clamp(0.0, geo.size.width);
+  return Rect.fromLTWH(left, 0, geo.size.width - left, geo.size.height);
+}
+
+/// Clips [child] to the left or right half of a double-spread page widget.
+///
+/// Use the same helper for stationary spread halves, spine-band reveal, and
+/// host `itemBuilder` layouts so half-page alignment stays consistent.
+Widget clipSpreadPageHalf({
+  required Widget child,
+  required Alignment alignment,
+}) {
+  return ClipRect(
+    child: Align(
+      alignment: alignment,
+      widthFactor: 0.5,
+      child: FractionallySizedBox(
+        widthFactor: 2,
+        alignment: alignment,
+        child: child,
+      ),
+    ),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Geometry & rendering constants
@@ -22,8 +117,6 @@ const double _kRevealedShadowWidth = 30.00850509;
 /// Maximum width (px) of the shadow on the stationary page edge.
 const double _kStationaryShadowWidth = 20.00850509;
 
-/// Normalised stop position for the highlight gradient on the flap.
-const double _kHighlightStop = 0.2000850509;
 
 /// Shared geometry calculations for PageFlipClipper and PageFlipPainter.
 /// This ensures both use IDENTICAL coordinate calculations.
@@ -42,25 +135,33 @@ class PageFlipGeometry {
 
     /// Size of the widget area being flipped.
     required this.size,
+    
+    /// True if the layout is double-spread with a central spine
+    this.isDoubleSpread = false,
+
+    /// True if we are flipping forward (right-to-left), false if backward
+    this.isForward = true,
   }) {
     final width = size.width;
     final height = size.height;
+    spineX = isDoubleSpread ? width / 2 : 0.0;
 
     // Use current logic but ensure it supports smooth reversing
-    // Forward (progress 0..1): Page moves Right -> Left. foldX moves Width -> 0.
-    // Backward (progress 1..0): Page moves Left -> Right. foldX moves 0 -> Width.
+    // Forward (progress 0..1): Page moves Right -> Left. foldX moves Width -> spineX.
+    // Backward (progress 1..0): Page moves Left -> Right. foldX moves spineX -> Width.
     // foldX is the hinge point where the paper is folded.
-    foldX = width * (1 - progress);
+    final pageWidth = isDoubleSpread ? width / 2 : width;
+    foldX = width - (pageWidth * progress);
 
     // Rotation angle based on touch Y with pinned boundary compliance
-    final double baseAngle = (touchOffset.dy / height - 0.5) *
+    final baseAngle = (touchOffset.dy / height - 0.5) *
         _kAngleScale *
         math.sin(progress * math.pi);
 
-    // Ensure fold line doesn't detach from the spine (x=0) within the screen bounds
-    final limitLeft = math.atan2(foldX, height / 2);
+    // Ensure fold line doesn't detach from the spine (spineX) within the screen bounds
+    final limitLeft = math.atan2(foldX - spineX, height / 2);
     final limitRight = math.atan2(width - foldX, height / 2);
-    final absLimit = math.min(limitLeft, limitRight);
+    final absLimit = math.max(0.0, math.min(limitLeft, limitRight));
 
     angle = baseAngle.clamp(-absLimit, absLimit);
 
@@ -82,12 +183,9 @@ class PageFlipGeometry {
 
     // Flap dimensions with foreshortening effect
     // In our model, the "flap" is the part of the paper being peeled from the right edge.
-    // At progress=0 (foldX=W), flapMaterialWidth=0.
-    // At progress=1 (foldX=0), flapMaterialWidth=W.
     final flapMaterialWidth = width - foldX;
 
     // Preserving total width, but adding a curve effect using sine easing
-    // At progress=1, flapVisibleWidth becomes full width W allowing 180 flip to opposite side
     flapVisibleWidth = flapMaterialWidth *
         (_kFlapWidthBase - _kFlapWidthModulation * math.sin(progress * math.pi));
 
@@ -103,6 +201,27 @@ class PageFlipGeometry {
       transform,
       Offset(flapLeft, height * 2),
     );
+
+    // -----------------------------------------------------------------------
+    // Curvature Disabled (As requested: Reverted to solid, flat 2D opaque folds)
+    // -----------------------------------------------------------------------
+    curvatureAmount = 0.0;
+    curveOffset = 0.0;
+
+    // For a natural peel from the right to left, the middle of the fold line
+    // lags slightly behind the top/bottom corners, creating a leftward bulge.
+    // In untransformed space, we move the control point left (-X).
+    foldCurveControl = MatrixUtils.transformPoint(
+      transform,
+      Offset(foldX - curveOffset, height / 2),
+    );
+
+    // The flap's left edge should also curve in the same direction
+    // to maintain constant paper width and avoid hourglass stretching.
+    flapCurveControl = MatrixUtils.transformPoint(
+      transform,
+      Offset(flapLeft - curveOffset, height / 2),
+    );
   }
   /// Normalised flip progress from 0.0 to 1.0.
   final double progress;
@@ -115,6 +234,15 @@ class PageFlipGeometry {
 
   /// Size of the widget area being flipped.
   final Size size;
+  
+  /// True if rendering for a dual spread book
+  final bool isDoubleSpread;
+
+  /// True if we are flipping forward.
+  final bool isForward;
+
+  /// X-coordinate of the paper fold hinge limit (Spine)
+  late final double spineX;
 
   /// X-coordinate of the paper fold hinge.
   late final double foldX;
@@ -145,6 +273,126 @@ class PageFlipGeometry {
 
   /// Bottom endpoint of the flap edge.
   late final Offset flapEdgeBottom;
+
+  /// Normalised amount of 2D curvature applied (0.0 to 1.0).
+  late final double curvatureAmount;
+
+  /// Local space horizontal offset for the bezier control points.
+  late final double curveOffset;
+
+  /// Bezier control point for the curved fold line in global space.
+  late final Offset foldCurveControl;
+
+  /// Bezier control point for the curved flap edge in global space.
+  late final Offset flapCurveControl;
+}
+
+/// Builds the clip path that progressively reveals the adjacent spread page
+/// in the spine band during a double-spread flip.
+///
+/// Forward: next spread's left page between spine and the flap's left edge.
+/// Backward: previous spread's right page between spine and the fold (flap) line.
+///
+/// Returns `null` when reveal should not be drawn (no crossing yet or invalid).
+Path? buildDoubleSpreadSpineRevealPath(PageFlipGeometry geo) {
+  if (!geo.isDoubleSpread || geo.progress <= 0 || geo.spineX <= 0) {
+    return null;
+  }
+  final edges = spineRevealClipEdges(geo);
+  if (edges == null) return null;
+  return _pathFromSpineRevealEdges(geo, edges);
+}
+
+/// Shared spine-band edge coordinates for forward/backward reveal clips.
+///
+/// Returns `null` until the flap has crossed the spine (same gate as
+/// [buildDoubleSpreadSpineRevealPath]). When [PageFlipGeometry.curvatureAmount]
+/// is re-enabled, both reveal and flap paths should use these edges.
+SpineRevealClipEdges? spineRevealClipEdges(PageFlipGeometry geo) {
+  if (!geo.isDoubleSpread) return null;
+
+  if (geo.isForward) {
+    if (geo.flapLeft >= geo.spineX) return null;
+    final overlapShift = -kSpineRevealOverlapPx;
+    return SpineRevealClipEdges(
+      overlapShift: overlapShift,
+      edgeBottom: Offset(geo.flapEdgeBottom.dx + overlapShift, geo.flapEdgeBottom.dy),
+      edgeTop: Offset(geo.flapEdgeTop.dx + overlapShift, geo.flapEdgeTop.dy),
+      curveControl: Offset(geo.flapCurveControl.dx + overlapShift, geo.flapCurveControl.dy),
+    );
+  }
+
+  if (geo.flapLeft <= geo.spineX) return null;
+  final overlapShift = kSpineRevealOverlapPx;
+  return SpineRevealClipEdges(
+    overlapShift: overlapShift,
+    edgeBottom: Offset(geo.foldLineBottom.dx + overlapShift, geo.foldLineBottom.dy),
+    edgeTop: Offset(geo.foldLineTop.dx + overlapShift, geo.foldLineTop.dy),
+    curveControl: Offset(geo.foldCurveControl.dx + overlapShift, geo.foldCurveControl.dy),
+  );
+}
+
+/// Trailing edge of the spine reveal band (flap or fold line + overlap).
+class SpineRevealClipEdges {
+  /// Creates [SpineRevealClipEdges].
+  const SpineRevealClipEdges({
+    required this.overlapShift,
+    required this.edgeBottom,
+    required this.edgeTop,
+    required this.curveControl,
+  });
+
+  /// Signed overlap applied to trailing edge X (and curve control when curved).
+  final double overlapShift;
+
+  /// Bottom point of the reveal band's trailing edge.
+  final Offset edgeBottom;
+
+  /// Top point of the reveal band's trailing edge.
+  final Offset edgeTop;
+
+  /// Quadratic bezier control when [PageFlipGeometry.curvatureAmount] > 0.
+  final Offset curveControl;
+}
+
+Path _pathFromSpineRevealEdges(PageFlipGeometry geo, SpineRevealClipEdges edges) {
+  final path = Path()
+    ..moveTo(geo.spineX, 0)
+    ..lineTo(geo.spineX, geo.size.height)
+    ..lineTo(edges.edgeBottom.dx, edges.edgeBottom.dy);
+
+  if (geo.curvatureAmount > 0.001) {
+    path.quadraticBezierTo(
+      edges.curveControl.dx,
+      edges.curveControl.dy,
+      edges.edgeTop.dx,
+      edges.edgeTop.dy,
+    );
+  } else {
+    path.lineTo(edges.edgeTop.dx, edges.edgeTop.dy);
+  }
+  path.close();
+  return path;
+}
+
+/// Clips to the spine–trailing-edge reveal band for double-spread forward flips.
+class PageFlipSpineRevealClipper extends CustomClipper<Path> {
+  /// Creates a [PageFlipSpineRevealClipper].
+  PageFlipSpineRevealClipper({required this.geo});
+
+  /// Shared flip geometry for this frame.
+  final PageFlipGeometry geo;
+
+  @override
+  Path getClip(Size size) =>
+      buildDoubleSpreadSpineRevealPath(geo) ?? Path();
+
+  @override
+  bool shouldReclip(PageFlipSpineRevealClipper oldClipper) =>
+      oldClipper.geo.progress != geo.progress ||
+      oldClipper.geo.touchOffset != geo.touchOffset ||
+      oldClipper.geo.isDoubleSpread != geo.isDoubleSpread ||
+      oldClipper.geo.isForward != geo.isForward;
 }
 
 /// CustomPainter that renders the flipping page flap with shadow and highlight effects.
@@ -164,6 +412,24 @@ class PageFlipPainter extends CustomPainter {
 
     /// The color of the paper back (flipping page's back side).
     required this.paperBackColor,
+    
+    /// True if rendering for a dual spread book
+    this.isDoubleSpread = false,
+
+    /// True if we are flipping forward.
+    this.isForward = true,
+
+    /// The opacity of the paper flap back side.
+    this.paperOpacity = 1.0,
+
+    /// Pre-captured snapshot of the flipping page front (flap texture).
+    this.flapFrontImage,
+
+    /// Source rect within [flapFrontImage] to map onto the flap.
+    this.flapFrontSrcRect,
+
+    /// Destination rect for [flapFrontSrcRect] on the canvas (defaults to right page).
+    this.flapFrontDestRect,
   });
 
   /// Normalised flip progress from 0.0 to 1.0.
@@ -177,6 +443,24 @@ class PageFlipPainter extends CustomPainter {
 
   /// The color of the paper back (flipping page's back side).
   final Color paperBackColor;
+  
+  /// True if rendering for a dual spread book
+  final bool isDoubleSpread;
+
+  /// True if we are flipping forward.
+  final bool isForward;
+
+  /// The opacity of the paper flap back side.
+  final double paperOpacity;
+
+  /// Pre-captured snapshot of the flipping page front (flap texture).
+  final ui.Image? flapFrontImage;
+
+  /// Source rect within [flapFrontImage] to map onto the flap.
+  final Rect? flapFrontSrcRect;
+
+  /// Destination rect for flap front texture (null = legacy right-page mapping).
+  final Rect? flapFrontDestRect;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -190,12 +474,11 @@ class PageFlipPainter extends CustomPainter {
       isRightToLeft: isRightToLeft,
       touchOffset: touchOffset,
       size: size,
+      isDoubleSpread: isDoubleSpread,
+      isForward: isForward,
     );
 
     // Determine dark mode from paper luminance.
-    // Luminance < 0.10 → dark background (e.g. pure black or very dark grey).
-    // Luminance 0.10–0.20 → mid-dark (dark navy / charcoal).
-    // Luminance > 0.50 → light paper (standard light mode).
     final luminance = paperBackColor.computeLuminance();
     final isPaperLight = luminance > 0.5;
     final isPaperDark = luminance < 0.20; // catches dark mode backgrounds
@@ -203,25 +486,74 @@ class PageFlipPainter extends CustomPainter {
     canvas.save();
     canvas.transform(geo.transform.storage);
 
-    // Clip to flap region
+    // Clip to flap region using the curved path in local space
     final flapRect = Rect.fromLTWH(
       geo.flapLeft,
       0,
       geo.flapVisibleWidth,
       size.height,
     );
-    canvas.clipRect(flapRect);
+    
+    final flapPath = Path();
+    flapPath.moveTo(geo.flapLeft, 0);
+    flapPath.lineTo(geo.foldX, 0);
+    
+    if (geo.curvatureAmount > 0.001) {
+      // Right edge (fold line) in local space
+      flapPath.quadraticBezierTo(
+        geo.foldX - geo.curveOffset, size.height / 2, 
+        geo.foldX, size.height,
+      );
+      flapPath.lineTo(geo.flapLeft, size.height);
+      // Left edge (flap edge) in local space (curving in the same direction)
+      flapPath.quadraticBezierTo(
+        geo.flapLeft - geo.curveOffset, size.height / 2,
+        geo.flapLeft, 0,
+      );
+    } else {
+      flapPath.lineTo(geo.foldX, size.height);
+      flapPath.lineTo(geo.flapLeft, size.height);
+    }
+    flapPath.close();
 
-    // Layer 1: Paper Back
-    canvas.drawRect(
-      flapRect,
-      Paint()..color = paperBackColor.withValues(alpha: 0.87),
-    );
+    canvas.clipPath(flapPath);
+
+    // Layer 1: Flap front texture (snapshot-mapped) or paper back fallback
+    // 항상 스냅샷이 있으면 플랩에 텍스처를 입힌다.
+    // 단면 모드에서도 현재 페이지 내용이 플랩에 보여야
+    // "빈 종이" 느낌이 사라진다.
+    final hasFlapTexture =
+        flapFrontImage != null && flapFrontSrcRect != null;
+    if (hasFlapTexture) {
+      final pageRect = flapFrontDestRect ??
+          (isDoubleSpread
+              ? Rect.fromLTWH(
+                  geo.spineX, 0, size.width - geo.spineX, size.height,
+                )
+              : Rect.fromLTWH(0, 0, size.width, size.height));
+      canvas.drawImageRect(
+        flapFrontImage!,
+        flapFrontSrcRect!,
+        pageRect,
+        Paint()..filterQuality = FilterQuality.medium,
+      );
+    } else {
+      canvas.drawRect(
+        flapRect,
+        Paint()
+          ..color = paperBackColor.withValues(
+            alpha: paperOpacity == 1.0
+                ? 1.0
+                : (isPaperDark ? paperOpacity * 1.1 : paperOpacity)
+                    .clamp(0.0, 1.0),
+          ),
+      );
+    }
 
     // Layer 2: Soft Highlight
-    // In dark mode, a slightly stronger highlight preserves the 3-D fold illusion
-    // without looking washed out against an already-dark background.
-    final highlightAlpha = isPaperLight ? 0.05 : (isPaperDark ? 0.18 : 0.12);
+    // Option B: Dramatically increase the highlight and spread it wider.
+    // By creating a strong, glossy light reflection on the crease, the eye is drawn to the 3D geometry rather than the blank paper.
+    final highlightAlpha = isPaperLight ? 0.35 : (isPaperDark ? 0.45 : 0.35);
     if (highlightAlpha > 0.01) {
       canvas.drawRect(
         flapRect,
@@ -232,19 +564,18 @@ class PageFlipPainter extends CustomPainter {
             end: isRightToLeft ? Alignment.centerLeft : Alignment.centerRight,
             colors: [
               Colors.white.withValues(alpha: highlightAlpha),
+              Colors.white.withValues(alpha: highlightAlpha * 0.4),
               Colors.transparent,
             ],
-            stops: const [0.0, _kHighlightStop],
+            stops: const [0.0, 0.25, 0.8],
           ).createShader(flapRect),
       );
     }
 
     // Layer 3: Inner Shadow
-    // In dark mode the multiply blend is too strong — dark canvas × dark shadow
-    // produces near-black streaks that look unnatural. We reduce intensity so
-    // the fold crease stays visible but subtle.
-    final shadowBase = (isPaperDark ? 0.20 : 0.35) * geo.shadowIntensity;
-    final shadowMid  = (isPaperDark ? 0.06 : 0.10) * geo.shadowIntensity;
+    // Deepen the inner shadow near the fold to enhance the dramatic 3D curvature.
+    final shadowBase = (isPaperDark ? 0.30 : 0.45) * geo.shadowIntensity;
+    final shadowMid  = (isPaperDark ? 0.12 : 0.18) * geo.shadowIntensity;
     if (shadowBase > 0.01) {
       canvas.drawRect(
         flapRect,
@@ -258,7 +589,7 @@ class PageFlipPainter extends CustomPainter {
               Colors.black.withValues(alpha: shadowMid),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.4, 1.0],
+            stops: const [0.0, 0.3, 1.0],
           ).createShader(flapRect),
       );
     }
@@ -267,6 +598,7 @@ class PageFlipPainter extends CustomPainter {
 
     // Revealed Page Shadow
     canvas.save();
+    canvas.clipRect(flipSideShadowClipRect(geo));
     canvas.transform(geo.transform.storage);
 
     final shadowWidth = _kRevealedShadowWidth * geo.shadowIntensity;
@@ -291,9 +623,11 @@ class PageFlipPainter extends CustomPainter {
     }
     canvas.restore();
 
-    // Stationary Page Shadow
-    if (isRightToLeft) {
+    // Stationary Page Shadow (double-spread only; single-page stationary layer is
+    // left of the fold and must not receive transformed shadows from the flip side).
+    if (isRightToLeft && isDoubleSpread) {
       canvas.save();
+      canvas.clipRect(flipSideShadowClipRect(geo));
       canvas.transform(geo.transform.storage);
 
       final stationaryWidth = _kStationaryShadowWidth * geo.shadowIntensity;
@@ -320,6 +654,23 @@ class PageFlipPainter extends CustomPainter {
       }
       canvas.restore();
     }
+
+    // Draw Center Spine Shadow for Double Spread
+    if (isDoubleSpread && progress > 0) {
+      const spineShadowWidth = 30.0;
+      final spineRect = Rect.fromLTWH(geo.spineX, 0, spineShadowWidth, size.height);
+      canvas.drawRect(
+        spineRect,
+        Paint()
+          ..blendMode = BlendMode.multiply
+          ..shader = LinearGradient(
+            colors: [
+              Colors.black.withValues(alpha: 0.15 * geo.shadowIntensity),
+              Colors.transparent,
+            ],
+          ).createShader(spineRect),
+      );
+    }
   }
 
   @override
@@ -327,7 +678,13 @@ class PageFlipPainter extends CustomPainter {
   bool shouldRepaint(covariant PageFlipPainter oldDelegate) =>
       oldDelegate.progress != progress ||
       oldDelegate.touchOffset != touchOffset ||
-      oldDelegate.paperBackColor != paperBackColor;
+      oldDelegate.paperBackColor != paperBackColor ||
+      oldDelegate.isDoubleSpread != isDoubleSpread ||
+      oldDelegate.isForward != isForward ||
+      oldDelegate.paperOpacity != paperOpacity ||
+      oldDelegate.flapFrontImage != flapFrontImage ||
+      oldDelegate.flapFrontSrcRect != flapFrontSrcRect ||
+      oldDelegate.flapFrontDestRect != flapFrontDestRect;
 }
 
 /// CustomClipper that clips the stationary portion of the page during flip.
@@ -342,6 +699,12 @@ class PageFlipClipper extends CustomClipper<Path> {
 
     /// Touch offset used to compute the fold angle.
     required this.touchOffset,
+    
+    /// True if rendering for a dual spread book
+    this.isDoubleSpread = false,
+
+    /// True if we are flipping forward
+    this.isForward = true,
   });
 
   /// Normalised flip progress from 0.0 to 1.0.
@@ -352,6 +715,12 @@ class PageFlipClipper extends CustomClipper<Path> {
 
   /// Touch offset used to compute the fold angle.
   final Offset touchOffset;
+  
+  /// True if rendering for a dual spread book
+  final bool isDoubleSpread;
+
+  /// True if we are flipping forward
+  final bool isForward;
 
   @override
   Path getClip(Size size) {
@@ -359,29 +728,38 @@ class PageFlipClipper extends CustomClipper<Path> {
       return Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     }
     // FIX: If progress is >= 1, the page should be fully flipped (invisible/gone).
-    // Returning a full rect here causes the "Old Page" to flash on top of the "New Page"
-    // for one frame at the end of the animation.
     if (progress >= 1) {
       return Path(); // Empty path
     }
 
-    // Use shared geometry calculations (SAME as RealPageFlipPainter)
+    // Use shared geometry calculations
     final geo = PageFlipGeometry(
       progress: progress,
       isRightToLeft: isRightToLeft,
       touchOffset: touchOffset,
       size: size,
+      isDoubleSpread: isDoubleSpread,
+      isForward: isForward,
     );
 
     final path = Path();
-
-    // Simplified: Always keep LEFT portion (0 to Fold).
-    // The widget layer logic handles WHICH page is put here.
-    // Forward: Current Page (shrinks to left).
-    // Backward: Previous Page (expands from left).
+    // Shift the fold line slightly to the right to create a small overlap.
+    // Since PageFlipClipper is Layer 2 (drawn on top of Layer 1), this covers any subpixel gaps.
+    const overlapShift = 1.5;
     path.moveTo(0, 0);
-    path.lineTo(geo.foldLineTop.dx, geo.foldLineTop.dy);
-    path.lineTo(geo.foldLineBottom.dx, geo.foldLineBottom.dy);
+    path.lineTo(geo.foldLineTop.dx + overlapShift, geo.foldLineTop.dy);
+    
+    if (geo.curvatureAmount > 0.001) {
+      path.quadraticBezierTo(
+        geo.foldCurveControl.dx + overlapShift,
+        geo.foldCurveControl.dy,
+        geo.foldLineBottom.dx + overlapShift,
+        geo.foldLineBottom.dy,
+      );
+    } else {
+      path.lineTo(geo.foldLineBottom.dx + overlapShift, geo.foldLineBottom.dy);
+    }
+    
     path.lineTo(0, size.height);
     path.close();
 
@@ -391,7 +769,10 @@ class PageFlipClipper extends CustomClipper<Path> {
   @override
   /// Only reclips when progress or touch offset changes.
   bool shouldReclip(covariant PageFlipClipper oldClipper) =>
-      oldClipper.progress != progress || oldClipper.touchOffset != touchOffset;
+      oldClipper.progress != progress || 
+      oldClipper.touchOffset != touchOffset ||
+      oldClipper.isDoubleSpread != isDoubleSpread ||
+      oldClipper.isForward != isForward;
 }
 
 /// CustomClipper that clips the "revealed" portion of the page during flip.
@@ -407,6 +788,12 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
 
     /// Touch offset used to compute the fold angle.
     required this.touchOffset,
+    
+    /// True if rendering for a dual spread book
+    this.isDoubleSpread = false,
+
+    /// True if we are flipping forward
+    this.isForward = true,
   });
 
   /// Normalised flip progress from 0.0 to 1.0.
@@ -417,6 +804,12 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
 
   /// Touch offset used to compute the fold angle.
   final Offset touchOffset;
+  
+  /// True if rendering for a dual spread book
+  final bool isDoubleSpread;
+
+  /// True if we are flipping forward
+  final bool isForward;
 
   @override
   Path getClip(Size size) {
@@ -430,17 +823,27 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
       isRightToLeft: isRightToLeft,
       touchOffset: touchOffset,
       size: size,
+      isDoubleSpread: isDoubleSpread,
+      isForward: isForward,
     );
 
     final path = Path();
 
-    // Simplified: Always keep RIGHT portion (Fold to Width).
-    // The widget layer logic handles WHICH page is put here.
-    // Forward: Next Page (revealed from right).
-    // Backward: Current Page (covered from left).
+    // Keep RIGHT portion (Fold to Width).
     path.moveTo(size.width, 0);
     path.lineTo(geo.foldLineTop.dx, geo.foldLineTop.dy);
-    path.lineTo(geo.foldLineBottom.dx, geo.foldLineBottom.dy);
+    
+    if (geo.curvatureAmount > 0.001) {
+      path.quadraticBezierTo(
+        geo.foldCurveControl.dx,
+        geo.foldCurveControl.dy,
+        geo.foldLineBottom.dx,
+        geo.foldLineBottom.dy,
+      );
+    } else {
+      path.lineTo(geo.foldLineBottom.dx, geo.foldLineBottom.dy);
+    }
+    
     path.lineTo(size.width, size.height);
     path.close();
 
@@ -450,7 +853,40 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
   @override
   /// Only reclips when progress or touch offset changes.
   bool shouldReclip(covariant PageFlipOpenClipper oldClipper) =>
-      oldClipper.progress != progress || oldClipper.touchOffset != touchOffset;
+      oldClipper.progress != progress ||
+      oldClipper.touchOffset != touchOffset ||
+      oldClipper.isDoubleSpread != isDoubleSpread ||
+      oldClipper.isForward != isForward;
+}
+
+/// Shared horizontal-vs-vertical arbitration for page-flip drags.
+class PageFlipGestureArbitration {
+  PageFlipGestureArbitration._();
+
+  /// Touch slop derived from [sensitivity] (0.0–1.0).
+  static double checkSlopForSensitivity(double sensitivity) =>
+      18.0 - (17.0 * sensitivity);
+
+  /// True when accumulated movement should start a page-flip drag.
+  static bool shouldAcceptFlipDrag({
+    required double totalDx,
+    required double totalDy,
+    required double sensitivity,
+  }) {
+    final checkSlop = checkSlopForSensitivity(sensitivity);
+
+    if (totalDy.abs() > checkSlop && totalDy.abs() > totalDx.abs() * 1.2) {
+      return false;
+    }
+
+    if (totalDx.abs() > checkSlop) {
+      if (totalDx.abs() * 2.5 > totalDy.abs()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }
 
 /// A custom HorizontalDragGestureRecognizer that allows for more natural thumb arcs
@@ -491,29 +927,10 @@ class PageFlipGestureRecognizer extends HorizontalDragGestureRecognizer {
     PointerDeviceKind pointerDeviceKind,
     double? deviceTouchSlop,
   ) {
-    // Sensitivity 0.5 -> checkSlop 9.5
-    // Sensitivity 1.0 -> checkSlop 1.0
-    // Sensitivity 0.0 -> checkSlop 18.0 (Standard)
-    final checkSlop = 18.0 - (17.0 * sensitivity);
-
-    // FIX: 수직 스크롤이 우세하면 제스처 아레나에서 양보
-    // 수직 이동이 슬롭을 넘고, 수평보다 1.2배 이상이면 수직 스크롤에게 양보
-    if (_totalDy.abs() > checkSlop && _totalDy.abs() > _totalDx.abs() * 1.2) {
-      return false;
-    }
-
-    if (_totalDx.abs() > checkSlop) {
-      // If predominantly horizontal
-      // Condition: dx * 2.5 must be greater than dy (approx 68 degrees)
-      // This prevents wobbly vertical scrolls from triggering flip, but allows
-      // natural thumb arcs which often have significant vertical component.
-      if (_totalDx.abs() * 2.5 > _totalDy.abs()) {
-        return true;
-      }
-    }
-
-    // FIX: 기본 HorizontalDrag 로직 대신 명시적 거부
-    // super를 호출하면 수평 이동만 보고 판단해서 수직 스크롤을 방해함
-    return false;
+    return PageFlipGestureArbitration.shouldAcceptFlipDrag(
+      totalDx: _totalDx,
+      totalDy: _totalDy,
+      sensitivity: sensitivity,
+    );
   }
 }

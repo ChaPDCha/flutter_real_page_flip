@@ -1,5 +1,29 @@
 import 'package:flutter/material.dart';
-import 'page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+
+/// How [PageFlipWidget] maps pages to the viewport.
+///
+/// In [PageFlipSpreadMode.doubleSpread], each index is a two-page spread and
+/// the host should supply full-spread page widgets plus matching spread
+/// snapshots (same indices) for flap texture and spine-band reveal.
+/// In [PageFlipSpreadMode.single], one page fills the viewport.
+enum PageFlipSpreadMode {
+  /// One page per viewport width.
+  single,
+
+  /// Left and right pages share one viewport (spine at center).
+  doubleSpread,
+}
+
+/// Maps legacy `isDoubleSpread` flags to [PageFlipSpreadMode].
+extension PageFlipSpreadModeCompat on PageFlipSpreadMode {
+  /// Whether this mode uses a center spine and half-width page geometry.
+  bool get isDoubleSpread => this == PageFlipSpreadMode.doubleSpread;
+
+  /// Converts the historical boolean API to [PageFlipSpreadMode].
+  static PageFlipSpreadMode fromIsDoubleSpread(bool isDoubleSpread) =>
+      isDoubleSpread ? PageFlipSpreadMode.doubleSpread : PageFlipSpreadMode.single;
+}
 
 /// Configuration for PageFlipWidget behavior and styling.
 ///
@@ -50,7 +74,11 @@ class PageFlipConfig {
     this.enableHaptics = true,
     this.enableSound = true,
     this.effectHandler,
+    this.paperOpacity = 1.0,
   });
+
+  /// The opacity of the page-flip flap (paper back side). Defaults to 1.0 (fully opaque).
+  final double paperOpacity;
 
   /// Whether to enable haptic feedback.
   final bool enableHaptics;
@@ -140,6 +168,7 @@ class PageFlipConfig {
           enableHaptics == other.enableHaptics &&
           enableSound == other.enableSound &&
           effectHandler == other.effectHandler &&
+          paperOpacity == other.paperOpacity &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
           edgeTapNextLabel == other.edgeTapNextLabel &&
           edgeTapPreviousHint == other.edgeTapPreviousHint &&
@@ -159,6 +188,7 @@ class PageFlipConfig {
       enableHaptics.hashCode ^
       enableSound.hashCode ^
       effectHandler.hashCode ^
+      paperOpacity.hashCode ^
       edgeTapPreviousLabel.hashCode ^
       edgeTapNextLabel.hashCode ^
       edgeTapPreviousHint.hashCode ^

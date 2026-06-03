@@ -88,6 +88,33 @@ Higher values require dragging further across the page to complete a flip.
 Setting forward/previous independently lets you tune bias (e.g. easier to go
 forward than backward).
 
+## Double-spread (two-page) mode
+
+For books that show left and right pages together:
+
+```dart
+PageFlipWidget(
+  spreadMode: PageFlipSpreadMode.doubleSpread, // or isDoubleSpread: true
+  itemCount: spreadCount, // number of spreads, not single pages
+  config: PageFlipConfig(
+    skipTapAnimation: false, // required to animate spine-band reveal on tap
+  ),
+  itemBuilder: (context, spreadIndex) => MyTwoPageSpread(spreadIndex),
+)
+```
+
+**Host contract**
+
+| Responsibility | Detail |
+|----------------|--------|
+| `itemBuilder` | Each index renders a **full-width spread** (left + right pages). |
+| `itemCount` | Number of spreads (e.g. `ceil(pageCount / 2)`). |
+| Stable builder | Use a method or `const` closure—not a new inline lambda every `build`, or snapshots reset too often. |
+| Snapshots | The engine captures `spreadSnapshots[currentIndex ± 1]` when `includeCurrentSpread` is true (flip start, page settle, init). |
+| Spine reveal | Forward flip reveals the **left half** of the next spread; backward reveals the **right half** of the previous spread. |
+
+Use `clipSpreadPageHalf` from the engine when aligning host layout with flip layers.
+
 ## Dark Mode Support
 
 The engine is **theme-aware by default**. With `backgroundColor: null` (the
