@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.2] - 2026-06-04
+### Added
+- Updated documentation to clarify that the engine is optimized for vertical mobile devices and does not support horizontal two-page view.
+
 ## [1.4.1] - 2026-06-04
 ### Changed
 - Relicensed the package under the MIT License, making it completely free for commercial and non-commercial use.
