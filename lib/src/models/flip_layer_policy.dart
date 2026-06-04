@@ -16,12 +16,12 @@ import 'package:flutter/material.dart';
 ///
 /// ## Modes
 ///
-/// | Mode | Bottom | Middle | Spine reveal |
-/// |------|--------|--------|-------------|
-/// | Single forward | Next page | Opaque paper | — |
-/// | Single backward | Current page | Previous page | — |
-/// | Double forward | Current spread right half | Current spread | Next spread left half |
-/// | Double backward | Previous spread right half | Current spread | Previous spread left half |
+/// | Mode | Bottom | Middle |
+/// |------|--------|--------|
+/// | Single forward | Next page | Opaque paper |
+/// | Single backward | Current page | Previous page |
+/// | Double forward | Next spread right half | Current spread left half |
+/// | Double backward | Previous spread right half | Current spread right half |
 class FlipLayerPolicy {
   /// Whether the book is in double-spread mode (two pages per viewport).
   final bool isDoubleSpread;
@@ -50,7 +50,13 @@ class FlipLayerPolicy {
   /// (out-of-bounds or single mode).
   ({int index, Alignment alignment})? get bottomSpreadHalf {
     if (!isDoubleSpread) return null;
-    if (isForward) return (index: currentIndex, alignment: Alignment.centerRight);
+    if (isForward) {
+      // Forward: reveal the NEXT spread's right half behind the fold
+      if (currentIndex < itemCount - 1) {
+        return (index: currentIndex + 1, alignment: Alignment.centerRight);
+      }
+      return null; // paper fallback on last spread
+    }
     if (currentIndex > 0) {
       return (index: currentIndex - 1, alignment: Alignment.centerRight);
     }
@@ -83,20 +89,6 @@ class FlipLayerPolicy {
   int? get middlePageIndex {
     if (isDoubleSpread) return null; // uses full spread
     if (isForward) return null; // opaque paper
-    return currentIndex > 0 ? currentIndex - 1 : null;
-  }
-
-  // ─── Spine reveal band (double mode only) ───
-
-  /// Spread index whose left half peeks through the spine gap, or null.
-  ///
-  /// Only applicable in double-spread mode where the fold opens a triangular
-  /// gap near the spine that reveals the adjacent spread's left page.
-  int? get spineRevealSpreadIndex {
-    if (!isDoubleSpread) return null;
-    if (isForward) {
-      return currentIndex < itemCount - 1 ? currentIndex + 1 : null;
-    }
     return currentIndex > 0 ? currentIndex - 1 : null;
   }
 

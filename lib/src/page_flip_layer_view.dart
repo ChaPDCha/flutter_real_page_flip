@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 import 'package:real_page_flip/src/models/flip_layer_policy.dart';
-import 'package:real_page_flip/src/widgets/flip_middle_layer_stack.dart';
 
 // LAYOUT GATE: constrainedSize + _wrapWithConstraints for Offstage/current/flip pages.
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
@@ -277,25 +276,12 @@ class PageFlipLayerView extends StatelessWidget {
           ),
           child: bottomLayerContent,
         ),
-        // Layer 2: Middle (stationary spread half + spine reveal band + clip)
-        // Backward double-spread: stationary RIGHT half must stay right-of-fold
-        // (PageFlipOpenClipper inside [_buildMiddleLayerStack]). Wrapping the whole
-        // stack in PageFlipClipper (left-of-fold) exposed the bottom layer's previous
-        // spread on the right where the current right page should remain fixed.
-        FlipMiddleLayerStack(
-          middleLayerContent: middleLayerContent,
+        // Layer 2: Middle (stationary content clipped to fold)
+        _buildMiddleLayer(
+          context: context,
           geo: geo,
-          policy: policy,
+          middleLayerContent: middleLayerContent,
           floatProgress: floatProgress,
-          isDoubleSpread: isDoubleSpread,
-          isForward: isForward,
-          touchPosition: touchPosition,
-          spreadHalfBuilder: (spreadIndex, alignment) =>
-              _buildSpreadHalfContent(
-            context,
-            spreadIndex: spreadIndex,
-            alignment: alignment,
-          ),
         ),
         // Layer 3: Flap shadow & highlight effects
         IgnorePointer(
@@ -415,5 +401,61 @@ class PageFlipLayerView extends StatelessWidget {
     }
 
     return _buildOpaquePaperUnderlay(context);
+  }
+
+  /// Layer 2: stationary content clipped to the fold.
+  Widget _buildMiddleLayer({
+    required BuildContext context,
+    required PageFlipGeometry geo,
+    required Widget middleLayerContent,
+    required double floatProgress,
+  }) {
+    if (!isDoubleSpread) {
+      return ClipPath(
+        clipper: PageFlipClipper(
+          progress: floatProgress,
+          isRightToLeft: true,
+          touchOffset: touchPosition,
+          isDoubleSpread: false,
+          isForward: isForward,
+          geo: geo,
+        ),
+        child: middleLayerContent,
+      );
+    }
+
+    // Double-spread: clip to stationary half
+    final stationaryHalf = clipFullSpreadHalf(
+      alignment: isForward ? Alignment.centerLeft : Alignment.centerRight,
+      child: middleLayerContent,
+    );
+
+    if (isForward) {
+      return ClipPath(
+        clipper: PageFlipClipper(
+          progress: floatProgress,
+          isRightToLeft: true,
+          touchOffset: touchPosition,
+          isDoubleSpread: true,
+          isForward: true,
+          geo: geo,
+        ),
+        child: stationaryHalf,
+      );
+    }
+
+    // Backward double-spread: stationary right half clipped right-of-fold so
+    // bottom layer's previous-spread content does not bleed onto the right side.
+    return ClipPath(
+      clipper: PageFlipOpenClipper(
+        progress: floatProgress,
+        isRightToLeft: true,
+        touchOffset: touchPosition,
+        isDoubleSpread: true,
+        isForward: false,
+        geo: geo,
+      ),
+      child: stationaryHalf,
+    );
   }
 }

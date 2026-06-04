@@ -42,324 +42,6 @@ void main() {
     );
   }
 
-  group('PageFlipLayerView double-spread spine reveal', () {
-    testWidgets('includes PageFlipSpineRevealClipper during forward drag', (
-      tester,
-    ) async {
-      await tester.pumpWidget(pumpLayerView(dragProgress: 0.9, isForward: true));
-
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is ClipPath && w.clipper is PageFlipSpineRevealClipper,
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is ClipPath && w.clipper is PageFlipClipper,
-        ),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('includes PageFlipSpineRevealClipper during backward drag', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        pumpLayerView(
-          dragProgress: 0.9,
-          isForward: false,
-          currentIndex: 2,
-        ),
-      );
-
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is ClipPath && w.clipper is PageFlipSpineRevealClipper,
-        ),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('does not stack Opacity on spine reveal', (tester) async {
-      await tester.pumpWidget(pumpLayerView(dragProgress: 0.9, isForward: true));
-
-      final clipper = tester.widget<ClipPath>(
-        find.byWidgetPredicate(
-          (w) =>
-              w is ClipPath && w.clipper is PageFlipSpineRevealClipper,
-        ),
-      );
-      expect(clipper.child, isNot(isA<Opacity>()));
-    });
-
-    testWidgets('pre-render uses Offstage not Opacity', (tester) async {
-      await tester.pumpWidget(
-        pumpLayerView(dragProgress: 0.9, isForward: true, currentIndex: 1),
-      );
-
-      expect(
-        find.byWidgetPredicate((w) => w is Offstage && w.offstage),
-        findsWidgets,
-      );
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is Opacity && w.opacity == 0.0,
-        ),
-        findsNothing,
-      );
-    });
-
-    testWidgets('forward drag spine reveal uses next spread not current', (
-      tester,
-    ) async {
-      Future<ui.Image> spreadImage(Color left, Color right) async {
-        final recorder = ui.PictureRecorder();
-        final canvas = Canvas(recorder);
-        final halfW = canvasSize.width / 2;
-        canvas.drawRect(
-          Rect.fromLTWH(0, 0, halfW, canvasSize.height),
-          Paint()..color = left,
-        );
-        canvas.drawRect(
-          Rect.fromLTWH(halfW, 0, halfW, canvasSize.height),
-          Paint()..color = right,
-        );
-        return recorder.endRecording().toImage(
-              canvasSize.width.toInt(),
-              canvasSize.height.toInt(),
-            );
-      }
-
-      final currentSpread = await spreadImage(
-        const Color(0xFFE53935),
-        const Color(0xFF1E88E5),
-      );
-      final nextSpread = await spreadImage(
-        const Color(0xFF43A047),
-        const Color(0xFFFFB300),
-      );
-      addTearDown(currentSpread.dispose);
-      addTearDown(nextSpread.dispose);
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox.fromSize(
-              size: canvasSize,
-              child: PageFlipLayerView(
-                itemCount: 3,
-                currentIndex: 1,
-                dragProgress: 0.9,
-                isDragging: true,
-                isForward: true,
-                touchPosition: const Offset(350, 150),
-                pageSnapshots: const {},
-                spreadSnapshots: {1: currentSpread, 2: nextSpread},
-                pageKeys: {
-                  for (var i = 0; i < 3; i++) i: GlobalKey(),
-                },
-                constrainedSize: canvasSize,
-                isDoubleSpread: true,
-                itemBuilder: (context, index) => Text('Spread $index'),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      final spineReveal = find.byWidgetPredicate(
-        (w) => w is ClipPath && w.clipper is PageFlipSpineRevealClipper,
-      );
-      expect(spineReveal, findsOneWidget);
-
-      final rawImage = tester.widget<RawImage>(
-        find.descendant(of: spineReveal, matching: find.byType(RawImage)),
-      );
-      expect(rawImage.image, equals(nextSpread));
-      expect(rawImage.image, isNot(equals(currentSpread)));
-    });
-
-    testWidgets('backward drag spine reveal uses previous spread left half', (
-      tester,
-    ) async {
-      Future<ui.Image> spreadImage(Color left, Color right) async {
-        final recorder = ui.PictureRecorder();
-        final canvas = Canvas(recorder);
-        final halfW = canvasSize.width / 2;
-        canvas.drawRect(
-          Rect.fromLTWH(0, 0, halfW, canvasSize.height),
-          Paint()..color = left,
-        );
-        canvas.drawRect(
-          Rect.fromLTWH(halfW, 0, halfW, canvasSize.height),
-          Paint()..color = right,
-        );
-        return recorder.endRecording().toImage(
-              canvasSize.width.toInt(),
-              canvasSize.height.toInt(),
-            );
-      }
-
-      const previousLeft = Color(0xFF8E24AA);
-      const previousRight = Color(0xFF6D4C41);
-      const currentRight = Color(0xFF1E88E5);
-
-      final currentSpread = await spreadImage(
-        const Color(0xFFE53935),
-        currentRight,
-      );
-      final previousSpread = await spreadImage(previousLeft, previousRight);
-      addTearDown(currentSpread.dispose);
-      addTearDown(previousSpread.dispose);
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox.fromSize(
-              size: canvasSize,
-              child: PageFlipLayerView(
-                itemCount: 3,
-                currentIndex: 1,
-                dragProgress: 0.9,
-                isDragging: true,
-                isForward: false,
-                touchPosition: const Offset(50, 150),
-                pageSnapshots: const {},
-                spreadSnapshots: {0: previousSpread, 1: currentSpread},
-                pageKeys: {
-                  for (var i = 0; i < 3; i++) i: GlobalKey(),
-                },
-                constrainedSize: canvasSize,
-                isDoubleSpread: true,
-                itemBuilder: (context, index) => Text('Spread $index'),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      final spineReveal = find.byWidgetPredicate(
-        (w) => w is ClipPath && w.clipper is PageFlipSpineRevealClipper,
-      );
-      expect(spineReveal, findsOneWidget);
-
-      final rawImage = tester.widget<RawImage>(
-        find.descendant(of: spineReveal, matching: find.byType(RawImage)),
-      );
-      expect(rawImage.image, equals(previousSpread));
-      expect(rawImage.image, isNot(equals(currentSpread)));
-
-      final align = tester.widget<Align>(
-        find.descendant(
-          of: spineReveal,
-          matching: find.byWidgetPredicate(
-            (w) => w is Align && w.widthFactor == 0.5,
-          ),
-        ),
-      );
-      expect(align.alignment, Alignment.centerLeft);
-    });
-
-    testWidgets('forward drag spine reveal uses next spread on left', (
-      tester,
-    ) async {
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      canvas.drawRect(
-        const Rect.fromLTWH(0, 0, 800, 300),
-        Paint()..color = const Color(0xFF1E88E5),
-      );
-      final nextSpreadImage = await recorder.endRecording().toImage(800, 300);
-      addTearDown(nextSpreadImage.dispose);
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox.fromSize(
-              size: canvasSize,
-              child: PageFlipLayerView(
-                itemCount: 3,
-                currentIndex: 0,
-                dragProgress: 0.9,
-                isDragging: true,
-                isForward: true,
-                touchPosition: const Offset(350, 150),
-                pageSnapshots: const {},
-                spreadSnapshots: {1: nextSpreadImage},
-                pageKeys: {
-                  for (var i = 0; i < 3; i++) i: GlobalKey(),
-                },
-                constrainedSize: canvasSize,
-                isDoubleSpread: true,
-                itemBuilder: (context, index) => Text('Spread $index'),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      final spineReveal = find.byWidgetPredicate(
-        (w) => w is ClipPath && w.clipper is PageFlipSpineRevealClipper,
-      );
-      expect(spineReveal, findsOneWidget);
-      expect(
-        find.descendant(of: spineReveal, matching: find.byType(RawImage)),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: spineReveal, matching: find.text('Spread 1')),
-        findsNothing,
-      );
-    });
-
-    testWidgets('omits spine reveal clipper when not dragging', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox.fromSize(
-              size: canvasSize,
-              child: PageFlipLayerView(
-                itemCount: 3,
-                currentIndex: 0,
-                dragProgress: 0.9,
-                isDragging: false,
-                isForward: true,
-                touchPosition: Offset.zero,
-                pageSnapshots: const {},
-                spreadSnapshots: const {},
-                pageKeys: {0: GlobalKey()},
-                constrainedSize: canvasSize,
-                isDoubleSpread: true,
-                itemBuilder: (context, index) => const SizedBox(),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is ClipPath && w.clipper is PageFlipSpineRevealClipper,
-        ),
-        findsNothing,
-      );
-    });
-
-    testWidgets('omits spine reveal before flap crosses spine', (tester) async {
-      await tester.pumpWidget(
-        pumpLayerView(dragProgress: 0.35, isForward: true, currentIndex: 1),
-      );
-
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is ClipPath && w.clipper is PageFlipSpineRevealClipper,
-        ),
-        findsNothing,
-      );
-    });
-  });
-
   group('PageFlipLayerView single-page mode', () {
     Widget pumpSinglePageLayerView({
       required double dragProgress,
@@ -901,14 +583,14 @@ void main() {
         )
         .at(0);
 
-    testWidgets('forward bottom layer clips current spread right half', (
+    testWidgets('forward bottom layer clips next spread right half', (
       tester,
     ) async {
-      final currentSpread = await spreadImage(
-        const Color(0xFFE53935),
-        const Color(0xFF1E88E5),
+      final nextSpread = await spreadImage(
+        const Color(0xFF43A047),
+        const Color(0xFFFFB300),
       );
-      addTearDown(currentSpread.dispose);
+      addTearDown(nextSpread.dispose);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -923,7 +605,7 @@ void main() {
                 isForward: true,
                 touchPosition: const Offset(350, 150),
                 pageSnapshots: const {},
-                spreadSnapshots: {1: currentSpread},
+                spreadSnapshots: {2: nextSpread},
                 pageKeys: {
                   for (var i = 0; i < 3; i++) i: GlobalKey(),
                 },
@@ -959,7 +641,7 @@ void main() {
           matching: find.byType(RawImage),
         ),
       );
-      expect(bottomImage.image, equals(currentSpread));
+      expect(bottomImage.image, equals(nextSpread));
     });
 
     testWidgets('backward bottom layer clips previous spread right half', (
@@ -1066,13 +748,6 @@ void main() {
             ),
           ),
         ),
-      );
-
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is ClipPath && w.clipper is PageFlipSpineRevealClipper,
-        ),
-        findsNothing,
       );
 
       final middleClipper = find.byWidgetPredicate(

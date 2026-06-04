@@ -9,7 +9,7 @@ void main() {
     // ─── bottomSpreadHalf (double mode only) ───
 
     group('bottomSpreadHalf', () {
-      test('double forward returns currentIndex, right-aligned', () {
+      test('double forward returns next spread index, right-aligned', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
@@ -18,8 +18,18 @@ void main() {
         );
         final result = policy.bottomSpreadHalf;
         expect(result, isNotNull);
-        expect(result!.index, 2);
+        expect(result!.index, 3);
         expect(result.alignment, Alignment.centerRight);
+      });
+
+      test('double forward at last spread returns null (paper fallback)', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: true,
+          isForward: true,
+          currentIndex: 4,
+          itemCount: itemCount,
+        );
+        expect(policy.bottomSpreadHalf, isNull);
       });
 
       test('double backward returns previous index, right-aligned', () {
@@ -178,60 +188,6 @@ void main() {
       });
     });
 
-    // ─── spineRevealSpreadIndex (double mode only) ───
-
-    group('spineRevealSpreadIndex', () {
-      test('double forward returns next spread', () {
-        final policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: true,
-          currentIndex: 1,
-          itemCount: itemCount,
-        );
-        expect(policy.spineRevealSpreadIndex, 2);
-      });
-
-      test('double forward at last page returns null', () {
-        final policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: true,
-          currentIndex: 4,
-          itemCount: itemCount,
-        );
-        expect(policy.spineRevealSpreadIndex, isNull);
-      });
-
-      test('double backward returns previous spread', () {
-        final policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: false,
-          currentIndex: 3,
-          itemCount: itemCount,
-        );
-        expect(policy.spineRevealSpreadIndex, 2);
-      });
-
-      test('double backward at index 0 returns null', () {
-        final policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: false,
-          currentIndex: 0,
-          itemCount: itemCount,
-        );
-        expect(policy.spineRevealSpreadIndex, isNull);
-      });
-
-      test('single mode returns null', () {
-        final policy = FlipLayerPolicy(
-          isDoubleSpread: false,
-          isForward: true,
-          currentIndex: 2,
-          itemCount: itemCount,
-        );
-        expect(policy.spineRevealSpreadIndex, isNull);
-      });
-    });
-
     // ─── flapSnapshotSpreadIndex ───
 
     group('flapSnapshotSpreadIndex', () {
@@ -269,18 +225,18 @@ void main() {
     // ─── Edge: single-item collection ───
 
     group('single-item collection (itemCount=1)', () {
-      test('double forward at index 0: bottomSpreadHalf visible, others null', () {
+      test('double forward at index 0: bottom returns null (no next spread), middle=current', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 0,
           itemCount: 1,
         );
-        expect(policy.bottomSpreadHalf, isNotNull);
+        // No next spread to reveal
+        expect(policy.bottomSpreadHalf, isNull);
         expect(policy.bottomPageIndex, isNull);
         expect(policy.middleSpreadIndex, 0);
         expect(policy.middlePageIndex, isNull);
-        expect(policy.spineRevealSpreadIndex, isNull);
         expect(policy.flapSnapshotSpreadIndex, 0);
       });
 
@@ -295,7 +251,6 @@ void main() {
         expect(policy.bottomPageIndex, 0);
         expect(policy.middleSpreadIndex, isNull);
         expect(policy.middlePageIndex, isNull);
-        expect(policy.spineRevealSpreadIndex, isNull);
         expect(policy.flapSnapshotSpreadIndex, isNull);
       });
 
@@ -308,7 +263,6 @@ void main() {
         );
         expect(policy.bottomPageIndex, isNull);
         expect(policy.middlePageIndex, isNull);
-        expect(policy.spineRevealSpreadIndex, isNull);
       });
     });
   });

@@ -52,19 +52,6 @@ void main() {
       expect(bounds.left, lessThan(snapClipCoord(g.flapLeft)));
     });
 
-    test('spine reveal trailing edge matches snapped flap edge + bleed', () {
-      final g = geo(progress: 0.92);
-      final edges = spineRevealClipEdges(g);
-      expect(edges, isNotNull);
-      expect(
-        edges!.edgeTop,
-        snapClipPoint(g.flapEdgeTop, overlapShift: -kSpineRevealOverlapPx),
-      );
-      expect(
-        edges.edgeBottom,
-        snapClipPoint(g.flapEdgeBottom, overlapShift: -kSpineRevealOverlapPx),
-      );
-    });
   });
 
   group('clippers delegate to shared builders', () {
