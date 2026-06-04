@@ -48,19 +48,21 @@ class ReaderBottomBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: book.format == BookFormat.pdf
                         ? [
-                            const SizedBox.shrink(),
-                            Text(
-                              '페이지 ${readerState.currentPageIndex + 1} / ${readerState.pages.length}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: themeData.textColor,
-                                fontWeight: FontWeight.w500,
+                            Expanded(
+                              child: Text(
+                                '페이지 ${readerState.currentPageIndex + 1} / ${readerState.pages.length}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: themeData.textColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
-                            const SizedBox.shrink(),
                           ]
                         : [
                             IconButton(
@@ -76,14 +78,19 @@ class ReaderBottomBar extends StatelessWidget {
                               ),
                               tooltip: '이전 장',
                             ),
-                            Text(
-                              readerState.chapters.isNotEmpty
-                                  ? '장 ${readerState.currentChapterIndex + 1} / ${readerState.chapters.length}'
-                                  : '',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: themeData.textColor,
-                                fontWeight: FontWeight.w500,
+                            Expanded(
+                              child: Text(
+                                readerState.chapters.isNotEmpty
+                                    ? '장 ${readerState.currentChapterIndex + 1} / ${readerState.chapters.length}'
+                                    : '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: themeData.textColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                             IconButton(

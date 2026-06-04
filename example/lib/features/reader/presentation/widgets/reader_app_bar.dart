@@ -53,6 +53,9 @@ class ReaderAppBar extends StatelessWidget {
                 ),
                 middle: Text(
                   book.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontFamily: 'serif',

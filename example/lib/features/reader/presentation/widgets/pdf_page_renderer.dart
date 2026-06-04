@@ -113,17 +113,29 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
 
     if (_error != null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: ReaderThemeData.errorColor, size: 40),
-            const SizedBox(height: 8),
-            Text(
-              '페이지를 로드할 수 없습니다.\n$_error',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: ReaderThemeData.errorColor, fontSize: 12),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: ReaderThemeData.errorColor, size: 40),
+              const SizedBox(height: 8),
+              const Text(
+                '페이지를 로드할 수 없습니다.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: ReaderThemeData.errorColor, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _error!,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: ReaderThemeData.errorColor, fontSize: 11),
+              ),
+            ],
+          ),
         ),
       );
     }

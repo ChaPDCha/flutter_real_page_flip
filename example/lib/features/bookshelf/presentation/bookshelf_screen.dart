@@ -362,6 +362,8 @@ class BookshelfScreen extends ConsumerWidget {
           backgroundColor: themeData.panelColor,
           topBarTitle: Text(
             book.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -377,6 +379,8 @@ class BookshelfScreen extends ConsumerWidget {
               children: [
                 Text(
                   '저자: ${book.author}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 14, color: themeData.secondaryTextColor),
                   textAlign: TextAlign.center,
                 ),

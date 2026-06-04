@@ -142,16 +142,20 @@ class ReflowablePageContent extends ConsumerWidget {
                 ),
               ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     '${index + 1} / ${state.pages.length}',
                     style: TextStyle(fontSize: 11, color: theme.secondaryTextColor),
                   ),
-                  Text(
-                    state.book.title,
-                    maxLines: 1,
-                    style: TextStyle(fontSize: 11, color: theme.secondaryTextColor),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      state.book.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(fontSize: 11, color: theme.secondaryTextColor),
+                    ),
                   ),
                 ],
               ),
