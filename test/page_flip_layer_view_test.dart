@@ -251,7 +251,7 @@ void main() {
       );
     });
 
-    testWidgets('backward double-spread middle uses current spread snapshot', (
+    testWidgets('backward double-spread middle uses prev spread snapshot', (
       tester,
     ) async {
       Future<ui.Image> spreadImage(Color left, Color right) async {
@@ -309,27 +309,25 @@ void main() {
         ),
       );
 
-      final openClippers = tester.widgetList<ClipPath>(
-        find.byWidgetPredicate(
-          (w) => w is ClipPath && w.clipper is PageFlipOpenClipper,
-        ),
+      final openClipper = find.byWidgetPredicate(
+        (w) => w is ClipPath && w.clipper is PageFlipOpenClipper,
       );
-      expect(openClippers.length, greaterThanOrEqualTo(2));
-      final middleStationaryClip = openClippers.last;
+      expect(openClipper, findsOneWidget);
       final middleImages = tester
           .widgetList<RawImage>(
             find.descendant(
-              of: find.byWidget(middleStationaryClip),
+              of: openClipper,
               matching: find.byType(RawImage),
             ),
           )
           .map((w) => w.image)
           .toList();
-      expect(middleImages, contains(currentSpread));
+      expect(middleImages, contains(previousSpread));
+      expect(middleImages, isNot(contains(currentSpread)));
     });
 
     testWidgets(
-      'backward double-spread stationary right uses open clipper not stationary clipper',
+      'backward double-spread: bottom uses clipper, middle uses open clipper',
       (tester) async {
         Future<ui.Image> spreadImage(Color left, Color right) async {
           final recorder = ui.PictureRecorder();
@@ -386,27 +384,24 @@ void main() {
           ),
         );
 
-        final stationaryClippers = find.byWidgetPredicate(
+        final clipper = find.byWidgetPredicate(
           (w) => w is ClipPath && w.clipper is PageFlipClipper,
         );
-        expect(stationaryClippers, findsNothing);
+        expect(clipper, findsOneWidget);
 
-        final openClippers = tester.widgetList<ClipPath>(
-          find.byWidgetPredicate(
-            (w) => w is ClipPath && w.clipper is PageFlipOpenClipper,
-          ),
+        final openClipper = find.byWidgetPredicate(
+          (w) => w is ClipPath && w.clipper is PageFlipOpenClipper,
         );
-        expect(openClippers.length, 2);
+        expect(openClipper, findsOneWidget);
 
-        final middleStationaryClip = openClippers.last;
         final middleImage = tester.widget<RawImage>(
           find.descendant(
-            of: find.byWidget(middleStationaryClip),
+            of: openClipper,
             matching: find.byType(RawImage),
           ),
         );
-        expect(middleImage.image, equals(currentSpread));
-        expect(middleImage.image, isNot(equals(previousSpread)));
+        expect(middleImage.image, equals(previousSpread));
+        expect(middleImage.image, isNot(equals(currentSpread)));
       },
     );
 
@@ -644,17 +639,17 @@ void main() {
       expect(bottomImage.image, equals(nextSpread));
     });
 
-    testWidgets('backward bottom layer clips previous spread right half', (
+    testWidgets('backward bottom layer clips previous spread left half', (
       tester,
     ) async {
-      const previousRight = Color(0xFF6D4C41);
+      const previousLeft = Color(0xFF8E24AA);
       final currentSpread = await spreadImage(
         const Color(0xFFE53935),
         const Color(0xFF1E88E5),
       );
       final previousSpread = await spreadImage(
-        const Color(0xFF8E24AA),
-        previousRight,
+        previousLeft,
+        const Color(0xFF6D4C41),
       );
       addTearDown(currentSpread.dispose);
       addTearDown(previousSpread.dispose);
@@ -688,18 +683,23 @@ void main() {
         ),
       );
 
+      final bottomClipper = find.byWidgetPredicate(
+        (w) => w is ClipPath && w.clipper is PageFlipClipper,
+      );
+      expect(bottomClipper, findsOneWidget);
+
       final bottomAlign = tester.widget<Align>(
         find.descendant(
-          of: bottomOpenClipper(),
+          of: bottomClipper,
           matching: find.byWidgetPredicate(
             (w) => w is Align && w.widthFactor == 0.5,
           ),
         ),
       );
-      expect(bottomAlign.alignment, Alignment.centerRight);
+      expect(bottomAlign.alignment, Alignment.centerLeft);
       expect(
         find.descendant(
-          of: bottomOpenClipper(),
+          of: bottomClipper,
           matching: find.byType(FractionallySizedBox),
         ),
         findsNothing,
@@ -707,7 +707,7 @@ void main() {
 
       final bottomImage = tester.widget<RawImage>(
         find.descendant(
-          of: bottomOpenClipper(),
+          of: bottomClipper,
           matching: find.byType(RawImage),
         ),
       );
@@ -715,14 +715,14 @@ void main() {
       expect(bottomImage.image, isNot(equals(currentSpread)));
     });
 
-    testWidgets('forward middle layer clips current spread left half', (
+    testWidgets('forward middle layer clips next spread left half', (
       tester,
     ) async {
-      final currentSpread = await spreadImage(
-        const Color(0xFFE53935),
-        const Color(0xFF1E88E5),
+      final nextSpread = await spreadImage(
+        const Color(0xFF43A047),
+        const Color(0xFFFFB300),
       );
-      addTearDown(currentSpread.dispose);
+      addTearDown(nextSpread.dispose);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -737,7 +737,7 @@ void main() {
                 isForward: true,
                 touchPosition: const Offset(350, 150),
                 pageSnapshots: const {},
-                spreadSnapshots: {1: currentSpread},
+                spreadSnapshots: {2: nextSpread},
                 pageKeys: {
                   for (var i = 0; i < 3; i++) i: GlobalKey(),
                 },
@@ -771,7 +771,7 @@ void main() {
           matching: find.byType(RawImage),
         ),
       );
-      expect(middleImage.image, equals(currentSpread));
+      expect(middleImage.image, equals(nextSpread));
     });
 
     testWidgets('double spread forward keeps Offstage current for capture', (

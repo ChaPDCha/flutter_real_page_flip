@@ -20,8 +20,8 @@ import 'package:flutter/material.dart';
 /// |------|--------|--------|
 /// | Single forward | Next page | Opaque paper |
 /// | Single backward | Current page | Previous page |
-/// | Double forward | Next spread right half | Current spread left half |
-/// | Double backward | Previous spread right half | Current spread right half |
+/// | Double forward | Next spread right half | Next spread left half |
+/// | Double backward | Previous spread left half | Previous spread right half |
 class FlipLayerPolicy {
   /// Whether the book is in double-spread mode (two pages per viewport).
   final bool isDoubleSpread;
@@ -51,14 +51,15 @@ class FlipLayerPolicy {
   ({int index, Alignment alignment})? get bottomSpreadHalf {
     if (!isDoubleSpread) return null;
     if (isForward) {
-      // Forward: reveal the NEXT spread's right half behind the fold
+      // Forward: reveal the NEXT spread's RIGHT half behind the fold
       if (currentIndex < itemCount - 1) {
         return (index: currentIndex + 1, alignment: Alignment.centerRight);
       }
       return null; // paper fallback on last spread
     }
+    // Backward: reveal the PREV spread's LEFT half behind the fold
     if (currentIndex > 0) {
-      return (index: currentIndex - 1, alignment: Alignment.centerRight);
+      return (index: currentIndex - 1, alignment: Alignment.centerLeft);
     }
     return null; // paper fallback
   }
@@ -74,6 +75,25 @@ class FlipLayerPolicy {
   }
 
   // ─── Middle layer (stationary under the flap) ───
+
+  /// Spread half to show in the middle layer (double mode), or null.
+  ///
+  /// In forward mode the left side shows the NEXT spread's LEFT half.
+  /// In backward mode the right side shows the PREV spread's RIGHT half.
+  /// Null means paper fallback (out-of-bounds or single mode).
+  ({int index, Alignment alignment})? get middleSpreadHalf {
+    if (!isDoubleSpread) return null;
+    if (isForward) {
+      if (currentIndex < itemCount - 1) {
+        return (index: currentIndex + 1, alignment: Alignment.centerLeft);
+      }
+      return null;
+    }
+    if (currentIndex > 0) {
+      return (index: currentIndex - 1, alignment: Alignment.centerRight);
+    }
+    return null;
+  }
 
   /// Full spread index for the middle layer (double mode), or null for single mode.
   ///

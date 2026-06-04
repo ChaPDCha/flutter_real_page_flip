@@ -32,7 +32,7 @@ void main() {
         expect(policy.bottomSpreadHalf, isNull);
       });
 
-      test('double backward returns previous index, right-aligned', () {
+      test('double backward returns previous index, left-aligned', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
@@ -42,7 +42,7 @@ void main() {
         final result = policy.bottomSpreadHalf;
         expect(result, isNotNull);
         expect(result!.index, 2);
-        expect(result.alignment, Alignment.centerRight);
+        expect(result.alignment, Alignment.centerLeft);
       });
 
       test('double backward at index 0 returns null (paper fallback)', () {
@@ -63,6 +63,66 @@ void main() {
           itemCount: itemCount,
         );
         expect(policy.bottomSpreadHalf, isNull);
+      });
+    });
+
+    // ─── middleSpreadHalf (double mode only) ───
+
+    group('middleSpreadHalf', () {
+      test('double forward returns next spread index, left-aligned', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: true,
+          isForward: true,
+          currentIndex: 2,
+          itemCount: itemCount,
+        );
+        final result = policy.middleSpreadHalf;
+        expect(result, isNotNull);
+        expect(result!.index, 3);
+        expect(result.alignment, Alignment.centerLeft);
+      });
+
+      test('double forward at last spread returns null', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: true,
+          isForward: true,
+          currentIndex: 4,
+          itemCount: itemCount,
+        );
+        expect(policy.middleSpreadHalf, isNull);
+      });
+
+      test('double backward returns previous index, right-aligned', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: true,
+          isForward: false,
+          currentIndex: 3,
+          itemCount: itemCount,
+        );
+        final result = policy.middleSpreadHalf;
+        expect(result, isNotNull);
+        expect(result!.index, 2);
+        expect(result.alignment, Alignment.centerRight);
+      });
+
+      test('double backward at index 0 returns null (paper fallback)', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: true,
+          isForward: false,
+          currentIndex: 0,
+          itemCount: itemCount,
+        );
+        expect(policy.middleSpreadHalf, isNull);
+      });
+
+      test('single mode returns null (uses middlePageIndex instead)', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: false,
+          isForward: true,
+          currentIndex: 2,
+          itemCount: itemCount,
+        );
+        expect(policy.middleSpreadHalf, isNull);
       });
     });
 
@@ -225,7 +285,7 @@ void main() {
     // ─── Edge: single-item collection ───
 
     group('single-item collection (itemCount=1)', () {
-      test('double forward at index 0: bottom returns null (no next spread), middle=current', () {
+      test('double forward at index 0: bottom returns null (no next spread), middle=null', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
@@ -235,7 +295,7 @@ void main() {
         // No next spread to reveal
         expect(policy.bottomSpreadHalf, isNull);
         expect(policy.bottomPageIndex, isNull);
-        expect(policy.middleSpreadIndex, 0);
+        expect(policy.middleSpreadHalf, isNull);
         expect(policy.middlePageIndex, isNull);
         expect(policy.flapSnapshotSpreadIndex, 0);
       });

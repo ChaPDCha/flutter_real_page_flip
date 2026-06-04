@@ -219,8 +219,8 @@ class PageFlipLayerView extends StatelessWidget {
 
     // Middle layer: stationary content under the flap
     final Widget middleLayerContent;
-    if (policy.middleSpreadIndex case final int index?) {
-      middleLayerContent = _buildPageContent(context, index);
+    if (policy.middleSpreadHalf case final half?) {
+      middleLayerContent = _buildPageContent(context, half.index);
     } else if (policy.middlePageIndex case final int index?) {
       middleLayerContent = _buildPageContent(context, index);
     } else {
@@ -260,20 +260,35 @@ class PageFlipLayerView extends StatelessWidget {
       isForward: isForward,
     );
 
+    final CustomClipper<Path> bottomClipper;
+    if (isDoubleSpread && !isForward) {
+      // Backward double-spread: revealed area is LEFT of fold → PageFlipClipper
+      bottomClipper = PageFlipClipper(
+        progress: floatProgress,
+        isRightToLeft: true,
+        touchOffset: touchPosition,
+        isDoubleSpread: isDoubleSpread,
+        isForward: isForward,
+        geo: geo,
+      );
+    } else {
+      bottomClipper = PageFlipOpenClipper(
+        progress: floatProgress,
+        isRightToLeft: true,
+        touchOffset: touchPosition,
+        isDoubleSpread: isDoubleSpread,
+        isForward: isForward,
+        geo: geo,
+      );
+    }
+
     return Stack(
       fit: StackFit.expand,
       children: [
         ...backgroundWidgets,
         // Layer 1: Bottom (revealed page behind the fold)
         ClipPath(
-          clipper: PageFlipOpenClipper(
-            progress: floatProgress,
-            isRightToLeft: true,
-            touchOffset: touchPosition,
-            isDoubleSpread: isDoubleSpread,
-            isForward: isForward,
-            geo: geo,
-          ),
+          clipper: bottomClipper,
           child: bottomLayerContent,
         ),
         // Layer 2: Middle (stationary content clipped to fold)
