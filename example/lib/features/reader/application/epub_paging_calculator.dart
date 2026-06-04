@@ -1,47 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// Serializable paging input for [compute] isolates.
-@immutable
-class EpubPagingParams {
-  const EpubPagingParams({
-    required this.text,
-    required this.viewportWidth,
-    required this.viewportHeight,
-    required this.fontSize,
-    required this.lineHeight,
-    required this.textColorArgb,
-    this.fontFamily,
-  });
-
-  final String text;
-  final double viewportWidth;
-  final double viewportHeight;
-  final double fontSize;
-  final double lineHeight;
-  final int textColorArgb;
-  final String? fontFamily;
-}
-
-List<String> _splitIntoPagesIsolate(EpubPagingParams params) {
-  return EpubPagingCalculator.splitIntoPages(
-    text: params.text,
-    viewportWidth: params.viewportWidth,
-    viewportHeight: params.viewportHeight,
-    fontSize: params.fontSize,
-    lineHeight: params.lineHeight,
-    baseStyle: TextStyle(
-      fontSize: params.fontSize,
-      height: params.lineHeight,
-      color: Color(params.textColorArgb),
-      fontWeight: FontWeight.w400,
-      letterSpacing: -0.2,
-      fontFamily: params.fontFamily,
-    ),
-    useCache: false,
-  );
-}
-
 class EpubPagingCalculator {
   static final Map<String, List<String>> _pageCache = {};
 
@@ -66,7 +25,7 @@ class EpubPagingCalculator {
         '${baseStyle.fontWeight?.index}';
   }
 
-  /// Splits chapter text off the UI thread for long chapters.
+  /// Splits chapter text on the root isolate ([TextPainter] is not isolate-safe).
   static Future<List<String>> splitIntoPagesAsync({
     required String text,
     required double viewportWidth,
@@ -88,28 +47,19 @@ class EpubPagingCalculator {
       return cached;
     }
 
-    // Isolate spawn overhead dominates for short chapters.
-    if (text.length < 8000) {
-      return splitIntoPages(
-        text: text,
-        viewportWidth: viewportWidth,
-        viewportHeight: viewportHeight,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        baseStyle: baseStyle,
-      );
-    }
+    // Yield once so callers awaiting pagination can repaint loading UI.
+    await Future<void>.delayed(Duration.zero);
 
-    final params = EpubPagingParams(
+    final pages = splitIntoPages(
       text: text,
       viewportWidth: viewportWidth,
       viewportHeight: viewportHeight,
       fontSize: fontSize,
       lineHeight: lineHeight,
-      textColorArgb: baseStyle.color?.value ?? 0xFF000000,
-      fontFamily: baseStyle.fontFamily,
+      baseStyle: baseStyle,
+      useCache: false,
     );
-    final pages = await compute(_splitIntoPagesIsolate, params);
+
     _pageCache[cacheKey] = pages;
     return pages;
   }
@@ -176,7 +126,7 @@ class EpubPagingCalculator {
   }) {
     final pages = <String>[];
     int startOffset = 0;
-    
+
     final textPainter = TextPainter(
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.left,
@@ -187,17 +137,17 @@ class EpubPagingCalculator {
       height: lineHeight,
     );
 
-    // Calculate expected characters per page and safe bounds
-    final double charArea = fontSize * fontSize * 0.45 * (lineHeight > 0 ? lineHeight : 1.2);
+    final double charArea =
+        fontSize * fontSize * 0.45 * (lineHeight > 0 ? lineHeight : 1.2);
     final double viewportArea = viewportWidth * viewportHeight;
     final int expectedChars = (viewportArea / charArea).toInt();
-    
-    // Tighter, mathematically-backed bounds
-    final int maxCharsPerPage = (expectedChars * 2.2).toInt().clamp(1000, 5000);
-    final int minCharsPerPage = (expectedChars * 0.4).toInt().clamp(100, 2000);
+
+    final int maxCharsPerPage =
+        (expectedChars * 2.2).toInt().clamp(1000, 5000);
+    final int minCharsPerPage =
+        (expectedChars * 0.4).toInt().clamp(100, 2000);
 
     while (startOffset < text.length) {
-      // Skip whitespace between pages so paragraph gaps do not become blank pages.
       while (startOffset < text.length) {
         final codeUnit = text.codeUnitAt(startOffset);
         if (codeUnit != 0x20 &&
@@ -214,10 +164,8 @@ class EpubPagingCalculator {
 
       final int remainingLength = text.length - startOffset;
 
-      // OPTIMIZATION 1: Shortcut for short chapters or final page
       if (remainingLength <= maxCharsPerPage) {
-        // Safe check for surrogate pairs at the end
-        int adjustedEnd = text.length;
+        final adjustedEnd = text.length;
         textPainter.text = TextSpan(
           text: text.substring(startOffset, adjustedEnd),
           style: resolvedStyle,
@@ -225,18 +173,16 @@ class EpubPagingCalculator {
         textPainter.layout(maxWidth: viewportWidth);
         if (textPainter.height <= viewportHeight) {
           pages.add(text.substring(startOffset, adjustedEnd).trim());
-          break; // Completed
+          break;
         }
       }
 
       int low = startOffset;
-      int high = (startOffset + maxCharsPerPage).clamp(startOffset, text.length);
+      int high =
+          (startOffset + maxCharsPerPage).clamp(startOffset, text.length);
 
-      // OPTIMIZATION 2: Predictive lower-bound shift
-      // Verify if our predicted minimum character chunk fits on the page in a single layout
       int minEnd = startOffset + minCharsPerPage;
       if (minEnd < high) {
-        // Adjust minEnd to keep surrogate pair together
         final prevUnit = text.codeUnitAt(minEnd - 1);
         if (prevUnit >= 0xD800 && prevUnit <= 0xDBFF) {
           minEnd--;
@@ -247,54 +193,48 @@ class EpubPagingCalculator {
           style: resolvedStyle,
         );
         textPainter.layout(maxWidth: viewportWidth);
-        
+
         if (textPainter.height <= viewportHeight) {
-          // If the minimum chunk fits, we skip binary search for anything smaller
           low = minEnd;
         }
       }
 
       int bestEnd = low;
 
-      // Binary search to find the maximum substring length that fits the height
       while (low <= high) {
         int mid = (low + high) ~/ 2;
-        
-        // Safeguard: Align mid to avoid splitting UTF-16 surrogate pairs during binary search
+
         int adjustedMid = mid;
         if (adjustedMid > startOffset && adjustedMid < text.length) {
           final prevUnit = text.codeUnitAt(adjustedMid - 1);
           if (prevUnit >= 0xD800 && prevUnit <= 0xDBFF) {
-            adjustedMid--; // Exclude high surrogate, push to next page
+            adjustedMid--;
           }
         }
 
         final subText = text.substring(startOffset, adjustedMid);
-        
+
         textPainter.text = TextSpan(
           text: subText,
           style: resolvedStyle,
         );
-        
+
         textPainter.layout(maxWidth: viewportWidth);
-        
+
         if (textPainter.height <= viewportHeight) {
           bestEnd = adjustedMid;
-          low = mid + 1; // Try to fit more text
+          low = mid + 1;
         } else {
-          high = mid - 1; // Too long, shrink text
+          high = mid - 1;
         }
       }
 
-      // Edge case: ensure progress to prevent infinite loop
       if (bestEnd == startOffset) {
         bestEnd = startOffset + 1;
       }
-      
-      // Adjust boundary to split at space/newline instead of cutting words in half
+
       if (bestEnd < text.length) {
         int boundary = bestEnd;
-        // Search backwards up to 50 characters to find a natural break point (whitespace)
         while (boundary > startOffset && (bestEnd - boundary) < 50) {
           final char = text[boundary - 1];
           if (char == ' ' || char == '\n') {
@@ -305,11 +245,10 @@ class EpubPagingCalculator {
         }
       }
 
-      // Safeguard: Ensure final page boundary does not split a UTF-16 surrogate pair
       if (bestEnd > startOffset && bestEnd < text.length) {
         final prevUnit = text.codeUnitAt(bestEnd - 1);
         if (prevUnit >= 0xD800 && prevUnit <= 0xDBFF) {
-          bestEnd--; // Shift boundary left to keep surrogate pair on the next page
+          bestEnd--;
         }
       }
 

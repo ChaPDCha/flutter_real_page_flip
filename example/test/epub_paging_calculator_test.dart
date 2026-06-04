@@ -219,6 +219,26 @@ void main() {
       }
     });
 
+    test(
+      'splitIntoPagesAsync paginates long chapters on root isolate',
+      () async {
+        final text = 'word ' * 1700;
+        expect(text.length, greaterThan(8000));
+
+        final pages = await EpubPagingCalculator.splitIntoPagesAsync(
+          text: text,
+          viewportWidth: defaultWidth,
+          viewportHeight: defaultHeight,
+          fontSize: 16.0,
+          lineHeight: 1.2,
+          baseStyle: baseStyle,
+        );
+
+        expect(pages, isNotEmpty);
+        expect(pages.every((page) => page.isNotEmpty), isTrue);
+      },
+    );
+
     test('splitIntoPages returns cached result for identical inputs', () {
       EpubPagingCalculator.clearCache();
       const text = 'Cached paging should reuse the same page boundaries.';

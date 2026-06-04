@@ -27,9 +27,12 @@ class ReaderController extends _$ReaderController {
   static const _settingsKey = 'reader_settings';
   static const _progressKeyPrefix = 'reader_progress_';
   int _paginationGeneration = 0;
+  bool _disposed = false;
 
   @override
   ReaderState build(Book book) {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     ref.listen(appThemeControllerProvider, (previous, next) {
       if (previous != next && state.viewportWidth > 0 && state.viewportHeight > 0) {
         _recalculatePages();
@@ -166,7 +169,7 @@ class ReaderController extends _$ReaderController {
       baseStyle: baseStyle,
     );
 
-    if (generation != _paginationGeneration) return;
+    if (generation != _paginationGeneration || _disposed) return;
 
     var pageIndex = state.currentPageIndex;
     // Align starting index to the left page of a spread in double-page mode
@@ -225,8 +228,9 @@ class ReaderController extends _$ReaderController {
     state = state.copyWith(
       currentChapterIndex: chapterIndex,
       currentPageIndex: 0,
+      pages: const [],
     );
-    
+
     _recalculatePages();
     
     // Find the exact page index containing the matching search term
@@ -247,6 +251,7 @@ class ReaderController extends _$ReaderController {
       state = state.copyWith(
         currentChapterIndex: state.currentChapterIndex + 1,
         currentPageIndex: 0,
+        pages: const [],
       );
       _recalculatePages();
     }
@@ -323,6 +328,7 @@ class ReaderController extends _$ReaderController {
   }
 
   Future<void> _saveProgress() async {
+    if (_disposed) return;
     final prefs = ref.read(sharedPreferencesProvider);
     final progress = ReadingProgress(
       bookId: state.book.id,
