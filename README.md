@@ -1,7 +1,7 @@
 # Real Page Flip Engine for Flutter
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![License](https://img.shields.io/badge/license-Dual--License-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-SDK-%2302569B?logo=flutter)](https://flutter.dev)
 
 A professional, high-fidelity 3D-like page flip engine for Flutter. Specifically engineered to deliver **ultra-smooth 60/120 FPS performance even on low-end devices** through advanced rendering optimizations.
@@ -169,10 +169,7 @@ PageFlipWidget(
 
 ## License
 
-This project uses a **Dual License** model:
-- **Non-commercial**: Free for personal/open-source projects.
-- **Commercial**: Requires a paid license for revenue-generating products.
-See [LICENSE](LICENSE) for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details. It is completely free for both non-commercial and commercial projects.
 
 ---
 

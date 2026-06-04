@@ -1,7 +1,7 @@
 # Flutter 실시간 페이지 플립 엔진 (Real Page Flip)
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![License](https://img.shields.io/badge/license-듀얼--라이선스-blue.svg)](LICENSE_KR)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE_KR)
 [![Flutter](https://img.shields.io/badge/Flutter-SDK-%2302569B?logo=flutter)](https://flutter.dev)
 
 플러터를 위한 전문가용 고성능 3D 스타일 페이지 플립 엔진입니다. 독보적인 렌더링 최적화 기술을 통해 **저사양 기기에서도 안정적인 60/120 FPS 성능**을 제공하도록 설계되었습니다.
@@ -49,13 +49,7 @@ dependencies:
   real_page_flip: ^1.4.0
 ```
 
-## 라이선스
-
-이 프로젝트는 **듀얼 라이선스** 모델로 제공됩니다:
-- **비상업적 이용**: 개인 프로젝트, 오픈소스 프로젝트 등에서 무료로 사용 가능.
-- **상업적 이용**: 수익이나 상업적 이익이 발생하는 제품(광고 포함 앱 등)은 유료 라이선스가 필요합니다.
-
-상세 내용은 [LICENSE](LICENSE) 및 [LICENSE_KR](LICENSE_KR)를 확인하세요.
+이 프로젝트는 **MIT 라이선스**를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 및 [LICENSE_KR](LICENSE_KR) 파일을 참고해 주세요. 비상업적 목적뿐만 아니라 상업적 프로젝트에서도 제한 없이 완전 무료로 사용하실 수 있습니다.
 
 ---
 

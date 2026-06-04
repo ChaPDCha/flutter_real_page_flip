@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-06-04
+### Changed
+- Relicensed the package under the MIT License, making it completely free for commercial and non-commercial use.
+
 ## [1.4.0] - 2026-05-14
 ### Added
 - **Direction-aware flip thresholds**: `cutoffForward` and `cutoffPrevious`
