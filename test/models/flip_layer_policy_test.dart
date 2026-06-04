@@ -69,7 +69,7 @@ void main() {
     // ─── middleSpreadHalf (double mode only) ───
 
     group('middleSpreadHalf', () {
-      test('double forward returns next spread index, left-aligned', () {
+      test('double forward returns current index, left-aligned', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
@@ -78,21 +78,24 @@ void main() {
         );
         final result = policy.middleSpreadHalf;
         expect(result, isNotNull);
-        expect(result!.index, 3);
+        expect(result!.index, 2);
         expect(result.alignment, Alignment.centerLeft);
       });
 
-      test('double forward at last spread returns null', () {
+      test('double forward at last spread still returns current index', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 4,
           itemCount: itemCount,
         );
-        expect(policy.middleSpreadHalf, isNull);
+        final result = policy.middleSpreadHalf;
+        expect(result, isNotNull);
+        expect(result!.index, 4);
+        expect(result.alignment, Alignment.centerLeft);
       });
 
-      test('double backward returns previous index, right-aligned', () {
+      test('double backward returns current index, right-aligned', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
@@ -101,18 +104,21 @@ void main() {
         );
         final result = policy.middleSpreadHalf;
         expect(result, isNotNull);
-        expect(result!.index, 2);
+        expect(result!.index, 3);
         expect(result.alignment, Alignment.centerRight);
       });
 
-      test('double backward at index 0 returns null (paper fallback)', () {
+      test('double backward at index 0 still returns current index', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 0,
           itemCount: itemCount,
         );
-        expect(policy.middleSpreadHalf, isNull);
+        final result = policy.middleSpreadHalf;
+        expect(result, isNotNull);
+        expect(result!.index, 0);
+        expect(result.alignment, Alignment.centerRight);
       });
 
       test('single mode returns null (uses middlePageIndex instead)', () {
@@ -285,7 +291,7 @@ void main() {
     // ─── Edge: single-item collection ───
 
     group('single-item collection (itemCount=1)', () {
-      test('double forward at index 0: bottom returns null (no next spread), middle=null', () {
+      test('double forward at index 0: bottom returns null (no next spread), middle=current', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
@@ -295,7 +301,9 @@ void main() {
         // No next spread to reveal
         expect(policy.bottomSpreadHalf, isNull);
         expect(policy.bottomPageIndex, isNull);
-        expect(policy.middleSpreadHalf, isNull);
+        expect(policy.middleSpreadHalf, isNotNull);
+        expect(policy.middleSpreadHalf!.index, 0);
+        expect(policy.middleSpreadHalf!.alignment, Alignment.centerLeft);
         expect(policy.middlePageIndex, isNull);
         expect(policy.flapSnapshotSpreadIndex, 0);
       });

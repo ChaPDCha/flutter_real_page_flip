@@ -20,8 +20,8 @@ import 'package:flutter/material.dart';
 /// |------|--------|--------|
 /// | Single forward | Next page | Opaque paper |
 /// | Single backward | Current page | Previous page |
-/// | Double forward | Next spread right half | Next spread left half |
-/// | Double backward | Previous spread left half | Previous spread right half |
+/// | Double forward | Next spread right half | Current spread left half |
+/// | Double backward | Previous spread left half | Current spread right half |
 class FlipLayerPolicy {
   /// Whether the book is in double-spread mode (two pages per viewport).
   final bool isDoubleSpread;
@@ -78,21 +78,16 @@ class FlipLayerPolicy {
 
   /// Spread half to show in the middle layer (double mode), or null.
   ///
-  /// In forward mode the left side shows the NEXT spread's LEFT half.
-  /// In backward mode the right side shows the PREV spread's RIGHT half.
-  /// Null means paper fallback (out-of-bounds or single mode).
+  /// The stationary side always shows the **current** spread's corresponding
+  /// half during the flip — the new content is only on the revealed (bottom)
+  /// side. Forward: left half (Clipper, left of fold). Backward: right half
+  /// (OpenClipper, right of fold).
   ({int index, Alignment alignment})? get middleSpreadHalf {
     if (!isDoubleSpread) return null;
-    if (isForward) {
-      if (currentIndex < itemCount - 1) {
-        return (index: currentIndex + 1, alignment: Alignment.centerLeft);
-      }
-      return null;
-    }
-    if (currentIndex > 0) {
-      return (index: currentIndex - 1, alignment: Alignment.centerRight);
-    }
-    return null;
+    return (
+      index: currentIndex,
+      alignment: isForward ? Alignment.centerLeft : Alignment.centerRight,
+    );
   }
 
   /// Full spread index for the middle layer (double mode), or null for single mode.

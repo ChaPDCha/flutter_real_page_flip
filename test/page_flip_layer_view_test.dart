@@ -251,7 +251,7 @@ void main() {
       );
     });
 
-    testWidgets('backward double-spread middle uses prev spread snapshot', (
+    testWidgets('backward double-spread middle uses current spread snapshot', (
       tester,
     ) async {
       Future<ui.Image> spreadImage(Color left, Color right) async {
@@ -322,8 +322,8 @@ void main() {
           )
           .map((w) => w.image)
           .toList();
-      expect(middleImages, contains(previousSpread));
-      expect(middleImages, isNot(contains(currentSpread)));
+      expect(middleImages, contains(currentSpread));
+      expect(middleImages, isNot(contains(previousSpread)));
     });
 
     testWidgets(
@@ -400,8 +400,8 @@ void main() {
             matching: find.byType(RawImage),
           ),
         );
-        expect(middleImage.image, equals(previousSpread));
-        expect(middleImage.image, isNot(equals(currentSpread)));
+        expect(middleImage.image, equals(currentSpread));
+        expect(middleImage.image, isNot(equals(previousSpread)));
       },
     );
 
@@ -715,14 +715,14 @@ void main() {
       expect(bottomImage.image, isNot(equals(currentSpread)));
     });
 
-    testWidgets('forward middle layer clips next spread left half', (
+    testWidgets('forward middle layer clips current spread left half', (
       tester,
     ) async {
-      final nextSpread = await spreadImage(
-        const Color(0xFF43A047),
-        const Color(0xFFFFB300),
+      final currentSpread = await spreadImage(
+        const Color(0xFFE53935),
+        const Color(0xFF1E88E5),
       );
-      addTearDown(nextSpread.dispose);
+      addTearDown(currentSpread.dispose);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -737,7 +737,7 @@ void main() {
                 isForward: true,
                 touchPosition: const Offset(350, 150),
                 pageSnapshots: const {},
-                spreadSnapshots: {2: nextSpread},
+                spreadSnapshots: {1: currentSpread},
                 pageKeys: {
                   for (var i = 0; i < 3; i++) i: GlobalKey(),
                 },
@@ -771,7 +771,7 @@ void main() {
           matching: find.byType(RawImage),
         ),
       );
-      expect(middleImage.image, equals(nextSpread));
+      expect(middleImage.image, equals(currentSpread));
     });
 
     testWidgets('double spread forward keeps Offstage current for capture', (
