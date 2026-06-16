@@ -1,6 +1,6 @@
 {
-    "name": "real_page_flip_example",
-    "short_name": "real_page_flip_example",
+    "name": "Realbook",
+    "short_name": "Realbook",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

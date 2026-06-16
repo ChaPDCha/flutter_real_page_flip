@@ -187,7 +187,7 @@ class ReaderController extends _$ReaderController {
       pages: pages,
       currentPageIndex: pageIndex,
     );
-    
+
     _saveProgress();
   }
 
