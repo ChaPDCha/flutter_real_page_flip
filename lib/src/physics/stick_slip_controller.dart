@@ -89,8 +89,8 @@ class StickSlipController {
       if (dt > _stationaryThresholdMs) {
         _wasStationary = true;
         _stickEnergy = (_stickEnergy + dt * 0.001).clamp(0.0, 1.0);
+        _lastMoveTime = now;
       }
-      _lastMoveTime = now;
       _lastVelocity = velocity;
       return StickSlipEvent.none;
     }
