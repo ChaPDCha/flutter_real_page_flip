@@ -119,9 +119,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   late final PageFlipStateController _controller;
   final PreRenderManager _preRenderManager = PreRenderManager();
 
-  /// Holds the last captured frame for one paint cycle after a successful flip.
-  bool _settleBridgeActive = false;
-
   int get _totalPages => widget.itemCount;
 
   @override
@@ -148,10 +145,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _effectHandler =
         widget.config.effectHandler ?? DefaultPageFlipEffectHandler();
 
-    // Warm snapshots after first frame settles (idle), not on the critical path.
+    // Warm snapshots immediately after first frame. Using immediate capture
+    // (no debounce) so snapshots are ready before the user's first drag gesture.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _captureSnapshots();
+        _captureSnapshots(immediate: true);
       }
     });
   }
@@ -171,7 +169,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       // snapshot arrives 1-2 frames later (still early in the drag).
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _captureSnapshotsImmediate(includeCurrentSpread: true);
+          _captureSnapshots(immediate: true);
         }
       });
     }
@@ -183,10 +181,20 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   late final PageFlipEffectHandler _effectHandler;
 
+  // Incremented on every didUpdateWidget so ValueListenableBuilder below can
+  // use it as a key to force rebuild when itemBuilder dependencies change
+  // (e.g. theme, font size — the itemBuilder reference itself is stable).
+  int _flipLayerVersion = 0;
+
   @override
   void didUpdateWidget(PageFlipWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller?._state = this;
+
+    // Bump version so ValueListenableBuilder key changes on parent rebuild,
+    // forcing the flip layers to rebuild with fresh itemBuilder output.
+    _flipLayerVersion++;
+
     // Update effect handler if changed in config
     if (widget.config.effectHandler != oldWidget.config.effectHandler) {
       _effectHandler.dispose();
@@ -238,45 +246,30 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _preRenderManager.cleanup(newIndex, _totalPages);
     _preRenderManager.prepareKeys(newIndex, _totalPages);
 
-    _settleBridgeActive = widget.spreadMode.isDoubleSpread
-        ? _preRenderManager.hasSpreadSnapshot(newIndex)
-        : _preRenderManager.hasSnapshot(newIndex);
-
+    // Defer snapshot capture to a post-frame callback.
+    // This ensures that the widget tree has rebuilt and painted the new page
+    // onstage (and the previous page offstage, preserving its last painted texture)
+    // before we attempt to capture repaint boundaries.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (_settleBridgeActive) {
-        setState(() => _settleBridgeActive = false);
+      if (mounted) {
+        _captureSnapshots(immediate: true);
       }
-      _captureSnapshots();
     });
-
-    if (!_settleBridgeActive) {
-      _captureSnapshots();
-    }
   }
 
-  void _captureSnapshots() {
+  void _captureSnapshots({bool immediate = false}) {
+    if (!mounted) return;
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final pixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
     _preRenderManager.captureSnapshots(
       _controller.currentIndex,
       _totalPages,
       () {
-        if (mounted) setState(() {});
+        // Snapshots updated — no-op; next flip will use fresh captures.
       },
+      immediate: immediate,
       includeCurrentSpread: true,
-    );
-  }
-
-  /// Captures snapshots without debounce delay. Used after page changes
-  /// to guarantee the next flip animation has pre-rendered content.
-  void _captureSnapshotsImmediate({bool includeCurrentSpread = false}) {
-    _preRenderManager.captureSnapshots(
-      _controller.currentIndex,
-      _totalPages,
-      () {
-        if (mounted) setState(() {});
-      },
-      immediate: true,
-      includeCurrentSpread: includeCurrentSpread,
+      pixelRatio: pixelRatio,
     );
   }
 
@@ -388,6 +381,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         // progressNotifier fires every animation tick; isDragging/touch/forward
         // are read from the controller getters (always current in memory).
         final animatedFlipLayer = ValueListenableBuilder<double>(
+          key: ValueKey(_flipLayerVersion),
           valueListenable: _controller.progressNotifier,
           builder: (context, progress, _) {
             return PageFlipLayerView(
@@ -408,7 +402,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               flapContentRevealEnd: widget.config.flapContentRevealEnd,
               constrainedSize: constrainedSize,
               isDoubleSpread: widget.spreadMode.isDoubleSpread,
-              settleBridgeActive: _settleBridgeActive,
             );
           },
         );
