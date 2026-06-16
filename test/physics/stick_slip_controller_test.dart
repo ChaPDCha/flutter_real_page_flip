@@ -91,6 +91,34 @@ void main() {
       }
     });
 
+    test('energy accumulates only when stationary threshold is exceeded (regression)', () {
+      // Regression: _lastMoveTime was being updated every frame outside the
+      // dt-threshold check, so dt was always ~16ms and never accumulated energy.
+      DateTime fakeNow = DateTime(2024, 1, 1);
+      final ctrl = StickSlipController(
+        stationaryThresholdMs: 50,
+        slipVelocityThreshold: 0.02,
+        now: () => fakeNow,
+      );
+
+      ctrl.update(0.0); // init
+      fakeNow = fakeNow.add(const Duration(milliseconds: 1));
+      ctrl.update(0.0); // stationary, dt=1ms < 50ms → no energy
+      fakeNow = fakeNow.add(const Duration(milliseconds: 1));
+      ctrl.update(0.0); // stationary, dt=1ms < 50ms → no energy
+
+      // Advance 60ms in one jump (exceeds threshold)
+      fakeNow = fakeNow.add(const Duration(milliseconds: 60));
+      ctrl.update(0.0); // dt=60ms > 50ms → energy accumulates
+
+      // Move to trigger slipRelease
+      fakeNow = fakeNow.add(const Duration(milliseconds: 1));
+      final event = ctrl.update(0.5);
+      expect(event.type, equals(StickSlipEventType.slipRelease));
+      // Energy should be ~0.06 (60ms * 0.001), not 0
+      expect(event.intensity, greaterThan(0.05));
+    });
+
     test('custom clock produces deterministic behavior', () {
       DateTime fakeNow = DateTime(2024, 1, 1);
       final ctrl = StickSlipController(

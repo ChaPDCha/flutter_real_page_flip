@@ -159,6 +159,20 @@ void main() {
       expect(clipper.shouldReclip(clipper2), isTrue);
     });
 
+    test('shouldReclip returns true when isRightToLeft changes', () {
+      final clipper = PageFlipClipper(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+      );
+      final clipper2 = PageFlipClipper(
+        progress: 0.5,
+        isRightToLeft: false,
+        touchOffset: Offset.zero,
+      );
+      expect(clipper.shouldReclip(clipper2), isTrue);
+    });
+
     test('shouldReclip returns false when progress and touchOffset are same', () {
       final clipper = PageFlipClipper(
         progress: 0.5,
@@ -188,9 +202,39 @@ void main() {
       );
       expect(clipper.shouldReclip(clipper2), isTrue);
     });
+
+    test('shouldReclip returns true when isRightToLeft changes', () {
+      final clipper = PageFlipOpenClipper(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+      );
+      final clipper2 = PageFlipOpenClipper(
+        progress: 0.5,
+        isRightToLeft: false,
+        touchOffset: Offset.zero,
+      );
+      expect(clipper.shouldReclip(clipper2), isTrue);
+    });
   });
 
   group('PageFlipPainter Texture Mapping Behavior', () {
+    test('shouldRepaint returns true when isRightToLeft changes', () {
+      final painter1 = PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+      );
+      final painter2 = PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: false,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+      );
+      expect(painter1.shouldRepaint(painter2), isTrue);
+    });
+
     test('shouldRepaint returns true when flapContentRevealStart changes', () {
       final painter1 = PageFlipPainter(
         progress: 0.5,
