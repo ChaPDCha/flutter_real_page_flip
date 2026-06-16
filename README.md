@@ -6,6 +6,8 @@
 
 A professional, high-fidelity 3D-like page flip engine for Flutter. Specifically engineered to deliver **ultra-smooth 60/120 FPS performance even on low-end devices** through advanced rendering optimizations.
 
+> **Notice**: This page flip engine is optimized for vertical mobile devices (single-page view) and does not support horizontal two-page view (dual-page reading).
+
 English | [한국어](#한국어-korean)
 
 ## Demos
@@ -169,7 +171,7 @@ PageFlipWidget(
 
 ## License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details. It is completely free for both non-commercial and commercial projects.
 
 ---
 
