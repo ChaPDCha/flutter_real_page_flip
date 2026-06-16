@@ -76,7 +76,7 @@ void main() {
       );
     }
 
-    testWidgets('forward drag keeps next page in Offstage pre-render', (
+    testWidgets('forward drag shows live page fallback when snapshot missing', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -87,13 +87,13 @@ void main() {
         ),
       );
 
-      // Page 2 (next page) is NOT in the visible bottom layer (uses paper/snapshot).
+      // When snapshots aren't ready, use live page instead of opaque paper fallback.
       final bottomClipper = find.byWidgetPredicate(
         (w) => w is ClipPath && w.clipper is PageFlipOpenClipper,
       );
       expect(
         find.descendant(of: bottomClipper, matching: find.text('Page 2')),
-        findsNothing,
+        findsOneWidget,
       );
     });
 
@@ -528,7 +528,7 @@ void main() {
       );
     });
 
-    testWidgets('flip layers use paper underlay when snapshot missing', (
+    testWidgets('flip layers use live page fallback when snapshot missing', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -542,12 +542,9 @@ void main() {
       final bottomClipper = find.byWidgetPredicate(
         (w) => w is ClipPath && w.clipper is PageFlipOpenClipper,
       );
+      // Live page fallback shows page content instead of opaque paper.
       expect(
         find.descendant(of: bottomClipper, matching: find.text('Page 2')),
-        findsNothing,
-      );
-      expect(
-        find.descendant(of: bottomClipper, matching: find.byType(ColoredBox)),
         findsOneWidget,
       );
     });
@@ -816,92 +813,6 @@ void main() {
         find.byKey(currentKey, skipOffstage: false),
         findsOneWidget,
       );
-    });
-  });
-
-  group('PageFlipLayerView settle bridge', () {
-    Future<ui.Image> solidSnapshot(Color color) async {
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, canvasSize.width, canvasSize.height),
-        Paint()..color = color,
-      );
-      final picture = recorder.endRecording();
-      return picture.toImage(
-        canvasSize.width.toInt(),
-        canvasSize.height.toInt(),
-      );
-    }
-
-    testWidgets('shows snapshot with live page offstage when bridge active',
-        (tester) async {
-      final snapshot = await solidSnapshot(Colors.indigo);
-      addTearDown(snapshot.dispose);
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox.fromSize(
-              size: canvasSize,
-              child: PageFlipLayerView(
-                itemCount: 3,
-                currentIndex: 1,
-                dragProgress: 0,
-                isDragging: false,
-                isForward: true,
-                touchPosition: Offset.zero,
-                pageSnapshots: {1: snapshot},
-                spreadSnapshots: const {},
-                pageKeys: {1: GlobalKey()},
-                constrainedSize: canvasSize,
-                isDoubleSpread: false,
-                settleBridgeActive: true,
-                itemBuilder: (context, index) =>
-                    Center(child: Text('Live $index')),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.byType(RawImage), findsOneWidget);
-      expect(find.text('Live 1', skipOffstage: false), findsOneWidget);
-      expect(
-        find.byWidgetPredicate((w) => w is Offstage && w.offstage),
-        findsWidgets,
-      );
-    });
-
-    testWidgets('shows live page on top when bridge inactive', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox.fromSize(
-              size: canvasSize,
-              child: PageFlipLayerView(
-                itemCount: 3,
-                currentIndex: 1,
-                dragProgress: 0,
-                isDragging: false,
-                isForward: true,
-                touchPosition: Offset.zero,
-                pageSnapshots: const {},
-                spreadSnapshots: const {},
-                pageKeys: {1: GlobalKey()},
-                constrainedSize: canvasSize,
-                isDoubleSpread: false,
-                settleBridgeActive: false,
-                itemBuilder: (context, index) =>
-                    Center(child: Text('Live $index')),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.byType(RawImage), findsNothing);
-      expect(find.text('Live 1'), findsOneWidget);
     });
   });
 }
