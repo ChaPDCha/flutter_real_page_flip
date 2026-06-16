@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
 
 /// Manages pre-rendering of adjacent pages to improve flip performance.
 class PreRenderManager {
@@ -93,6 +92,7 @@ class PreRenderManager {
     _retryCurrentIndex = null;
     _retryTotalPages = null;
     _retryOnCaptured = null;
+    _retryPixelRatio = 1;
     _activeCaptures.clear();
     _pendingRetryIndices.clear();
     _captureRetryCounts.clear();
@@ -134,6 +134,7 @@ class PreRenderManager {
   VoidCallback? _retryOnCaptured;
   int _retryGeneration = 0;
   bool _retryIncludeCurrentSpread = false;
+  double _retryPixelRatio = 1;
 
   static const int _maxCaptureRetriesPerIndex = 12;
   final Map<int, int> _captureRetryCounts = {};
@@ -188,6 +189,7 @@ class PreRenderManager {
     Duration delay = const Duration(milliseconds: 300),
     bool immediate = false,
     bool includeCurrentSpread = false,
+    double pixelRatio = 1.0,
   }) async {
     _debounceTimer?.cancel();
     _captureGeneration++;
@@ -200,6 +202,7 @@ class PreRenderManager {
         onSnapshotCaptured,
         currentGen,
         includeCurrentSpread: includeCurrentSpread,
+        pixelRatio: pixelRatio,
       );
     } else {
       _debounceTimer = Timer(delay, () async {
@@ -209,6 +212,7 @@ class PreRenderManager {
           onSnapshotCaptured,
           currentGen,
           includeCurrentSpread: includeCurrentSpread,
+          pixelRatio: pixelRatio,
         );
       });
     }
@@ -221,6 +225,7 @@ class PreRenderManager {
     VoidCallback onSnapshotCaptured,
     int generation, {
     bool includeCurrentSpread = false,
+    double pixelRatio = 1.0,
   }) async {
     if (_isDisposed || generation != _captureGeneration) return;
 
@@ -234,6 +239,8 @@ class PreRenderManager {
       totalPages,
       includeCurrent: includeCurrentSpread,
     );
+
+    final toDispose = <ui.Image>{};
 
     for (final index in targetIndices) {
       if (_isDisposed || generation != _captureGeneration) return;
@@ -258,6 +265,7 @@ class PreRenderManager {
           onSnapshotCaptured,
           generation,
           includeCurrentSpread: includeCurrentSpread,
+          pixelRatio: pixelRatio,
         );
         continue;
       }
@@ -273,13 +281,14 @@ class PreRenderManager {
             onSnapshotCaptured,
             generation,
             includeCurrentSpread: includeCurrentSpread,
+            pixelRatio: pixelRatio,
           );
           continue;
         }
 
-        // Logical-pixel capture so snapshot dimensions match [constrainedSize]
-        // and flip layers scale 1:1 with the idle live page (no aspect stretch).
-        final image = await boundary.toImage(pixelRatio: 1.0);
+        // Logical-pixel capture scaled by the device pixel ratio so the snapshot
+        // matches the layout constraints and avoids visual sharpness Snap/Flicker.
+        final image = await boundary.toImage(pixelRatio: pixelRatio);
         _activeCaptures.remove(index);
         _captureRetryCounts.remove(index);
         _pendingRetryIndices.remove(index);
@@ -292,12 +301,16 @@ class PreRenderManager {
         if (captureAsSpread) {
           final oldImage = spreadSnapshots[index];
           spreadSnapshots[index] = image;
-          oldImage?.dispose();
+          if (oldImage != null) toDispose.add(oldImage);
         }
         if (!captureAsSpread || index != currentIndex) {
           final oldImage = pageSnapshots[index];
           pageSnapshots[index] = image;
-          oldImage?.dispose();
+          if (oldImage != null) toDispose.add(oldImage);
+        }
+        if (toDispose.isNotEmpty) {
+          _disposeImagesOnce(toDispose);
+          toDispose.clear();
         }
         onSnapshotCaptured();
       } catch (e) {
@@ -309,6 +322,7 @@ class PreRenderManager {
           onSnapshotCaptured,
           generation,
           includeCurrentSpread: includeCurrentSpread,
+          pixelRatio: pixelRatio,
         );
       }
     }
@@ -321,6 +335,7 @@ class PreRenderManager {
     VoidCallback onSnapshotCaptured,
     int generation, {
     required bool includeCurrentSpread,
+    required double pixelRatio,
   }) {
     if (_isDisposed || generation != _captureGeneration) return;
 
@@ -338,11 +353,16 @@ class PreRenderManager {
     _retryOnCaptured = onSnapshotCaptured;
     _retryGeneration = generation;
     _retryIncludeCurrentSpread = includeCurrentSpread;
+    _retryPixelRatio = pixelRatio;
 
     if (_retryScheduled) return;
     _retryScheduled = true;
 
-    SchedulerBinding.instance.scheduleFrameCallback((_) async {
+    // Use addPostFrameCallback so the retry runs after layout/paint is complete.
+    // This ensures the boundary is fully painted (debugNeedsPaint == false),
+    // allowing the capture to succeed immediately on the first retry instead of
+    // looping through frame callbacks.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _retryScheduled = false;
       if (_isDisposed ||
           generation != _captureGeneration ||
@@ -355,6 +375,7 @@ class PreRenderManager {
       final retryCallback = _retryOnCaptured;
       final retryGen = _retryGeneration;
       final retryIncludeSpread = _retryIncludeCurrentSpread;
+      final retryRatio = _retryPixelRatio;
       if (retryCurrent == null ||
           retryTotal == null ||
           retryCallback == null) {
@@ -367,6 +388,7 @@ class PreRenderManager {
         retryCallback,
         retryGen,
         includeCurrentSpread: retryIncludeSpread,
+        pixelRatio: retryRatio,
       );
     });
   }
@@ -418,6 +440,7 @@ class PreRenderManager {
     _retryCurrentIndex = null;
     _retryTotalPages = null;
     _retryOnCaptured = null;
+    _retryPixelRatio = 1;
     _activeCaptures.clear();
     _pendingRetryIndices.clear();
     _captureRetryCounts.clear();
