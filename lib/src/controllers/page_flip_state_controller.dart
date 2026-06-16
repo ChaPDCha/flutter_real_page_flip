@@ -415,7 +415,6 @@ class PageFlipStateController {
   }
 
   void _finalizePageChange(bool success, int totalPages) {
-    endPointerCapture();
     if (success) {
       if (_isForward) {
         _currentIndex++;
@@ -423,22 +422,26 @@ class PageFlipStateController {
         _currentIndex--;
       }
 
-      // CRITICAL FIX: Reset drag state BEFORE calling onPageFinalized/onUpdate.
-      // This ensures the very next frame renders the NEW page as `keyedCurrentPage`
-      // at progress=0 (idle state), preventing the 1-frame visual discontinuity
-      // where the old flip layers (with stale snapshot/opacity) would briefly flash
-      // before being replaced by the new idle page.
+      // Save velocity for haptic calculation before resetting state
+      final releaseVelocity = _lastReleaseVelocity;
+
+      // Reset ALL drag state atomically BEFORE any listener or callback fires.
+      // _isDragging must be false and animationController.value = 0 before
+      // onPageFinalized/onUpdate so the ValueListenableBuilder never observes
+      // isDragging=true with progress=0, and the non-drag view is built with
+      // consistent state on the next frame.
       _dragProgress = 0.0;
-      animationController.value = 0.0;
       _isDragging = false;
+      animationController.value = 0.0;
       _hasPlayedSound = false;
       _lastReleaseVelocity = 0.0;
 
+      endPointerCapture();
       onEffectTrigger(PageFlipEvent.stopHaptic);
 
       // Trigger impulse haptic on successful flip
-      final impulseIntensity = _lastReleaseVelocity > 0
-          ? (_lastReleaseVelocity / 4).clamp(15.0, 120.0).toInt()
+      final impulseIntensity = releaseVelocity > 0
+          ? (releaseVelocity / 4).clamp(15.0, 120.0).toInt()
           : 60;
       onEffectTrigger(PageFlipEvent.impulseHaptic, intensity: impulseIntensity);
 
@@ -454,6 +457,7 @@ class PageFlipStateController {
       animationController.value = 0.0;
       _isDragging = false;
       _hasPlayedSound = false;
+      endPointerCapture();
       onEffectTrigger(PageFlipEvent.stopHaptic);
       onUpdate();
       onFlipEnd?.call();
