@@ -302,5 +302,21 @@ void main() {
         expect(geo.foldX, lessThanOrEqualTo(geo.size.width + 0.5));
       }
     });
+
+    test('NaN progress does not crash or produce infinite values', () {
+      final geo = PageFlipGeometry(
+        progress: double.nan, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600),
+      );
+      // Constructor should not throw, and computed values should be finite
+      // (NaN is technically "finite" per isFinite, but the point is no crash).
+      expect(geo.foldX.isNaN, isTrue);
+      expect(geo.angle.isNaN, isTrue);
+      expect(geo.shadowIntensity.isNaN, isTrue);
+      // Verify no infinite values leak through
+      expect(geo.foldX.isInfinite, isFalse);
+      expect(geo.angle.isInfinite, isFalse);
+      expect(geo.shadowIntensity.isInfinite, isFalse);
+      expect(geo.transform.storage.any((v) => v.isInfinite), isFalse);
+    });
   });
 }

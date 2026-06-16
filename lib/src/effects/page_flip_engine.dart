@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -46,62 +47,6 @@ Rect flapFrontDestRect({
   }
 
   return Rect.fromLTWH(0, 0, size.width, size.height);
-}
-
-/// Source/destination pair for flap-front texture after foreshortening alignment.
-class FlapFrontTextureMapping {
-  /// Creates a [FlapFrontTextureMapping].
-  const FlapFrontTextureMapping({
-    required this.srcRect,
-    required this.destRect,
-  });
-
-  /// Sub-rect within the spread snapshot for the visible flap strip.
-  final Rect srcRect;
-
-  /// Canvas rect matching the clipped flap strip (pre-transform local space).
-  final Rect destRect;
-}
-
-/// Maps flap snapshot UVs onto the visible flap strip.
-///
-/// [PageFlipGeometry.flapVisibleWidth] is narrower than the physical material
-/// width for foreshortening. Mapping the full page half onto the canvas and
-/// clipping to the flap strip zooms text ("magnifying lens"). This helper
-/// scales source and destination to the visible strip only.
-FlapFrontTextureMapping? flapFrontAlignedTextureMapping({
-  required Rect baseSrcRect,
-  required Rect baseDestRect,
-  required PageFlipGeometry geo,
-}) {
-  if (baseSrcRect.isEmpty || baseDestRect.isEmpty) return null;
-
-  final flapMaterialWidth = geo.size.width - geo.foldX;
-  if (flapMaterialWidth <= 0.001 || geo.flapVisibleWidth <= 0.001) {
-    return null;
-  }
-
-  final hiddenMaterial = flapMaterialWidth - geo.flapVisibleWidth;
-  final srcWidthRatio = geo.flapVisibleWidth / flapMaterialWidth;
-  final srcOffsetRatio = hiddenMaterial / flapMaterialWidth;
-
-  final srcRect = Rect.fromLTWH(
-    baseSrcRect.left + baseSrcRect.width * srcOffsetRatio,
-    baseSrcRect.top,
-    baseSrcRect.width * srcWidthRatio,
-    baseSrcRect.height,
-  );
-
-  final destRect = Rect.fromLTWH(
-    geo.flapLeft,
-    0,
-    geo.flapVisibleWidth,
-    geo.size.height,
-  );
-
-  if (!destRect.overlaps(baseDestRect.inflate(0.5))) return null;
-
-  return FlapFrontTextureMapping(srcRect: srcRect, destRect: destRect);
 }
 
 /// Opacity of flap-front page content (0 = paper back only, 1 = full texture).
@@ -248,6 +193,135 @@ Path buildFlapClipPathLocal(
   }
   path.close();
   return path;
+}
+
+/// Builds a triangle mesh that curves the flap texture along the fold and
+/// flap-edge bezier curves so text and images bend with the paper.
+///
+/// Without this mesh, the flap content is drawn as a flat rectangle (affine
+/// transform only) and looks like a flat board tilting rather than paper
+/// curling. The mesh follows the quadratic bezier of both the fold line
+/// and the flap edge, so every scanline maps to the correct curved position.
+///
+/// With [columns] >= 1, interior vertex columns are added between the fold
+/// and flap edge. Each interior column has an amplified bezier offset (bulge)
+/// that peaks at the midpoint, creating a convex 3D surface curvature effect.
+/// Without this bulge the surface is a flat ruled plane between two curves —
+/// text appears stiff rather than printed on curling paper.
+///
+/// [segments] vertical subdivisions (higher = smoother, default 16).
+/// [columns] horizontal subdivisions (0 = fold-to-flap only, 4+ recommended).
+@visibleForTesting
+ui.Vertices buildFlapContentMesh({
+  required Size size,
+  required double foldX,
+  required double flapLeft,
+  required double curveOffset,
+  required Rect srcRect,
+  int segments = 16,
+  int columns = 4,
+}) {
+  final positions = <double>[];
+  final texCoords = <double>[];
+  final height = size.height;
+  final totalCols = columns + 2; // fold + interior + flap edge columns
+
+  // -----------------------------------------------------------------------
+  // 1. Build vertex grid [segments+1] × [totalCols].
+  //
+  // Each row is a horizontal strip. Each column runs from fold (j=0) to
+  // flap edge (j=totalCols-1). Interior columns receive an amplified bezier
+  // offset so the surface bulges in the middle — the paper looks convex
+  // rather than a flat strip connecting two curves.
+  //
+  //   fold  col1  col2  col3  col4  flap
+  //    ┼─────┼─────┼─────┼─────┼─────┼   ← row 0 (top)
+  //    │╲    │     │     │     │    ╱│
+  //    │ ╲   │     │ ╶───→│     │   ╱ │   bulge peak (more left shift)
+  //    │  ╲  │     │     │     │  ╱  │
+  //    ┼─────┼─────┼─────┼─────┼─────┼   ← row N (bottom)
+  // -----------------------------------------------------------------------
+  final gridX = List.generate(segments + 1, (_) => Float64List(totalCols));
+  final gridY = List.generate(segments + 1, (_) => Float64List(totalCols));
+  final gridU = List.generate(segments + 1, (_) => Float64List(totalCols));
+  final gridV = List.generate(segments + 1, (_) => Float64List(totalCols));
+
+  // Surface bulge factor: how much extra curvature interior columns get.
+  // 30% additional bezier offset at the midpoint column creates visible
+  // 3D curvature without looking like tightly rolled paper.
+  const double kBulgeStrength = 0.30;
+
+  for (int i = 0; i <= segments; i++) {
+    final t = i / segments;
+    final y = height * t;
+    // Vertical quadratic bezier blend: 2(1-t)t — peak at t=0.5, zero at ends.
+    final b = 2 * (1 - t) * t;
+
+    for (int j = 0; j < totalCols; j++) {
+      final s = j / (totalCols - 1); // 0 at fold, 1 at flap edge
+
+      // Interior columns get amplified bezier offset → surface bulge.
+      // sin(s*pi) peaks at s=0.5 and is zero at both edges, so the bulge
+      // smoothly blends to the existing fold/flap edge positions.
+      final bulgeScale = columns > 0 ? math.sin(s * math.pi) : 0.0;
+      final colCurveScale = 1.0 + kBulgeStrength * bulgeScale;
+      final colOffset = curveOffset * colCurveScale;
+
+      // Column bezier-fold position at this row.
+      final foldAtY = foldX - colOffset * b;
+      final flapAtY = flapLeft - colOffset * b;
+
+      // Interpolate X between fold and flap edge for this column.
+      gridX[i][j] = foldAtY + (flapAtY - foldAtY) * s;
+      gridY[i][j] = y;
+      // UV: right→left from srcRect.right (fold) to srcRect.left (flap edge).
+      gridU[i][j] = srcRect.right - s * srcRect.width;
+      gridV[i][j] = srcRect.top + t * srcRect.height;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // 2. Triangle pairs from the vertex grid (2 triangles per quad).
+  //
+  //  (i,j) ─── (i,j+1)
+  //    | ╲     |
+  //    |  ╲    |
+  //  (i+1,j) ─ (i+1,j+1)
+  //
+  // T1: (i,j), (i+1,j), (i,j+1)
+  // T2: (i,j+1), (i+1,j), (i+1,j+1)
+  // -----------------------------------------------------------------------
+  for (int i = 0; i < segments; i++) {
+    for (int j = 0; j < totalCols - 1; j++) {
+      positions.addAll([
+        gridX[i][j], gridY[i][j],
+        gridX[i + 1][j], gridY[i + 1][j],
+        gridX[i][j + 1], gridY[i][j + 1],
+      ]);
+      texCoords.addAll([
+        gridU[i][j], gridV[i][j],
+        gridU[i + 1][j], gridV[i + 1][j],
+        gridU[i][j + 1], gridV[i][j + 1],
+      ]);
+
+      positions.addAll([
+        gridX[i][j + 1], gridY[i][j + 1],
+        gridX[i + 1][j], gridY[i + 1][j],
+        gridX[i + 1][j + 1], gridY[i + 1][j + 1],
+      ]);
+      texCoords.addAll([
+        gridU[i][j + 1], gridV[i][j + 1],
+        gridU[i + 1][j], gridV[i + 1][j],
+        gridU[i + 1][j + 1], gridV[i + 1][j + 1],
+      ]);
+    }
+  }
+
+  return ui.Vertices.raw(
+    ui.VertexMode.triangles,
+    Float32List.fromList(positions),
+    textureCoordinates: Float32List.fromList(texCoords),
+  );
 }
 
 /// Clip rect for flap-side drop shadows in [PageFlipPainter].
@@ -478,11 +552,12 @@ class PageFlipGeometry {
     );
 
     // -----------------------------------------------------------------------
-    // Fold curvature — bezier control offsets create a natural paper curl.
+    // Fold curvature — bezier control offsets create a subtle paper curl.
     // Peak curvature occurs mid-flip (progress ≈ 0.5), flat at both ends.
-    // The control-point offset is ~4% of page width for subtle but visible
-    // curl. Direction matches the flip direction so the middle of the page
-    // lags behind — correct inertia/air-resistance for real paper.
+    // The control-point offset is ~4% of page width — just enough for the
+    // triangle mesh to deform text naturally without looking like the paper
+    // is tightly rolled. Direction matches the flip direction so the middle
+    // of the page lags behind — correct inertia for real paper.
     // -----------------------------------------------------------------------
     curvatureAmount = math.sin(progress * math.pi);
     final curveDirection = isForward ? 1.0 : -1.0;
@@ -564,127 +639,6 @@ class PageFlipGeometry {
 
   /// Bezier control point for the curved flap edge in global space.
   late final Offset flapCurveControl;
-}
-
-/// Builds the clip path that progressively reveals the adjacent spread page
-/// in the spine band during a double-spread flip.
-///
-/// Forward: next spread's left page between spine and the flap's left edge.
-/// Backward: previous spread's left page between the left edge and the flap's
-/// left edge (left-of-spine band behind the peeling page).
-///
-/// Returns `null` when reveal should not be drawn (no crossing yet or invalid).
-Path? buildDoubleSpreadSpineRevealPath(PageFlipGeometry geo) {
-  if (!geo.isDoubleSpread || geo.progress <= 0 || geo.spineX <= 0) {
-    return null;
-  }
-  final edges = spineRevealClipEdges(geo);
-  if (edges == null) return null;
-  return _pathFromSpineRevealEdges(geo, edges);
-}
-
-/// Shared spine-band edge coordinates for forward/backward reveal clips.
-///
-/// Returns `null` until the flap has crossed the spine (same gate as
-/// [buildDoubleSpreadSpineRevealPath]). When [PageFlipGeometry.curvatureAmount]
-/// is re-enabled, both reveal and flap paths should use these edges.
-SpineRevealClipEdges? spineRevealClipEdges(PageFlipGeometry geo) {
-  if (!geo.isDoubleSpread) return null;
-
-  if (geo.isForward) {
-    if (geo.flapLeft >= geo.spineX) return null;
-    const overlapShift = -kSpineRevealOverlapPx;
-    return SpineRevealClipEdges(
-      overlapShift: overlapShift,
-      edgeBottom: snapClipPoint(geo.flapEdgeBottom, overlapShift: overlapShift),
-      edgeTop: snapClipPoint(geo.flapEdgeTop, overlapShift: overlapShift),
-      curveControl:
-          snapClipPoint(geo.flapCurveControl, overlapShift: overlapShift),
-    );
-  }
-
-  if (geo.flapLeft <= geo.spineX) return null;
-  const overlapShift = -kSpineRevealOverlapPx;
-  return SpineRevealClipEdges(
-    overlapShift: overlapShift,
-    edgeBottom: snapClipPoint(geo.flapEdgeBottom, overlapShift: overlapShift),
-    edgeTop: snapClipPoint(geo.flapEdgeTop, overlapShift: overlapShift),
-    curveControl:
-        snapClipPoint(geo.flapCurveControl, overlapShift: overlapShift),
-  );
-}
-
-/// Trailing edge of the spine reveal band (flap or fold line + overlap).
-class SpineRevealClipEdges {
-  /// Creates [SpineRevealClipEdges].
-  const SpineRevealClipEdges({
-    required this.overlapShift,
-    required this.edgeBottom,
-    required this.edgeTop,
-    required this.curveControl,
-  });
-
-  /// Signed overlap applied to trailing edge X (and curve control when curved).
-  final double overlapShift;
-
-  /// Bottom point of the reveal band's trailing edge.
-  final Offset edgeBottom;
-
-  /// Top point of the reveal band's trailing edge.
-  final Offset edgeTop;
-
-  /// Quadratic bezier control when [PageFlipGeometry.curvatureAmount] > 0.
-  final Offset curveControl;
-}
-
-Path _pathFromSpineRevealEdges(PageFlipGeometry geo, SpineRevealClipEdges edges) {
-  final path = Path();
-
-  if (geo.isForward) {
-    final spineX = snapClipCoord(geo.spineX);
-    path
-      ..moveTo(spineX, 0)
-      ..lineTo(spineX, geo.size.height)
-      ..lineTo(edges.edgeBottom.dx, edges.edgeBottom.dy);
-  } else {
-    path
-      ..moveTo(0, 0)
-      ..lineTo(0, geo.size.height)
-      ..lineTo(edges.edgeBottom.dx, edges.edgeBottom.dy);
-  }
-
-  if (geo.curvatureAmount > 0.001) {
-    path.quadraticBezierTo(
-      edges.curveControl.dx,
-      edges.curveControl.dy,
-      edges.edgeTop.dx,
-      edges.edgeTop.dy,
-    );
-  } else {
-    path.lineTo(edges.edgeTop.dx, edges.edgeTop.dy);
-  }
-  path.close();
-  return path;
-}
-
-/// Clips to the spine–trailing-edge reveal band for double-spread forward flips.
-class PageFlipSpineRevealClipper extends CustomClipper<Path> {
-  /// Creates a [PageFlipSpineRevealClipper].
-  PageFlipSpineRevealClipper({required this.geo});
-
-  /// Shared flip geometry for this frame.
-  final PageFlipGeometry geo;
-
-  @override
-  Path getClip(Size size) =>
-      buildDoubleSpreadSpineRevealPath(geo) ?? Path();
-
-  @override
-  bool shouldReclip(PageFlipSpineRevealClipper oldClipper) =>
-      oldClipper.geo.progress != geo.progress ||
-      oldClipper.geo.touchOffset != geo.touchOffset ||
-      oldClipper.geo.isDoubleSpread != geo.isDoubleSpread ||
-      oldClipper.geo.isForward != geo.isForward;
 }
 
 /// CustomPainter that renders the flipping page flap with shadow and highlight effects.
@@ -797,7 +751,6 @@ class PageFlipPainter extends CustomPainter {
 
     // Determine dark mode from paper luminance.
     final luminance = paperBackColor.computeLuminance();
-    final isPaperLight = luminance > 0.5;
     final isPaperDark = luminance < 0.20; // catches dark mode backgrounds
 
     canvas.save();
@@ -832,73 +785,138 @@ class PageFlipPainter extends CustomPainter {
         revealEnd: flapContentRevealEnd,
       );
       if (contentReveal > 0.001) {
-        final pageRect = flapFrontDestRect ??
-            (isDoubleSpread
-                ? Rect.fromLTWH(
-                    g.spineX, 0, size.width - g.spineX, size.height,
-                  )
-                : Rect.fromLTWH(0, 0, size.width, size.height));
-        final mapping = flapFrontAlignedTextureMapping(
-          baseSrcRect: flapFrontSrcRect!,
-          baseDestRect: pageRect,
-          geo: g,
-        );
-        final srcRect = mapping?.srcRect ?? flapFrontSrcRect!;
-        final destRect = mapping?.destRect ?? pageRect;
-        canvas.drawImageRect(
-          flapFrontImage!,
-          srcRect,
-          destRect,
-          Paint()
-            ..filterQuality = FilterQuality.medium
-            ..color = Color.fromRGBO(255, 255, 255, contentReveal),
-        );
+        final srcRect = flapFrontSrcRect!;
+
+        // Minimum width guard: flap narrower than 8 px compresses the full
+        // page texture into garbage. Paper underlay + fade overlay handle
+        // this scale — skip the mesh entirely.
+        if (g.flapVisibleWidth >= 8.0) {
+          // Build a triangle mesh that follows the bezier curves so text and
+          // images appear to bend with the paper — not a flat board tilting.
+          // 16 vertical segments × 6 horizontal columns (4 interior) with
+          // surface bulge creates a convex 3D paper curl effect.
+          final mesh = buildFlapContentMesh(
+            size: size,
+            foldX: g.foldX,
+            flapLeft: g.flapLeft,
+            curveOffset: g.curveOffset,
+            srcRect: srcRect,
+            segments: 16,
+          );
+          canvas.drawVertices(
+            mesh,
+            BlendMode.srcOver,
+            Paint()
+              ..shader = ui.ImageShader(
+                flapFrontImage!,
+                ui.TileMode.clamp,
+                ui.TileMode.clamp,
+                Matrix4.identity().storage,
+              )
+              ..filterQuality = FilterQuality.medium,
+          );
+
+          // Fade mesh away during early fold / late settle using paper-colour
+          // overlay so content does not pop in/out harshly.
+          final fadeAlpha = (1.0 - contentReveal).clamp(0.0, 1.0);
+          if (fadeAlpha > 0.005) {
+            canvas.drawRect(
+              flapRect,
+              Paint()
+                ..blendMode = BlendMode.srcOver
+                ..color = paperBackColor.withValues(alpha: fadeAlpha),
+            );
+          }
+        }
       }
     }
 
-    // Layer 2: Soft Highlight
-    // Option B: Dramatically increase the highlight and spread it wider.
-    // By creating a strong, glossy light reflection on the crease, the eye is drawn to the 3D geometry rather than the blank paper.
-    final highlightAlpha = isPaperLight ? 0.22 : (isPaperDark ? 0.28 : 0.22);
-    if (highlightAlpha > 0.01) {
+    // Layer 2–3: Subtle paper-bend shading
+    //
+    // A gentle highlight across the flap centre and faint darkening at the
+    // fold edge. Strong enough to suggest a curved surface, soft enough not
+    // to look like the paper is tightly rolled.
+    //
+    // The flap extends LEFT from foldX, so right = fold hinge, left = free edge.
+    final bendStrength = g.shadowIntensity; // 0–1, peaks mid-flip
+    if (bendStrength > 0.005) {
+      // Gentle centre highlight (catches light on the bulge).
       canvas.drawRect(
         flapRect,
         Paint()
           ..blendMode = BlendMode.screen
           ..shader = LinearGradient(
-            begin: isRightToLeft ? Alignment.centerRight : Alignment.centerLeft,
-            end: isRightToLeft ? Alignment.centerLeft : Alignment.centerRight,
+            begin: Alignment.centerRight,
+            end: Alignment.centerLeft,
             colors: [
-              Colors.white.withValues(alpha: highlightAlpha),
-              Colors.white.withValues(alpha: highlightAlpha * 0.4),
+              Colors.transparent,
+              Colors.white.withValues(alpha: 0.08 * bendStrength),
+              Colors.white.withValues(alpha: 0.12 * bendStrength),
+              Colors.white.withValues(alpha: 0.08 * bendStrength),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.25, 0.8],
+            stops: const [0.0, 0.25, 0.50, 0.75, 1.0],
           ).createShader(flapRect),
       );
-    }
 
-    // Layer 3: Inner Shadow
-    // Deepen the inner shadow near the fold to enhance the dramatic 3D curvature.
-    final shadowBase = (isPaperDark ? 0.30 : 0.45) * g.shadowIntensity;
-    final shadowMid  = (isPaperDark ? 0.12 : 0.18) * g.shadowIntensity;
-    if (shadowBase > 0.01) {
+      // Subtle fold-edge darkening.
+      final foldShadow = (isPaperDark ? 0.10 : 0.15) * bendStrength;
       canvas.drawRect(
         flapRect,
         Paint()
           ..blendMode = BlendMode.multiply
           ..shader = LinearGradient(
-            begin: isRightToLeft ? Alignment.centerRight : Alignment.centerLeft,
-            end: isRightToLeft ? Alignment.centerLeft : Alignment.centerRight,
+            begin: Alignment.centerRight,
+            end: Alignment.centerLeft,
             colors: [
-              Colors.black.withValues(alpha: shadowBase),
-              Colors.black.withValues(alpha: shadowMid),
+              Colors.black.withValues(alpha: foldShadow),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.3, 1.0],
+            stops: const [0.0, 0.25],
           ).createShader(flapRect),
       );
     }
+
+    // Edge-fade: mask partial-text artifacts at the flap's free edge (flapLeft).
+    // A ~8 px gradient from paperBackColor → transparent hides stray character
+    // fragments at the mesh boundary without affecting visible flap content.
+    const double edgeFadeWidth = 8.0;
+    final edgeFadeRect = Rect.fromLTWH(
+      g.flapLeft, 0, edgeFadeWidth, size.height,
+    );
+    canvas.drawRect(
+      edgeFadeRect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            paperBackColor.withValues(alpha: 1.0),
+            Colors.transparent,
+          ],
+        ).createShader(edgeFadeRect),
+    );
+
+    // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
+    // As the flap narrows near the fold line, texture pixels compress and
+    // create visible fragments. This narrow gradient from paperBackColor →
+    // transparent softens the fold boundary edge.
+    const double foldFadeWidth = 6.0;
+    final foldFadeRect = Rect.fromLTWH(
+      g.foldX - foldFadeWidth, 0, foldFadeWidth, size.height,
+    );
+    canvas.drawRect(
+      foldFadeRect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerRight,
+          end: Alignment.centerLeft,
+          colors: [
+            paperBackColor.withValues(alpha: 1.0),
+            Colors.transparent,
+          ],
+        ).createShader(foldFadeRect),
+    );
 
     canvas.restore();
 
@@ -993,6 +1011,7 @@ class PageFlipPainter extends CustomPainter {
   bool shouldRepaint(covariant PageFlipPainter oldDelegate) =>
       oldDelegate.progress != progress ||
       oldDelegate.touchOffset != touchOffset ||
+      oldDelegate.isRightToLeft != isRightToLeft ||
       oldDelegate.paperBackColor != paperBackColor ||
       oldDelegate.isDoubleSpread != isDoubleSpread ||
       oldDelegate.isForward != isForward ||
@@ -1074,6 +1093,7 @@ class PageFlipClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant PageFlipClipper oldClipper) =>
       oldClipper.progress != progress ||
       oldClipper.touchOffset != touchOffset ||
+      oldClipper.isRightToLeft != isRightToLeft ||
       oldClipper.isDoubleSpread != isDoubleSpread ||
       oldClipper.isForward != isForward;
 }
@@ -1144,6 +1164,7 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant PageFlipOpenClipper oldClipper) =>
       oldClipper.progress != progress ||
       oldClipper.touchOffset != touchOffset ||
+      oldClipper.isRightToLeft != isRightToLeft ||
       oldClipper.isDoubleSpread != isDoubleSpread ||
       oldClipper.isForward != isForward;
 }

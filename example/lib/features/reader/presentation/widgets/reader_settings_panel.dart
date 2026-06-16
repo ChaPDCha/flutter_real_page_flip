@@ -41,30 +41,41 @@ class ReaderSettingsPanel {
                     Text('테마 설정', style: TextStyle(color: currentTheme.textColor, fontSize: 14)),
                     const SizedBox(height: 12),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildThemeOption(
-                          ref,
-                          ReaderThemeType.cream,
-                          '크림',
-                          currentTheme,
-                          themeType,
+                        Expanded(
+                          child: _buildThemeOption(
+                            ref,
+                            ReaderThemeType.cream,
+                            '크림',
+                            currentTheme,
+                            themeType,
+                          ),
                         ),
-                        _buildThemeOption(
-                          ref,
-                          ReaderThemeType.charcoal,
-                          '차콜',
-                          currentTheme,
-                          themeType,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildThemeOption(
+                            ref,
+                            ReaderThemeType.charcoal,
+                            '차콜',
+                            currentTheme,
+                            themeType,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 28),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('글자 크기', style: TextStyle(color: currentTheme.textColor, fontSize: 14)),
+                        Flexible(
+                          child: Text(
+                            '글자 크기',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: currentTheme.textColor, fontSize: 14),
+                          ),
+                        ),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
                               onPressed: () async {
@@ -72,12 +83,10 @@ class ReaderSettingsPanel {
                               },
                               icon: Icon(Icons.remove, color: currentTheme.textColor, size: 16),
                             ),
-                            const SizedBox(width: 16),
                             Text(
                               '${currentState.settings.fontSize.toInt()}',
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: currentTheme.textColor),
                             ),
-                            const SizedBox(width: 16),
                             IconButton(
                               onPressed: () async {
                                 await controller.updateFontSize(1.0);
@@ -90,9 +99,15 @@ class ReaderSettingsPanel {
                     ),
                     const SizedBox(height: 24),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('햅틱 피드백', style: TextStyle(color: currentTheme.textColor, fontSize: 14)),
+                        Expanded(
+                          child: Text(
+                            '햅틱 피드백',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: currentTheme.textColor, fontSize: 14),
+                          ),
+                        ),
                         ShadSwitch(
                           value: currentState.settings.enableHaptics,
                           onChanged: (val) async {
@@ -103,9 +118,15 @@ class ReaderSettingsPanel {
                     ),
                     const SizedBox(height: 24),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('소리 효과', style: TextStyle(color: currentTheme.textColor, fontSize: 14)),
+                        Expanded(
+                          child: Text(
+                            '소리 효과',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: currentTheme.textColor, fontSize: 14),
+                          ),
+                        ),
                         ShadSwitch(
                           value: currentState.settings.enableSound,
                           onChanged: (val) async {
@@ -154,7 +175,7 @@ class ReaderSettingsPanel {
         ref.read(appThemeControllerProvider.notifier).setTheme(type);
       },
       child: Container(
-        width: 80,
+        width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: optionTheme.backgroundColor,

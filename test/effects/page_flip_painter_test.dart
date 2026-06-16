@@ -159,6 +159,20 @@ void main() {
       expect(clipper.shouldReclip(clipper2), isTrue);
     });
 
+    test('shouldReclip returns true when isRightToLeft changes', () {
+      final clipper = PageFlipClipper(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+      );
+      final clipper2 = PageFlipClipper(
+        progress: 0.5,
+        isRightToLeft: false,
+        touchOffset: Offset.zero,
+      );
+      expect(clipper.shouldReclip(clipper2), isTrue);
+    });
+
     test('shouldReclip returns false when progress and touchOffset are same', () {
       final clipper = PageFlipClipper(
         progress: 0.5,
@@ -188,9 +202,39 @@ void main() {
       );
       expect(clipper.shouldReclip(clipper2), isTrue);
     });
+
+    test('shouldReclip returns true when isRightToLeft changes', () {
+      final clipper = PageFlipOpenClipper(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+      );
+      final clipper2 = PageFlipOpenClipper(
+        progress: 0.5,
+        isRightToLeft: false,
+        touchOffset: Offset.zero,
+      );
+      expect(clipper.shouldReclip(clipper2), isTrue);
+    });
   });
 
   group('PageFlipPainter Texture Mapping Behavior', () {
+    test('shouldRepaint returns true when isRightToLeft changes', () {
+      final painter1 = PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+      );
+      final painter2 = PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: false,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+      );
+      expect(painter1.shouldRepaint(painter2), isTrue);
+    });
+
     test('shouldRepaint returns true when flapContentRevealStart changes', () {
       final painter1 = PageFlipPainter(
         progress: 0.5,
@@ -209,6 +253,22 @@ void main() {
       expect(painter1.shouldRepaint(painter2), isTrue);
     });
 
+    ui.Image? _testImage;
+    setUp(() async {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawRect(
+        const Rect.fromLTWH(0, 0, 800, 600),
+        Paint()..color = Colors.white,
+      );
+      _testImage = await recorder.endRecording().toImage(800, 600);
+    });
+
+    tearDown(() {
+      _testImage?.dispose();
+      _testImage = null;
+    });
+
     test('mid fold skips texture when reveal opacity is zero', () {
       final canvas = MockCanvas();
 
@@ -217,7 +277,7 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: MockImage(),
+        flapFrontImage: _testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
         flapContentFadeOutEnd: 0.20,
@@ -225,7 +285,7 @@ void main() {
         flapContentRevealEnd: 0.95,
       ).paint(canvas, const Size(800, 600));
 
-      expect(canvas.didDrawImageRect, isFalse);
+      expect(canvas.didDrawVertices, isFalse);
       expect(canvas.didDrawRect, isTrue);
     });
 
@@ -237,7 +297,7 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: MockImage(),
+        flapFrontImage: _testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
         flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
         isDoubleSpread: true,
@@ -247,7 +307,7 @@ void main() {
         flapContentRevealEnd: 0.95,
       ).paint(canvas, const Size(800, 600));
 
-      expect(canvas.didDrawImageRect, isTrue);
+      expect(canvas.didDrawVertices, isTrue);
     });
 
     test('early progress draws texture when fade-out window includes progress', () {
@@ -258,7 +318,7 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: MockImage(),
+        flapFrontImage: _testImage,
         flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
         flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
         isDoubleSpread: true,
@@ -268,10 +328,10 @@ void main() {
         flapContentRevealEnd: 0.95,
       ).paint(canvas, const Size(800, 600));
 
-      expect(canvas.didDrawImageRect, isTrue);
+      expect(canvas.didDrawVertices, isTrue);
     });
 
-    test('backward flip uses drawImageRect when late reveal is active', () {
+    test('backward flip uses vertices mesh when late reveal is active', () {
       final canvas = MockCanvas();
 
       PageFlipPainter(
@@ -279,7 +339,7 @@ void main() {
         isRightToLeft: false,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: MockImage(),
+        flapFrontImage: _testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 400, 600),
         isDoubleSpread: true,
@@ -289,7 +349,7 @@ void main() {
         flapContentRevealEnd: 0.95,
       ).paint(canvas, const Size(800, 600));
 
-      expect(canvas.didDrawImageRect, isTrue);
+      expect(canvas.didDrawVertices, isTrue);
     });
 
     test('paints paper color when no texture is available', () {
@@ -308,7 +368,7 @@ void main() {
       painter.paint(canvas, const Size(800, 600));
 
       // Falls back to solid paper color when no texture
-      expect(canvas.didDrawImageRect, isFalse);
+      expect(canvas.didDrawVertices, isFalse);
     });
 
     test('single-page forward flip skips stationary edge shadow', () {
@@ -321,7 +381,7 @@ void main() {
         paperBackColor: Colors.white,
         isDoubleSpread: false,
         isForward: true,
-        flapFrontImage: MockImage(),
+        flapFrontImage: _testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
       ).paint(canvas, const Size(800, 600));
@@ -339,31 +399,28 @@ class TrackingShadowCanvas extends MockCanvas {
   void drawRect(Rect rect, Paint paint) {
     super.drawRect(rect, paint);
     // Stationary shadow sits just left of the fold: foldX - flapWidth - ~20px.
-    if (rect.width <= 25 && rect.left < 0) {
+    // Exclude edge-fade (8px) and fold-fade (6px) gradients by lower-bounding
+    // at 12px — the stationary shadow at half intensity is ~10px wide.
+    if (rect.width > 12 && rect.width <= 25 && rect.left < 0) {
       stationaryShadowDrawCount++;
     }
   }
 }
 
-class MockImage extends Fake implements ui.Image {
-  @override
-  int get width => 100;
-  @override
-  int get height => 100;
-}
-
 class MockCanvas extends Fake implements Canvas {
-  bool didDrawImageRect = false;
   bool didDrawRect = false;
-
-  @override
-  void drawImageRect(ui.Image image, Rect src, Rect dst, Paint paint) {
-    didDrawImageRect = true;
-  }
+  bool didDrawVertices = false;
+  int drawRectCount = 0;
 
   @override
   void drawRect(Rect rect, Paint paint) {
     didDrawRect = true;
+    drawRectCount++;
+  }
+
+  @override
+  void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {
+    didDrawVertices = true;
   }
 
   @override

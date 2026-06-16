@@ -51,6 +51,8 @@ dependencies:
   real_page_flip: ^1.4.0
 ```
 
+## 라이선스
+
 이 프로젝트는 **MIT 라이선스**를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 및 [LICENSE_KR](LICENSE_KR) 파일을 참고해 주세요. 비상업적 목적뿐만 아니라 상업적 프로젝트에서도 제한 없이 완전 무료로 사용하실 수 있습니다.
 
 ---

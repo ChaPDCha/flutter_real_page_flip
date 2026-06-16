@@ -143,6 +143,8 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                               contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                               title: Text(
                                 result.snippet,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(color: widget.theme.textColor, fontSize: 14, height: 1.4),
                               ),
                               subtitle: Padding(

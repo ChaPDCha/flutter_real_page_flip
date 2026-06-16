@@ -16,12 +16,12 @@ import 'package:flutter/material.dart';
 ///
 /// ## Modes
 ///
-/// | Mode | Bottom | Middle | Spine reveal |
-/// |------|--------|--------|-------------|
-/// | Single forward | Next page | Opaque paper | — |
-/// | Single backward | Current page | Previous page | — |
-/// | Double forward | Current spread right half | Current spread | Next spread left half |
-/// | Double backward | Previous spread right half | Current spread | Previous spread left half |
+/// | Mode | Bottom | Middle |
+/// |------|--------|--------|
+/// | Single forward | Next page | Opaque paper |
+/// | Single backward | Current page | Previous page |
+/// | Double forward | Next spread right half | Current spread left half |
+/// | Double backward | Previous spread left half | Current spread right half |
 class FlipLayerPolicy {
   /// Whether the book is in double-spread mode (two pages per viewport).
   final bool isDoubleSpread;
@@ -50,9 +50,16 @@ class FlipLayerPolicy {
   /// (out-of-bounds or single mode).
   ({int index, Alignment alignment})? get bottomSpreadHalf {
     if (!isDoubleSpread) return null;
-    if (isForward) return (index: currentIndex, alignment: Alignment.centerRight);
+    if (isForward) {
+      // Forward: reveal the NEXT spread's RIGHT half behind the fold
+      if (currentIndex < itemCount - 1) {
+        return (index: currentIndex + 1, alignment: Alignment.centerRight);
+      }
+      return null; // paper fallback on last spread
+    }
+    // Backward: reveal the PREV spread's LEFT half behind the fold
     if (currentIndex > 0) {
-      return (index: currentIndex - 1, alignment: Alignment.centerRight);
+      return (index: currentIndex - 1, alignment: Alignment.centerLeft);
     }
     return null; // paper fallback
   }
@@ -69,6 +76,20 @@ class FlipLayerPolicy {
 
   // ─── Middle layer (stationary under the flap) ───
 
+  /// Spread half to show in the middle layer (double mode), or null.
+  ///
+  /// The stationary side always shows the **current** spread's corresponding
+  /// half during the flip — the new content is only on the revealed (bottom)
+  /// side. Forward: left half (Clipper, left of fold). Backward: right half
+  /// (OpenClipper, right of fold).
+  ({int index, Alignment alignment})? get middleSpreadHalf {
+    if (!isDoubleSpread) return null;
+    return (
+      index: currentIndex,
+      alignment: isForward ? Alignment.centerLeft : Alignment.centerRight,
+    );
+  }
+
   /// Full spread index for the middle layer (double mode), or null for single mode.
   ///
   /// In double mode the entire current spread sits stationary under the flap
@@ -83,20 +104,6 @@ class FlipLayerPolicy {
   int? get middlePageIndex {
     if (isDoubleSpread) return null; // uses full spread
     if (isForward) return null; // opaque paper
-    return currentIndex > 0 ? currentIndex - 1 : null;
-  }
-
-  // ─── Spine reveal band (double mode only) ───
-
-  /// Spread index whose left half peeks through the spine gap, or null.
-  ///
-  /// Only applicable in double-spread mode where the fold opens a triangular
-  /// gap near the spine that reveals the adjacent spread's left page.
-  int? get spineRevealSpreadIndex {
-    if (!isDoubleSpread) return null;
-    if (isForward) {
-      return currentIndex < itemCount - 1 ? currentIndex + 1 : null;
-    }
     return currentIndex > 0 ? currentIndex - 1 : null;
   }
 

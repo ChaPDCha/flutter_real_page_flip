@@ -1,4 +1,4 @@
-package com.example.real_page_flip_example
+package app.realbook.reader
 
 import io.flutter.embedding.android.FlutterActivity
 

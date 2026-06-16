@@ -99,58 +99,6 @@ void main() {
     });
   });
 
-  group('flapFrontAlignedTextureMapping', () {
-    const baseSrc = Rect.fromLTWH(400, 0, 400, 600);
-    const baseDest = Rect.fromLTWH(400, 0, 400, 600);
-    const size = Size(800, 600);
-
-    test('narrows src/dest to visible flap strip at mid progress', () {
-      final geo = PageFlipGeometry(
-        progress: 0.5,
-        isRightToLeft: true,
-        touchOffset: Offset.zero,
-        size: size,
-        isDoubleSpread: true,
-        isForward: true,
-      );
-
-      final mapping = flapFrontAlignedTextureMapping(
-        baseSrcRect: baseSrc,
-        baseDestRect: baseDest,
-        geo: geo,
-      );
-
-      expect(mapping, isNotNull);
-      expect(mapping!.destRect.width, closeTo(geo.flapVisibleWidth, 0.01));
-      expect(mapping.destRect.left, closeTo(geo.flapLeft, 0.01));
-      expect(mapping.srcRect.width, lessThan(baseSrc.width));
-      expect(
-        mapping.srcRect.right,
-        closeTo(baseSrc.right, 0.01),
-      );
-    });
-
-    test('returns null when flap does not overlap page dest', () {
-      final geo = PageFlipGeometry(
-        progress: 0.05,
-        isRightToLeft: true,
-        touchOffset: Offset.zero,
-        size: size,
-        isDoubleSpread: true,
-        isForward: false,
-      );
-
-      expect(
-        flapFrontAlignedTextureMapping(
-          baseSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
-          baseDestRect: const Rect.fromLTWH(0, 0, 400, 600),
-          geo: geo,
-        ),
-        isNull,
-      );
-    });
-  });
-
   group('flapFrontContentRevealOpacity', () {
     test('starts visible and fades out quickly during early drag', () {
       expect(flapFrontContentRevealOpacity(0.0), equals(1.0));

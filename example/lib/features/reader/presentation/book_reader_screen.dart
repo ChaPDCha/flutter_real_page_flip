@@ -95,9 +95,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
           // 1. Core Page Flip Viewer
           Positioned.fill(
             child: readerState.isLoading
-                ? Center(
-                    child: CircularProgressIndicator(color: themeData.accentColor),
-                  )
+                ? _buildLoadingState(themeData)
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       // Adjust padding to keep text clear of screen edges
@@ -117,8 +115,14 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                         }
                       });
 
+
                       if (readerState.pages.isEmpty) {
-                        return const Center(child: Text('로딩 중...'));
+                        return Center(
+                          child: Text(
+                            '로딩 중...',
+                            style: TextStyle(color: themeData.textColor),
+                          ),
+                        );
                       }
 
                       final isDouble = readerState.isDoublePage;
@@ -208,11 +212,17 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                             },
                             onPageChanged: (index) {
                               _isFlipping = false;
-                              if (isDouble && !readerState.isPdfLandscape) {
-                                controller.goToPageIndex(index * 2);
-                              } else {
-                                controller.goToPageIndex(index);
-                              }
+                              // Defer reader state update to post-frame so the
+                              // PageFlipWidget fully transitions to non-drag mode
+                              // before Riverpod triggers a rebuild of this screen.
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (!mounted) return;
+                                if (isDouble && !readerState.isPdfLandscape) {
+                                  controller.goToPageIndex(index * 2);
+                                } else {
+                                  controller.goToPageIndex(index);
+                                }
+                              });
                             },
                           ),
                         ),
@@ -221,7 +231,11 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                   ),
           ),
 
-          // 2. AppBar (Appears on Tap)
+          // 2. Persistent Back Button (visible even when ui is hidden)
+          if (!readerState.isLoading && readerState.pages.isNotEmpty)
+            _buildPersistentBackButton(themeData),
+
+          // 3. AppBar (Appears on Tap)
           if (_mountUi)
             ReaderAppBar(
               showUi: _showUi,
@@ -272,7 +286,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
               },
             ),
 
-          // 3. Bottom Bar (Appears on Tap)
+          // 4. Bottom Bar (Appears on Tap)
           if (_mountUi)
             ReaderBottomBar(
               showUi: _showUi,
@@ -289,6 +303,69 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
               },
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(ReaderThemeData themeData) {
+    return Container(
+      color: themeData.backgroundColor,
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: themeData.accentColor),
+                const SizedBox(height: 24),
+                Text(
+                  '책을 불러오는 중...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: themeData.secondaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 8,
+            child: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new,
+                  color: themeData.textColor, size: 20),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersistentBackButton(ReaderThemeData themeData) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 8,
+      left: 8,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => Navigator.of(context).pop(),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: themeData.isDark
+                  ? Colors.black.withValues(alpha: 0.4)
+                  : Colors.white.withValues(alpha: 0.7),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.arrow_back_ios_new,
+              color: themeData.textColor,
+              size: 18,
+            ),
+          ),
+        ),
       ),
     );
   }

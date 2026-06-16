@@ -119,6 +119,29 @@ void main() {
       expect(mgr.spreadSnapshots.containsKey(99), isFalse);
     });
 
+    test('_doCaptureSnapshots Set-dispose prevents double dispose on shared image (regression)', () async {
+      // Regression: captureAsSpread && index != currentIndex stores the same
+      // image ref in both pageSnapshots and spreadSnapshots. When that index
+      // is later evicted, the old image must be disposed exactly once (Set
+      // dedup), not twice (List would crash on the second dispose).
+      final mgr = PreRenderManager();
+      final shared = await _createTestImage();
+      // Simulate state where same image is in both maps for index 4 (a
+      // non-current index captured as spread, e.g. index-1 in double-spread).
+      mgr.pageSnapshots[4] = shared;
+      mgr.spreadSnapshots[4] = shared;
+
+      // cleanup for index 5 (current) — index 4 is adjacent, so it stays.
+      // We need to force index 4 to be stale: cleanup for index 2 makes 4 stale.
+      mgr.pageSnapshots[1] = await _createTestImage();
+      mgr.pageSnapshots[3] = await _createTestImage();
+
+      // This should not throw (the Set dedup prevents double-dispose).
+      expect(() => mgr.cleanup(2, 10), returnsNormally);
+      expect(mgr.pageSnapshots.containsKey(4), isFalse);
+      expect(mgr.spreadSnapshots.containsKey(4), isFalse);
+    });
+
     test('cleanup removes stale spread snapshots', () async {
       final mgr = PreRenderManager();
       mgr.prepareKeys(5, 10);
