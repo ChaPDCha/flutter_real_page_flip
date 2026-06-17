@@ -641,6 +641,47 @@ class PageFlipGeometry {
   late final Offset flapCurveControl;
 }
 
+/// Screen-space flap region clip used by [PageFlipPainter] BEFORE canvas transform.
+///
+/// Unlike [buildFlapClipPathLocal] (which operates in transformed local space),
+/// this path follows the actual fold line and flap edge in screen space so it
+/// exactly matches the clip of Layer 2 (stationary page), eliminating the seam
+/// where wrong content shows through.
+@visibleForTesting
+Path buildFlapScreenClipPath(
+  PageFlipGeometry geo, {
+  double foldEdgeBleedPx = kSpineRevealOverlapPx,
+}) {
+  // Degenerate geometry: flap left edge is at or right of the fold line.
+  // This happens at progress≈0 or progress≈1. An inverted clip would show
+  // wrong content — return empty path instead so nothing extra is drawn.
+  if (geo.flapLeft >= geo.foldX - 0.5) return Path();
+
+  final height = geo.size.height;
+  final flapEdgeTop = snapClipPoint(geo.flapEdgeTop);
+  final flapEdgeBottom = snapClipPoint(geo.flapEdgeBottom);
+
+  final path = Path();
+  path.moveTo(flapEdgeTop.dx, flapEdgeTop.dy);
+
+  // Right edge: follows the fold line (with bleed), matching Layer 2's clip.
+  appendFoldLineBoundary(path, geo, overlapShift: foldEdgeBleedPx);
+
+  // Bottom edge: from fold line bottom to flap edge bottom.
+  path.lineTo(flapEdgeBottom.dx, flapEdgeBottom.dy);
+
+  // Left edge: flap's free edge (follows the curvature).
+  if (geo.curvatureAmount > 0.001) {
+    final control = snapClipPoint(geo.flapCurveControl);
+    path.quadraticBezierTo(
+      control.dx, control.dy,
+      flapEdgeTop.dx, flapEdgeTop.dy,
+    );
+  }
+  path.close();
+  return path;
+}
+
 /// CustomPainter that renders the flipping page flap with shadow and highlight effects.
 ///
 /// PERFORMANCE CRITICAL: This painter is called 60 times per second during animation.
@@ -754,9 +795,10 @@ class PageFlipPainter extends CustomPainter {
     final isPaperDark = luminance < 0.20; // catches dark mode backgrounds
 
     canvas.save();
-    canvas.transform(g.transform.storage);
 
-    // Clip to flap region using the curved path in local space
+    // Clip to flap region in SCREEN space (before canvas transform) so the
+    // clip exactly matches Layer 2's stationary clip along the same fold line,
+    // preventing the seam where wrong content shows through.
     final flapRect = Rect.fromLTWH(
       g.flapLeft,
       0,
@@ -764,7 +806,8 @@ class PageFlipPainter extends CustomPainter {
       size.height,
     );
 
-    canvas.clipPath(buildFlapClipPathLocal(g));
+    canvas.clipPath(buildFlapScreenClipPath(g));
+    canvas.transform(g.transform.storage);
 
     // Layer 1: Paper back underlay, then flap-front texture with late reveal.
     final paperPaint = Paint()

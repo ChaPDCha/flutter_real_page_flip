@@ -80,3 +80,6 @@ doc/api/
 
 # Temp artifacts from tooling harness
 /example/_attach_in.txt
+
+# Firebase config (per-machine, contains API keys)
+example/android/app/google-services.json

@@ -9,6 +9,7 @@ import '../domain/reading_progress.dart';
 import '../../../shared/theme/app_theme_controller.dart';
 import '../../../shared/theme/reader_theme.dart';
 import '../../../shared/theme/reader_typography.dart';
+import '../../../shared/firebase/firebase_service.dart';
 import '../application/epub_paging_calculator.dart';
 import '../application/txt_service.dart';
 import '../application/pdf_service.dart';
@@ -124,6 +125,8 @@ class ReaderController extends _$ReaderController {
           isPdfLandscape: isLandscape,
         );
       }
+
+      unawaited(FirebaseService.logBookOpened(book.id, book.format.name));
     } catch (e) {
       debugPrint('Error initializing e-book reader: $e');
       state = state.copyWith(isLoading: false);
@@ -199,6 +202,41 @@ class ReaderController extends _$ReaderController {
       settings: state.settings.copyWith(fontSize: newSize),
     );
     _recalculatePages();
+    unawaited(FirebaseService.logFontSizeChanged(newSize));
+    await _saveSettings();
+  }
+
+  Future<void> updateLineHeight(double delta) async {
+    final newHeight = (state.settings.lineHeight + delta).clamp(1.0, 2.5);
+    if (newHeight == state.settings.lineHeight) return;
+
+    state = state.copyWith(
+      settings: state.settings.copyWith(lineHeight: newHeight),
+    );
+    _recalculatePages();
+    unawaited(FirebaseService.logLineHeightChanged(newHeight));
+    await _saveSettings();
+  }
+
+  Future<void> updateBrightness(double value) async {
+    final clamped = value.clamp(0.3, 1.0);
+    if (clamped == state.settings.brightness) return;
+
+    state = state.copyWith(
+      settings: state.settings.copyWith(brightness: clamped),
+    );
+    unawaited(FirebaseService.logBrightnessChanged(clamped));
+    await _saveSettings();
+  }
+
+  Future<void> updateFontFamily(String? fontFamily) async {
+    if (fontFamily == state.settings.fontFamily) return;
+
+    state = state.copyWith(
+      settings: state.settings.copyWith(fontFamily: fontFamily),
+    );
+    _recalculatePages();
+    if (fontFamily != null) unawaited(FirebaseService.logFontFamilyChanged(fontFamily));
     await _saveSettings();
   }
 
@@ -206,6 +244,7 @@ class ReaderController extends _$ReaderController {
     state = state.copyWith(
       settings: state.settings.copyWith(enableHaptics: enabled),
     );
+    unawaited(FirebaseService.logHapticsToggled(enabled));
     await _saveSettings();
   }
 
@@ -213,6 +252,7 @@ class ReaderController extends _$ReaderController {
     state = state.copyWith(
       settings: state.settings.copyWith(enableSound: enabled),
     );
+    unawaited(FirebaseService.logSoundToggled(enabled));
     await _saveSettings();
   }
 
@@ -255,6 +295,7 @@ class ReaderController extends _$ReaderController {
       );
       _recalculatePages();
     }
+    unawaited(FirebaseService.logPageTurned(book.id, isForward: true));
   }
 
   void previousPage() {

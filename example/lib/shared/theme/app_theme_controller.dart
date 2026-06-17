@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../firebase/firebase_service.dart';
 
 import '../../features/sync/application/sync_provider.dart';
 import 'reader_theme.dart';
@@ -22,6 +24,7 @@ class AppThemeController extends _$AppThemeController {
     if (state == themeType) return;
 
     state = themeType;
+    unawaited(FirebaseService.logThemeChanged(themeType.name));
     await ref.read(sharedPreferencesProvider).setString(_appThemeKey, themeType.name);
   }
 

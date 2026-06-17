@@ -12,6 +12,8 @@ _$ReaderSettingsImpl _$$ReaderSettingsImplFromJson(Map<String, dynamic> json) =>
       lineHeight: (json['lineHeight'] as num?)?.toDouble() ?? 1.6,
       enableHaptics: json['enableHaptics'] as bool? ?? true,
       enableSound: json['enableSound'] as bool? ?? true,
+      brightness: (json['brightness'] as num?)?.toDouble() ?? 1.0,
+      fontFamily: json['fontFamily'] as String?,
     );
 
 Map<String, dynamic> _$$ReaderSettingsImplToJson(
@@ -21,4 +23,6 @@ Map<String, dynamic> _$$ReaderSettingsImplToJson(
   'lineHeight': instance.lineHeight,
   'enableHaptics': instance.enableHaptics,
   'enableSound': instance.enableSound,
+  'brightness': instance.brightness,
+  'fontFamily': instance.fontFamily,
 };

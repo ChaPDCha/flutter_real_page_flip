@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   audioplayers_windows
+  firebase_core
   flutter_onnxruntime
   passkeys_windows
   pdfx

@@ -25,6 +25,8 @@ mixin _$ReaderSettings {
   double get lineHeight => throw _privateConstructorUsedError;
   bool get enableHaptics => throw _privateConstructorUsedError;
   bool get enableSound => throw _privateConstructorUsedError;
+  double get brightness => throw _privateConstructorUsedError;
+  String? get fontFamily => throw _privateConstructorUsedError;
 
   /// Serializes this ReaderSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -48,6 +50,8 @@ abstract class $ReaderSettingsCopyWith<$Res> {
     double lineHeight,
     bool enableHaptics,
     bool enableSound,
+    double brightness,
+    String? fontFamily,
   });
 }
 
@@ -70,6 +74,8 @@ class _$ReaderSettingsCopyWithImpl<$Res, $Val extends ReaderSettings>
     Object? lineHeight = null,
     Object? enableHaptics = null,
     Object? enableSound = null,
+    Object? brightness = null,
+    Object? fontFamily = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -89,6 +95,14 @@ class _$ReaderSettingsCopyWithImpl<$Res, $Val extends ReaderSettings>
                 ? _value.enableSound
                 : enableSound // ignore: cast_nullable_to_non_nullable
                       as bool,
+            brightness: null == brightness
+                ? _value.brightness
+                : brightness // ignore: cast_nullable_to_non_nullable
+                      as double,
+            fontFamily: freezed == fontFamily
+                ? _value.fontFamily
+                : fontFamily // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -109,6 +123,8 @@ abstract class _$$ReaderSettingsImplCopyWith<$Res>
     double lineHeight,
     bool enableHaptics,
     bool enableSound,
+    double brightness,
+    String? fontFamily,
   });
 }
 
@@ -130,6 +146,8 @@ class __$$ReaderSettingsImplCopyWithImpl<$Res>
     Object? lineHeight = null,
     Object? enableHaptics = null,
     Object? enableSound = null,
+    Object? brightness = null,
+    Object? fontFamily = freezed,
   }) {
     return _then(
       _$ReaderSettingsImpl(
@@ -149,6 +167,14 @@ class __$$ReaderSettingsImplCopyWithImpl<$Res>
             ? _value.enableSound
             : enableSound // ignore: cast_nullable_to_non_nullable
                   as bool,
+        brightness: null == brightness
+            ? _value.brightness
+            : brightness // ignore: cast_nullable_to_non_nullable
+                  as double,
+        fontFamily: freezed == fontFamily
+            ? _value.fontFamily
+            : fontFamily // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -162,6 +188,8 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
     this.lineHeight = 1.6,
     this.enableHaptics = true,
     this.enableSound = true,
+    this.brightness = 1.0,
+    this.fontFamily,
   });
 
   factory _$ReaderSettingsImpl.fromJson(Map<String, dynamic> json) =>
@@ -179,10 +207,15 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
   @override
   @JsonKey()
   final bool enableSound;
+  @override
+  @JsonKey()
+  final double brightness;
+  @override
+  final String? fontFamily;
 
   @override
   String toString() {
-    return 'ReaderSettings(fontSize: $fontSize, lineHeight: $lineHeight, enableHaptics: $enableHaptics, enableSound: $enableSound)';
+    return 'ReaderSettings(fontSize: $fontSize, lineHeight: $lineHeight, enableHaptics: $enableHaptics, enableSound: $enableSound, brightness: $brightness, fontFamily: $fontFamily)';
   }
 
   @override
@@ -197,7 +230,11 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
             (identical(other.enableHaptics, enableHaptics) ||
                 other.enableHaptics == enableHaptics) &&
             (identical(other.enableSound, enableSound) ||
-                other.enableSound == enableSound));
+                other.enableSound == enableSound) &&
+            (identical(other.brightness, brightness) ||
+                other.brightness == brightness) &&
+            (identical(other.fontFamily, fontFamily) ||
+                other.fontFamily == fontFamily));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -208,6 +245,8 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
     lineHeight,
     enableHaptics,
     enableSound,
+    brightness,
+    fontFamily,
   );
 
   /// Create a copy of ReaderSettings
@@ -233,6 +272,8 @@ abstract class _ReaderSettings implements ReaderSettings {
     final double lineHeight,
     final bool enableHaptics,
     final bool enableSound,
+    final double brightness,
+    final String? fontFamily,
   }) = _$ReaderSettingsImpl;
 
   factory _ReaderSettings.fromJson(Map<String, dynamic> json) =
@@ -246,6 +287,10 @@ abstract class _ReaderSettings implements ReaderSettings {
   bool get enableHaptics;
   @override
   bool get enableSound;
+  @override
+  double get brightness;
+  @override
+  String? get fontFamily;
 
   /// Create a copy of ReaderSettings
   /// with the given fields replaced by the non-null parameter values.

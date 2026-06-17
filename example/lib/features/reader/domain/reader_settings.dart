@@ -10,6 +10,8 @@ class ReaderSettings with _$ReaderSettings {
     @Default(1.6) double lineHeight,
     @Default(true) bool enableHaptics,
     @Default(true) bool enableSound,
+    @Default(1.0) double brightness,
+    String? fontFamily,
   }) = _ReaderSettings;
 
   factory ReaderSettings.fromJson(Map<String, dynamic> json) => _$ReaderSettingsFromJson(json);

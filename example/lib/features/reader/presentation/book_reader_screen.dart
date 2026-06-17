@@ -234,11 +234,21 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                   ),
           ),
 
-          // 2. Persistent Back Button (visible even when ui is hidden)
+          // 2. Brightness overlay (dims content without affecting UI chrome)
+          if (readerState.settings.brightness < 1.0)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  color: Colors.black.withValues(alpha: 1.0 - readerState.settings.brightness),
+                ),
+              ),
+            ),
+
+          // 3. Persistent Back Button (visible even when ui is hidden)
           if (!readerState.isLoading && readerState.pages.isNotEmpty)
             _buildPersistentBackButton(themeData),
 
-          // 3. AppBar (Appears on Tap)
+          // 4. AppBar (Appears on Tap)
           if (_mountUi)
             ReaderAppBar(
               showUi: _showUi,
@@ -289,7 +299,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
               },
             ),
 
-          // 4. Bottom Bar (Appears on Tap)
+          // 5. Bottom Bar (Appears on Tap)
           if (_mountUi)
             ReaderBottomBar(
               showUi: _showUi,

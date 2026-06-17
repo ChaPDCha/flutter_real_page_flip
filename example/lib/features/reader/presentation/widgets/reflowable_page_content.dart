@@ -61,7 +61,7 @@ class ReflowablePageContent extends ConsumerWidget {
       fontSize: state.settings.fontSize,
       color: theme.textColor,
       lineHeight: state.settings.lineHeight,
-      fontFamily: 'serif',
+      fontFamily: state.settings.fontFamily,
     );
 
     // Watch TTS state
@@ -101,7 +101,7 @@ class ReflowablePageContent extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.secondaryTextColor.withValues(alpha: 0.65),
-                  fontFamily: 'serif',
+                  fontFamily: state.settings.fontFamily,
                   fontWeight: FontWeight.w500,
                   letterSpacing: -0.2,
                 ),

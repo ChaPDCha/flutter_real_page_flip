@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2+5] - 2026-06-17
+### 🐛 수정
+- 페이지플립 접힌 면 바깥 경계선 클립 정렬 오차 수정 (screen-space clip path 도입)
+- 챕터 제목에 하드코딩된 `fontFamily: 'serif'`를 사용자 설정 반영으로 수정
+
+### 🔧 빌드/배포
+- Firebase Crashlytics + Analytics + Remote Config 연동
+- Crashlytics 전역 에러 핸들러 등록 (Flutter + Native)
+- Firebase 초기화 실패 시 앱 크래시 방지 try-catch 추가
+- AdMob 초기화 코드 누락 복구
+- google-services.json .gitignore 추가 (시크릿 보호)
+- 버전 1.0.2+5 (build number 5)
+
+### ♻️ 리팩토링
+- FirebaseService lazy getter 도입 (테스트 환경에서 자동 no-op)
+- buildFlapScreenClipPath degenerate geometry 가드 추가
+
+### 🧪 테스트
+- clip_alignment_test.dart 18개 추가: stationary/flap 경로 정렬을 다양한 각도, 곡률, touch offset, double-spread 모드에서 검증
+- snapClipCoord 정밀도 테스트
+
 ## [1.0.1+4] - 2026-06-17
 ### 🐛 수정
 - 1단보기 페이지 넘김 시 현재 페이지가 사라지고 빈 종이로 보이던 문제 수정
