@@ -15,6 +15,7 @@ import 'widgets/reader_bottom_bar.dart';
 import 'widgets/reader_search_panel.dart';
 import 'widgets/reader_settings_panel.dart';
 import 'widgets/reflowable_page_content.dart';
+import '../../ads/presentation/adaptive_banner_ad.dart';
 
 class BookReaderScreen extends ConsumerStatefulWidget {
   final Book book;
@@ -90,11 +91,14 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
 
     return Scaffold(
       backgroundColor: themeData.backgroundColor,
-      body: Stack(
+      body: Column(
         children: [
-          // 1. Core Page Flip Viewer
-          Positioned.fill(
-            child: readerState.isLoading
+          Expanded(
+            child: Stack(
+              children: [
+                // 1. Core Page Flip Viewer
+                Positioned.fill(
+                  child: readerState.isLoading
                 ? _buildLoadingState(themeData)
                 : LayoutBuilder(
                     builder: (context, constraints) {
@@ -304,6 +308,11 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
             ),
         ],
       ),
+    ),
+    // 5. Banner Ad (always visible at bottom)
+    AdaptiveBannerAdWidget(),
+  ],
+),
     );
   }
 

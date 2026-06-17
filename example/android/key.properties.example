@@ -1,0 +1,34 @@
+# =============================================================================
+# Realbook Reader — Android 앱 서명 키 설정 샘플
+# =============================================================================
+# 사용법:
+#   1. cp key.properties.example key.properties
+#   2. 비밀번호를 자신만의 강력한 값으로 변경
+#   3. keystore 파일 생성:
+#      keytool -genkey -v -keystore realbook-release.keystore \
+#        -alias realbook-key -keyalg RSA -keysize 2048 -validity 10000 \
+#        -storepass YOUR_STORE_PASS -keypass YOUR_KEY_PASS
+#   4. SHA-1/SHA-256 지문 확인:
+#      keytool -list -v -keystore realbook-release.keystore \
+#        -alias realbook-key -storepass YOUR_STORE_PASS
+#
+# key.properties와 *.keystore 파일은 절대 git에 커밋하지 마세요.
+# =============================================================================
+
+# 키스토어 비밀번호
+storePassword=YOUR_STORE_PASSWORD
+
+# 키 비밀번호
+keyPassword=YOUR_KEY_PASSWORD
+
+# 키 별칭
+keyAlias=realbook-key
+
+# 키스토어 파일 경로 (key.properties 기준 상대 경로)
+storeFile=realbook-release.keystore
+
+# =============================================================================
+# SHA-256 인증서 지문 (참고용 — Play Console App Integrity에 등록 필요)
+# =============================================================================
+# Play Console > Setup > App Integrity > Upload Key Certificate 에 등록
+# fingerprint.sha256=AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0+3] - 2026-06-17
+### 🎨 UI/UX
+- Play Store 등록정보 업데이트: 스크린샷 5종, 앱 설명 한글/영문 작성
+
+### 🔧 빌드/배포
+- 비공개테스트 배포 (internal testing track)
+- 버전 1.0.0+3 (build number 3)
+
+## [1.0.0+2] - 2026-06-17
+### 🎨 UI/UX
+- 배너 광고를 리더 화면 하단에 추가 (Adaptive anchored banner)
+
+### 🔧 빌드/배포
+- Play Store 출시 준비: 서명 설정, ProGuard, AdMob 통합
+- 안드로이드 릴리스 번들 빌드 성공 (94.2MB)
+
 ## [1.4.2] - 2026-06-04
 ### Added
 - Updated documentation to clarify that the engine is optimized for vertical mobile devices and does not support horizontal two-page view.
