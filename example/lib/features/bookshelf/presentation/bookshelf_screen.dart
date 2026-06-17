@@ -9,6 +9,7 @@ import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import '../../../shared/theme/app_theme_controller.dart';
 import '../../../shared/theme/reader_theme.dart';
 import '../../../shared/theme/reader_theme_dialogs.dart';
+import '../../ads/presentation/adaptive_banner_ad.dart';
 import 'bookshelf_controller.dart';
 import '../domain/book.dart';
 import '../../reader/presentation/book_reader_screen.dart';
@@ -74,6 +75,7 @@ class BookshelfScreen extends ConsumerWidget {
           ),
         ),
       ),
+      bottomNavigationBar: const AdaptiveBannerAdWidget(),
     );
   }
 

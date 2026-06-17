@@ -15,7 +15,6 @@ import 'widgets/reader_bottom_bar.dart';
 import 'widgets/reader_search_panel.dart';
 import 'widgets/reader_settings_panel.dart';
 import 'widgets/reflowable_page_content.dart';
-import '../../ads/presentation/adaptive_banner_ad.dart';
 
 class BookReaderScreen extends ConsumerStatefulWidget {
   final Book book;
@@ -309,8 +308,6 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
         ],
       ),
     ),
-    // 5. Banner Ad (always visible at bottom)
-    AdaptiveBannerAdWidget(),
   ],
 ),
     );
