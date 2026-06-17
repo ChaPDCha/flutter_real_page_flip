@@ -193,7 +193,7 @@ void main() {
       );
     });
 
-    testWidgets('forward drag middle layer uses opaque paper underlay', (
+    testWidgets('forward drag middle layer shows current page content', (
       tester,
     ) async {
       final recorder = ui.PictureRecorder();
@@ -237,16 +237,9 @@ void main() {
       final middleClipper = find.byWidgetPredicate(
         (w) => w is ClipPath && w.clipper is PageFlipClipper,
       );
+      // Single forward: middle layer shows the current page snapshot
       expect(
         find.descendant(of: middleClipper, matching: find.byType(RawImage)),
-        findsNothing,
-      );
-      expect(
-        find.descendant(of: middleClipper, matching: find.text('Page 1')),
-        findsNothing,
-      );
-      expect(
-        find.descendant(of: middleClipper, matching: find.byType(ColoredBox)),
         findsOneWidget,
       );
     });

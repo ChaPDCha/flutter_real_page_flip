@@ -18,7 +18,7 @@ import 'package:flutter/material.dart';
 ///
 /// | Mode | Bottom | Middle |
 /// |------|--------|--------|
-/// | Single forward | Next page | Opaque paper |
+/// | Single forward | Next page | Current page |
 /// | Single backward | Current page | Previous page |
 /// | Double forward | Next spread right half | Current spread left half |
 /// | Double backward | Previous spread left half | Current spread right half |
@@ -103,7 +103,7 @@ class FlipLayerPolicy {
   /// in from the left edge.
   int? get middlePageIndex {
     if (isDoubleSpread) return null; // uses full spread
-    if (isForward) return null; // opaque paper
+    if (isForward) return currentIndex; // current page stays visible on stationary side
     return currentIndex > 0 ? currentIndex - 1 : null;
   }
 

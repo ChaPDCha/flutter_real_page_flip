@@ -760,7 +760,7 @@ class PageFlipPainter extends CustomPainter {
     final flapRect = Rect.fromLTWH(
       g.flapLeft,
       0,
-      g.flapVisibleWidth,
+      g.flapVisibleWidth + kSpineRevealOverlapPx,
       size.height,
     );
 

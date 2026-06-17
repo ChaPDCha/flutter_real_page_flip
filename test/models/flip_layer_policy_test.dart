@@ -213,14 +213,14 @@ void main() {
     // ─── middlePageIndex ───
 
     group('middlePageIndex', () {
-      test('single forward returns null (opaque paper)', () {
+      test('single forward returns currentIndex (stationary content)', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 2,
           itemCount: itemCount,
         );
-        expect(policy.middlePageIndex, isNull);
+        expect(policy.middlePageIndex, 2);
       });
 
       test('single backward returns previous page', () {
@@ -322,7 +322,8 @@ void main() {
         expect(policy.flapSnapshotSpreadIndex, isNull);
       });
 
-      test('single forward at index 0: bottomPageIndex=null (out of bounds)', () {
+      test('single forward at index 0: bottomPageIndex=null (out of bounds), '
+          'middlePageIndex=0 (current page stays)', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
@@ -330,7 +331,7 @@ void main() {
           itemCount: 1,
         );
         expect(policy.bottomPageIndex, isNull);
-        expect(policy.middlePageIndex, isNull);
+        expect(policy.middlePageIndex, 0);
       });
     });
   });
