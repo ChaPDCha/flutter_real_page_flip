@@ -48,6 +48,10 @@ app.*.map.json
 key.properties
 /realbook-*.json
 .env
+client_secret.json
+deployment_cert.der
+upload_cert.der
+deploy_alpha.py
 
 # Build copies – generated from flutter build
 /example/screenshots/
