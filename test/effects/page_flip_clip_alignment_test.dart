@@ -91,20 +91,21 @@ void main() {
       );
     });
 
-    test('backward mid-flip extends fold past canvas for clean clip', () {
+    test('backward mid-flip foldX left of spine, open clip covers right side', () {
       final g = geo(progress: 0.15, isForward: false);
 
-      expect(g.foldX, greaterThan(g.spineX + 100));
+      // Backward: foldX moves from left edge (0) toward spineX.
+      expect(g.foldX, lessThan(g.spineX));
       // With curvature, the bezier fold line extends past canvas width.
       // This is correct — ClipPath at widget bounds ensures clean rendering.
       expect(
         buildOpenPageClipPath(canvasSize, g).getBounds().right,
         greaterThanOrEqualTo(canvasSize.width),
       );
-      // Must stay right of spine so it doesn't leak into stationary half.
+      // Open clip (right of foldX) should extend left to foldX, not to spine.
       expect(
         buildOpenPageClipPath(canvasSize, g).getBounds().left,
-        greaterThan(g.spineX),
+        lessThan(g.spineX),
       );
     });
   });

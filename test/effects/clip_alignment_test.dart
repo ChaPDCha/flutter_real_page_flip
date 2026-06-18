@@ -271,12 +271,14 @@ void main() {
           isForward: false,
         );
 
-        final stationaryPath = buildStationaryPageClipPath(size, geo);
+        // Backward: flap is RIGHT of foldX. Open clip (right of foldX)
+        // shares the fold boundary with the flap; stationary clip is LEFT.
+        final openPath = buildOpenPageClipPath(size, geo);
         final flapPath = buildFlapScreenClipPath(geo);
 
         expectFlapRegion(flapPath);
         for (final y in [50.0, height / 2, height - 50.0]) {
-          verifyOverlap(stationaryPath, flapPath, y);
+          verifyOverlap(openPath, flapPath, y);
         }
       });
     });
@@ -292,11 +294,13 @@ void main() {
           isForward: false,
         );
 
-        final stationaryPath = buildStationaryPageClipPath(size, geo);
+        // Backward: flap is RIGHT of foldX. Open clip (right of foldX)
+        // shares the fold boundary with the flap.
+        final openPath = buildOpenPageClipPath(size, geo);
         final flapPath = buildFlapScreenClipPath(geo);
 
         expectFlapRegion(flapPath);
-        verifyOverlap(stationaryPath, flapPath, height / 2);
+        verifyOverlap(openPath, flapPath, height / 2);
       });
     });
 

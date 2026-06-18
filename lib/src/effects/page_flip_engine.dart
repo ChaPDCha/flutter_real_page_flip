@@ -85,20 +85,26 @@ double flapFrontContentRevealOpacity(
   double fadeOutEnd = 0.20,
   double revealStart = 0.85,
   double revealEnd = 0.95,
+  bool isForward = true,
 }) {
+  // Normalize progress so p always goes 0→1 from flip-start to flip-end.
+  // Forward:  p = progress (0→1 at start→completion).
+  // Backward: p = progress (1→0 at start→completion) → invert.
+  final p = isForward ? progress : (1.0 - progress);
+
   // Phase 1: brief early visibility → fast hide as fold begins.
-  if (progress <= fadeOutEnd) {
+  if (p <= fadeOutEnd) {
     if (fadeOutEnd <= 0) return 0.0;
-    final t = 1.0 - progress / fadeOutEnd;
+    final t = 1.0 - p / fadeOutEnd;
     return t * t * (3 - 2 * t);
   }
 
   // Phase 2: mid fold — paper back only (longest phase).
-  if (progress < revealStart) return 0.0;
+  if (p < revealStart) return 0.0;
 
   // Phase 3: late settle reveal.
-  if (progress >= revealEnd) return 1.0;
-  final t = (progress - revealStart) / (revealEnd - revealStart);
+  if (p >= revealEnd) return 1.0;
+  final t = (p - revealStart) / (revealEnd - revealStart);
   return t * t * (3 - 2 * t);
 }
 
@@ -519,58 +525,76 @@ class PageFlipGeometry {
     final height = size.height;
     spineX = isDoubleSpread ? width / 2 : 0.0;
 
-    // Use current logic but ensure it supports smooth reversing
-    // Forward (progress 0..1): Page moves Right -> Left. foldX moves Width -> spineX.
-    // Backward (progress 1..0): Page moves Left -> Right. foldX moves spineX -> Width.
-    // foldX is the hinge point where the paper is folded.
     final pageWidth = isDoubleSpread ? width / 2 : width;
-    foldX = width - (pageWidth * progress);
 
-    // Asymmetric rotation angle profile: fast rise (~40% of flip), slower
-    // settle (~60%). Real paper accelerates quickly when pushed, then
-    // decelerates mid-turn due to air resistance and paper stiffness.
+    // ── Fold line position ──────────────────────────────────────────────────
+    // Forward:  right page peels right→left. foldX moves width → spineX (or 0).
+    // Backward: left page peels left→right.  foldX moves 0 → pageWidth.
+    if (isForward) {
+      foldX = width - (pageWidth * progress);
+    } else {
+      foldX = pageWidth * (1.0 - progress);
+    }
+
+    // ── Rotation angle ──────────────────────────────────────────────────────
+    // Asymmetric profile: fast rise (~40% of flip), slower settle (~60%).
     final angleT = math.pow(progress, 0.82).toDouble();
     final angleProfile = math.sin(angleT * math.pi);
     final baseAngle = (touchOffset.dy / height - 0.5) *
         _kAngleScale *
         angleProfile;
 
-    // Ensure fold line doesn't detach from the spine (spineX) within the screen bounds
-    final limitLeft = math.atan2(foldX - spineX, height / 2);
-    final limitRight = math.atan2(width - foldX, height / 2);
-    final absLimit = math.max(0.0, math.min(limitLeft, limitRight));
+    // Limit angle so the fold line stays within page bounds.
+    // Forward: flap is left of foldX, bounded by stationary side (foldX-spineX)
+    //          and flap side (width-foldX).
+    // Backward: flap is right of foldX, bounded by revealed side (foldX)
+    //           and flap side (pageWidth-foldX).
+    final flapSideWidth = isForward ? (width - foldX) : (pageWidth - foldX);
+    final revealedSideWidth = isForward
+        ? (foldX - spineX).clamp(0.0, double.infinity)
+        : foldX.clamp(0.0, double.infinity);
+    final limitFlap = math.atan2(flapSideWidth, height / 2);
+    final limitRevealed = math.atan2(revealedSideWidth, height / 2);
+    final absLimit =
+        math.max(0.0, math.min(limitFlap, limitRevealed));
 
-    angle = baseAngle.clamp(-absLimit, absLimit);
+    // Invert angle for backward so that touching the top half lifts the flap
+    // top regardless of flip direction: with the flap on opposite sides of
+    // foldX, the rotation must reverse to keep the visual response consistent.
+    final rawAngle = isForward ? baseAngle : -baseAngle;
+    angle = rawAngle.clamp(-absLimit, absLimit);
 
-    // Create the transformation matrix (Hinge stays on the foldX)
+    // Transformation matrix: hinge at foldX.
     transform = Matrix4.identity()
       ..multiply(Matrix4.translationValues(foldX, height / 2, 0))
-      ..rotateZ(-angle) // Negated angle for standard R-to-L feel
+      ..rotateZ(-angle)
       ..multiply(Matrix4.translationValues(-foldX, -height / 2, 0));
 
-    // Calculate fold line endpoints (extended for clean clipping)
+    // ── Fold line endpoints ─────────────────────────────────────────────────
     foldLineTop = MatrixUtils.transformPoint(transform, Offset(foldX, -height));
     foldLineBottom = MatrixUtils.transformPoint(
       transform,
       Offset(foldX, height * 2),
     );
 
-    // Shadow intensity (peaks at middle of animation)
+    // ── Shadow intensity ────────────────────────────────────────────────────
     shadowIntensity = math.sin(progress * math.pi);
 
-    // Flap dimensions with foreshortening effect
-    // Forward: right page peeled right→left (flapMaterialWidth = width - foldX).
-    // Backward: left page peeled left→right (flapMaterialWidth = foldX - spineX).
-    final flapMaterialWidth = isForward ? (width - foldX) : (foldX - spineX);
+    // ── Flap dimensions ─────────────────────────────────────────────────────
+    // Forward:  flap extends LEFT  from foldX. flapMaterialWidth = width - foldX.
+    // Backward: flap extends RIGHT from foldX. flapMaterialWidth = pageWidth - foldX.
+    final flapMaterialWidth =
+        isForward ? (width - foldX) : (pageWidth - foldX);
 
-    // Preserving total width, but adding a curve effect using sine easing
     flapVisibleWidth = flapMaterialWidth *
         (_kFlapWidthBase - _kFlapWidthModulation * math.sin(progress * math.pi));
 
-    // Flap attaches to foldX and extends Left.
-    flapLeft = foldX - flapVisibleWidth;
+    // Free edge of the flap:
+    // Forward:  flapLeft (left of foldX).  Backward: flapRight (right of foldX).
+    // We store in flapLeft for backward compatibility of the field name.
+    flapLeft = isForward ? foldX - flapVisibleWidth : foldX + flapVisibleWidth;
 
-    // Calculate flap edge endpoints (Left edge of the flap)
+    // Flap edge endpoints
     flapEdgeTop = MatrixUtils.transformPoint(
       transform,
       Offset(flapLeft, -height),
@@ -580,27 +604,21 @@ class PageFlipGeometry {
       Offset(flapLeft, height * 2),
     );
 
-    // -----------------------------------------------------------------------
-    // Fold curvature — bezier control offsets create a subtle paper curl.
-    // Peak curvature occurs mid-flip (progress ≈ 0.5), flat at both ends.
-    // The control-point offset is ~4% of page width — just enough for the
-    // triangle mesh to deform text naturally without looking like the paper
-    // is tightly rolled. Direction matches the flip direction so the middle
-    // of the page lags behind — correct inertia for real paper.
-    // -----------------------------------------------------------------------
+    // ── Fold curvature ──────────────────────────────────────────────────────
+    // Bezier control offset creates subtle paper curl. Peak at mid-flip.
+    // Direction: forward = positive (fold moves left), backward = negative.
     curvatureAmount = math.sin(progress * math.pi);
     final curveDirection = isForward ? 1.0 : -1.0;
     curveOffset = curvatureAmount * pageWidth * 0.04 * curveDirection;
-    // For a natural peel from the right to left, the middle of the fold line
-    // lags slightly behind the top/bottom corners, creating a leftward bulge.
-    // In untransformed space, we move the control point left (-X).
+    // Control point offset direction:
+    // Forward: foldX - curveOffset (control moves left, matching flap direction).
+    // Backward: foldX - curveOffset (curveOffset is negative → control moves right,
+    //           matching flap direction the other way).
     foldCurveControl = MatrixUtils.transformPoint(
       transform,
       Offset(foldX - curveOffset, height / 2),
     );
-
-    // The flap's left edge should also curve in the same direction
-    // to maintain constant paper width and avoid hourglass stretching.
+    // Flap edge control curve — matches the free edge direction.
     flapCurveControl = MatrixUtils.transformPoint(
       transform,
       Offset(flapLeft - curveOffset, height / 2),
@@ -681,10 +699,14 @@ Path buildFlapScreenClipPath(
   PageFlipGeometry geo, {
   double foldEdgeBleedPx = kSpineRevealOverlapPx,
 }) {
-  // Degenerate geometry: flap left edge is at or right of the fold line.
-  // This happens at progress≈0 or progress≈1. An inverted clip would show
-  // wrong content — return empty path instead so nothing extra is drawn.
-  if (geo.flapLeft >= geo.foldX - 0.5) return Path();
+  // Degenerate geometry: flap is too narrow to render.
+  // Forward:  flapLeft (free edge) is at or right of foldX → flapVisibleWidth ≤ 0.
+  // Backward: flapLeft (free edge) is at or left  of foldX → flapVisibleWidth ≤ 0.
+  if (geo.isForward) {
+    if (geo.flapLeft >= geo.foldX - 0.5) return Path();
+  } else {
+    if (geo.flapLeft <= geo.foldX + 0.5) return Path();
+  }
 
   final height = geo.size.height;
   final flapEdgeTop = snapClipPoint(geo.flapEdgeTop);
@@ -995,6 +1017,7 @@ class PageFlipPainter extends CustomPainter {
         fadeOutEnd: flapContentFadeOutEnd,
         revealStart: flapContentRevealStart,
         revealEnd: flapContentRevealEnd,
+        isForward: isForward,
       );
       if (contentReveal > 0.001) {
         final srcRect = flapFrontSrcRect!;
