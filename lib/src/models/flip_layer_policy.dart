@@ -119,4 +119,21 @@ class FlipLayerPolicy {
     if (isForward) return currentIndex;
     return null;
   }
+
+  // ─── Flap back texture snapshot (2.5D back content) ───
+
+  /// Spread index whose snapshot provides the 2.5D page back content, or null.
+  ///
+  /// In double-spread mode, the back of the flipping page shows the destination
+  /// page content horizontally mirrored. Forward: next spread. Backward: prev.
+  /// Null in single mode (no back content needed) or at boundaries.
+  int? get flapBackSnapshotSpreadIndex {
+    if (!isDoubleSpread) return null;
+    if (isForward) {
+      if (currentIndex + 1 >= itemCount) return null;
+      return currentIndex + 1;
+    }
+    if (currentIndex - 1 < 0) return null;
+    return currentIndex - 1;
+  }
 }

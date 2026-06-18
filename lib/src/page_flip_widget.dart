@@ -398,8 +398,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               paperFlapColor: widget.config.backgroundColor,
               paperOpacity: widget.config.paperOpacity,
               flapContentFadeOutEnd: widget.config.flapContentFadeOutEnd,
+              thinPaperStrength: widget.config.thinPaperStrength,
+              endRevealStrength: widget.config.endRevealStrength,
               flapContentRevealStart: widget.config.flapContentRevealStart,
               flapContentRevealEnd: widget.config.flapContentRevealEnd,
+              flapBackStrength: widget.config.flapBackStrength,
               constrainedSize: constrainedSize,
               isDoubleSpread: widget.spreadMode.isDoubleSpread,
             );

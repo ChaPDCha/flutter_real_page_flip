@@ -75,14 +75,31 @@ class PageFlipConfig {
     this.enableSound = true,
     this.effectHandler,
     this.paperOpacity = 1.0,
+    this.thinPaperStrength = 0.15,
+    this.endRevealStrength = 0.35,
     this.flapContentFadeOutEnd = 0.20,
     this.flapContentRevealStart = 0.85,
     this.flapContentRevealEnd = 0.95,
+    this.flapBackStrength = 0.3,
   });
 
   /// The opacity of the page-flip flap (paper back side). Defaults to 1.0 (fully opaque).
   final double paperOpacity;
 
+
+  /// How much the paper appears translucent like thin paper during flip (0.0–1.0).
+  /// 0.0 = fully opaque, 0.15 = subtle thin-paper effect at mid-flip.
+  /// 
+  /// At mid-flip (progress ~0.5) the paper is most transparent, letting the
+  /// underlying page content show through slightly — like real thin paper.
+  final double thinPaperStrength;
+
+  /// How much the next page content shows through the paper at end of flip (0.0–1.0).
+  /// 0.0 = no reveal, 0.35 = moderate reveal as animation completes.
+  /// 
+  /// At the end of the animation (progress > 0.85), the paper gradually becomes
+  /// transparent, revealing the next/previous page content beneath.
+  final double endRevealStrength;
   /// Flip progress (0–1) by which flap-front content is fully hidden during fold.
   ///
   /// Text fades out quickly between progress 0 and this value so bent flap
@@ -96,6 +113,13 @@ class PageFlipConfig {
 
   /// Flip progress (0–1) at which flap-front content reaches full opacity.
   final double flapContentRevealEnd;
+
+  /// How visible the 2.5D page back content is (0.0–1.0).
+  ///
+  /// In double-spread mode, the back of the flipping page shows the destination
+  /// page content horizontally mirrored at this opacity. 0.0 = disabled,
+  /// 0.3 = subtle through-paper effect, 1.0 = fully visible mirror.
+  final double flapBackStrength;
 
   /// Whether to enable haptic feedback.
   final bool enableHaptics;
@@ -186,9 +210,12 @@ class PageFlipConfig {
           enableSound == other.enableSound &&
           effectHandler == other.effectHandler &&
           paperOpacity == other.paperOpacity &&
+          thinPaperStrength == other.thinPaperStrength &&
+          endRevealStrength == other.endRevealStrength &&
           flapContentFadeOutEnd == other.flapContentFadeOutEnd &&
           flapContentRevealStart == other.flapContentRevealStart &&
           flapContentRevealEnd == other.flapContentRevealEnd &&
+          flapBackStrength == other.flapBackStrength &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
           edgeTapNextLabel == other.edgeTapNextLabel &&
           edgeTapPreviousHint == other.edgeTapPreviousHint &&
@@ -209,9 +236,12 @@ class PageFlipConfig {
       enableSound.hashCode ^
       effectHandler.hashCode ^
       paperOpacity.hashCode ^
+      thinPaperStrength.hashCode ^
+      endRevealStrength.hashCode ^
       flapContentFadeOutEnd.hashCode ^
       flapContentRevealStart.hashCode ^
       flapContentRevealEnd.hashCode ^
+      flapBackStrength.hashCode ^
       edgeTapPreviousLabel.hashCode ^
       edgeTapNextLabel.hashCode ^
       edgeTapPreviousHint.hashCode ^

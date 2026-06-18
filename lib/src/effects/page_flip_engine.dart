@@ -32,6 +32,30 @@ Rect? flapFrontSourceRect({
   return Rect.fromLTWH(0, 0, imageSize.width, imageSize.height);
 }
 
+/// Returns the source rect within an adjacent spread snapshot for 2.5D back content.
+///
+/// The back of the flipping page shows the physically opposite half from the front:
+/// - Forward double-spread: left half (verso of the right page = left page of next spread).
+/// - Backward double-spread: right half (verso of the left page = right page of prev spread).
+/// - Single mode: null (no back content).
+///
+/// Unlike [flapFrontSourceRect] which selects the page being peeled away, this
+/// selects the page that lies on the other side of the paper — the one the reader
+/// would see through thin paper as the flip progresses.
+Rect? flapBackSourceRect({
+  required Size imageSize,
+  required bool isDoubleSpread,
+  required bool isForward,
+}) {
+  if (!isDoubleSpread) return null;
+  final halfWidth = imageSize.width / 2;
+  // The physically opposite half: forward → left half, backward → right half.
+  if (isForward) {
+    return Rect.fromLTWH(0, 0, halfWidth, imageSize.height);
+  }
+  return Rect.fromLTWH(halfWidth, 0, halfWidth, imageSize.height);
+}
+
 /// Destination rect on the canvas for mapping [flapFrontSourceRect] onto the flap.
 Rect flapFrontDestRect({
   required Size size,
@@ -220,6 +244,7 @@ ui.Vertices buildFlapContentMesh({
   required Rect srcRect,
   int segments = 16,
   int columns = 4,
+  bool flipHorizontal = false,
 }) {
   final positions = <double>[];
   final texCoords = <double>[];
@@ -275,7 +300,10 @@ ui.Vertices buildFlapContentMesh({
       gridX[i][j] = foldAtY + (flapAtY - foldAtY) * s;
       gridY[i][j] = y;
       // UV: right→left from srcRect.right (fold) to srcRect.left (flap edge).
-      gridU[i][j] = srcRect.right - s * srcRect.width;
+      // flipHorizontal for mirrored 2.5D back content on double-spread.
+      gridU[i][j] = flipHorizontal
+          ? srcRect.left + s * srcRect.width
+          : srcRect.right - s * srcRect.width;
       gridV[i][j] = srcRect.top + t * srcRect.height;
     }
   }
@@ -531,8 +559,9 @@ class PageFlipGeometry {
     shadowIntensity = math.sin(progress * math.pi);
 
     // Flap dimensions with foreshortening effect
-    // In our model, the "flap" is the part of the paper being peeled from the right edge.
-    final flapMaterialWidth = width - foldX;
+    // Forward: right page peeled right→left (flapMaterialWidth = width - foldX).
+    // Backward: left page peeled left→right (flapMaterialWidth = foldX - spineX).
+    final flapMaterialWidth = isForward ? (width - foldX) : (foldX - spineX);
 
     // Preserving total width, but adding a curve effect using sine easing
     flapVisibleWidth = flapMaterialWidth *
@@ -683,6 +712,43 @@ Path buildFlapScreenClipPath(
 }
 
 /// CustomPainter that renders the flipping page flap with shadow and highlight effects.
+/// Computes an overall flap opacity multiplier based on flip [progress] for thin-paper
+/// and end-reveal effects.
+///
+/// [progress] is the raw flip progress (0 = start edge, 1 = end edge of the
+/// fold travel). The function internally normalizes via [isForward] so the
+/// effect always activates at the right time regardless of direction.
+///
+/// Returns 1.0 (fully opaque) when both strengths are 0 or at extremes.
+/// At mid-flip the paper becomes semi-transparent ([thinPaperStrength]).
+/// Near the end of the flip the flap fades further ([endRevealStrength]) so
+/// the next page content from layers below shows through.
+@visibleForTesting
+double flapOpacityModulator(
+  double progress, {
+  double thinPaperStrength = 0.15,
+  double endRevealStrength = 0.35,
+  double endRevealStart = 0.85,
+  bool isForward = true,
+}) {
+  // Normalize so p always goes 0→1 from start to end of the flip.
+  // Forward:  p = progress (0→1)
+  // Backward: p = 1 - progress (1→0) → (0→1)
+  final p = isForward ? progress : (1.0 - progress);
+
+  if (p <= 0 || p >= 1) return 1.0;
+  if (thinPaperStrength <= 0 && endRevealStrength <= 0) return 1.0;
+
+  // Thin paper: sin(p * π) peaks at p = 0.5 (mid-flip).
+  final thinFactor = math.sin(p * math.pi) * thinPaperStrength;
+
+  // End reveal: smoothstep from [endRevealStart] to 1.0.
+  final revealT = ((p - endRevealStart) / (1.0 - endRevealStart)).clamp(0.0, 1.0);
+  final endFactor = (revealT * revealT * (3 - 2 * revealT)) * endRevealStrength;
+
+  return (1.0 - thinFactor - endFactor).clamp(0.2, 1.0);
+}
+
 ///
 /// PERFORMANCE CRITICAL: This painter is called 60 times per second during animation.
 class PageFlipPainter extends CustomPainter {
@@ -700,6 +766,13 @@ class PageFlipPainter extends CustomPainter {
     /// The color of the paper back (flipping page's back side).
     required this.paperBackColor,
     
+
+    /// How much the paper appears translucent at mid-flip (0.0–1.0).
+    this.thinPaperStrength = 0.0,
+
+    /// How much the next page content shows through at end of flip (0.0–1.0).
+    this.endRevealStrength = 0.0,
+
     /// True if rendering for a dual spread book
     this.isDoubleSpread = false,
 
@@ -727,6 +800,16 @@ class PageFlipPainter extends CustomPainter {
     /// Destination rect for [flapFrontSrcRect] on the canvas (defaults to right page).
     this.flapFrontDestRect,
 
+    /// Pre-captured snapshot for 2.5D page back content (double-spread only).
+    this.flapBackImage,
+
+    /// Source rect within [flapBackImage] for the mirrored back texture.
+    this.flapBackSrcRect,
+
+    /// How visible the back content is (0.0–1.0, default 0.3).
+    /// 0 = disabled, 0.3 = subtle mirror-through-paper effect.
+    this.flapBackStrength = 0.0,
+
     /// Pre-computed geometry shared with clippers (avoids redundant construction).
     this.geo,
   });
@@ -744,6 +827,13 @@ class PageFlipPainter extends CustomPainter {
   final Color paperBackColor;
   
   /// True if rendering for a dual spread book
+
+  /// How much the paper appears translucent at mid-flip (0.0–1.0).
+  final double thinPaperStrength;
+
+  /// How much the next page content shows through at end of flip (0.0–1.0).
+  final double endRevealStrength;
+
   final bool isDoubleSpread;
 
   /// True if we are flipping forward.
@@ -769,6 +859,15 @@ class PageFlipPainter extends CustomPainter {
 
   /// Destination rect for flap front texture (null = legacy right-page mapping).
   final Rect? flapFrontDestRect;
+
+  /// Pre-captured snapshot for 2.5D page back content (double-spread only).
+  final ui.Image? flapBackImage;
+
+  /// Source rect within [flapBackImage] for the mirrored back texture.
+  final Rect? flapBackSrcRect;
+
+  /// How visible the back content is (0.0–1.0, default 0.3).
+  final double flapBackStrength;
 
   /// Pre-computed geometry (avoids redundant construction in paint).
   final PageFlipGeometry? geo;
@@ -807,6 +906,35 @@ class PageFlipPainter extends CustomPainter {
     );
 
     canvas.clipPath(buildFlapScreenClipPath(g));
+
+    // Overall flap opacity modulation (thin paper + end reveal).
+
+    // saveLayer composites everything inside at reduced opacity so the
+
+    // underlying page content shows through — like real translucent paper.
+
+    final flapAlpha = flapOpacityModulator(
+
+      progress,
+
+      thinPaperStrength: thinPaperStrength,
+
+      endRevealStrength: endRevealStrength,
+
+      isForward: isForward,
+
+    );
+
+    final needsLayer = flapAlpha < 0.995;
+
+    if (needsLayer) {
+
+      canvas.saveLayer(null, Paint()..color = Colors.white.withValues(alpha: flapAlpha));
+
+    }
+
+
+
     canvas.transform(g.transform.storage);
 
     // Layer 1: Paper back underlay, then flap-front texture with late reveal.
@@ -817,6 +945,47 @@ class PageFlipPainter extends CustomPainter {
             : (isPaperDark ? paperOpacity * 1.1 : paperOpacity).clamp(0.0, 1.0),
       );
     canvas.drawRect(flapRect, paperPaint);
+
+    // Layer 2: 2.5D page back content (double-spread only).
+    // Shows the destination page content horizontally mirrored at low opacity,
+    // creating the illusion of seeing through thin paper to the back side.
+    final hasFlapBack =
+        flapBackImage != null && flapBackSrcRect != null && isDoubleSpread;
+    if (hasFlapBack && g.flapVisibleWidth >= 8.0) {
+      final backMesh = buildFlapContentMesh(
+        size: size,
+        foldX: g.foldX,
+        flapLeft: g.flapLeft,
+        curveOffset: g.curveOffset,
+        srcRect: flapBackSrcRect!,
+        segments: 16,
+        flipHorizontal: true,
+      );
+      canvas.drawVertices(
+        backMesh,
+        BlendMode.srcOver,
+        Paint()
+          ..shader = ui.ImageShader(
+            flapBackImage!,
+            ui.TileMode.clamp,
+            ui.TileMode.clamp,
+            Matrix4.identity().storage,
+          )
+          ..filterQuality = FilterQuality.medium,
+      );
+
+      // Fade the back content into the paper by flapBackStrength so it looks
+      // like a subtle bleed-through rather than a full texture layer.
+      final backFadeAlpha = (1.0 - flapBackStrength).clamp(0.0, 1.0);
+      if (backFadeAlpha > 0.005) {
+        canvas.drawRect(
+          flapRect,
+          Paint()
+            ..blendMode = BlendMode.srcOver
+            ..color = paperBackColor.withValues(alpha: backFadeAlpha),
+        );
+      }
+    }
 
     final hasFlapTexture =
         flapFrontImage != null && flapFrontSrcRect != null;
@@ -961,6 +1130,8 @@ class PageFlipPainter extends CustomPainter {
         ).createShader(foldFadeRect),
     );
 
+    if (needsLayer) canvas.restore();
+
     canvas.restore();
 
     // Revealed Page Shadow
@@ -1060,11 +1231,16 @@ class PageFlipPainter extends CustomPainter {
       oldDelegate.isForward != isForward ||
       oldDelegate.paperOpacity != paperOpacity ||
       oldDelegate.flapContentFadeOutEnd != flapContentFadeOutEnd ||
+      oldDelegate.thinPaperStrength != thinPaperStrength ||
+      oldDelegate.endRevealStrength != endRevealStrength ||
       oldDelegate.flapContentRevealStart != flapContentRevealStart ||
       oldDelegate.flapContentRevealEnd != flapContentRevealEnd ||
       oldDelegate.flapFrontImage != flapFrontImage ||
       oldDelegate.flapFrontSrcRect != flapFrontSrcRect ||
-      oldDelegate.flapFrontDestRect != flapFrontDestRect;
+      oldDelegate.flapFrontDestRect != flapFrontDestRect ||
+      oldDelegate.flapBackImage != flapBackImage ||
+      oldDelegate.flapBackSrcRect != flapBackSrcRect ||
+      oldDelegate.flapBackStrength != flapBackStrength;
 }
 
 /// CustomClipper that clips the stationary portion of the page during flip.

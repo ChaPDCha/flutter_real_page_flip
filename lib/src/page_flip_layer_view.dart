@@ -27,6 +27,11 @@ class PageFlipLayerView extends StatelessWidget {
 
     /// Opacity of the paper flap back side.
     this.paperOpacity = 1.0,
+    /// How much the paper appears translucent at mid-flip (0.0–1.0).
+    this.thinPaperStrength = 0.0,
+
+    /// How much the next page content shows through at end of flip (0.0–1.0).
+    this.endRevealStrength = 0.0,
 
     /// Progress by which flap-front content is fully hidden during fold.
     this.flapContentFadeOutEnd = 0.20,
@@ -36,6 +41,9 @@ class PageFlipLayerView extends StatelessWidget {
 
     /// Progress at which flap-front content is fully visible.
     this.flapContentRevealEnd = 0.95,
+
+    /// How visible the 2.5D page back content is (0.0–1.0, double-spread only).
+    this.flapBackStrength = 0.0,
 
     /// Optional explicit size to constrain children.
     this.constrainedSize,
@@ -81,6 +89,13 @@ class PageFlipLayerView extends StatelessWidget {
   /// Opacity of the paper flap back side.
   final double paperOpacity;
 
+
+  /// How much the paper appears translucent at mid-flip (0.0–1.0).
+  final double thinPaperStrength;
+
+  /// How much the next page content shows through at end of flip (0.0–1.0).
+  final double endRevealStrength;
+
   /// Progress by which flap-front content is fully hidden during fold.
   final double flapContentFadeOutEnd;
 
@@ -89,6 +104,9 @@ class PageFlipLayerView extends StatelessWidget {
 
   /// Progress at which flap-front content is fully visible.
   final double flapContentRevealEnd;
+
+  /// How visible the 2.5D page back content is (0.0–1.0, double-spread only).
+  final double flapBackStrength;
 
   /// Optional explicit size to constrain children (prevents infinite height from Stack).
   final Size? constrainedSize;
@@ -231,6 +249,22 @@ class PageFlipLayerView extends StatelessWidget {
               )
             : null;
 
+    // 2.5D page back content: same half geometry as front, from adjacent spread.
+    final flapBackSpreadIndex = policy.flapBackSnapshotSpreadIndex;
+    final flapBackImage = flapBackSpreadIndex != null
+        ? spreadSnapshots[flapBackSpreadIndex]
+        : null;
+    final flapBackSrcRect = flapBackImage != null
+        ? flapBackSourceRect(
+            imageSize: Size(
+              flapBackImage.width.toDouble(),
+              flapBackImage.height.toDouble(),
+            ),
+            isDoubleSpread: isDoubleSpread,
+            isForward: isForward,
+          )
+        : null;
+
     final geo = PageFlipGeometry(
       progress: floatProgress,
       isRightToLeft: true,
@@ -292,11 +326,16 @@ class PageFlipLayerView extends StatelessWidget {
               isForward: isForward,
               paperOpacity: paperOpacity,
               flapContentFadeOutEnd: flapContentFadeOutEnd,
+              thinPaperStrength: thinPaperStrength,
+              endRevealStrength: endRevealStrength,
               flapContentRevealStart: flapContentRevealStart,
               flapContentRevealEnd: flapContentRevealEnd,
               flapFrontImage: flapFrontImage,
               flapFrontSrcRect: flapFrontSrcRect,
               flapFrontDestRect: resolvedFlapDestRect,
+              flapBackImage: flapBackImage,
+              flapBackSrcRect: flapBackSrcRect,
+              flapBackStrength: flapBackStrength,
               geo: geo,
             ),
           ),
