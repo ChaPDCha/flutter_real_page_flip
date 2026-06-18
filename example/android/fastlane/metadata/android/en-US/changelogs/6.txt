@@ -1,0 +1,4 @@
+• 2.5D page back content for double-spread view (flapBackStrength)
+• Thin paper translucency effect during flip (thinPaperStrength)
+• End-of-flip content reveal (endRevealStrength)
+• Fixed backward flip clipping calculation

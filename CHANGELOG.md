@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3+6] - 2026-06-19
+### ✨ 기능
+- 2단 보기 상태에서 페이지 뒷면 콘텐츠 2.5D 구현
+- 넘겨지는 페이지 뒷면에 도착지 페이지 콘텐츠가 얇은 종이처럼 비치는 효과
+
+### 🎨 UI/UX
+- 얇은 종이 투과 효과 (thinPaperStrength): 플립 중간에서 종이가 살짝 투명해짐
+- 플립 종료 시 콘텐츠 서서히 드러나기 (endRevealStrength): 애니메이션 마무리 단계에서 다음 페이지 콘텐츠가 종이 위로 나타남
+- `flapBackStrength` 설정으로 페이지 뒷면 효과 강도 조절 (0.0~1.0, 기본 0.3)
+
+### 🐛 수정
+- 역방향 페이지 플립 flapMaterialWidth 계산 오차 수정 (backward clipping)
+- 2단보기 역방향에서 페이지가 얼어붙는 현상 방지 (release progress 0.35 조건 추가)
+
+### 🧪 테스트
+- flapOpacityModulator 17개 테스트: 얇은 종이, end reveal, 전/역방향 대칭성, smoothstep 연속성, clamping
+- backward 플립 골든 업데이트
+
+### 🔧 빌드/배포
+- 비공개테스트(closed alpha) 트랙 배포
+- 버전 1.0.3+6 (build number 6)
+
 ## [1.0.2+5] - 2026-06-17
 ### 🐛 수정
 - 페이지플립 접힌 면 바깥 경계선 클립 정렬 오차 수정 (screen-space clip path 도입)
