@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4+7] - 2026-06-19
+### 🧪 테스트
+- flip_curve_test.dart 9개 추가: PaperFlipCurve 조기 가속/중간 평탄화/말기 안착, C∞ 평탄성, 단조성; TapFlipCurve ease-in-out-quart 수학적 정확도
+- flap_mesh_test.dart 13개 추가: 메시 구조, 픽셀 렌더링 검증, degenerate/극단 파라미터
+- flap_front_texture_test.dart flapBackSourceRect 4개 추가: 전/역방향, 단일/2단 모드
+- page_flip_geometry_test.dart 역방향 7개 추가: foldX/flapLeft/flapVisibleWidth/angle/flapLeft 불변량
+- page_flip_painter_test.dart 2.5D 후면 콘텐츠 3개 추가: flapBackImage 렌더링, flapBackStrength=0, 단일 페이지 스킵
+- paint_rendering_test.dart 29개 추가: saveLayer, edge-fade/fold-fade, bend shading, 종이 색상, revealed/stationary 그림자, 척추 홈, 드로우 순서, 방향 대칭성
+- 총 387개 테스트 (기존 323개 → 387개, +64)
+
+### 🔧 빌드/배포
+- 비공개테스트(closed alpha) 트랙 배포
+- 버전 1.0.4+7 (build number 7)
+
 ## [1.0.3+6] - 2026-06-19
 ### ✨ 기능
 - 2단 보기 상태에서 페이지 뒷면 콘텐츠 2.5D 구현

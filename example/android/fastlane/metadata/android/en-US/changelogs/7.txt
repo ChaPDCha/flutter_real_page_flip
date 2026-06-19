@@ -1,0 +1,3 @@
+• Expanded test coverage from 323 to 387 tests (+64)
+• Added tests for flip animation curves, mesh geometry, and paint rendering
+• Improved backward flip and 2.5D back content test coverage
