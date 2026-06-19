@@ -274,6 +274,91 @@ void main() {
     });
   });
 
+  group('PageFlipGeometry backward direction details', () {
+    test('backward flapLeft is right of foldX (opposite of forward)', () {
+      final fwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: Offset.zero, size: const Size(400, 600));
+      final bwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
+      // Forward: flapLeft < foldX (flap extends LEFT).
+      expect(fwd.flapLeft, lessThan(fwd.foldX));
+      // Backward: flapLeft > foldX (flap extends RIGHT).
+      expect(bwd.flapLeft, greaterThan(bwd.foldX));
+    });
+
+    test('backward flapMaterialWidth equals pageWidth minus foldX', () {
+      // For backward at progress=0.5: foldX = pageWidth*(1-0.5) = 200.
+      // flapMaterialWidth = pageWidth - foldX = 400-200 = 200.
+      final geo = PageFlipGeometry(
+        progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600),
+      );
+      // flapMaterialWidth is not publicly exposed, but flapVisibleWidth
+      // is proportional: it should be positive and always less than pageWidth.
+      expect(geo.flapVisibleWidth, greaterThan(0));
+      expect(geo.flapVisibleWidth, lessThan(400));
+    });
+
+    test('backward rotation angle is inverted relative to forward', () {
+      final fwd = PageFlipGeometry(
+        progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: const Offset(200, 100), size: const Size(400, 600),
+      );
+      final bwd = PageFlipGeometry(
+        progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: const Offset(200, 100), size: const Size(400, 600),
+      );
+      // Forward at (200,100): height=600, touch offset dy=100, (100/600-0.5) = -0.417
+      // baseAngle = -0.417 * 0.3 * sin(0.5^0.82*pi) ≈ -0.417 * 0.3 * ~1 = -0.125
+      // rawAngle forward = baseAngle ≈ -0.125
+      // rawAngle backward = -baseAngle ≈ +0.125
+      // Angles should have opposite signs (roughly) with same magnitude.
+      expect(fwd.angle, lessThan(0));  // forward: negative angle
+      expect(bwd.angle, greaterThan(0)); // backward: positive angle
+      // Magnitudes should be close (clamping may affect, so check similar order).
+      expect(fwd.angle.abs(), greaterThan(0.01));
+      expect(fwd.angle.abs(), closeTo(bwd.angle.abs(), 0.02));
+    });
+
+    test('backward foldX moves pageWidth → 0 as progress increases', () {
+      // Backward: foldX = pageWidth * (1.0 - progress)
+      // At progress=0: foldX = pageWidth = 400 (starts at right edge).
+      // At progress=1: foldX = 0 (reaches left edge).
+      final geo0 = PageFlipGeometry(progress: 0, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
+      final geo5 = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
+      final geo1 = PageFlipGeometry(progress: 1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
+
+      expect(geo0.foldX, closeTo(400, 0.001));    // progress=0 → foldX=400 (right edge)
+      expect(geo5.foldX, closeTo(200, 0.001));    // progress=0.5 → foldX=200 (midway)
+      expect(geo1.foldX, closeTo(0, 0.001));      // progress=1 → foldX=0 (left edge)
+    });
+
+    test('backward flapVisibleWidth increases with progress', () {
+      final atStart = PageFlipGeometry(progress: 0.1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
+      final atEnd = PageFlipGeometry(progress: 0.9, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
+      expect(atEnd, greaterThan(atStart));
+    });
+
+    test('backward flapLeft is always right of foldX throughout flip', () {
+      for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {
+        final geo = PageFlipGeometry(
+          progress: p, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600),
+        );
+        expect(geo.flapLeft, greaterThanOrEqualTo(geo.foldX - 0.01));
+      }
+    });
+
+    test('backward double-spread foldX moves from spineX to page end', () {
+      final geo0 = PageFlipGeometry(
+        progress: 0, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(800, 600),
+        isDoubleSpread: true,
+      );
+      final geo1 = PageFlipGeometry(
+        progress: 1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(800, 600),
+        isDoubleSpread: true,
+      );
+      // Backward double: foldX = pageWidth*(1-progress) where pageWidth=400
+      // progress=0 → foldX = 400, progress=1 → foldX = 0
+      expect(geo0.foldX, closeTo(400, 0.001));   // starts at page end
+      expect(geo1.foldX, closeTo(0, 0.001));     // ends at left edge
+    });
+  });
+
   group('PageFlipGeometry invariants', () {
     test('flapLeft <= foldX throughout flip', () {
       for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {

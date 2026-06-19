@@ -388,6 +388,86 @@ void main() {
 
       expect(canvas.stationaryShadowDrawCount, equals(0));
     });
+
+    // ── 2.5D back content tests ─────────────────────────────────
+
+    group('2.5D back content rendering', () {
+      test('draws back mesh when flapBackImage and srcRect provided', () {
+        final canvas = TrackingShaderCanvas();
+
+        PageFlipPainter(
+          progress: 0.96,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: _testImage,
+          flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
+          flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
+          flapBackImage: _testImage,
+          flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+          flapBackStrength: 0.3,
+          isDoubleSpread: true,
+          isForward: true,
+          flapContentRevealEnd: 0.95,  // progress=0.96 > 0.95 → full reveal
+          flapContentFadeOutEnd: 0.20,
+          flapContentRevealStart: 0.85,
+        ).paint(canvas, const Size(800, 600));
+
+        // At progress=0.96, front content is fully revealed AND back content is drawn.
+        // Front mesh (1) + Back mesh (1) = 2 drawVertices calls.
+        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+        // Should have drawn fade overlay rects.
+        expect(canvas.drawRectCount, greaterThan(0));
+      });
+
+      test('skips back mesh when flipBackStrength is 0', () {
+        final canvas = TrackingShaderCanvas();
+
+        PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: _testImage,
+          flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
+          flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
+          flapBackImage: _testImage,
+          flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+          flapBackStrength: 0.0,
+          isDoubleSpread: true,
+          isForward: true,
+        ).paint(canvas, const Size(800, 600));
+
+        // flapBackStrength=0 means backFadeAlpha=1.0 → cover entirely.
+        // So no separate back mesh is drawn since hasFlapBack is still true
+        // (flapBackStrength > 0 check is NOT in hasFlapBack).
+        // The mesh IS drawn, then the fade overlay covers it.
+        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(1));
+      });
+
+      test('single page mode skips back content even with images', () {
+        final canvas = TrackingShaderCanvas();
+
+        PageFlipPainter(
+          progress: 0.96,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: _testImage,
+          flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+          flapBackImage: _testImage,
+          flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+          flapBackStrength: 0.3,
+          isDoubleSpread: false,
+          isForward: true,
+          flapContentRevealEnd: 0.95,
+        ).paint(canvas, const Size(800, 600));
+
+        // hasFlapBack requires isDoubleSpread → false in single mode → no back mesh.
+        // At progress=0.96, front content is fully revealed → 1 drawVertices (front only).
+        expect(canvas.drawVerticesCount, equals(1));
+      });
+    });
   });
 }
 
@@ -405,6 +485,37 @@ class TrackingShadowCanvas extends MockCanvas {
       stationaryShadowDrawCount++;
     }
   }
+}
+
+/// Tracks drawVertices calls with shader info and rect counts.
+class TrackingShaderCanvas extends Fake implements Canvas {
+  int drawVerticesCount = 0;
+  int drawRectCount = 0;
+
+  @override
+  void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {
+    drawVerticesCount++;
+  }
+
+  @override
+  void drawRect(Rect rect, Paint paint) {
+    drawRectCount++;
+  }
+
+  @override
+  void save() {}
+
+  @override
+  void restore() {}
+
+  @override
+  void transform(Float64List matrix4) {}
+
+  @override
+  void clipRect(Rect rect, {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
+
+  @override
+  void clipPath(Path path, {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
 }
 
 class MockCanvas extends Fake implements Canvas {

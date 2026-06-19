@@ -57,6 +57,60 @@ void main() {
     });
   });
 
+  group('flapBackSourceRect', () {
+    const imageSize = Size(800, 600);
+
+    test('double spread forward uses left half (verso of right page)', () {
+      final rect = flapBackSourceRect(
+        imageSize: imageSize,
+        isDoubleSpread: true,
+        isForward: true,
+      );
+
+      expect(rect, isNotNull);
+      expect(rect!.left, equals(0));
+      expect(rect.top, equals(0));
+      expect(rect.width, equals(400));
+      expect(rect.height, equals(600));
+    });
+
+    test('double spread backward uses right half (verso of left page)', () {
+      final rect = flapBackSourceRect(
+        imageSize: imageSize,
+        isDoubleSpread: true,
+        isForward: false,
+      );
+
+      expect(rect, isNotNull);
+      expect(rect!.left, equals(400));
+      expect(rect.top, equals(0));
+      expect(rect.width, equals(400));
+      expect(rect.height, equals(600));
+    });
+
+    test('single page forward returns null (no back content)', () {
+      expect(
+        flapBackSourceRect(
+          imageSize: imageSize,
+          isDoubleSpread: false,
+          isForward: true,
+        ),
+        isNull,
+      );
+    });
+
+    test('single page backward returns null (no back content)', () {
+      expect(
+        flapBackSourceRect(
+          imageSize: imageSize,
+          isDoubleSpread: false,
+          isForward: false,
+        ),
+        isNull,
+      );
+    });
+  });
+
   group('flapFrontDestRect', () {
     const size = Size(800, 600);
 
