@@ -529,10 +529,12 @@ class PageFlipGeometry {
     // ── Fold line position ──────────────────────────────────────────────────
     // Forward:  right page peels right→left. foldX moves width → spineX (or 0).
     // Backward: left page peels left→right.  foldX moves 0 → pageWidth.
+    // floatProgress = isForward ? dragProgress : 1.0 - dragProgress, so
+    // backward progress goes 1→0.  foldX must go 0→pageWidth (LEFT→RIGHT).
     if (isForward) {
       foldX = width - (pageWidth * progress);
     } else {
-      foldX = pageWidth * progress;
+      foldX = pageWidth * (1.0 - progress);
     }
 
     // ── Rotation angle ──────────────────────────────────────────────────────
