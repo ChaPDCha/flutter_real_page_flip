@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5+8] - 2026-06-20
+### 🐛 수정
+- 역방향 페이지 플립 foldX 방향 수정: foldX = pageWidth × progress (좌→우)
+- 역방향 flapSideWidth/revealedSideWidth/flapMaterialWidth 모두 foldX 기준으로 재계산
+- 역방향 2단보기에서 접히지 않은 오른쪽 페이지가 잘리지 않도록 stationaryHalf 클립 제거
+- 역방향 bend shading/edge-fade/fold-fade 그래디언트 방향 반전
+- 역방향 buildFlapScreenClipPath flapRect 시작 위치를 foldX로 보정
+- golden 업데이트: single_page_reveal_backward 050/085
+
+### 🧪 테스트
+- page_flip_geometry_test.dart 역방향 foldX 기대치 수정 (좌→우 진행 반영)
+
+### 🔧 빌드/배포
+- 비공개테스트(closed alpha) 트랙 배포
+- 버전 1.0.5+8 (build number 8)
+
 ## [1.0.4+7] - 2026-06-19
 ### 🧪 테스트
 - flip_curve_test.dart 9개 추가: PaperFlipCurve 조기 가속/중간 평탄화/말기 안착, C∞ 평탄성, 단조성; TapFlipCurve ease-in-out-quart 수학적 정확도
