@@ -1,0 +1,2 @@
+• Fixed single-page fold line anchored at spine — pages now bend naturally instead of appearing torn
+• Forward: spine at left, flap shrinks toward it. Backward: spine at right, flap grows from it.

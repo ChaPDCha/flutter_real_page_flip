@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.10+16] - 2026-06-21
+### 🐛 수정
+- 1단보기 접힘선(foldX)을 제본선에 고정 — 페이지가 뜯어지는 듯한 시각적 오류 해결
+- forward: 스파인 왼쪽 고정(foldX=0), flap이 오른쪽으로 축소
+- backward: 스파인 오른쪽 고정(foldX=pageWidth), flap이 왼쪽으로 성장
+- flapRightOfFold 필드로 4개 모드 통합 (1단/2단 × forward/backward)
+- 각도 제한, 곡선 방향, clip path, paint gradient 일괄 수정
+
+### 🧪 테스트
+- geometry/clip/paint rendering/golden 테스트 전면 업데이트 (448개 통과)
+
+### 🔧 빌드/배포
+- 비공개테스트(closed alpha) 트랙 배포
+- 버전 1.0.10+16 (build number 16)
+
 ## [1.0.9+15] - 2026-06-20
 ### 🐛 수정
 - backward flap clip bleed 방향 수정 (foldEdgeBleedPx 부호 반전 — flap이 오른쪽일 때)
