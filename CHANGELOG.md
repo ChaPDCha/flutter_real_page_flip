@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5+10] - 2026-06-20
+### 🐛 수정
+- 역방향 단일 페이지 플립이 왼쪽이 아닌 오른쪽에서 시작하던 버그 수정
+- flapLeft를 foldX 기준 항상 왼쪽에 위치하도록 통일 (전/역방향 동일)
+- buildFlapScreenClipPath degenerate 검사 단순화
+- bend shading / edge-fade / fold-fade 그래디언트 방향 일원화
+- golden 업데이트: 역방향 단일 페이지 렌더링
+
+### 🔧 빌드/배포
+- 비공개테스트(closed alpha) 트랙 재배포 (버그 수정)
+- 버전 1.0.5+10 (build number 10)
+
 ## [1.0.5+9] - 2026-06-20
 ### 🐛 수정
 - 역방향 페이지 플립 foldX 방향 수정: foldX = pageWidth × progress (좌→우)
