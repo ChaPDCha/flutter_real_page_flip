@@ -442,11 +442,17 @@ class PageFlipLayerView extends StatelessWidget {
       );
     }
 
-    // Double-spread: clip to stationary half
-    final stationaryHalf = clipFullSpreadHalf(
-      alignment: isForward ? Alignment.centerLeft : Alignment.centerRight,
-      child: middleLayerContent,
-    );
+    // Double-spread: clip to stationary half if forward.
+    // Backward flip needs the full spread because the unpeeled left page AND the right page are stationary.
+    final Widget stationaryContent;
+    if (isForward) {
+      stationaryContent = clipFullSpreadHalf(
+        alignment: Alignment.centerLeft,
+        child: middleLayerContent,
+      );
+    } else {
+      stationaryContent = middleLayerContent;
+    }
 
     if (isForward) {
       return ClipPath(
@@ -458,11 +464,11 @@ class PageFlipLayerView extends StatelessWidget {
           isForward: true,
           geo: geo,
         ),
-        child: stationaryHalf,
+        child: stationaryContent,
       );
     }
 
-    // Backward double-spread: stationary right half clipped right-of-fold so
+    // Backward double-spread: stationary content clipped right-of-fold so
     // bottom layer's previous-spread content does not bleed onto the right side.
     return ClipPath(
       clipper: PageFlipOpenClipper(
@@ -473,7 +479,7 @@ class PageFlipLayerView extends StatelessWidget {
         isForward: false,
         geo: geo,
       ),
-      child: stationaryHalf,
+      child: stationaryContent,
     );
   }
 }

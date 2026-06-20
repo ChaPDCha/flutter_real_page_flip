@@ -533,7 +533,7 @@ class PageFlipGeometry {
     if (isForward) {
       foldX = width - (pageWidth * progress);
     } else {
-      foldX = pageWidth * (1.0 - progress);
+      foldX = pageWidth * progress;
     }
 
     // ── Rotation angle ──────────────────────────────────────────────────────
@@ -549,10 +549,10 @@ class PageFlipGeometry {
     //          and flap side (width-foldX).
     // Backward: flap is right of foldX, bounded by revealed side (foldX)
     //           and flap side (pageWidth-foldX).
-    final flapSideWidth = isForward ? (width - foldX) : (pageWidth - foldX);
+    final flapSideWidth = isForward ? (width - foldX) : foldX;
     final revealedSideWidth = isForward
         ? (foldX - spineX).clamp(0.0, double.infinity)
-        : foldX.clamp(0.0, double.infinity);
+        : (pageWidth - foldX).clamp(0.0, double.infinity);
     final limitFlap = math.atan2(flapSideWidth, height / 2);
     final limitRevealed = math.atan2(revealedSideWidth, height / 2);
     final absLimit =
@@ -582,9 +582,9 @@ class PageFlipGeometry {
 
     // ── Flap dimensions ─────────────────────────────────────────────────────
     // Forward:  flap extends LEFT  from foldX. flapMaterialWidth = width - foldX.
-    // Backward: flap extends RIGHT from foldX. flapMaterialWidth = pageWidth - foldX.
+    // Backward: flap extends RIGHT from foldX. flapMaterialWidth = foldX (peeled from 0).
     final flapMaterialWidth =
-        isForward ? (width - foldX) : (pageWidth - foldX);
+        isForward ? (width - foldX) : foldX;
 
     flapVisibleWidth = flapMaterialWidth *
         (_kFlapWidthBase - _kFlapWidthModulation * math.sin(progress * math.pi));
@@ -920,8 +920,9 @@ class PageFlipPainter extends CustomPainter {
     // Clip to flap region in SCREEN space (before canvas transform) so the
     // clip exactly matches Layer 2's stationary clip along the same fold line,
     // preventing the seam where wrong content shows through.
+    final localFlapLeft = g.isForward ? g.flapLeft : g.foldX;
     final flapRect = Rect.fromLTWH(
-      g.flapLeft,
+      localFlapLeft,
       0,
       g.flapVisibleWidth + kSpineRevealOverlapPx,
       size.height,
@@ -1081,8 +1082,8 @@ class PageFlipPainter extends CustomPainter {
         Paint()
           ..blendMode = BlendMode.screen
           ..shader = LinearGradient(
-            begin: Alignment.centerRight,
-            end: Alignment.centerLeft,
+            begin: g.isForward ? Alignment.centerRight : Alignment.centerLeft,
+            end: g.isForward ? Alignment.centerLeft : Alignment.centerRight,
             colors: [
               Colors.transparent,
               Colors.white.withValues(alpha: 0.08 * bendStrength),
@@ -1101,8 +1102,8 @@ class PageFlipPainter extends CustomPainter {
         Paint()
           ..blendMode = BlendMode.multiply
           ..shader = LinearGradient(
-            begin: Alignment.centerRight,
-            end: Alignment.centerLeft,
+            begin: g.isForward ? Alignment.centerRight : Alignment.centerLeft,
+            end: g.isForward ? Alignment.centerLeft : Alignment.centerRight,
             colors: [
               Colors.black.withValues(alpha: foldShadow),
               Colors.transparent,
@@ -1116,15 +1117,16 @@ class PageFlipPainter extends CustomPainter {
     // A ~8 px gradient from paperBackColor → transparent hides stray character
     // fragments at the mesh boundary without affecting visible flap content.
     const double edgeFadeWidth = 8.0;
+    final localEdgeLeft = g.isForward ? g.flapLeft : g.flapLeft - edgeFadeWidth;
     final edgeFadeRect = Rect.fromLTWH(
-      g.flapLeft, 0, edgeFadeWidth, size.height,
+      localEdgeLeft, 0, edgeFadeWidth, size.height,
     );
     canvas.drawRect(
       edgeFadeRect,
       Paint()
         ..shader = LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+          begin: g.isForward ? Alignment.centerLeft : Alignment.centerRight,
+          end: g.isForward ? Alignment.centerRight : Alignment.centerLeft,
           colors: [
             paperBackColor.withValues(alpha: 1.0),
             Colors.transparent,
@@ -1137,15 +1139,16 @@ class PageFlipPainter extends CustomPainter {
     // create visible fragments. This narrow gradient from paperBackColor →
     // transparent softens the fold boundary edge.
     const double foldFadeWidth = 6.0;
+    final localFoldLeft = g.isForward ? g.foldX - foldFadeWidth : g.foldX;
     final foldFadeRect = Rect.fromLTWH(
-      g.foldX - foldFadeWidth, 0, foldFadeWidth, size.height,
+      localFoldLeft, 0, foldFadeWidth, size.height,
     );
     canvas.drawRect(
       foldFadeRect,
       Paint()
         ..shader = LinearGradient(
-          begin: Alignment.centerRight,
-          end: Alignment.centerLeft,
+          begin: g.isForward ? Alignment.centerRight : Alignment.centerLeft,
+          end: g.isForward ? Alignment.centerLeft : Alignment.centerRight,
           colors: [
             paperBackColor.withValues(alpha: 1.0),
             Colors.transparent,

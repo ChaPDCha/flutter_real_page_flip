@@ -315,17 +315,17 @@ void main() {
       expect(fwd.angle.abs(), closeTo(bwd.angle.abs(), 0.02));
     });
 
-    test('backward foldX moves pageWidth → 0 as progress increases', () {
-      // Backward: foldX = pageWidth * (1.0 - progress)
-      // At progress=0: foldX = pageWidth = 400 (starts at right edge).
-      // At progress=1: foldX = 0 (reaches left edge).
+    test('backward foldX moves 0 → pageWidth as progress increases', () {
+      // Backward: foldX = pageWidth * progress
+      // At progress=0: foldX = 0 (starts at left edge).
+      // At progress=1: foldX = pageWidth = 400 (reaches right edge).
       final geo0 = PageFlipGeometry(progress: 0, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
       final geo5 = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
       final geo1 = PageFlipGeometry(progress: 1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
 
-      expect(geo0.foldX, closeTo(400, 0.001));    // progress=0 → foldX=400 (right edge)
+      expect(geo0.foldX, closeTo(0, 0.001));      // progress=0 → foldX=0 (left edge)
       expect(geo5.foldX, closeTo(200, 0.001));    // progress=0.5 → foldX=200 (midway)
-      expect(geo1.foldX, closeTo(0, 0.001));      // progress=1 → foldX=0 (left edge)
+      expect(geo1.foldX, closeTo(400, 0.001));    // progress=1 → foldX=400 (right edge)
     });
 
     test('backward flapVisibleWidth increases with progress', () {
@@ -343,7 +343,7 @@ void main() {
       }
     });
 
-    test('backward double-spread foldX moves from spineX to page end', () {
+    test('backward double-spread foldX moves from left edge to spine', () {
       final geo0 = PageFlipGeometry(
         progress: 0, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(800, 600),
         isDoubleSpread: true,
@@ -352,10 +352,10 @@ void main() {
         progress: 1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(800, 600),
         isDoubleSpread: true,
       );
-      // Backward double: foldX = pageWidth*(1-progress) where pageWidth=400
-      // progress=0 → foldX = 400, progress=1 → foldX = 0
-      expect(geo0.foldX, closeTo(400, 0.001));   // starts at page end
-      expect(geo1.foldX, closeTo(0, 0.001));     // ends at left edge
+      // Backward double: foldX = pageWidth*progress where pageWidth=400
+      // progress=0 → foldX = 0, progress=1 → foldX = 400
+      expect(geo0.foldX, closeTo(0, 0.001));     // starts at left edge
+      expect(geo1.foldX, closeTo(400, 0.001));   // ends at spine
     });
   });
 
