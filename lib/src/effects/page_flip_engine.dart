@@ -718,7 +718,6 @@ Path buildFlapScreenClipPath(
       : geo.flapVisibleWidth <= 0.5;
   if (degenerate) return Path();
 
-  final height = geo.size.height;
   final flapEdgeTop = snapClipPoint(geo.flapEdgeTop);
   final flapEdgeBottom = snapClipPoint(geo.flapEdgeBottom);
 
@@ -740,14 +739,14 @@ Path buildFlapScreenClipPath(
   } else {
     // Backward: flap spans RIGHT of foldX.
     // Path: fold line (left) → free edge (right) → bottom → back to fold line.
-    final foldLineTop = snapClipPoint(geo.foldLineTop, overlapShift: foldEdgeBleedPx);
-    final foldLineBottom = snapClipPoint(geo.foldLineBottom, overlapShift: foldEdgeBleedPx);
+    final foldLineTop = snapClipPoint(geo.foldLineTop, overlapShift: -foldEdgeBleedPx);
+    final foldLineBottom = snapClipPoint(geo.foldLineBottom, overlapShift: -foldEdgeBleedPx);
     path.moveTo(foldLineTop.dx, foldLineTop.dy);
     path.lineTo(flapEdgeTop.dx, flapEdgeTop.dy);
     path.lineTo(flapEdgeBottom.dx, flapEdgeBottom.dy);
     path.lineTo(foldLineBottom.dx, foldLineBottom.dy);
     if (geo.curvatureAmount > 0.001) {
-      final control = snapClipPoint(geo.foldCurveControl, overlapShift: foldEdgeBleedPx);
+      final control = snapClipPoint(geo.foldCurveControl, overlapShift: -foldEdgeBleedPx);
       path.quadraticBezierTo(
         control.dx, control.dy,
         foldLineTop.dx, foldLineTop.dy,
@@ -1063,6 +1062,7 @@ class PageFlipPainter extends CustomPainter {
             curveOffset: g.curveOffset,
             srcRect: srcRect,
             segments: 16,
+            flipHorizontal: !isDoubleSpread && !isForward,
           );
           canvas.drawVertices(
             mesh,
