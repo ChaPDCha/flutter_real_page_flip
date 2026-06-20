@@ -3,6 +3,24 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.5.0] - 2026-06-21
+### Added
+- `flapRightOfFold` field on `PageFlipGeometry` unifying four-mode flap-direction logic.
+- Single-page backward: spine-anchored fold with flap following finger direction.
+- Direction-aware highlight, fold-darkening, edge-fade, and fold-fade gradients.
+
+### Changed
+- Single-page forward: `foldX` anchored at left spine (x=0), flap extends rightward, shrinking toward spine as page turns.
+- Double-spread backward: flap extends RIGHT of foldX (previously left).
+- `buildFlapScreenClipPath` supports flap-right-of-fold paths with corrected bleed.
+- Angle limits simplified for single-page mode.
+
+### Fixed
+- Backward single-page flap now shows page content during flip.
+- Backward flap curvature direction corrected.
+- Clip bleed direction corrected for backward double-spread.
+- Single-page fold line no longer moves to opposite edge (eliminated tearing look).
+
 ## [1.4.2] - 2026-06-04
 ### Added
 - Updated documentation to clarify that the engine is optimized for vertical mobile devices and does not support horizontal two-page view.

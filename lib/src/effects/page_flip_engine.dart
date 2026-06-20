@@ -425,7 +425,6 @@ Widget buildViewportSnapshotImage(
     child: RawImage(
       image: image,
       fit: BoxFit.fill,
-      filterQuality: FilterQuality.medium,
     ),
   );
 }
