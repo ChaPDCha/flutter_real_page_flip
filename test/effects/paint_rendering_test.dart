@@ -186,7 +186,7 @@ void main() {
       expect(gradientDraws, greaterThanOrEqualTo(2));
     });
 
-    test('edge-fade rect is at flapLeft with 8px width', () {
+    test('edge-fade rect is at free edge with 8px width (single forward)', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -194,16 +194,16 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
+        isForward: true,
       ).paint(canvas, size);
 
-      // Edge-fade: Rect.fromLTWH(flapLeft, 0, 8, height)
-      // At progress=0.5 for size=(800,600), foldX=400, flapVisibleWidth≈280
-      // flapLeft = foldX - flapVisibleWidth ≈ 120
-      expect(canvas.hasDrawRectNearX(120, 30), isTrue,
-          reason: 'Edge-fade rect should start near flapLeft');
+      // Single forward: flapRightOfFold=true → edge fade at freeEdgeX-8.
+      // foldX=0, flapVisibleWidth≈280, freeEdgeX≈280. Edge fade left ≈ 272.
+      expect(canvas.hasDrawRectNearX(272, 30), isTrue,
+          reason: 'Edge-fade rect should start near freeEdgeX - 8');
     });
 
-    test('fold-fade rect is at foldX with 6px width', () {
+    test('fold-fade rect is at foldX with 6px width (single forward)', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -211,13 +211,12 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
+        isForward: true,
       ).paint(canvas, size);
 
-      // Fold-fade: Rect.fromLTWH(foldX-6, 0, 6, height)
-      // At progress=0.5 for size=(800,600), foldX=400
-      // fold-fade left ≈ 394
-      expect(canvas.hasDrawRectNearX(394, 20), isTrue,
-          reason: 'Fold-fade rect should start near foldX - 6');
+      // Single forward: flapRightOfFold=true → fold fade at foldX=0.
+      expect(canvas.hasDrawRectNearX(0, 20), isTrue,
+          reason: 'Fold-fade rect should start near foldX (0 for single forward)');
     });
 
     // ── Bend shading (highlight + fold-edge darkening) ─────────
