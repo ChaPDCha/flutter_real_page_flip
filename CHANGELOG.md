@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.7+13] - 2026-06-20
+### 🐛 수정
+- 역방향 페이지 플립 foldX 방향 수정 (우→좌 → 좌→우)
+- floatProgress = 1 - dragProgress로 backward progress는 1→0; foldX 수식 pageWidth*progress → pageWidth*(1.0-progress)
+
+### 🧪 테스트
+- backward foldX/flapVisibleWidth 기대치 수정 (우→좌 반영)
+- golden 업데이트: single_page_reveal_backward_085
+
+### 🔧 빌드/배포
+- 비공개테스트(closed alpha) 트랙 재배포 (foldX 방향 버그 수정)
+- 버전 1.0.7+13 (build number 13)
+
 ## [1.0.6+12] - 2026-06-20
 ### 🐛 수정
 - 역방향 단일 페이지 플립에서 flap에 페이지 콘텐츠가 표시되지 않던 버그 수정
