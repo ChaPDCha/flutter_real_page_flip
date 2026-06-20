@@ -807,5 +807,154 @@ void main() {
         findsOneWidget,
       );
     });
+
+    // ─── Backward double-spread ───
+
+    testWidgets('backward middle layer does NOT clip to half', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox.fromSize(
+              size: canvasSize,
+              child: PageFlipLayerView(
+                itemCount: 5,
+                currentIndex: 3,
+                dragProgress: 0.75,
+                isDragging: true,
+                isForward: false,
+                touchPosition: const Offset(80, 150),
+                pageSnapshots: const {},
+                spreadSnapshots: const {},
+                pageKeys: {3: GlobalKey(), 2: GlobalKey(), 4: GlobalKey()},
+                constrainedSize: canvasSize,
+                isDoubleSpread: true,
+                itemBuilder: (context, index) => Text('Spread $index'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Middle layer should NOT have Align with widthFactor=0.5 (no half-clip)
+      final halfAligns = find.byWidgetPredicate(
+        (w) => w is Align && w.widthFactor == 0.5,
+      );
+      // There should be exactly 1 half-Align (for the bottom layer),
+      // not 2 (no half-clip for middle layer in backward mode)
+      expect(halfAligns, findsOneWidget);
+    });
+
+    testWidgets('backward double-spread at index 0 shows paper fallback', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox.fromSize(
+              size: canvasSize,
+              child: PageFlipLayerView(
+                itemCount: 3,
+                currentIndex: 0,
+                dragProgress: 0.3,
+                isDragging: true,
+                isForward: false,
+                touchPosition: const Offset(60, 150),
+                pageSnapshots: const {},
+                spreadSnapshots: const {},
+                pageKeys: const {},
+                constrainedSize: canvasSize,
+                isDoubleSpread: true,
+                itemBuilder: (context, index) => Text('Spread $index'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Bottom layer falls back to ColoredBox paper (no previous spread)
+      expect(find.byType(ColoredBox), findsWidgets);
+    });
+
+    testWidgets('backward double-spread with live page fallback', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox.fromSize(
+              size: canvasSize,
+              child: PageFlipLayerView(
+                itemCount: 5,
+                currentIndex: 2,
+                dragProgress: 0.6,
+                isDragging: true,
+                isForward: false,
+                touchPosition: const Offset(70, 150),
+                pageSnapshots: const {},
+                spreadSnapshots: const {},
+                pageKeys: {0: GlobalKey(), 1: GlobalKey(), 2: GlobalKey()},
+                constrainedSize: canvasSize,
+                isDoubleSpread: true,
+                itemBuilder: (context, index) => Text('Spread $index'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Bottom layer with spread 1 should show live Page 0 and Page 1 content
+      expect(find.text('Spread 1'), findsOneWidget);
+      // Both bottom and middle layers reference spread 2
+      expect(find.text('Spread 2'), findsAtLeast(1));
+    });
+
+    testWidgets('backward double-spread offstage includes adjacent indices', (
+      tester,
+    ) async {
+      final keys = <int, GlobalKey>{
+        0: GlobalKey(),
+        1: GlobalKey(),
+        2: GlobalKey(),
+        3: GlobalKey(),
+        4: GlobalKey(),
+      };
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox.fromSize(
+              size: canvasSize,
+              child: PageFlipLayerView(
+                itemCount: 5,
+                currentIndex: 2,
+                dragProgress: 0.5,
+                isDragging: true,
+                isForward: false,
+                touchPosition: const Offset(100, 150),
+                pageSnapshots: const {},
+                spreadSnapshots: const {},
+                pageKeys: keys,
+                constrainedSize: canvasSize,
+                isDoubleSpread: true,
+                itemBuilder: (context, index) => Text('Spread $index'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Offstage: background indices 1,3 + currentPage + MaterialApp internals
+      // At minimum the two background Offstage widgets must exist
+      expect(
+        find.byWidgetPredicate((w) => w is Offstage),
+        findsAtLeast(2),
+      );
+
+      // Adjacent indices (1, 3) are findable via their keys
+      expect(find.byKey(keys[1]!, skipOffstage: false), findsOneWidget);
+      expect(find.byKey(keys[3]!, skipOffstage: false), findsOneWidget);
+
+      // Non-adjacent index 0 should have no Offstage in the tree
+      expect(find.byKey(keys[0]!, skipOffstage: false), findsNothing);
+    });
   });
 }

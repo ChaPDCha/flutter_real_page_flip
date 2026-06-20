@@ -81,5 +81,59 @@ void main() {
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
+
+    test('equality respects flapContentRevealEnd', () {
+      const a = PageFlipConfig(flapContentRevealEnd: 0.95);
+      const b = PageFlipConfig(flapContentRevealEnd: 0.90);
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
+    test('equality respects flapBackStrength', () {
+      const a = PageFlipConfig(flapBackStrength: 0.3);
+      const b = PageFlipConfig(flapBackStrength: 0.5);
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
+    test('equality respects edgeTapPreviousLabel', () {
+      const a = PageFlipConfig(edgeTapPreviousLabel: 'Previous');
+      const b = PageFlipConfig(edgeTapPreviousLabel: 'Back');
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
+    test('equality respects edgeTapNextLabel', () {
+      const a = PageFlipConfig(edgeTapNextLabel: 'Next');
+      const b = PageFlipConfig(edgeTapNextLabel: 'Forward');
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
+    test('equality respects edgeTapPreviousHint', () {
+      const a = PageFlipConfig(edgeTapPreviousHint: 'Go to previous page');
+      const b = PageFlipConfig(edgeTapPreviousHint: 'Go back');
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
+    test('equality respects edgeTapNextHint', () {
+      const a = PageFlipConfig(edgeTapNextHint: 'Go to next page');
+      const b = PageFlipConfig(edgeTapNextHint: 'Go forward');
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
+    test('hashCode consistent for equal configs', () {
+      const a = PageFlipConfig(
+        flapContentRevealEnd: 0.95, flapBackStrength: 0.3,
+        edgeTapPreviousLabel: 'Previous',
+      );
+      const b = PageFlipConfig(
+        flapContentRevealEnd: 0.95, flapBackStrength: 0.3,
+        edgeTapPreviousLabel: 'Previous',
+      );
+      expect(a.hashCode, equals(b.hashCode));
+    });
   });
 }

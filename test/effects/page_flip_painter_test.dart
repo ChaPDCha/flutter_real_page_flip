@@ -467,6 +467,73 @@ void main() {
         // At progress=0.96, front content is fully revealed → 1 drawVertices (front only).
         expect(canvas.drawVerticesCount, equals(1));
       });
+
+      test('draws back mesh in backward double-spread', () {
+        final canvas = TrackingShaderCanvas();
+
+        PageFlipPainter(
+          progress: 0.96,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: _testImage,
+          flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+          flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
+          flapBackImage: _testImage,
+          flapBackSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
+          flapBackStrength: 0.3,
+          isDoubleSpread: true,
+          isForward: false,
+          flapContentFadeOutEnd: 0.20,
+          flapContentRevealStart: 0.85,
+          flapContentRevealEnd: 0.95,
+        ).paint(canvas, const Size(800, 600));
+
+        // Front mesh + back mesh = 2 drawVertices
+        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+        expect(canvas.drawRectCount, greaterThan(0));
+      });
+
+      test('backward double-spread skips back mesh when strength is 0', () {
+        final canvas = TrackingShaderCanvas();
+
+        PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: _testImage,
+          flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+          flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
+          flapBackImage: _testImage,
+          flapBackSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
+          flapBackStrength: 0.0,
+          isDoubleSpread: true,
+          isForward: false,
+        ).paint(canvas, const Size(800, 600));
+
+        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(1));
+      });
+
+      test('backward double-spread shouldRepaint when isForward changes', () {
+        final painter1 = PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          isDoubleSpread: true,
+          isForward: false,
+        );
+        final painter2 = PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          isDoubleSpread: true,
+          isForward: true,
+        );
+        expect(painter1.shouldRepaint(painter2), isTrue);
+      });
     });
   });
 }

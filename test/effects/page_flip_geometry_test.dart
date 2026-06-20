@@ -357,6 +357,70 @@ void main() {
       expect(geo0.foldX, closeTo(0, 0.001));     // starts at left edge
       expect(geo1.foldX, closeTo(400, 0.001));   // ends at spine
     });
+
+    test('backward double-spread flapVisibleWidth increases with progress', () {
+      final ps = [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0];
+      double? prev;
+      for (final p in ps) {
+        final geo = PageFlipGeometry(
+          progress: p, isRightToLeft: true, isForward: false, touchOffset: Offset.zero,
+          size: const Size(800, 600), isDoubleSpread: true,
+        );
+        if (p == 0.0) {
+          expect(geo.flapVisibleWidth, closeTo(0, 0.01));
+        } else {
+          expect(geo.flapVisibleWidth, greaterThan(0));
+        }
+        expect(geo.flapVisibleWidth, lessThan(450.0));
+        if (prev != null) {
+          expect(geo.flapVisibleWidth, greaterThanOrEqualTo(prev!));
+        }
+        prev = geo.flapVisibleWidth;
+      }
+    });
+
+    test('backward double-spread flapLeft is always left of foldX', () {
+      for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {
+        final geo = PageFlipGeometry(
+          progress: p, isRightToLeft: true, isForward: false, touchOffset: Offset.zero,
+          size: const Size(800, 600), isDoubleSpread: true,
+        );
+        expect(geo.flapLeft, lessThanOrEqualTo(geo.foldX + 0.01));
+      }
+    });
+
+    test('backward double-spread angle is inverted relative to forward double', () {
+      final fwd = PageFlipGeometry(
+        progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: const Offset(400, 100),
+        size: const Size(800, 600), isDoubleSpread: true,
+      );
+      final bwd = PageFlipGeometry(
+        progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: const Offset(400, 100),
+        size: const Size(800, 600), isDoubleSpread: true,
+      );
+      expect(fwd.angle, lessThan(0));
+      expect(bwd.angle, greaterThan(0));
+      expect(fwd.angle.abs(), closeTo(bwd.angle.abs(), 0.02));
+    });
+
+    test('backward double-spread curveOffset is negative (bulges right)', () {
+      final geo = PageFlipGeometry(
+        progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero,
+        size: const Size(800, 600), isDoubleSpread: true,
+      );
+      expect(geo.curveOffset, lessThan(0));
+    });
+
+    test('backward double-spread foldX stays within [0, spineX]', () {
+      for (final p in [0.0, 0.01, 0.1, 0.5, 0.9, 0.99, 1.0]) {
+        final geo = PageFlipGeometry(
+          progress: p, isRightToLeft: true, isForward: false, touchOffset: Offset.zero,
+          size: const Size(800, 600), isDoubleSpread: true,
+        );
+        expect(geo.foldX, greaterThanOrEqualTo(0));
+        expect(geo.foldX, lessThanOrEqualTo(400.5));
+      }
+    });
   });
 
   group('PageFlipGeometry invariants', () {
@@ -377,7 +441,7 @@ void main() {
       }
     });
 
-    test('double-spread invariants (foldX between spineX and width)', () {
+    test('double-spread forward invariants (foldX between spineX and width)', () {
       for (final p in [0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0]) {
         final geo = PageFlipGeometry(
           progress: p, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(800, 600),
@@ -385,6 +449,17 @@ void main() {
         );
         expect(geo.foldX, greaterThanOrEqualTo(geo.spineX - 0.5));
         expect(geo.foldX, lessThanOrEqualTo(geo.size.width + 0.5));
+      }
+    });
+
+    test('double-spread backward invariants (foldX between 0 and spineX)', () {
+      for (final p in [0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0]) {
+        final geo = PageFlipGeometry(
+          progress: p, isRightToLeft: true, isForward: false, touchOffset: Offset.zero,
+          size: const Size(800, 600), isDoubleSpread: true,
+        );
+        expect(geo.foldX, greaterThanOrEqualTo(0));
+        expect(geo.foldX, lessThanOrEqualTo(geo.spineX + 0.5));
       }
     });
 

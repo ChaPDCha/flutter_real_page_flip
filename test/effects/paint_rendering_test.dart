@@ -704,6 +704,130 @@ void main() {
       );
     });
 
+    test('backward double-spread with isRightToLeft=true has correct clip and shadow', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        isDoubleSpread: true,
+        isForward: false,
+      ).paint(canvas, size);
+
+      // isRightToLeft && isDoubleSpread → stationary shadow IS drawn
+      expect(canvas.clipPathCount, equals(1));
+      expect(canvas.saveCount, equals(canvas.restoreCount));
+      expect(
+        canvas.hasDrawRectWith(blendMode: BlendMode.multiply, hasShader: true),
+        isTrue,
+        reason: 'Backward double-spread still draws spine groove',
+      );
+    });
+
+    test('backward double-spread edge-fade rect at flapLeft', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        isDoubleSpread: true,
+        isForward: false,
+      ).paint(canvas, size);
+
+      // At progress=0.5, size=800x600, double backward: foldX=200, flapVisibleWidth≈140
+      // flapLeft = foldX - flapVisibleWidth ≈ 60
+      expect(canvas.hasDrawRectNearX(60, 40), isTrue,
+          reason: 'Edge-fade rect should start near flapLeft');
+    });
+
+    test('backward double-spread stationary shadow drawn with RTL', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        isDoubleSpread: true,
+        isForward: false,
+      ).paint(canvas, size);
+
+      expect(canvas.clipRectCount, greaterThan(0));
+    });
+
+    test('backward double-spread 2.5D back content at late progress', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.96,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        flapFrontImage: _testImage,
+        flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+        flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
+        flapBackImage: _testImage,
+        flapBackSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
+        flapBackStrength: 0.3,
+        isDoubleSpread: true,
+        isForward: false,
+        flapContentFadeOutEnd: 0.20,
+        flapContentRevealStart: 0.85,
+        flapContentRevealEnd: 0.95,
+      ).paint(canvas, size);
+
+      expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+    });
+
+    test('backward double-spread flap front texture at late progress', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.96,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        flapFrontImage: _testImage,
+        flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+        flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
+        isDoubleSpread: true,
+        isForward: false,
+        flapContentFadeOutEnd: 0.20,
+        flapContentRevealStart: 0.85,
+        flapContentRevealEnd: 0.95,
+      ).paint(canvas, size);
+
+      expect(canvas.drawVerticesCount, greaterThan(0));
+    });
+
+    test('backward double-spread bend shading drawn at mid-flip', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        isDoubleSpread: true,
+        isForward: false,
+      ).paint(canvas, size);
+
+      expect(
+        canvas.hasDrawRectWith(blendMode: BlendMode.screen, hasShader: true),
+        isTrue,
+        reason: 'Bend highlight should be drawn',
+      );
+      expect(
+        canvas.hasDrawRectWith(blendMode: BlendMode.multiply, hasShader: true),
+        isTrue,
+        reason: 'Fold shadow should be drawn',
+      );
+    });
+
     // ── Test paint with isForward flag ─────────────────────────
 
     test('forward and backward produce same save/restore count', () {

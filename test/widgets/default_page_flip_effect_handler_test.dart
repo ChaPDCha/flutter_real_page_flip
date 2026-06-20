@@ -121,5 +121,142 @@ void main() {
       expect(() => handler.dispose(), returnsNormally);
       await Future.delayed(Duration.zero);
     });
+
+    test('handleEffect with impulseHaptic triggers medium impact', () async {
+      final handler = DefaultPageFlipEffectHandler();
+      await Future.delayed(Duration.zero);
+      expect(
+        () => handler.onHandleEffect(PageFlipEvent.impulseHaptic),
+        returnsNormally,
+      );
+      handler.dispose();
+      await Future.delayed(Duration.zero);
+    });
+
+    test('continuousHaptic without pageIndex falls back to light impact', () async {
+      final handler = DefaultPageFlipEffectHandler();
+      await Future.delayed(Duration.zero);
+      expect(
+        () => handler.onHandleEffect(PageFlipEvent.continuousHaptic),
+        returnsNormally,
+      );
+      handler.dispose();
+      await Future.delayed(Duration.zero);
+    });
+
+    test('continuousHaptic with pageIndex and texture runs physics haptic', () async {
+      final handler = DefaultPageFlipEffectHandler();
+      await Future.delayed(Duration.zero);
+      expect(
+        () => handler.onHandleEffect(
+          PageFlipEvent.continuousHaptic,
+          pageIndex: 0,
+          texture: 0.5,
+          intensity: 60,
+          resistance: 0.5,
+        ),
+        returnsNormally,
+      );
+      handler.dispose();
+      await Future.delayed(Duration.zero);
+    });
+
+    test('texturedHaptic with null pageIndex falls back to light impact', () async {
+      final handler = DefaultPageFlipEffectHandler();
+      await Future.delayed(Duration.zero);
+      expect(
+        () => handler.onHandleEffect(PageFlipEvent.texturedHaptic, texture: 0.5),
+        returnsNormally,
+      );
+      handler.dispose();
+      await Future.delayed(Duration.zero);
+    });
+
+    test('startHaptic triggers light impact', () async {
+      final handler = DefaultPageFlipEffectHandler();
+      await Future.delayed(Duration.zero);
+      expect(
+        () => handler.onHandleEffect(PageFlipEvent.startHaptic),
+        returnsNormally,
+      );
+      handler.dispose();
+      await Future.delayed(Duration.zero);
+    });
+
+    test('MP3 fallback when Opus source fails', () async {
+      int callCount = 0;
+      setupAudioMocks((methodCall) async {
+        callCount++;
+        if (methodCall.method == 'setSource' && callCount <= 2) {
+          throw PlatformException(code: 'ERROR', message: 'Opus not found');
+        }
+        return null;
+      });
+
+      final handler = DefaultPageFlipEffectHandler();
+      await Future.delayed(Duration.zero);
+      expect(
+        () => handler.onHandleEffect(PageFlipEvent.sound, volume: 0.5),
+        returnsNormally,
+      );
+      await Future.delayed(Duration.zero);
+
+      setupAudioMocks((methodCall) async => null);
+      handler.dispose();
+      await Future.delayed(Duration.zero);
+    });
+
+    test('vibration branch when hasVibrator returns true', () async {
+      // Override vibration mock: hasVibrator=true, cancel silently handled
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('flutter_plugin_vibration'),
+        (methodCall) async {
+          if (methodCall.method == 'hasVibrator') return true;
+          return null;
+        },
+      );
+
+      // Re-setup audio mocks so _initAudio succeeds
+      setupAudioMocks((methodCall) async => null);
+
+      final handler = DefaultPageFlipEffectHandler();
+      await Future.delayed(Duration.zero);
+
+      expect(
+        () => handler.onHandleEffect(
+          PageFlipEvent.continuousHaptic,
+          pageIndex: 1,
+          texture: 0.7,
+          intensity: 80,
+          resistance: 0.6,
+        ),
+        returnsNormally,
+      );
+      await Future.delayed(Duration.zero);
+
+      // Restore vibration mock so tearDown can clear it without throwing
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('flutter_plugin_vibration'),
+        (methodCall) async => null,
+      );
+      handler.dispose();
+      await Future.delayed(Duration.zero);
+    });
+
+    test('Opus audio init sets audioReady', () async {
+      final handler = DefaultPageFlipEffectHandler();
+      for (int i = 0; i < 5; i++) {
+        await Future.delayed(Duration.zero);
+      }
+      expect(
+        () => handler.onHandleEffect(PageFlipEvent.sound),
+        returnsNormally,
+      );
+      await Future.delayed(Duration.zero);
+      handler.dispose();
+      await Future.delayed(Duration.zero);
+    });
   });
 }

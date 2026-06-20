@@ -45,15 +45,14 @@ void main() {
       expect(rect.height, equals(600));
     });
 
-    test('single page backward flip returns null (paper back only)', () {
-      expect(
-        flapFrontSourceRect(
-          imageSize: imageSize,
-          isDoubleSpread: false,
-          isForward: false,
-        ),
-        isNull,
+    test('single page backward flip returns full page rect (content on flap)', () {
+      final rect = flapFrontSourceRect(
+        imageSize: imageSize,
+        isDoubleSpread: false,
+        isForward: false,
       );
+      expect(rect, isNotNull);
+      expect(rect, equals(const Rect.fromLTWH(0, 0, 800, 600)));
     });
   });
 

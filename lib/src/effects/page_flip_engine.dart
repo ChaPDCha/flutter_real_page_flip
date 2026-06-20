@@ -13,7 +13,8 @@ import 'package:flutter/material.dart';
 /// Forward double-spread: right half of the **current** spread (turning page).
 /// Backward double-spread: left half of the **current** spread (turning page).
 /// Spine reveal in layer 2 shows the adjacent spread half after crossing the spine.
-/// Single-page backward flips use paper back only.
+/// Single-page (both directions): full page rect — the current page wraps onto
+/// the flap so content is visible during the turn.
 Rect? flapFrontSourceRect({
   required Size imageSize,
   required bool isDoubleSpread,
@@ -26,8 +27,6 @@ Rect? flapFrontSourceRect({
     }
     return Rect.fromLTWH(0, 0, halfWidth, imageSize.height);
   }
-
-  if (!isForward) return null;
 
   return Rect.fromLTWH(0, 0, imageSize.width, imageSize.height);
 }
