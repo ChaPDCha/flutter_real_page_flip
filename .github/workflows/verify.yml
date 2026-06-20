@@ -42,25 +42,27 @@ jobs:
 
       - name: Test count regression check
         run: |
-          BASELINE=113
-          MINIMUM=100
-          TEST_OUTPUT=$(flutter test --coverage 2>&1 | tail -5)
+          BASELINE=448
+          MINIMUM=440
+          TEST_OUTPUT=$(flutter test 2>&1 | tail -5)
           echo "$TEST_OUTPUT"
-          # Extract number of tests from the test output line like "X tests passed."
-          if echo "$TEST_OUTPUT" | grep -qE '([0-9]+) tests?'; then
-            COUNT=$(echo "$TEST_OUTPUT" | grep -oE '[0-9]+' | head -1)
-            echo "Test count: $COUNT"
-            if [ "$COUNT" -lt "$MINIMUM" ]; then
-              echo "ERROR: Test count ($COUNT) dropped below minimum ($MINIMUM)"
-              exit 1
-            fi
-            if [ "$COUNT" -lt "$BASELINE" ]; then
-              echo "WARNING: Test count ($COUNT) is below baseline ($BASELINE) — consider adding tests for new code."
-            else
-              echo "Test count ($COUNT) at or above baseline ($BASELINE)."
-            fi
+          # Extract number of passed tests from output line like "+448" or "448 tests passed"
+          if echo "$TEST_OUTPUT" | grep -qE '\+[0-9]+'; then
+            COUNT=$(echo "$TEST_OUTPUT" | grep -oE '\+([0-9]+)' | grep -oE '[0-9]+' | head -1)
+          elif echo "$TEST_OUTPUT" | grep -qE '([0-9]+) tests? passed'; then
+            COUNT=$(echo "$TEST_OUTPUT" | grep -oE '[0-9]+ tests? passed' | grep -oE '[0-9]+')
           else
-            echo "WARNING: Could not parse test count from output."
+            COUNT=0
+          fi
+          echo "Test count: $COUNT"
+          if [ "$COUNT" -lt "$MINIMUM" ]; then
+            echo "ERROR: Test count ($COUNT) dropped below minimum ($MINIMUM)"
+            exit 1
+          fi
+          if [ "$COUNT" -lt "$BASELINE" ]; then
+            echo "WARNING: Test count ($COUNT) is below baseline ($BASELINE) — consider adding tests for new code."
+          else
+            echo "Test count ($COUNT) at or above baseline ($BASELINE)."
           fi
 
       - name: Check publishing readiness

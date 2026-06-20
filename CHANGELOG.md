@@ -1,199 +1,7 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-## [1.0.12+18] - 2026-06-21
-### 🐛 수정
-- 1단보기 forward 페이지플립 원래 방식으로 복원 (이동하는 접힘선)
-- 1단보기 backward는 제본선 고정 + 손가락 방향 일치 유지
-- snapshot 렌더링 filterQuality 복원 (medium)
-- 불필요한 circular import 제거
-
-## [1.0.11+17] - 2026-06-21
-### 🐛 수정
-- 1단보기 이전페이지 넘김 방향 수정 — 손가락(왼→오)과 flap 움직임이 반대였던 버그
-- forward/backward 모두 왼쪽 제본선(x=0)에서 오른쪽으로 flap 확장 (flapRightOfFold 통일)
-
-## [1.0.10+16] - 2026-06-21
-### 🐛 수정
-- 1단보기 접힘선(foldX)을 제본선에 고정 — 페이지가 뜯어지는 듯한 시각적 오류 해결
-- forward: 스파인 왼쪽 고정(foldX=0), flap이 오른쪽으로 축소
-- backward: 스파인 오른쪽 고정(foldX=pageWidth), flap이 왼쪽으로 성장
-- flapRightOfFold 필드로 4개 모드 통합 (1단/2단 × forward/backward)
-- 각도 제한, 곡선 방향, clip path, paint gradient 일괄 수정
-
-### 🧪 테스트
-- geometry/clip/paint rendering/golden 테스트 전면 업데이트 (448개 통과)
-
-### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 배포
-- 버전 1.0.10+16 (build number 16)
-
-## [1.0.9+15] - 2026-06-20
-### 🐛 수정
-- backward flap clip bleed 방향 수정 (foldEdgeBleedPx 부호 반전 — flap이 오른쪽일 때)
-- backward 단일 페이지 flap 전면 콘텐츠 수평 반전 (flipHorizontal) — 왼→오 펼칠 때 텍스트 방향 보정
-- buildFlapScreenClipPath 미사용 height 변수 제거
-
-### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 재배포 (flap clip bleed + 단일 페이지 mirroring)
-- 버전 1.0.9+15 (build number 15)
-
-## [1.0.8+14] - 2026-06-20
-### 🐛 수정
-- 역방향 페이지 플립 flap이 foldX의 잘못된 방향(왼쪽)에 위치하던 버그 수정
-- backward flap을 foldX 오른쪽으로 이동 (forward는 왼쪽, backward는 오른쪽이 물리적으로 올바름)
-- freeEdgeX 필드 추가로 자유 가장자리 좌표 명확화
-- buildFlapScreenClipPath backward용 별도 경로 로직 구현 (fold 왼쪽 → free edge 오른쪽)
-- paint 메서드: edge fade, fold fade, highlight gradient 방향을 isForward에 따라 동적 전환
-
-### 🧪 테스트
-- backward flapLeft 기대값 수정 (foldX보다 작음 → foldX와 동일)
-- backward freeEdgeX >= foldX 검증 추가
-- golden 업데이트: single_page_reveal_backward_050, single_page_reveal_backward_085
-
-### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 재배포 (flap 방향 버그 수정)
-- 버전 1.0.8+14 (build number 14)
-
-## [1.0.7+13] - 2026-06-20
-### 🐛 수정
-- 역방향 페이지 플립 foldX 방향 수정 (우→좌 → 좌→우)
-- floatProgress = 1 - dragProgress로 backward progress는 1→0; foldX 수식 pageWidth*progress → pageWidth*(1.0-progress)
-
-### 🧪 테스트
-- backward foldX/flapVisibleWidth 기대치 수정 (우→좌 반영)
-- golden 업데이트: single_page_reveal_backward_085
-
-### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 재배포 (foldX 방향 버그 수정)
-- 버전 1.0.7+13 (build number 13)
-
-## [1.0.6+12] - 2026-06-20
-### 🐛 수정
-- 역방향 단일 페이지 플립에서 flap에 페이지 콘텐츠가 표시되지 않던 버그 수정
-- flapSnapshotSpreadIndex / flapFrontSourceRect backward 단일 null → full rect
-
-### 🧪 테스트
-- 역방향 더블스프레드 지오메트리, 페인터, 렌더링, 레이어뷰 테스트 추가
-- physics_frame, physics_config, page_flip_config, effect_handler 커버리지 갭 테스트 추가
-
-### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 재배포 (버그 수정, version code 충돌 해결)
-- 버전 1.0.6+12 (build number 12)
-
-## [1.0.5+10] - 2026-06-20
-### 🐛 수정
-- 역방향 단일 페이지 플립이 왼쪽이 아닌 오른쪽에서 시작하던 버그 수정
-- flapLeft를 foldX 기준 항상 왼쪽에 위치하도록 통일 (전/역방향 동일)
-- buildFlapScreenClipPath degenerate 검사 단순화
-- bend shading / edge-fade / fold-fade 그래디언트 방향 일원화
-- golden 업데이트: 역방향 단일 페이지 렌더링
-
-### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 재배포 (버그 수정)
-- 버전 1.0.5+10 (build number 10)
-
-## [1.0.5+9] - 2026-06-20
-### 🐛 수정
-- 역방향 페이지 플립 foldX 방향 수정: foldX = pageWidth × progress (좌→우)
-- 역방향 flapSideWidth/revealedSideWidth/flapMaterialWidth 모두 foldX 기준으로 재계산
-- 역방향 2단보기에서 접히지 않은 오른쪽 페이지가 잘리지 않도록 stationaryHalf 클립 제거
-- 역방향 bend shading/edge-fade/fold-fade 그래디언트 방향 반전
-- 역방향 buildFlapScreenClipPath flapRect 시작 위치를 foldX로 보정
-- golden 업데이트: single_page_reveal_backward 050/085
-
-### 🧪 테스트
-- page_flip_geometry_test.dart 역방향 foldX 기대치 수정 (좌→우 진행 반영)
-
-### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 배포
-- 버전 1.0.5+9 (build number 9)
-
-## [1.0.4+7] - 2026-06-19
-### 🧪 테스트
-- flip_curve_test.dart 9개 추가: PaperFlipCurve 조기 가속/중간 평탄화/말기 안착, C∞ 평탄성, 단조성; TapFlipCurve ease-in-out-quart 수학적 정확도
-- flap_mesh_test.dart 13개 추가: 메시 구조, 픽셀 렌더링 검증, degenerate/극단 파라미터
-- flap_front_texture_test.dart flapBackSourceRect 4개 추가: 전/역방향, 단일/2단 모드
-- page_flip_geometry_test.dart 역방향 7개 추가: foldX/flapLeft/flapVisibleWidth/angle/flapLeft 불변량
-- page_flip_painter_test.dart 2.5D 후면 콘텐츠 3개 추가: flapBackImage 렌더링, flapBackStrength=0, 단일 페이지 스킵
-- paint_rendering_test.dart 29개 추가: saveLayer, edge-fade/fold-fade, bend shading, 종이 색상, revealed/stationary 그림자, 척추 홈, 드로우 순서, 방향 대칭성
-- 총 387개 테스트 (기존 323개 → 387개, +64)
-
-### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 배포
-- 버전 1.0.4+7 (build number 7)
-
-## [1.0.3+6] - 2026-06-19
-### ✨ 기능
-- 2단 보기 상태에서 페이지 뒷면 콘텐츠 2.5D 구현
-- 넘겨지는 페이지 뒷면에 도착지 페이지 콘텐츠가 얇은 종이처럼 비치는 효과
-
-### 🎨 UI/UX
-- 얇은 종이 투과 효과 (thinPaperStrength): 플립 중간에서 종이가 살짝 투명해짐
-- 플립 종료 시 콘텐츠 서서히 드러나기 (endRevealStrength): 애니메이션 마무리 단계에서 다음 페이지 콘텐츠가 종이 위로 나타남
-- `flapBackStrength` 설정으로 페이지 뒷면 효과 강도 조절 (0.0~1.0, 기본 0.3)
-
-### 🐛 수정
-- 역방향 페이지 플립 flapMaterialWidth 계산 오차 수정 (backward clipping)
-- 2단보기 역방향에서 페이지가 얼어붙는 현상 방지 (release progress 0.35 조건 추가)
-
-### 🧪 테스트
-- flapOpacityModulator 17개 테스트: 얇은 종이, end reveal, 전/역방향 대칭성, smoothstep 연속성, clamping
-- backward 플립 골든 업데이트
-
-### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 배포
-- 버전 1.0.3+6 (build number 6)
-
-## [1.0.2+5] - 2026-06-17
-### 🐛 수정
-- 페이지플립 접힌 면 바깥 경계선 클립 정렬 오차 수정 (screen-space clip path 도입)
-- 챕터 제목에 하드코딩된 `fontFamily: 'serif'`를 사용자 설정 반영으로 수정
-
-### 🔧 빌드/배포
-- Firebase Crashlytics + Analytics + Remote Config 연동
-- Crashlytics 전역 에러 핸들러 등록 (Flutter + Native)
-- Firebase 초기화 실패 시 앱 크래시 방지 try-catch 추가
-- AdMob 초기화 코드 누락 복구
-- google-services.json .gitignore 추가 (시크릿 보호)
-- 버전 1.0.2+5 (build number 5)
-
-### ♻️ 리팩토링
-- FirebaseService lazy getter 도입 (테스트 환경에서 자동 no-op)
-- buildFlapScreenClipPath degenerate geometry 가드 추가
-
-### 🧪 테스트
-- clip_alignment_test.dart 18개 추가: stationary/flap 경로 정렬을 다양한 각도, 곡률, touch offset, double-spread 모드에서 검증
-- snapClipCoord 정밀도 테스트
-
-## [1.0.1+4] - 2026-06-17
-### 🐛 수정
-- 1단보기 페이지 넘김 시 현재 페이지가 사라지고 빈 종이로 보이던 문제 수정
-- 이전페이지로 넘기기 시 접힌 면 틈새로 다른 글자가 보이던 문제 수정
-
-### 🎨 UI/UX
-- 배너 광고를 서재 화면으로만 이동 (읽기 중 방해 제거)
-
-### 🔧 빌드/배포
-- 비공개테스트 알파 트랙 배포
-- 버전 1.0.1+4 (build number 4)
-
-## [1.0.0+3] - 2026-06-17
-### 🎨 UI/UX
-- Play Store 등록정보 업데이트: 스크린샷 5종, 앱 설명 한글/영문 작성
-
-### 🔧 빌드/배포
-- 비공개테스트 배포 (internal testing track)
-- 버전 1.0.0+3 (build number 3)
-
-## [1.0.0+2] - 2026-06-17
-### 🎨 UI/UX
-- 배너 광고를 리더 화면 하단에 추가 (Adaptive anchored banner)
-
-### 🔧 빌드/배포
-- Play Store 출시 준비: 서명 설정, ProGuard, AdMob 통합
-- 안드로이드 릴리스 번들 빌드 성공 (94.2MB)
+All notable changes to the `real_page_flip` **package** will be documented here.
+For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
 ## [1.4.2] - 2026-06-04
 ### Added
@@ -201,109 +9,77 @@ All notable changes to this project will be documented in this file.
 
 ## [1.4.1] - 2026-06-04
 ### Changed
-- Relicensed the package under the MIT License, making it completely free for commercial and non-commercial use.
+- Relicensed the package under the MIT License.
 
 ## [1.4.0] - 2026-05-14
 ### Added
-- **Direction-aware flip thresholds**: `cutoffForward` and `cutoffPrevious`
-  independently control drag-release completion (both default to `0.4`).
-- **12 new test files** covering `PageFlipConfig`, `PageFlipGeometry`,
-  `PageFlipPainter`, `PaperPhysicsConfig`, `PaperPhysicsFrame`,
-  `PaperResistanceModel`, `PaperTextureNoise`, `StickSlipController`,
-  `PageFlipStateController`, `PreRenderManager`, and `EdgeTapFeedback`.
-- **Named geometry constants**: 6 rendering constants extracted from inline
-  magic numbers.
+- Direction-aware flip thresholds: `cutoffForward` and `cutoffPrevious` independently control drag-release completion.
+- 12 new test files covering geometry, physics, controllers, and widgets.
+- Named geometry constants extracted from inline magic numbers.
 
 ### Changed
-- `PageFlipStateController` accepts `cutoffForward`/`cutoffPrevious` from
-  `PageFlipConfig` instead of a hardcoded threshold.
+- `PageFlipStateController` accepts configurable thresholds from `PageFlipConfig`.
 - `PageFlipPainter` constructor is now `const`.
-- `cutoffForward` default: `0.8` → `0.4`.
-- `cutoffPrevious` default: `0.1` → `0.4`.
+- `cutoffForward` default: 0.8 → 0.4, `cutoffPrevious` default: 0.1 → 0.4.
 
 ### Fixed
-- `PageFlipConfig` equality: `==`/`hashCode` now include `enableHaptics`,
-  `enableSound`, and `effectHandler`.
-- `PaperPhysicsConfig` and `PaperPhysicsFrame` added `==`/`hashCode` overrides.
+- `PageFlipConfig`, `PaperPhysicsConfig`, `PaperPhysicsFrame` equality/hashCode.
 
 ## [1.3.0] - 2026-05-09
 ### Added
-- **Dark Mode Support**: `PageFlipConfig.backgroundColor` now defaults to `null`
-  instead of `Colors.white`. When `null`, the engine reads
-  `Theme.of(context).scaffoldBackgroundColor` at render time, so dark mode
-  works automatically without any extra configuration.
-- Adaptive shadow intensity in `PageFlipPainter`: backgrounds with luminance
-  below 0.20 (dark mode) receive softer inner shadows (35 % → 20 %) and
-  stronger fold highlights (12 % → 18 %) for a more natural flip appearance.
-- New **Dark Mode Support** section in `README.md` with zero-config and
-  custom-color examples.
+- Dark Mode Support: `PageFlipConfig.backgroundColor` now defaults to `null` and reads `Theme.of(context).scaffoldBackgroundColor` at render time.
+- Adaptive shadow intensity for dark backgrounds.
 
 ### Changed
-- `PageFlipConfig.backgroundColor` type changed from `Color` to `Color?`.
-  Existing callers that explicitly pass a colour are unaffected; callers that
-  relied on the `Colors.white` default now automatically inherit the host
-  app's scaffold background colour.
+- `PageFlipConfig.backgroundColor` type: `Color` → `Color?`.
 
 ## [1.2.4] - 2026-05-02
 ### Fixed
-- Fixed a 404 error on the legacy interaction demo video URL which caused it to render as a plain link instead of embedding as a video player.
+- Fixed 404 error on legacy interaction demo video URL.
 
 ## [1.2.3] - 2026-05-02
 ### Fixed
-- Replaced WebP and <img> tags with raw markdown video links to allow native video embedding on GitHub and clean fallback links on pub.dev.
-- Removed legacy `realpageflip_sample.webp` to prevent display of inaccurate static recordings.
+- Replaced WebP tags with raw markdown video links for pub.dev compatibility.
 
 ## [1.2.2] - 2026-05-02
 ### Fixed
-- Fixed broken video tags on pub.dev by replacing them with clickable animated WebP thumbnails and Markdown text links.
-- Removed redundant demo sections to ensure exactly two primary demo links are prominently displayed.
+- Fixed broken video tags on pub.dev.
 
 ## [1.2.1] - 2026-05-02
 ### Added
-- Replaced main demo with a high-fidelity, extended interaction recording.
-- Added "Legacy Interaction Demo" section to showcase core physics and gesture arbitration.
-- Integrated direct GitHub user-attachment URLs for robust documentation rendering.
+- High-fidelity extended interaction recording.
+- Legacy Interaction Demo section.
 
 ## [1.2.0] - 2026-05-02
 ### Added
-- Replaced demo assets with high-fidelity production sample (`realpageflip_sample.webp`).
-- Optimized `README` for pub.dev compatibility with clickable high-resolution previews.
-- Increased image width in documentation for better technical visualization.
+- Production-quality demo assets.
+- Optimized README for pub.dev.
 
 ## [1.1.3] - 2026-05-02
 ### Added
-- Replaced static placeholder with a high-fidelity interaction recording of the actual engine.
-- Fixed rendering issues in the documentation preview assets.
+- High-fidelity interaction recording of the actual engine.
 
 ## [1.1.2] - 2026-05-02
 ### Added
-- Improved snappy demo video with immediate interaction start (zero delay).
-- Switched to absolute asset URLs in documentation for better rendering on pub.dev and other platforms.
+- Snappy demo video with immediate interaction start.
+- Absolute asset URLs for pub.dev compatibility.
 
 ## [1.1.1] - 2026-05-02
 ### Added
-- Professional high-fidelity teaser video (demo.webp) for documentation.
-- Comprehensive technical differentiation and GPU optimization guides in README.
-- Standardized high-efficiency Opus audio assets for better performance.
-- Enhanced example application with unique page content and heavy-load stress tests.
-- GitHub repository SEO optimization (topics, description).
-
-### Fixed
-- Sync issues between internal package and public repository.
+- Professional teaser video, GPU optimization guides, Opus audio assets.
+- Example app with unique content and stress tests.
 
 ## [1.1.0] - 2026-05-01
 ### Added
-- Physics-based interaction logic for realistic paper friction.
+- Physics-based paper friction interaction logic.
 - Dynamic geometry rendering with hardware-accelerated clipping.
-- Integrated haptic feedback system.
-- Sound effect integration with `audioplayers`.
+- Integrated haptic feedback and sound effect system.
 - Semantics support for accessibility.
-- Strict linting and code formatting.
 
 ### Changed
-- Refactored `PageFlipWidget` to use a more robust `PageFlipStateController`.
-- Improved snapshot capturing logic in `PreRenderManager`.
+- Refactored `PageFlipWidget` to use `PageFlipStateController`.
+- Improved snapshot capturing in `PreRenderManager`.
 
 ### Fixed
-- Layout boundary issues in certain `Stack` configurations.
+- Layout boundary issues in Stack configurations.
 - Memory leak in `PreRenderManager` snapshots.
