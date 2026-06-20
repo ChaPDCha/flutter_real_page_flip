@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.8+14] - 2026-06-20
+### 🐛 수정
+- 역방향 페이지 플립 flap이 foldX의 잘못된 방향(왼쪽)에 위치하던 버그 수정
+- backward flap을 foldX 오른쪽으로 이동 (forward는 왼쪽, backward는 오른쪽이 물리적으로 올바름)
+- freeEdgeX 필드 추가로 자유 가장자리 좌표 명확화
+- buildFlapScreenClipPath backward용 별도 경로 로직 구현 (fold 왼쪽 → free edge 오른쪽)
+- paint 메서드: edge fade, fold fade, highlight gradient 방향을 isForward에 따라 동적 전환
+
+### 🧪 테스트
+- backward flapLeft 기대값 수정 (foldX보다 작음 → foldX와 동일)
+- backward freeEdgeX >= foldX 검증 추가
+- golden 업데이트: single_page_reveal_backward_050, single_page_reveal_backward_085
+
+### 🔧 빌드/배포
+- 비공개테스트(closed alpha) 트랙 재배포 (flap 방향 버그 수정)
+- 버전 1.0.8+14 (build number 14)
+
 ## [1.0.7+13] - 2026-06-20
 ### 🐛 수정
 - 역방향 페이지 플립 foldX 방향 수정 (우→좌 → 좌→우)

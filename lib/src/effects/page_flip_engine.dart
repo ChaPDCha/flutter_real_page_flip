@@ -590,19 +590,26 @@ class PageFlipGeometry {
     flapVisibleWidth = flapMaterialWidth *
         (_kFlapWidthBase - _kFlapWidthModulation * math.sin(progress * math.pi));
 
-    // Free edge of the flap:
-    // Forward:  flapLeft (left of foldX).  Backward: flapRight (right of foldX).
-    // We store in flapLeft for backward compatibility of the field name.
-    flapLeft = foldX - flapVisibleWidth;
+    // flapLeft is the leftmost x-coordinate of the visible flap region.
+    // Forward:  free edge at foldX - flapVisibleWidth (left of foldX).
+    // Backward: fold hinge at foldX, free edge at foldX + flapVisibleWidth.
+    if (isForward) {
+      flapLeft = foldX - flapVisibleWidth;
+    } else {
+      flapLeft = foldX;
+    }
 
-    // Flap edge endpoints
+    // Free edge x-coordinate (the lifted page edge the user holds).
+    freeEdgeX = isForward ? flapLeft : flapLeft + flapVisibleWidth;
+
+    // Flap edge endpoints (screen-space positions of the free edge).
     flapEdgeTop = MatrixUtils.transformPoint(
       transform,
-      Offset(flapLeft, -height),
+      Offset(freeEdgeX, -height),
     );
     flapEdgeBottom = MatrixUtils.transformPoint(
       transform,
-      Offset(flapLeft, height * 2),
+      Offset(freeEdgeX, height * 2),
     );
 
     // ── Fold curvature ──────────────────────────────────────────────────────
@@ -619,10 +626,12 @@ class PageFlipGeometry {
       transform,
       Offset(foldX - curveOffset, height / 2),
     );
-    // Flap edge control curve — matches the free edge direction.
+    // Flap edge control curve — follows the free edge curvature.
+    // Forward:  free edge at flapLeft (left of foldX).
+    // Backward: free edge at flapLeft + flapVisibleWidth (right of foldX).
     flapCurveControl = MatrixUtils.transformPoint(
       transform,
-      Offset(flapLeft - curveOffset, height / 2),
+      Offset(freeEdgeX - curveOffset, height / 2),
     );
   }
   /// Normalised flip progress from 0.0 to 1.0.
@@ -670,6 +679,9 @@ class PageFlipGeometry {
   /// Left edge X-coordinate of the flap.
   late final double flapLeft;
 
+  /// Free edge X-coordinate of the flap (the lifted page edge).
+  late final double freeEdgeX;
+
   /// Top endpoint of the flap edge.
   late final Offset flapEdgeTop;
 
@@ -700,30 +712,49 @@ Path buildFlapScreenClipPath(
   PageFlipGeometry geo, {
   double foldEdgeBleedPx = kSpineRevealOverlapPx,
 }) {
-  // Degenerate geometry: flap is too narrow to render when free edge is at or right of foldX.
-  if (geo.flapLeft >= geo.foldX - 0.5) return Path();
+  // Degenerate geometry guard.
+  final degenerate = geo.isForward
+      ? geo.flapLeft >= geo.foldX - 0.5
+      : geo.flapVisibleWidth <= 0.5;
+  if (degenerate) return Path();
 
   final height = geo.size.height;
   final flapEdgeTop = snapClipPoint(geo.flapEdgeTop);
   final flapEdgeBottom = snapClipPoint(geo.flapEdgeBottom);
 
   final path = Path();
-  path.moveTo(flapEdgeTop.dx, flapEdgeTop.dy);
 
-  // Right edge: follows the fold line (with bleed), matching Layer 2's clip.
-  appendFoldLineBoundary(path, geo, overlapShift: foldEdgeBleedPx);
-
-  // Bottom edge: from fold line bottom to flap edge bottom.
-  path.lineTo(flapEdgeBottom.dx, flapEdgeBottom.dy);
-
-  // Left edge: flap's free edge (follows the curvature).
-  if (geo.curvatureAmount > 0.001) {
-    final control = snapClipPoint(geo.flapCurveControl);
-    path.quadraticBezierTo(
-      control.dx, control.dy,
-      flapEdgeTop.dx, flapEdgeTop.dy,
-    );
+  if (geo.isForward) {
+    // Forward: flap spans LEFT of foldX.
+    // Path: free edge (left) → fold line (right) → bottom → back to free edge.
+    path.moveTo(flapEdgeTop.dx, flapEdgeTop.dy);
+    appendFoldLineBoundary(path, geo, overlapShift: foldEdgeBleedPx);
+    path.lineTo(flapEdgeBottom.dx, flapEdgeBottom.dy);
+    if (geo.curvatureAmount > 0.001) {
+      final control = snapClipPoint(geo.flapCurveControl);
+      path.quadraticBezierTo(
+        control.dx, control.dy,
+        flapEdgeTop.dx, flapEdgeTop.dy,
+      );
+    }
+  } else {
+    // Backward: flap spans RIGHT of foldX.
+    // Path: fold line (left) → free edge (right) → bottom → back to fold line.
+    final foldLineTop = snapClipPoint(geo.foldLineTop, overlapShift: foldEdgeBleedPx);
+    final foldLineBottom = snapClipPoint(geo.foldLineBottom, overlapShift: foldEdgeBleedPx);
+    path.moveTo(foldLineTop.dx, foldLineTop.dy);
+    path.lineTo(flapEdgeTop.dx, flapEdgeTop.dy);
+    path.lineTo(flapEdgeBottom.dx, flapEdgeBottom.dy);
+    path.lineTo(foldLineBottom.dx, foldLineBottom.dy);
+    if (geo.curvatureAmount > 0.001) {
+      final control = snapClipPoint(geo.foldCurveControl, overlapShift: foldEdgeBleedPx);
+      path.quadraticBezierTo(
+        control.dx, control.dy,
+        foldLineTop.dx, foldLineTop.dy,
+      );
+    }
   }
+
   path.close();
   return path;
 }
@@ -972,7 +1003,7 @@ class PageFlipPainter extends CustomPainter {
       final backMesh = buildFlapContentMesh(
         size: size,
         foldX: g.foldX,
-        flapLeft: g.flapLeft,
+        flapLeft: g.freeEdgeX,
         curveOffset: g.curveOffset,
         srcRect: flapBackSrcRect!,
         segments: 16,
@@ -1028,7 +1059,7 @@ class PageFlipPainter extends CustomPainter {
           final mesh = buildFlapContentMesh(
             size: size,
             foldX: g.foldX,
-            flapLeft: g.flapLeft,
+            flapLeft: g.freeEdgeX,
             curveOffset: g.curveOffset,
             srcRect: srcRect,
             segments: 16,
@@ -1067,17 +1098,25 @@ class PageFlipPainter extends CustomPainter {
     // fold edge. Strong enough to suggest a curved surface, soft enough not
     // to look like the paper is tightly rolled.
     //
-    // The flap extends LEFT from foldX, so right = fold hinge, left = free edge.
+    // Forward:  flap extends LEFT  from foldX → right = fold, left = free edge.
+    // Backward: flap extends RIGHT from foldX → left  = fold, right = free edge.
     final bendStrength = g.shadowIntensity; // 0–1, peaks mid-flip
     if (bendStrength > 0.005) {
+      final highlightBegin = g.isForward
+          ? Alignment.centerRight  // fold side
+          : Alignment.centerLeft;
+      final highlightEnd = g.isForward
+          ? Alignment.centerLeft    // free edge side
+          : Alignment.centerRight;
+
       // Gentle centre highlight (catches light on the bulge).
       canvas.drawRect(
         flapRect,
         Paint()
           ..blendMode = BlendMode.screen
           ..shader = LinearGradient(
-            begin: Alignment.centerRight,
-            end: Alignment.centerLeft,
+            begin: highlightBegin,
+            end: highlightEnd,
             colors: [
               Colors.transparent,
               Colors.white.withValues(alpha: 0.08 * bendStrength),
@@ -1091,13 +1130,19 @@ class PageFlipPainter extends CustomPainter {
 
       // Subtle fold-edge darkening.
       final foldShadow = (isPaperDark ? 0.10 : 0.15) * bendStrength;
+      final foldDarkBegin = g.isForward
+          ? Alignment.centerRight  // fold on right for forward
+          : Alignment.centerLeft;
+      final foldDarkEnd = g.isForward
+          ? Alignment.centerLeft
+          : Alignment.centerRight;
       canvas.drawRect(
         flapRect,
         Paint()
           ..blendMode = BlendMode.multiply
           ..shader = LinearGradient(
-            begin: Alignment.centerRight,
-            end: Alignment.centerLeft,
+            begin: foldDarkBegin,
+            end: foldDarkEnd,
             colors: [
               Colors.black.withValues(alpha: foldShadow),
               Colors.transparent,
@@ -1107,19 +1152,25 @@ class PageFlipPainter extends CustomPainter {
       );
     }
 
-    // Edge-fade: mask partial-text artifacts at the flap's free edge (flapLeft).
+    // Edge-fade: mask partial-text artifacts at the flap's free edge.
     // A ~8 px gradient from paperBackColor → transparent hides stray character
     // fragments at the mesh boundary without affecting visible flap content.
     const double edgeFadeWidth = 8.0;
-    final edgeFadeRect = Rect.fromLTWH(
-      g.flapLeft, 0, edgeFadeWidth, size.height,
-    );
+    final edgeFadeRect = g.isForward
+        ? Rect.fromLTWH(g.flapLeft, 0, edgeFadeWidth, size.height)
+        : Rect.fromLTWH(g.freeEdgeX - edgeFadeWidth, 0, edgeFadeWidth, size.height);
+    final edgeFadeBegin = g.isForward
+        ? Alignment.centerLeft
+        : Alignment.centerRight;
+    final edgeFadeEnd = g.isForward
+        ? Alignment.centerRight
+        : Alignment.centerLeft;
     canvas.drawRect(
       edgeFadeRect,
       Paint()
         ..shader = LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+          begin: edgeFadeBegin,
+          end: edgeFadeEnd,
           colors: [
             paperBackColor.withValues(alpha: 1.0),
             Colors.transparent,
@@ -1132,15 +1183,21 @@ class PageFlipPainter extends CustomPainter {
     // create visible fragments. This narrow gradient from paperBackColor →
     // transparent softens the fold boundary edge.
     const double foldFadeWidth = 6.0;
-    final foldFadeRect = Rect.fromLTWH(
-      g.foldX - foldFadeWidth, 0, foldFadeWidth, size.height,
-    );
+    final foldFadeRect = g.isForward
+        ? Rect.fromLTWH(g.foldX - foldFadeWidth, 0, foldFadeWidth, size.height)
+        : Rect.fromLTWH(g.foldX, 0, foldFadeWidth, size.height);
+    final foldFadeBegin = g.isForward
+        ? Alignment.centerRight
+        : Alignment.centerLeft;
+    final foldFadeEnd = g.isForward
+        ? Alignment.centerLeft
+        : Alignment.centerRight;
     canvas.drawRect(
       foldFadeRect,
       Paint()
         ..shader = LinearGradient(
-          begin: Alignment.centerRight,
-          end: Alignment.centerLeft,
+          begin: foldFadeBegin,
+          end: foldFadeEnd,
           colors: [
             paperBackColor.withValues(alpha: 1.0),
             Colors.transparent,

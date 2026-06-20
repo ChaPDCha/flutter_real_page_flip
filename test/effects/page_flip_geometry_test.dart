@@ -275,13 +275,13 @@ void main() {
   });
 
   group('PageFlipGeometry backward direction details', () {
-    test('backward flapLeft is left of foldX (same as forward)', () {
+    test('backward flapLeft is at foldX (flap extends right)', () {
       final fwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: Offset.zero, size: const Size(400, 600));
       final bwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
       // Forward: flapLeft < foldX (flap extends LEFT).
       expect(fwd.flapLeft, lessThan(fwd.foldX));
-      // Backward: flapLeft < foldX (flap extends LEFT, same as forward).
-      expect(bwd.flapLeft, lessThan(bwd.foldX));
+      // Backward: flapLeft == foldX (flap extends RIGHT from foldX).
+      expect(bwd.flapLeft, closeTo(bwd.foldX, 0.001));
     });
 
     test('backward flapVisibleWidth derived from foldX', () {
@@ -334,12 +334,15 @@ void main() {
       expect(atHigh, lessThan(atLow));
     });
 
-    test('backward flapLeft is always left of foldX throughout flip', () {
+    test('backward flapLeft is at or left of foldX throughout flip', () {
       for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {
         final geo = PageFlipGeometry(
           progress: p, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600),
         );
         expect(geo.flapLeft, lessThanOrEqualTo(geo.foldX + 0.01));
+        expect(geo.flapLeft, greaterThanOrEqualTo(geo.foldX - 0.01));
+        // freeEdgeX is to the right of foldX for backward
+        expect(geo.freeEdgeX, greaterThanOrEqualTo(geo.foldX));
       }
     });
 
@@ -379,13 +382,15 @@ void main() {
       }
     });
 
-    test('backward double-spread flapLeft is always left of foldX', () {
+    test('backward double-spread flapLeft is at foldX', () {
       for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {
         final geo = PageFlipGeometry(
           progress: p, isRightToLeft: true, isForward: false, touchOffset: Offset.zero,
           size: const Size(800, 600), isDoubleSpread: true,
         );
         expect(geo.flapLeft, lessThanOrEqualTo(geo.foldX + 0.01));
+        expect(geo.flapLeft, greaterThanOrEqualTo(geo.foldX - 0.01));
+        expect(geo.freeEdgeX, greaterThanOrEqualTo(geo.foldX));
       }
     });
 

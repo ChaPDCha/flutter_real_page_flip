@@ -1,0 +1,2 @@
+• Fixed backward page flip direction — flap now correctly extends to the right of the fold line
+• Corrected page curl curvature and shadow shading for reverse-page flip
