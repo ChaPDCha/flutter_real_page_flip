@@ -19,11 +19,11 @@ void main() {
       expect(geo.foldX, closeTo(0, 0.001));
     });
 
-    test('single backward foldX anchored at pageWidth (right spine)', () {
+    test('single backward foldX anchored at 0 (left spine)', () {
       final geo = PageFlipGeometry(
         progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600),
       );
-      expect(geo.foldX, closeTo(400, 0.001));
+      expect(geo.foldX, closeTo(0, 0.001));
     });
   });
 
@@ -185,10 +185,10 @@ void main() {
       expect(geo.foldCurveControl.dx, greaterThan(geo.foldX));
     });
 
-    test('single backward curvature offsets fold curve control left', () {
-      // Single backward: flapRightOfFold=false → curveDirection=1.0 → foldCurveControl < foldX.
+    test('single backward curvature same direction as forward', () {
+      // Both single directions: flapRightOfFold=true → curveDirection=-1 → foldCurveControl > foldX.
       final geo = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
-      expect(geo.foldCurveControl.dx, lessThan(geo.foldX));
+      expect(geo.foldCurveControl.dx, greaterThan(geo.foldX));
     });
 
     test('no curvature at progress=0 so control equals fold point', () {
@@ -235,19 +235,18 @@ void main() {
   });
 
   group('PageFlipGeometry backward direction', () {
-    test('single-page backward foldX is anchored at pageWidth (spine at right)', () {
-      // Single-page backward: foldX is fixed at pageWidth, not moving.
+    test('single backward foldX anchored at 0 same as forward', () {
+      // Single-page: both directions have spine at left (x=0).
       final geo = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
-      expect(geo.foldX, closeTo(400, 0.001));
+      expect(geo.foldX, closeTo(0, 0.001));
     });
 
-    test('single backward curvature opposite to forward', () {
-      // Single forward: flapRightOfFold=true → curveDirection=-1 → curveOffset<0.
-      // Single backward: flapRightOfFold=false → curveDirection=1 → curveOffset>0.
+    test('single backward same curvature as forward', () {
+      // Single-page: both directions have flapRightOfFold=true → curveDirection=-1.
       final fwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: Offset.zero, size: const Size(400, 600));
       final bwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
       expect(fwd.curveOffset, lessThan(0));
-      expect(bwd.curveOffset, greaterThan(0));
+      expect(bwd.curveOffset, lessThan(0));
     });
   });
 
@@ -279,69 +278,59 @@ void main() {
   });
 
   group('PageFlipGeometry single-page backward details', () {
-    test('single backward flap extends left of foldX', () {
-      // Single backward: flapRightOfFold=false → flapLeft = foldX - flapVisibleWidth.
+    test('single backward flap extends right same as forward', () {
+      // Both single directions: flapRightOfFold=true → flapLeft = foldX = 0.
       final fwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: Offset.zero, size: const Size(400, 600));
       final bwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
-      // Forward single: flapRightOfFold=true → flap extends RIGHT → flapLeft==foldX.
-      expect(fwd.flapLeft, closeTo(fwd.foldX, 0.001));
-      // Backward single: flapRightOfFold=false → flap extends LEFT → flapLeft < foldX.
-      expect(bwd.flapLeft, lessThan(bwd.foldX));
+      expect(fwd.flapLeft, closeTo(0, 0.001));
+      expect(bwd.flapLeft, closeTo(0, 0.001));
     });
 
-    test('single backward flapVisibleWidth is valid', () {
-      // Single backward: flapMaterialWidth = pageWidth * (1.0 - progress).
-      // At progress=0.5: flapMaterialWidth = 400*0.5 = 200.
+    test('single backward flapVisibleWidth valid', () {
+      // flapMaterialWidth = pageWidth * (1.0 - progress). At 0.5: 400*0.5=200.
       final geo = PageFlipGeometry(
         progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600),
       );
       expect(geo.flapVisibleWidth, greaterThan(0));
-      expect(geo.flapVisibleWidth, lessThan(200)); // max 200 for half-progress
+      expect(geo.flapVisibleWidth, lessThan(200));
     });
 
-    test('single backward angle same sign as forward', () {
-      // Both single forward and backward have rawAngle = flapRightOfFold ? -baseAngle : baseAngle.
-      // Single forward: flapRightOfFold=true → inverted. Top touch → positive.
-      // Single backward: flapRightOfFold=false → non-inverted. Top touch → negative.
+    test('single backward same angle as forward', () {
+      // Both single directions: flapRightOfFold=true → rawAngle = -baseAngle.
       final fwd = PageFlipGeometry(
         progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: const Offset(200, 100), size: const Size(400, 600),
       );
       final bwd = PageFlipGeometry(
         progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: const Offset(200, 100), size: const Size(400, 600),
       );
-      // Top touch: baseAngle < 0. Forward(inverted): angle > 0. Backward(not inverted): angle < 0.
+      // Top touch: baseAngle < 0. Both inverted: angle > 0.
       expect(fwd.angle, greaterThan(0));
-      expect(bwd.angle, lessThan(0));
-      expect(fwd.angle.abs(), greaterThan(0.01));
+      expect(bwd.angle, greaterThan(0));
     });
 
-    test('single backward foldX anchored at pageWidth', () {
-      // foldX is fixed at pageWidth for single backward.
+    test('single backward foldX anchored at 0', () {
       final geo0 = PageFlipGeometry(progress: 0, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
       final geo5 = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
       final geo1 = PageFlipGeometry(progress: 1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
-
-      expect(geo0.foldX, closeTo(400, 0.001));    // always at right edge
-      expect(geo5.foldX, closeTo(400, 0.001));
-      expect(geo1.foldX, closeTo(400, 0.001));
+      expect(geo0.foldX, closeTo(0, 0.001));
+      expect(geo5.foldX, closeTo(0, 0.001));
+      expect(geo1.foldX, closeTo(0, 0.001));
     });
 
     test('single backward flapVisibleWidth decreases with progress', () {
-      // flapMaterialWidth = pageWidth * (1.0 - progress).
-      // Progress=1→0 via floatProgress, so at raw progress 0.1: 400*0.9=360. At 0.9: 400*0.1=40.
       final atLow = PageFlipGeometry(progress: 0.1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
       final atHigh = PageFlipGeometry(progress: 0.9, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
       expect(atHigh, lessThan(atLow));
     });
 
-    test('single backward flap extends left from foldX throughout flip', () {
+    test('single backward flap extends right from foldX', () {
       for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {
         final geo = PageFlipGeometry(
           progress: p, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600),
         );
-        expect(geo.flapLeft, lessThanOrEqualTo(geo.foldX + 0.01));
-        // flap extends LEFT, so freeEdgeX <= foldX
-        expect(geo.freeEdgeX, lessThanOrEqualTo(geo.foldX + 0.01));
+        expect(geo.flapLeft, closeTo(0, 0.01));
+        // flap extends RIGHT → freeEdgeX >= foldX (=0)
+        expect(geo.freeEdgeX, greaterThanOrEqualTo(geo.foldX - 0.01));
       }
     });
 

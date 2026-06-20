@@ -529,14 +529,13 @@ class PageFlipGeometry {
     // Flap extends RIGHT of foldX for:
     //   Double forward:   false (left page stationary, right peels left)
     //   Double backward:  true  (right page stationary, left peels right)
-    //   Single forward:   true  (spine at left, page bends rightward from spine)
-    //   Single backward:  false (spine at right, page bends leftward from spine)
-    flapRightOfFold = isDoubleSpread ? !isForward : isForward;
+    //   Single (both):    true  (spine at left, page bends rightward; flap follows finger)
+    flapRightOfFold = isDoubleSpread ? !isForward : true;
 
     // ── Fold line position ──────────────────────────────────────────────────
     // Double-spread: foldX moves across the spread between the edges/spine.
-    // Single-page:   foldX is anchored at the spine edge — it does not move.
-    //                The spine is at the left for forward, at the right for backward.
+    // Single-page:   foldX is anchored at the left spine (x=0). The page always
+    //                bends at the left bindings; the right edge follows the finger.
     if (isDoubleSpread) {
       if (isForward) {
         foldX = width - (pageWidth * progress);
@@ -544,8 +543,7 @@ class PageFlipGeometry {
         foldX = pageWidth * (1.0 - progress);
       }
     } else {
-      // Single-page: fixed spine. Forward spine=left(0), backward spine=right(pageWidth).
-      foldX = isForward ? 0.0 : pageWidth;
+      foldX = 0.0;
     }
 
     // ── Rotation angle ──────────────────────────────────────────────────────

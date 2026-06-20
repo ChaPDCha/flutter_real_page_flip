@@ -1,0 +1,2 @@
+• Fixed single-page backward page flip direction — page now follows finger movement naturally
+• Backward page peels from left spine (same as forward), flap extends right toward finger

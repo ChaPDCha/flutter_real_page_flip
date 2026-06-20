@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.11+17] - 2026-06-21
+### 🐛 수정
+- 1단보기 이전페이지 넘김 방향 수정 — 손가락(왼→오)과 flap 움직임이 반대였던 버그
+- forward/backward 모두 왼쪽 제본선(x=0)에서 오른쪽으로 flap 확장 (flapRightOfFold 통일)
+
 ## [1.0.10+16] - 2026-06-21
 ### 🐛 수정
 - 1단보기 접힘선(foldX)을 제본선에 고정 — 페이지가 뜯어지는 듯한 시각적 오류 해결
