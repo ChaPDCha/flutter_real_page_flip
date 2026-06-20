@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.5+8] - 2026-06-20
+## [1.0.5+9] - 2026-06-20
 ### 🐛 수정
 - 역방향 페이지 플립 foldX 방향 수정: foldX = pageWidth × progress (좌→우)
 - 역방향 flapSideWidth/revealedSideWidth/flapMaterialWidth 모두 foldX 기준으로 재계산
@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### 🔧 빌드/배포
 - 비공개테스트(closed alpha) 트랙 배포
-- 버전 1.0.5+8 (build number 8)
+- 버전 1.0.5+9 (build number 9)
 
 ## [1.0.4+7] - 2026-06-19
 ### 🧪 테스트
