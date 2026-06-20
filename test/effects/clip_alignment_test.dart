@@ -57,8 +57,8 @@ void main() {
     // ---------------------------------------------------------------------------
 
     group('zero curvature (progress ≈ 0 or 1)', () {
-      test('progress=0.15 — flap and open paths overlap', () {
-        // Single-page forward: foldX=0. Flap extends RIGHT, open path right of fold.
+      test('progress=0.15 — flap and stationary paths overlap', () {
+        // Single forward: flap extends LEFT of foldX. Stationary path left of fold.
         final geo = PageFlipGeometry(
           progress: 0.15,
           isRightToLeft: true,
@@ -68,21 +68,18 @@ void main() {
           isForward: true,
         );
 
-        final openPath = buildOpenPageClipPath(size, geo);
+        final stationaryPath = buildStationaryPageClipPath(size, geo);
         final flapPath = buildFlapScreenClipPath(geo);
 
-        // Open path covers right of foldX-bleed (~ -1.5 to width).
-        expect(openPath.contains(const Offset(10, 300)), isTrue);
-        expect(openPath.contains(const Offset(width - 10, 300)), isTrue);
+        expect(stationaryPath.contains(const Offset(10, 300)), isTrue);
+        expect(stationaryPath.contains(const Offset(width + 20, 300)), isFalse);
 
-        // Flap should cover region between fold and free edge.
         expectFlapRegion(flapPath);
 
-        // Flap (right of foldX=0) overlaps with open path (right of foldX).
-        verifyOverlap(openPath, flapPath, height / 2);
+        verifyOverlap(stationaryPath, flapPath, height / 2);
       });
 
-      test('progress=0.85 — late flip, flap and open paths overlap', () {
+      test('progress=0.85 — late flip, flap and stationary paths overlap', () {
         final geo = PageFlipGeometry(
           progress: 0.85,
           isRightToLeft: true,
@@ -92,15 +89,12 @@ void main() {
           isForward: true,
         );
 
-        final openPath = buildOpenPageClipPath(size, geo);
+        final stationaryPath = buildStationaryPageClipPath(size, geo);
         final flapPath = buildFlapScreenClipPath(geo);
 
         expectFlapRegion(flapPath);
-        // flapRightOfFold → always non-degenerate as long as flapVisibleWidth > 0.5.
-        if (!(geo.flapRightOfFold
-            ? geo.flapVisibleWidth <= 0.5
-            : geo.flapLeft >= geo.foldX - 0.5)) {
-          verifyOverlap(openPath, flapPath, height / 2);
+        if (geo.flapLeft < geo.foldX - 0.5) {
+          verifyOverlap(stationaryPath, flapPath, height / 2);
         }
       });
     });
@@ -172,8 +166,7 @@ void main() {
     });
 
     group('degenerate geometry', () {
-      test('progress≈0: flap covers full width (non-degenerate)', () {
-        // Single forward: foldX=0, flapVisibleWidth≈pageWidth. Not degenerate.
+      test('progress≈0 triggers degenerate guard', () {
         final geo = PageFlipGeometry(
           progress: 0.001,
           isRightToLeft: true,
@@ -184,42 +177,11 @@ void main() {
         );
 
         final flapPath = buildFlapScreenClipPath(geo);
-        // flapVisibleWidth ≈ 400, so flap covers most of the screen.
-        expectFlapRegion(flapPath);
-      });
-
-      test('progress≈1 triggers degenerate guard (flap too narrow)', () {
-        final geo = PageFlipGeometry(
-          progress: 0.9995,
-          isRightToLeft: true,
-          touchOffset: Offset.zero,
-          size: size,
-          isDoubleSpread: false,
-          isForward: true,
-        );
-
-        final flapPath = buildFlapScreenClipPath(geo);
-        // flapVisibleWidth ≈ 0 → degenerate guard fires → empty path.
+        // foldX ≈ pageWidth, flapVisibleWidth is tiny → degenerate.
         expect(flapPath.contains(const Offset(0, 0)), isFalse);
       });
 
-      test('open path handles progress≈0 (full page visible)', () {
-        // Single forward: foldX=0. Open path covers right of foldX ≈ entire screen.
-        final geo = PageFlipGeometry(
-          progress: 0.001,
-          isRightToLeft: true,
-          touchOffset: Offset.zero,
-          size: size,
-          isDoubleSpread: false,
-          isForward: true,
-        );
-
-        final openPath = buildOpenPageClipPath(size, geo);
-        expect(openPath.contains(const Offset(width - 10, 300)), isTrue);
-      });
-
-      test('stationary path is small strip at spine for single forward', () {
-        // Single forward: foldX=0. Stationary path covers [0, bleed] only.
+      test('progress≈1 does NOT trigger degenerate guard (flap spans full width)', () {
         final geo = PageFlipGeometry(
           progress: 0.999,
           isRightToLeft: true,
@@ -229,11 +191,37 @@ void main() {
           isForward: true,
         );
 
+        final flapPath = buildFlapScreenClipPath(geo);
+        // foldX ≈ 0, flapVisibleWidth ≈ pageWidth → non-degenerate → valid region.
+        expectFlapRegion(flapPath);
+      });
+
+      test('stationary path handles progress≈0 (full page visible)', () {
+        final geo = PageFlipGeometry(
+          progress: 0.001,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          size: size,
+          isDoubleSpread: false,
+          isForward: true,
+        );
+        // foldX ≈ pageWidth, so stationary covers [0, pageWidth] ≈ entire screen.
         final stationaryPath = buildStationaryPageClipPath(size, geo);
-        // foldX ≈ 0, so stationary path covers only a tiny strip at x=0.
-        // Point at x=0.5 should be inside (within bleed), point at x=10 should be outside.
-        expect(stationaryPath.contains(const Offset(0.5, 300)), isTrue);
-        expect(stationaryPath.contains(const Offset(10, 300)), isFalse);
+        expect(stationaryPath.contains(const Offset(width - 10, 300)), isTrue);
+      });
+
+      test('stationary path handles progress≈1 (almost turned)', () {
+        final geo = PageFlipGeometry(
+          progress: 0.999,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          size: size,
+          isDoubleSpread: false,
+          isForward: true,
+        );
+        // foldX ≈ 0, so stationary covers [0, ~1.5] only.
+        final stationaryPath = buildStationaryPageClipPath(size, geo);
+        expect(stationaryPath.contains(const Offset(0, 300)), isTrue);
       });
     });
 
@@ -392,14 +380,12 @@ void main() {
           isForward: true,
         );
 
-        final openPath = buildOpenPageClipPath(smallSize, geo);
+        final stationaryPath = buildStationaryPageClipPath(smallSize, geo);
         final flapPath = buildFlapScreenClipPath(geo);
 
-        // Single forward: foldX=0, open path covers right of foldX.
-        expect(openPath.contains(const Offset(50, 400)), isTrue);
-        if (geo.flapRightOfFold
-            ? geo.flapVisibleWidth > 0.5
-            : geo.flapLeft < geo.foldX - 0.5) {
+        // Points left of fold should be stationary.
+        expect(stationaryPath.contains(const Offset(50, 400)), isTrue);
+        if (geo.flapLeft < geo.foldX - 0.5) {
           expectFlapRegion(flapPath);
         }
       });

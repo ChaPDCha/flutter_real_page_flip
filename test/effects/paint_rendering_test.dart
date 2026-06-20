@@ -186,7 +186,7 @@ void main() {
       expect(gradientDraws, greaterThanOrEqualTo(2));
     });
 
-    test('edge-fade rect is at free edge with 8px width (single forward)', () {
+    test('edge-fade rect is at flapLeft with 8px width (single forward)', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -197,13 +197,14 @@ void main() {
         isForward: true,
       ).paint(canvas, size);
 
-      // Single forward: flapRightOfFold=true → edge fade at freeEdgeX-8.
-      // foldX=0, flapVisibleWidth≈280, freeEdgeX≈280. Edge fade left ≈ 272.
-      expect(canvas.hasDrawRectNearX(272, 30), isTrue,
-          reason: 'Edge-fade rect should start near freeEdgeX - 8');
+      // Single forward: flap extends LEFT → edge fade at flapLeft.
+      // foldX=200, flapVisibleWidth≈280, flapLeft≈-80? No: flapLeft=foldX-flapVisibleWidth≈200-280=-80. Hmm.
+      // Wait for size=800: foldX=400, flapVisibleWidth≈280, flapLeft=120. Edge fade at 120.
+      expect(canvas.hasDrawRectNearX(120, 30), isTrue,
+          reason: 'Edge-fade rect should start near flapLeft');
     });
 
-    test('fold-fade rect is at foldX with 6px width (single forward)', () {
+    test('fold-fade rect is at foldX-6 with 6px width (single forward)', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -214,9 +215,10 @@ void main() {
         isForward: true,
       ).paint(canvas, size);
 
-      // Single forward: flapRightOfFold=true → fold fade at foldX=0.
-      expect(canvas.hasDrawRectNearX(0, 20), isTrue,
-          reason: 'Fold-fade rect should start near foldX (0 for single forward)');
+      // Single forward: flapRightOfFold=false → fold fade at foldX-6.
+      // foldX=400, fold fade left ≈ 394.
+      expect(canvas.hasDrawRectNearX(394, 20), isTrue,
+          reason: 'Fold-fade rect should start near foldX - 6');
     });
 
     // ── Bend shading (highlight + fold-edge darkening) ─────────
