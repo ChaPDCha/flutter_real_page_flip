@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.6+11] - 2026-06-20
+## [1.0.6+12] - 2026-06-20
 ### 🐛 수정
 - 역방향 단일 페이지 플립에서 flap에 페이지 콘텐츠가 표시되지 않던 버그 수정
 - flapSnapshotSpreadIndex / flapFrontSourceRect backward 단일 null → full rect
@@ -12,8 +12,8 @@ All notable changes to this project will be documented in this file.
 - physics_frame, physics_config, page_flip_config, effect_handler 커버리지 갭 테스트 추가
 
 ### 🔧 빌드/배포
-- 비공개테스트(closed alpha) 트랙 재배포 (버그 수정)
-- 버전 1.0.6+11 (build number 11)
+- 비공개테스트(closed alpha) 트랙 재배포 (버그 수정, version code 충돌 해결)
+- 버전 1.0.6+12 (build number 12)
 
 ## [1.0.5+10] - 2026-06-20
 ### 🐛 수정
