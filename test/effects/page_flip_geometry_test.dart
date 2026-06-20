@@ -275,18 +275,18 @@ void main() {
   });
 
   group('PageFlipGeometry backward direction details', () {
-    test('backward flapLeft is right of foldX (opposite of forward)', () {
+    test('backward flapLeft is left of foldX (same as forward)', () {
       final fwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: Offset.zero, size: const Size(400, 600));
       final bwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
       // Forward: flapLeft < foldX (flap extends LEFT).
       expect(fwd.flapLeft, lessThan(fwd.foldX));
-      // Backward: flapLeft > foldX (flap extends RIGHT).
-      expect(bwd.flapLeft, greaterThan(bwd.foldX));
+      // Backward: flapLeft < foldX (flap extends LEFT, same as forward).
+      expect(bwd.flapLeft, lessThan(bwd.foldX));
     });
 
-    test('backward flapMaterialWidth equals pageWidth minus foldX', () {
-      // For backward at progress=0.5: foldX = pageWidth*(1-0.5) = 200.
-      // flapMaterialWidth = pageWidth - foldX = 400-200 = 200.
+    test('backward flapVisibleWidth derived from foldX', () {
+      // For backward at progress=0.5: foldX = pageWidth*progress = 200.
+      // flapMaterialWidth = foldX = 200. flapVisibleWidth = 200 * modulation.
       final geo = PageFlipGeometry(
         progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600),
       );
@@ -334,12 +334,12 @@ void main() {
       expect(atEnd, greaterThan(atStart));
     });
 
-    test('backward flapLeft is always right of foldX throughout flip', () {
+    test('backward flapLeft is always left of foldX throughout flip', () {
       for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {
         final geo = PageFlipGeometry(
           progress: p, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600),
         );
-        expect(geo.flapLeft, greaterThanOrEqualTo(geo.foldX - 0.01));
+        expect(geo.flapLeft, lessThanOrEqualTo(geo.foldX + 0.01));
       }
     });
 
