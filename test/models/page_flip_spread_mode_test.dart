@@ -5,11 +5,11 @@ void main() {
   group('PageFlipSpreadMode', () {
     test('fromIsDoubleSpread maps legacy bool', () {
       expect(
-        PageFlipSpreadModeCompat.fromIsDoubleSpread(true),
+        PageFlipSpreadModeCompat.fromIsDoubleSpread(isDoubleSpread: true),
         PageFlipSpreadMode.doubleSpread,
       );
       expect(
-        PageFlipSpreadModeCompat.fromIsDoubleSpread(false),
+        PageFlipSpreadModeCompat.fromIsDoubleSpread(isDoubleSpread: false),
         PageFlipSpreadMode.single,
       );
     });

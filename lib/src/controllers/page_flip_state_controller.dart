@@ -104,7 +104,7 @@ class PageFlipStateController {
   /// Notified on every animation tick or drag update so the flip layer
   /// widget can rebuild independently of [onUpdate]'s full-tree rebuild.
   /// Access via a [ValueListenableBuilder] to avoid `setState` on every frame.
-  final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0);
 
   /// Notified when the touch position changes during a drag.
   final ValueNotifier<Offset> touchNotifier = ValueNotifier<Offset>(Offset.zero);
@@ -268,7 +268,7 @@ class PageFlipStateController {
 
         // 프레임 스킵: 60fps 기준 매 프레임마다 진동하면 오버헤드 발생
         // 2프레임마다 1회 (30Hz) 진동으로 최적화
-        if (_hapticFrameCounter % 2 == 0) {
+        if (_hapticFrameCounter.isEven) {
           final currentSpeed = delta.abs();
           _smoothedSpeed = (_smoothedSpeed * 0.5) + (currentSpeed * 0.5);
 
@@ -380,7 +380,7 @@ class PageFlipStateController {
   }
 
   /// Triggers a programmatic page flip (e.g. from edge tap or controller).
-  void triggerTapFlip(bool isNext, int totalPages) {
+  void triggerTapFlip({required bool isNext, required int totalPages}) {
     if (_isDragging || animationController.isAnimating) return;
 
     if ((isNext && _currentIndex >= totalPages - 1) ||

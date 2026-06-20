@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+
 /// Configuration for paper physics simulation parameters.
 ///
 /// Controls friction, texture noise, haptic timing, and stick-slip behaviour
 /// to simulate different paper types (standard, thin bible, rough antique).
+@immutable
 class PaperPhysicsConfig {
   /// Creates a [PaperPhysicsConfig] with the given parameters.
   const PaperPhysicsConfig({

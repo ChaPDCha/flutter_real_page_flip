@@ -165,7 +165,6 @@ class PageFlipLayerView extends StatelessWidget {
 
       backgroundWidgets.add(
         Offstage(
-          offstage: true,
           key: gKey,
           child: _wrapWithConstraints(
             RepaintBoundary(child: _buildPage(context, index)),
@@ -434,7 +433,6 @@ class PageFlipLayerView extends StatelessWidget {
           progress: floatProgress,
           isRightToLeft: true,
           touchOffset: touchPosition,
-          isDoubleSpread: false,
           isForward: isForward,
           geo: geo,
         ),
@@ -461,7 +459,6 @@ class PageFlipLayerView extends StatelessWidget {
           isRightToLeft: true,
           touchOffset: touchPosition,
           isDoubleSpread: true,
-          isForward: true,
           geo: geo,
         ),
         child: stationaryContent,

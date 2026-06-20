@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:real_page_flip/src/physics/stick_slip_controller.dart';
 
 /// A single frame of output from the paper physics engine.
+@immutable
 class PaperPhysicsFrame {
   /// Creates a [PaperPhysicsFrame] with the given physics values.
   const PaperPhysicsFrame({

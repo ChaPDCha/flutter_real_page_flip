@@ -285,7 +285,7 @@ void main() {
       );
       flipController.setIndex(0, 3);
       flipController.updateCachedWidth(400);
-      flipController.triggerTapFlip(true, 3);
+      flipController.triggerTapFlip(isNext: true, totalPages: 3);
 
       await tester.pump(const Duration(milliseconds: 60));
       await tester.pump(const Duration(milliseconds: 60));
@@ -317,7 +317,7 @@ void main() {
       );
       tapController.setIndex(0, 5);
 
-      tapController.triggerTapFlip(true, 5);
+      tapController.triggerTapFlip(isNext: true, totalPages: 5);
 
       // Effects should fire immediately
       expect(soundFired, isTrue);

@@ -313,7 +313,7 @@ class PreRenderManager {
           toDispose.clear();
         }
         onSnapshotCaptured();
-      } catch (e) {
+      } on Object {
         _activeCaptures.remove(index);
         _scheduleCaptureRetry(
           index,

@@ -53,7 +53,7 @@ class PageFlipWidget extends StatefulWidget {
     this.onPageChanged,
     this.onHandleEffect,
   })  : spreadMode = spreadMode ??
-            PageFlipSpreadModeCompat.fromIsDoubleSpread(isDoubleSpread),
+            PageFlipSpreadModeCompat.fromIsDoubleSpread(isDoubleSpread: isDoubleSpread),
         assert(initialIndex < itemCount,
             'initialIndex cannot be greater than itemCount',);
 
@@ -322,7 +322,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     if (widget.config.skipTapAnimation) {
       goToPage(_controller.currentIndex + 1);
     } else {
-      _controller.triggerTapFlip(true, _totalPages);
+      _controller.triggerTapFlip(isNext: true, totalPages: _totalPages);
     }
   }
 
@@ -331,7 +331,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     if (widget.config.skipTapAnimation) {
       goToPage(_controller.currentIndex - 1);
     } else {
-      _controller.triggerTapFlip(false, _totalPages);
+      _controller.triggerTapFlip(isNext: false, totalPages: _totalPages);
     }
   }
 
@@ -350,9 +350,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Update cached width for controller logic
-    return LayoutBuilder(
+  Widget build(BuildContext context) => LayoutBuilder(
       builder: (context, constraints) {
         // Single constraint gate: prevent unbounded height/width from propagating
         // (e.g. Scaffold body first frame, Stack without bounded parent).
@@ -383,8 +381,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         final animatedFlipLayer = ValueListenableBuilder<double>(
           key: ValueKey(_flipLayerVersion),
           valueListenable: _controller.progressNotifier,
-          builder: (context, progress, _) {
-            return PageFlipLayerView(
+          builder: (context, progress, _) => PageFlipLayerView(
               itemBuilder: widget.itemBuilder,
               itemCount: _totalPages,
               currentIndex: _controller.currentIndex,
@@ -405,8 +402,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               flapBackStrength: widget.config.flapBackStrength,
               constrainedSize: constrainedSize,
               isDoubleSpread: widget.spreadMode.isDoubleSpread,
-            );
-          },
+            ),
         );
 
         final mainContent = Stack(
@@ -478,5 +474,4 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         return semantics;
       },
     );
-  }
 }

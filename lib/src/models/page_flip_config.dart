@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/page_flip_widget.dart';
 
 /// How [PageFlipWidget] maps pages to the viewport.
 ///
@@ -21,7 +22,7 @@ extension PageFlipSpreadModeCompat on PageFlipSpreadMode {
   bool get isDoubleSpread => this == PageFlipSpreadMode.doubleSpread;
 
   /// Converts the historical boolean API to [PageFlipSpreadMode].
-  static PageFlipSpreadMode fromIsDoubleSpread(bool isDoubleSpread) =>
+  static PageFlipSpreadMode fromIsDoubleSpread({required bool isDoubleSpread}) =>
       isDoubleSpread ? PageFlipSpreadMode.doubleSpread : PageFlipSpreadMode.single;
 }
 
@@ -54,6 +55,7 @@ extension PageFlipSpreadModeCompat on PageFlipSpreadMode {
 ///   ...
 /// )
 /// ```
+@immutable
 class PageFlipConfig {
   /// Creates a [PageFlipConfig] with the given settings.
   const PageFlipConfig({

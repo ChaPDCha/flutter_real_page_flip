@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class EpubPagingCalculator {
@@ -19,10 +18,10 @@ class EpubPagingCalculator {
         '${viewportWidth.toStringAsFixed(1)}|'
         '${viewportHeight.toStringAsFixed(1)}|'
         '$fontSize|$lineHeight|'
-        '${baseStyle.color?.value}|'
+        '${baseStyle.color?.toARGB32()}|'
         '${baseStyle.fontFamily}|'
         '${baseStyle.letterSpacing}|'
-        '${baseStyle.fontWeight?.index}';
+        '${baseStyle.fontWeight?.value}';
   }
 
   /// Splits chapter text on the root isolate ([TextPainter] is not isolate-safe).

@@ -31,7 +31,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       );
       await _audioPlayer.setReleaseMode(ReleaseMode.stop);
       _audioReady = true;
-    } catch (e) {
+    } on Object {
       try {
         // 2. Fallback to MP3 (Legacy support)
         await _audioPlayer.setSource(
@@ -39,7 +39,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         );
         await _audioPlayer.setReleaseMode(ReleaseMode.stop);
         _audioReady = true;
-      } catch (innerE) {
+      } on Object {
         _audioReady = false;
       }
     }

@@ -93,16 +93,16 @@ double flapFrontContentRevealOpacity(
 
   // Phase 1: brief early visibility → fast hide as fold begins.
   if (p <= fadeOutEnd) {
-    if (fadeOutEnd <= 0) return 0.0;
+    if (fadeOutEnd <= 0) return 0;
     final t = 1.0 - p / fadeOutEnd;
     return t * t * (3 - 2 * t);
   }
 
   // Phase 2: mid fold — paper back only (longest phase).
-  if (p < revealStart) return 0.0;
+  if (p < revealStart) return 0;
 
   // Phase 3: late settle reveal.
-  if (p >= revealEnd) return 1.0;
+  if (p >= revealEnd) return 1;
   final t = (p - revealStart) / (revealEnd - revealStart);
   return t * t * (3 - 2 * t);
 }
@@ -119,12 +119,10 @@ double snapClipCoord(double value) => (value * 2).round() / 2;
 
 /// Applies [snapClipCoord] to a point, optionally shifting X by [overlapShift].
 @visibleForTesting
-Offset snapClipPoint(Offset point, {double overlapShift = 0}) {
-  return Offset(
+Offset snapClipPoint(Offset point, {double overlapShift = 0}) => Offset(
     snapClipCoord(point.dx + overlapShift),
     snapClipCoord(point.dy),
   );
-}
 
 /// Appends the global fold-line boundary to [path] (caller must [Path.moveTo] first).
 ///
@@ -279,15 +277,15 @@ ui.Vertices buildFlapContentMesh({
   // Surface bulge factor: how much extra curvature interior columns get.
   // 30% additional bezier offset at the midpoint column creates visible
   // 3D curvature without looking like tightly rolled paper.
-  const double kBulgeStrength = 0.30;
+  const kBulgeStrength = 0.30;
 
-  for (int i = 0; i <= segments; i++) {
+  for (var i = 0; i <= segments; i++) {
     final t = i / segments;
     final y = height * t;
     // Vertical quadratic bezier blend: 2(1-t)t — peak at t=0.5, zero at ends.
     final b = 2 * (1 - t) * t;
 
-    for (int j = 0; j < totalCols; j++) {
+    for (var j = 0; j < totalCols; j++) {
       final s = j / (totalCols - 1); // 0 at fold, 1 at flap edge
 
       // Interior columns get amplified bezier offset → surface bulge.
@@ -324,8 +322,8 @@ ui.Vertices buildFlapContentMesh({
   // T1: (i,j), (i+1,j), (i,j+1)
   // T2: (i,j+1), (i+1,j), (i+1,j+1)
   // -----------------------------------------------------------------------
-  for (int i = 0; i < segments; i++) {
-    for (int j = 0; j < totalCols - 1; j++) {
+  for (var i = 0; i < segments; i++) {
+    for (var j = 0; j < totalCols - 1; j++) {
       positions.addAll([
         gridX[i][j], gridY[i][j],
         gridX[i + 1][j], gridY[i + 1][j],
@@ -384,15 +382,13 @@ Rect flipSideShadowClipRect(PageFlipGeometry geo) {
 Widget clipFullSpreadHalf({
   required Widget child,
   required Alignment alignment,
-}) {
-  return ClipRect(
+}) => ClipRect(
     child: Align(
       alignment: alignment,
       widthFactor: 0.5,
       child: child,
     ),
   );
-}
 
 /// Clips [child] to the left or right half when [child] lives in a **half-width**
 /// slot (e.g. [Expanded] in a [Row]) and must be expanded to full spread width
@@ -400,8 +396,7 @@ Widget clipFullSpreadHalf({
 Widget clipSpreadPageHalf({
   required Widget child,
   required Alignment alignment,
-}) {
-  return ClipRect(
+}) => ClipRect(
     child: Align(
       alignment: alignment,
       widthFactor: 0.5,
@@ -412,7 +407,6 @@ Widget clipSpreadPageHalf({
       ),
     ),
   );
-}
 
 /// Displays a pre-render snapshot at [viewportSize] without aspect distortion.
 ///
@@ -477,7 +471,7 @@ class PaperFlipCurve extends Cubic {
   ///   • Early push: quick initial acceleration (small a=0.05).
   ///   • Mid plateau: air-resistance deceleration (b=0.7 pulls right).
   ///   • Late settle: gravity-assisted completion (c=0.1, d=1.0).
-  const PaperFlipCurve() : super(0.05, 0.7, 0.1, 1.0);
+  const PaperFlipCurve() : super(0.05, 0.7, 0.1, 1);
 }
 
 /// Smooth tap-flip curve gentler than [PaperFlipCurve] for short programmatic
@@ -487,13 +481,12 @@ class TapFlipCurve extends Curve {
   const TapFlipCurve();
 
   @override
-  double transformInternal(double t) {
-    // Softer bell: ease-in-out-quart profile.
-    // Slower start (no user momentum), smooth mid, gentle settle.
-    return t < 0.5
-        ? 4.0 * t * t * t
-        : 1.0 - math.pow(-2.0 * t + 2.0, 3).toDouble() / 2.0;
-  }
+  double transformInternal(double t) =>
+      // Softer bell: ease-in-out-quart profile.
+      // Slower start (no user momentum), smooth mid, gentle settle.
+      t < 0.5
+          ? 4.0 * t * t * t
+          : 1.0 - math.pow(-2.0 * t + 2.0, 3).toDouble() / 2.0;
 }
 
 /// Shared geometry calculations for PageFlipClipper and PageFlipPainter.
@@ -530,7 +523,7 @@ class PageFlipGeometry {
     //   Double forward:   false (left page stationary, right peels left)
     //   Double backward:  true  (right page stationary, left peels right)
     //   Single (both):    true  (spine at left, page bends rightward; flap follows finger)
-    flapRightOfFold = isDoubleSpread ? !isForward : true;
+    flapRightOfFold = !isDoubleSpread || !isForward;
 
     // ── Fold line position ──────────────────────────────────────────────────
     // Double-spread: foldX moves across the spread between the edges/spine.
@@ -578,7 +571,7 @@ class PageFlipGeometry {
     final limitFlap = math.atan2(flapSideWidth, height / 2);
     final limitRevealed = math.atan2(revealedSideWidth, height / 2);
     final absLimit =
-        math.max(0.0, math.min(limitFlap, limitRevealed));
+        math.max(0, math.min(limitFlap, limitRevealed)).toDouble();
 
     // Invert angle when flap is on the right so top-touch lifts the flap top
     // consistently regardless of which side of foldX the flap sits on.
@@ -793,8 +786,8 @@ double flapOpacityModulator(
   // Backward: p = 1 - progress (1→0) → (0→1)
   final p = isForward ? progress : (1.0 - progress);
 
-  if (p <= 0 || p >= 1) return 1.0;
-  if (thinPaperStrength <= 0 && endRevealStrength <= 0) return 1.0;
+  if (p <= 0 || p >= 1) return 1;
+  if (thinPaperStrength <= 0 && endRevealStrength <= 0) return 1;
 
   // Thin paper: sin(p * π) peaks at p = 0.5 (mid-flip).
   final thinFactor = math.sin(p * math.pi) * thinPaperStrength;
@@ -1015,7 +1008,6 @@ class PageFlipPainter extends CustomPainter {
         flapLeft: g.freeEdgeX,
         curveOffset: g.curveOffset,
         srcRect: flapBackSrcRect!,
-        segments: 16,
         flipHorizontal: true,
       );
       canvas.drawVertices(
@@ -1071,7 +1063,6 @@ class PageFlipPainter extends CustomPainter {
             flapLeft: g.freeEdgeX,
             curveOffset: g.curveOffset,
             srcRect: srcRect,
-            segments: 16,
             flipHorizontal: !isDoubleSpread && isForward,
           );
           canvas.drawVertices(
@@ -1158,7 +1149,7 @@ class PageFlipPainter extends CustomPainter {
     // Edge-fade: mask partial-text artifacts at the flap's free edge.
     // A ~8 px gradient from paperBackColor → transparent hides stray character
     // fragments at the mesh boundary without affecting visible flap content.
-    const double edgeFadeWidth = 8.0;
+    const double edgeFadeWidth = 8;
     final edgeFadeRect = g.flapRightOfFold
         ? Rect.fromLTWH(g.freeEdgeX - edgeFadeWidth, 0, edgeFadeWidth, size.height)
         : Rect.fromLTWH(g.flapLeft, 0, edgeFadeWidth, size.height);
@@ -1175,7 +1166,7 @@ class PageFlipPainter extends CustomPainter {
           begin: edgeFadeBegin,
           end: edgeFadeEnd,
           colors: [
-            paperBackColor.withValues(alpha: 1.0),
+            paperBackColor.withValues(alpha: 1),
             Colors.transparent,
           ],
         ).createShader(edgeFadeRect),
@@ -1185,7 +1176,7 @@ class PageFlipPainter extends CustomPainter {
     // As the flap narrows near the fold line, texture pixels compress and
     // create visible fragments. This narrow gradient from paperBackColor →
     // transparent softens the fold boundary edge.
-    const double foldFadeWidth = 6.0;
+    const double foldFadeWidth = 6;
     final foldFadeRect = g.flapRightOfFold
         ? Rect.fromLTWH(g.foldX, 0, foldFadeWidth, size.height)
         : Rect.fromLTWH(g.foldX - foldFadeWidth, 0, foldFadeWidth, size.height);
@@ -1202,7 +1193,7 @@ class PageFlipPainter extends CustomPainter {
           begin: foldFadeBegin,
           end: foldFadeEnd,
           colors: [
-            paperBackColor.withValues(alpha: 1.0),
+            paperBackColor.withValues(alpha: 1),
             Colors.transparent,
           ],
         ).createShader(foldFadeRect),
@@ -1573,11 +1564,9 @@ class PageFlipGestureRecognizer extends HorizontalDragGestureRecognizer {
   bool hasSufficientGlobalDistanceToAccept(
     PointerDeviceKind pointerDeviceKind,
     double? deviceTouchSlop,
-  ) {
-    return PageFlipGestureArbitration.shouldAcceptFlipDrag(
+  ) => PageFlipGestureArbitration.shouldAcceptFlipDrag(
       totalDx: _totalDx,
       totalDy: _totalDy,
       sensitivity: sensitivity,
     );
-  }
 }

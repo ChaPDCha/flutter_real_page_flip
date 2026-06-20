@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 /// Transparent overlay that owns horizontal page-flip drags above page content.
 ///
@@ -39,8 +40,7 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
   VelocityTracker? _velocityTracker;
 
   @override
-  Widget build(BuildContext context) {
-    return Listener(
+  Widget build(BuildContext context) => Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: _onPointerDown,
       onPointerMove: _onPointerMove,
@@ -48,7 +48,6 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
       onPointerCancel: _onPointerCancel,
       child: const SizedBox.expand(),
     );
-  }
 
   Offset _localPosition(Offset global) {
     final box = context.findRenderObject() as RenderBox?;
