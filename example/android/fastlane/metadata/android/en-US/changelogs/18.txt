@@ -1,0 +1,2 @@
+• Restored natural forward page-turn with moving crease, fixed backward to follow finger
+• Restored medium-quality snapshot rendering for crisp page textures

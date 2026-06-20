@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.12+18] - 2026-06-21
+### 🐛 수정
+- 1단보기 forward 페이지플립 원래 방식으로 복원 (이동하는 접힘선)
+- 1단보기 backward는 제본선 고정 + 손가락 방향 일치 유지
+- snapshot 렌더링 filterQuality 복원 (medium)
+- 불필요한 circular import 제거
+
 ## [1.0.11+17] - 2026-06-21
 ### 🐛 수정
 - 1단보기 이전페이지 넘김 방향 수정 — 손가락(왼→오)과 flap 움직임이 반대였던 버그
