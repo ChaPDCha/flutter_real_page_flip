@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.9+15] - 2026-06-20
+### 🐛 수정
+- backward flap clip bleed 방향 수정 (foldEdgeBleedPx 부호 반전 — flap이 오른쪽일 때)
+- backward 단일 페이지 flap 전면 콘텐츠 수평 반전 (flipHorizontal) — 왼→오 펼칠 때 텍스트 방향 보정
+- buildFlapScreenClipPath 미사용 height 변수 제거
+
+### 🔧 빌드/배포
+- 비공개테스트(closed alpha) 트랙 재배포 (flap clip bleed + 단일 페이지 mirroring)
+- 버전 1.0.9+15 (build number 15)
+
 ## [1.0.8+14] - 2026-06-20
 ### 🐛 수정
 - 역방향 페이지 플립 flap이 foldX의 잘못된 방향(왼쪽)에 위치하던 버그 수정
