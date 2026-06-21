@@ -3,6 +3,18 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.15+21] - 2026-06-21
+### ✨ 기능
+- 앱 브랜딩 로고 전면 리뉴얼 및 전체 플랫폼(Android, iOS, macOS, Windows, Web) 앱 아이콘 교체 (기존 무한대 로고 폐기)
+- 신규 투명배경 WebP 로고 탑재
+
+### 🐛 수정
+- 페이지 플립 지오메트리 엔진 코드 가독성 개선 (파일 분할 및 린트 경고 12건 완전 해결)
+
+## [1.0.14+20] - 2026-06-21
+### 🐛 수정
+- 1단보기 햅틱 진동 세기 조절 버그 수정 및 최적화
+
 ## [1.0.13+19] - 2026-06-21
 ### 🐛 수정
 - 앞으로 1단보기 페이지플립 콘텐츠 좌우 반전 버그 수정 (flipHorizontal 플래그 오류)

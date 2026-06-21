@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.5.1] - 2026-06-21
+### Changed
+- Split page flip engine library into part files (`page_flip_geometry.dart`, `page_flip_gesture.dart`) for cleaner code organization.
+- Fixed 12 dart compiler/linter warnings in page flip engine and widgets.
+
 ## [1.5.0] - 2026-06-21
 ### Added
 - `flapRightOfFold` field on `PageFlipGeometry` unifying four-mode flap-direction logic.
