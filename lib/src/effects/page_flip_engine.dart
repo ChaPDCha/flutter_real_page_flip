@@ -101,9 +101,8 @@ double flapFrontContentRevealOpacity(
   bool isDoubleSpread = false,
 }) {
   // Normalize progress so p always goes 0→1 from flip-start to flip-end.
-  // Invert p only for double-spread backward because its geometry is a reverse animation.
-  // Single-page backward is a forward-time animation (flap grows from spine).
-  final invertProgress = isDoubleSpread && !isForward;
+  // Invert p for backward flips because their geometry is a reverse animation (progress goes 1→0).
+  final invertProgress = !isForward;
   final p = invertProgress ? (1.0 - progress) : progress;
 
   // Phase 1: brief early visibility → fast hide as fold begins.
@@ -533,8 +532,8 @@ double flapOpacityModulator(
   bool isDoubleSpread = false,
 }) {
   // Normalize so p always goes 0→1 from start to end of the flip.
-  // Invert p only for double-spread backward because its geometry is a reverse animation.
-  final invertProgress = isDoubleSpread && !isForward;
+  // Invert p for backward flips because their geometry is a reverse animation (progress goes 1→0).
+  final invertProgress = !isForward;
   final p = invertProgress ? (1.0 - progress) : progress;
 
   if (p <= 0 || p >= 1) return 1;

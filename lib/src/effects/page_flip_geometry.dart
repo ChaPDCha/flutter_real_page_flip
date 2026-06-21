@@ -104,18 +104,12 @@ class PageFlipGeometry {
 
     // ── Fold line position ──────────────────────────────────────────────────
     // Double-spread: foldX moves across the spread between the edges/spine.
-    // Single forward: foldX moves right→left (natural page turn crease).
-    // Single backward: foldX anchored at left spine (finger follows flap rightward).
-    if (isDoubleSpread) {
-      if (isForward) {
-        foldX = width - (pageWidth * progress);
-      } else {
-        foldX = pageWidth * (1.0 - progress);
-      }
-    } else if (isForward) {
-      foldX = pageWidth * (1.0 - progress);
+    // Single forward: foldX moves right→left (crease).
+    // Single backward: foldX moves left→right (crease).
+    if (isForward) {
+      foldX = width - (pageWidth * progress);
     } else {
-      foldX = 0.0;
+      foldX = pageWidth * (1.0 - progress);
     }
 
     // ── Rotation angle ──────────────────────────────────────────────────────
@@ -123,10 +117,10 @@ class PageFlipGeometry {
     // Double: flapMaterialWidth is the distance from foldX to the page edge.
     // Single: flapMaterialWidth represents how much of the page is visible.
     //         Forward (progress=0→1): 0 → pageWidth (flap grows as page turns).
-    //         Backward (progress=0→1): 0 → pageWidth (flap grows from spine).
-    final flapMaterialWidth = isDoubleSpread
-        ? (isForward ? (width - foldX) : foldX)
-        : (pageWidth * this.progress);
+    //         Backward (progress=1→0): 0 → pageWidth (flap grows from spine).
+    final flapMaterialWidth = isForward
+        ? pageWidth * this.progress
+        : pageWidth * (1.0 - this.progress);
 
     final angleT = math.pow(this.progress, 0.82).toDouble();
     final angleProfile = math.sin(angleT * math.pi);
@@ -137,14 +131,10 @@ class PageFlipGeometry {
     // Limit angle so the flap stays within page bounds.
     // flapSideWidth: width on the flap side of foldX.
     // revealedSideWidth: width on the opposite side.
-    // For single-page, foldX is at the edge, so both sides use the full
-    // page width to allow natural-looking rotation.
     final flapSideWidth = flapMaterialWidth;
-    final revealedSideWidth = isDoubleSpread
-        ? (isForward
-            ? (foldX - spineX).clamp(0.0, double.infinity)
-            : (pageWidth - foldX).clamp(0.0, double.infinity))
-        : (isForward ? foldX : pageWidth);
+    final revealedSideWidth = isForward
+        ? (foldX - spineX).clamp(0.0, double.infinity)
+        : (pageWidth - foldX).clamp(0.0, double.infinity);
     final limitFlap = math.atan2(flapSideWidth, height / 2);
     final limitRevealed = math.atan2(revealedSideWidth, height / 2);
     final absLimit =
