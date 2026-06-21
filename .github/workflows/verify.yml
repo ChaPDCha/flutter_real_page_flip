@@ -42,8 +42,8 @@ jobs:
 
       - name: Test count regression check
         run: |
-          BASELINE=448
-          MINIMUM=440
+          BASELINE=452
+          MINIMUM=445
           TEST_OUTPUT=$(flutter test 2>&1 | tail -5)
           echo "$TEST_OUTPUT"
           # Extract number of passed tests from output line like "+448" or "448 tests passed"
