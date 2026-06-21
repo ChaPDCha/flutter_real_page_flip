@@ -1065,7 +1065,7 @@ class PageFlipPainter extends CustomPainter {
             flapLeft: g.freeEdgeX,
             curveOffset: g.curveOffset,
             srcRect: srcRect,
-            flipHorizontal: !isDoubleSpread && isForward,
+            flipHorizontal: !isDoubleSpread && !isForward,
           );
           canvas.drawVertices(
             mesh,
