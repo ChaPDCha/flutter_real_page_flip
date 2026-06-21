@@ -1,8 +1,21 @@
+/// Page flip engine — geometry, rendering, and gesture recognition.
+///
+/// This library is split into three parts:
+/// - `page_flip_geometry.dart`: Constants, animation curves, and [PageFlipGeometry].
+/// - `page_flip_gesture.dart`: [PageFlipGestureRecognizer] and arbitration.
+/// - This file: Texture helpers, clip builders, mesh generation, widgets,
+///   [PageFlipPainter], [PageFlipClipper], [PageFlipOpenClipper], and
+///   opacity modulators.
+library;
+
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+
+part 'page_flip_geometry.dart';
+part 'page_flip_gesture.dart';
 
 // ---------------------------------------------------------------------------
 // Flap front texture helpers
@@ -85,11 +98,13 @@ double flapFrontContentRevealOpacity(
   double revealStart = 0.85,
   double revealEnd = 0.95,
   bool isForward = true,
+  bool isDoubleSpread = false,
 }) {
   // Normalize progress so p always goes 0→1 from flip-start to flip-end.
-  // Forward:  p = progress (0→1 at start→completion).
-  // Backward: p = progress (1→0 at start→completion) → invert.
-  final p = isForward ? progress : (1.0 - progress);
+  // Invert p only for double-spread backward because its geometry is a reverse animation.
+  // Single-page backward is a forward-time animation (flap grows from spine).
+  final invertProgress = isDoubleSpread && !isForward;
+  final p = invertProgress ? (1.0 - progress) : progress;
 
   // Phase 1: brief early visibility → fast hide as fold begins.
   if (p <= fadeOutEnd) {
@@ -249,18 +264,16 @@ ui.Vertices buildFlapContentMesh({
   int columns = 4,
   bool flipHorizontal = false,
 }) {
-  final positions = <double>[];
-  final texCoords = <double>[];
   final height = size.height;
   final totalCols = columns + 2; // fold + interior + flap edge columns
+  final rows = segments + 1;
 
   // -----------------------------------------------------------------------
-  // 1. Build vertex grid [segments+1] × [totalCols].
+  // 1. Build vertex grid [rows] × [totalCols] in a flat array.
   //
-  // Each row is a horizontal strip. Each column runs from fold (j=0) to
-  // flap edge (j=totalCols-1). Interior columns receive an amplified bezier
-  // offset so the surface bulges in the middle — the paper looks convex
-  // rather than a flat strip connecting two curves.
+  // Pre-sized flat arrays avoid per-frame allocation of 4 × List<Float64List>
+  // (previously 68+ small objects per call at default params). At 60fps this
+  // eliminates ~24,000 micro-allocations/sec and the resulting GC pauses.
   //
   //   fold  col1  col2  col3  col4  flap
   //    ┼─────┼─────┼─────┼─────┼─────┼   ← row 0 (top)
@@ -269,24 +282,27 @@ ui.Vertices buildFlapContentMesh({
   //    │  ╲  │     │     │     │  ╱  │
   //    ┼─────┼─────┼─────┼─────┼─────┼   ← row N (bottom)
   // -----------------------------------------------------------------------
-  final gridX = List.generate(segments + 1, (_) => Float64List(totalCols));
-  final gridY = List.generate(segments + 1, (_) => Float64List(totalCols));
-  final gridU = List.generate(segments + 1, (_) => Float64List(totalCols));
-  final gridV = List.generate(segments + 1, (_) => Float64List(totalCols));
+  final gridSize = rows * totalCols;
+  final gridX = Float64List(gridSize);
+  final gridY = Float64List(gridSize);
+  final gridU = Float64List(gridSize);
+  final gridV = Float64List(gridSize);
 
   // Surface bulge factor: how much extra curvature interior columns get.
   // 30% additional bezier offset at the midpoint column creates visible
   // 3D curvature without looking like tightly rolled paper.
   const kBulgeStrength = 0.30;
+  final colScale = 1.0 / (totalCols - 1);
 
-  for (var i = 0; i <= segments; i++) {
+  for (var i = 0; i < rows; i++) {
     final t = i / segments;
     final y = height * t;
     // Vertical quadratic bezier blend: 2(1-t)t — peak at t=0.5, zero at ends.
     final b = 2 * (1 - t) * t;
+    final rowBase = i * totalCols;
 
     for (var j = 0; j < totalCols; j++) {
-      final s = j / (totalCols - 1); // 0 at fold, 1 at flap edge
+      final s = j * colScale; // 0 at fold, 1 at flap edge
 
       // Interior columns get amplified bezier offset → surface bulge.
       // sin(s*pi) peaks at s=0.5 and is zero at both edges, so the bulge
@@ -299,15 +315,16 @@ ui.Vertices buildFlapContentMesh({
       final foldAtY = foldX - colOffset * b;
       final flapAtY = flapLeft - colOffset * b;
 
+      final idx = rowBase + j;
       // Interpolate X between fold and flap edge for this column.
-      gridX[i][j] = foldAtY + (flapAtY - foldAtY) * s;
-      gridY[i][j] = y;
+      gridX[idx] = foldAtY + (flapAtY - foldAtY) * s;
+      gridY[idx] = y;
       // UV: right→left from srcRect.right (fold) to srcRect.left (flap edge).
       // flipHorizontal for mirrored 2.5D back content on double-spread.
-      gridU[i][j] = flipHorizontal
+      gridU[idx] = flipHorizontal
           ? srcRect.left + s * srcRect.width
           : srcRect.right - s * srcRect.width;
-      gridV[i][j] = srcRect.top + t * srcRect.height;
+      gridV[idx] = srcRect.top + t * srcRect.height;
     }
   }
 
@@ -321,37 +338,46 @@ ui.Vertices buildFlapContentMesh({
   //
   // T1: (i,j), (i+1,j), (i,j+1)
   // T2: (i,j+1), (i+1,j), (i+1,j+1)
+  //
+  // Pre-sized output arrays: 2 triangles × 3 vertices × 2 coords per quad,
+  // total quads = segments × (totalCols - 1).
   // -----------------------------------------------------------------------
-  for (var i = 0; i < segments; i++) {
-    for (var j = 0; j < totalCols - 1; j++) {
-      positions.addAll([
-        gridX[i][j], gridY[i][j],
-        gridX[i + 1][j], gridY[i + 1][j],
-        gridX[i][j + 1], gridY[i][j + 1],
-      ]);
-      texCoords.addAll([
-        gridU[i][j], gridV[i][j],
-        gridU[i + 1][j], gridV[i + 1][j],
-        gridU[i][j + 1], gridV[i][j + 1],
-      ]);
+  final triCount = segments * (totalCols - 1) * 2;
+  final positions = Float32List(triCount * 6);
+  final texCoords = Float32List(triCount * 6);
+  var offset = 0;
 
-      positions.addAll([
-        gridX[i][j + 1], gridY[i][j + 1],
-        gridX[i + 1][j], gridY[i + 1][j],
-        gridX[i + 1][j + 1], gridY[i + 1][j + 1],
-      ]);
-      texCoords.addAll([
-        gridU[i][j + 1], gridV[i][j + 1],
-        gridU[i + 1][j], gridV[i + 1][j],
-        gridU[i + 1][j + 1], gridV[i + 1][j + 1],
-      ]);
+  for (var i = 0; i < segments; i++) {
+    final row0 = i * totalCols;
+    final row1 = (i + 1) * totalCols;
+    for (var j = 0; j < totalCols - 1; j++) {
+      final i0j0 = row0 + j;
+      final i0j1 = row0 + j + 1;
+      final i1j0 = row1 + j;
+      final i1j1 = row1 + j + 1;
+
+      // Triangle 1: (i,j), (i+1,j), (i,j+1)
+      positions[offset] = gridX[i0j0]; texCoords[offset++] = gridU[i0j0];
+      positions[offset] = gridY[i0j0]; texCoords[offset++] = gridV[i0j0];
+      positions[offset] = gridX[i1j0]; texCoords[offset++] = gridU[i1j0];
+      positions[offset] = gridY[i1j0]; texCoords[offset++] = gridV[i1j0];
+      positions[offset] = gridX[i0j1]; texCoords[offset++] = gridU[i0j1];
+      positions[offset] = gridY[i0j1]; texCoords[offset++] = gridV[i0j1];
+
+      // Triangle 2: (i,j+1), (i+1,j), (i+1,j+1)
+      positions[offset] = gridX[i0j1]; texCoords[offset++] = gridU[i0j1];
+      positions[offset] = gridY[i0j1]; texCoords[offset++] = gridV[i0j1];
+      positions[offset] = gridX[i1j0]; texCoords[offset++] = gridU[i1j0];
+      positions[offset] = gridY[i1j0]; texCoords[offset++] = gridV[i1j0];
+      positions[offset] = gridX[i1j1]; texCoords[offset++] = gridU[i1j1];
+      positions[offset] = gridY[i1j1]; texCoords[offset++] = gridV[i1j1];
     }
   }
 
   return ui.Vertices.raw(
     ui.VertexMode.triangles,
-    Float32List.fromList(positions),
-    textureCoordinates: Float32List.fromList(texCoords),
+    positions,
+    textureCoordinates: texCoords,
   );
 }
 
@@ -376,7 +402,7 @@ Rect flipSideShadowClipRect(PageFlipGeometry geo) {
 /// Clips [child] to the left or right half when [child] already spans the
 /// full viewport-sized spread (snapshot or live two-page layout).
 ///
-/// Use this in [PageFlipLayerView] flip layers. Do **not** pair with
+/// Use this in `PageFlipLayerView` flip layers. Do **not** pair with
 /// [FractionallySizedBox] — that would double horizontal scale and stretch
 /// spread snapshots via [BoxFit.fill].
 Widget clipFullSpreadHalf({
@@ -427,283 +453,6 @@ Widget buildViewportSnapshotImage(
       fit: BoxFit.fill,
     ),
   );
-}
-
-// ---------------------------------------------------------------------------
-// Geometry & rendering constants
-// ---------------------------------------------------------------------------
-
-/// Scales the vertical touch offset to the fold rotation angle.
-/// Tuned empirically for natural paper-feel rotation.
-const double _kAngleScale = 0.3000850509;
-
-/// Base multiplier for visible flap width during foreshortening.
-const double _kFlapWidthBase = 1.0000850509;
-
-/// Sine modulation amplitude for flap-width foreshortening.
-const double _kFlapWidthModulation = 0.3000850509;
-
-/// Maximum width (px) of the drop shadow cast by the revealed (new) page.
-const double _kRevealedShadowWidth = 30.00850509;
-
-/// Maximum width (px) of the shadow on the stationary page edge.
-const double _kStationaryShadowWidth = 20.00850509;
-
-/// Animation curve that models real paper page-turning physics.
-///
-/// Real paper accelerates quickly when pushed (user momentum), then decelerates
-/// mid-turn due to air resistance and paper stiffness, before accelerating again
-/// near the end as gravity assists the completion. This asymmetric profile
-/// produces a natural "whoosh-and-settle" feel.
-///
-/// Speed profile:
-///   • 0% → 30% of time:  reaches ~50% progress (fast push)
-///   • 30% → 70% of time: reaches ~80% progress (air resistance plateau)
-///   • 70% → 100% of time: reaches 100% progress (gravity settle)
-///
-/// Use for [AnimationController.animateTo] in both forward completion and
-/// snap-back directions — fast initial retreat avoids input lag perception.
-class PaperFlipCurve extends Cubic {
-  /// Creates a paper physics curve (C∞ smooth cubic bezier).
-  ///
-  /// Control points tuned for paper-like acceleration:
-  ///   • Early push: quick initial acceleration (small a=0.05).
-  ///   • Mid plateau: air-resistance deceleration (b=0.7 pulls right).
-  ///   • Late settle: gravity-assisted completion (c=0.1, d=1.0).
-  const PaperFlipCurve() : super(0.05, 0.7, 0.1, 1);
-}
-
-/// Smooth tap-flip curve gentler than [PaperFlipCurve] for short programmatic
-/// flips where the user is not providing momentum via drag.
-class TapFlipCurve extends Curve {
-  /// Creates a tap flip curve.
-  const TapFlipCurve();
-
-  @override
-  double transformInternal(double t) =>
-      // Softer bell: ease-in-out-quart profile.
-      // Slower start (no user momentum), smooth mid, gentle settle.
-      t < 0.5
-          ? 4.0 * t * t * t
-          : 1.0 - math.pow(-2.0 * t + 2.0, 3).toDouble() / 2.0;
-}
-
-/// Shared geometry calculations for PageFlipClipper and PageFlipPainter.
-/// This ensures both use IDENTICAL coordinate calculations.
-class PageFlipGeometry {
-  /// Creates a [PageFlipGeometry] instance that computes all derived
-  /// fold, flap, and shadow values from the input parameters.
-  PageFlipGeometry({
-    /// Normalised flip progress from 0.0 to 1.0.
-    required this.progress,
-
-    /// Whether the flip direction is right-to-left.
-    required this.isRightToLeft,
-
-    /// Touch offset used to compute the fold angle.
-    required this.touchOffset,
-
-    /// Size of the widget area being flipped.
-    required this.size,
-    
-    /// True if the layout is double-spread with a central spine
-    this.isDoubleSpread = false,
-
-    /// True if we are flipping forward (right-to-left), false if backward
-    this.isForward = true,
-  }) {
-    final width = size.width;
-    final height = size.height;
-    spineX = isDoubleSpread ? width / 2 : 0.0;
-
-    final pageWidth = isDoubleSpread ? width / 2 : width;
-
-    // Flap extends RIGHT of foldX for:
-    //   Double forward:   false (left page stationary, right peels left)
-    //   Double backward:  true  (right page stationary, left peels right)
-    //   Single forward:   false (moving crease right→left, flap behind it — natural turn)
-    //   Single backward:  true  (spine anchored at left, flap follows finger rightward)
-    flapRightOfFold = isDoubleSpread ? !isForward : !isForward;
-
-    // ── Fold line position ──────────────────────────────────────────────────
-    // Double-spread: foldX moves across the spread between the edges/spine.
-    // Single forward: foldX moves right→left (natural page turn crease).
-    // Single backward: foldX anchored at left spine (finger follows flap rightward).
-    if (isDoubleSpread) {
-      if (isForward) {
-        foldX = width - (pageWidth * progress);
-      } else {
-        foldX = pageWidth * (1.0 - progress);
-      }
-    } else if (isForward) {
-      foldX = pageWidth * (1.0 - progress);
-    } else {
-      foldX = 0.0;
-    }
-
-    // ── Rotation angle ──────────────────────────────────────────────────────
-    // Compute flap material width early — needed for both angle limits and flaps.
-    // Double: flapMaterialWidth is the distance from foldX to the page edge.
-    // Single: flapMaterialWidth represents how much of the page is visible.
-    //         Forward (progress=0→1): pageWidth → 0 (page shrinks toward spine).
-    //         Backward (progress=1→0): 0 → pageWidth (page grows from spine).
-    final flapMaterialWidth = isDoubleSpread
-        ? (isForward ? (width - foldX) : foldX)
-        : (pageWidth * (1.0 - progress));
-
-    final angleT = math.pow(progress, 0.82).toDouble();
-    final angleProfile = math.sin(angleT * math.pi);
-    final baseAngle = (touchOffset.dy / height - 0.5) *
-        _kAngleScale *
-        angleProfile;
-
-    // Limit angle so the flap stays within page bounds.
-    // flapSideWidth: width on the flap side of foldX.
-    // revealedSideWidth: width on the opposite side.
-    // For single-page, foldX is at the edge, so both sides use the full
-    // page width to allow natural-looking rotation.
-    final flapSideWidth = isDoubleSpread
-        ? flapMaterialWidth
-        : pageWidth;
-    final revealedSideWidth = isDoubleSpread
-        ? (isForward
-            ? (foldX - spineX).clamp(0.0, double.infinity)
-            : (pageWidth - foldX).clamp(0.0, double.infinity))
-        : pageWidth;
-    final limitFlap = math.atan2(flapSideWidth, height / 2);
-    final limitRevealed = math.atan2(revealedSideWidth, height / 2);
-    final absLimit =
-        math.max(0, math.min(limitFlap, limitRevealed)).toDouble();
-
-    // Invert angle when flap is on the right so top-touch lifts the flap top
-    // consistently regardless of which side of foldX the flap sits on.
-    final rawAngle = flapRightOfFold ? -baseAngle : baseAngle;
-    angle = rawAngle.clamp(-absLimit, absLimit);
-
-    // Transformation matrix: hinge at foldX.
-    transform = Matrix4.identity()
-      ..multiply(Matrix4.translationValues(foldX, height / 2, 0))
-      ..rotateZ(-angle)
-      ..multiply(Matrix4.translationValues(-foldX, -height / 2, 0));
-
-    // ── Fold line endpoints ─────────────────────────────────────────────────
-    foldLineTop = MatrixUtils.transformPoint(transform, Offset(foldX, -height));
-    foldLineBottom = MatrixUtils.transformPoint(
-      transform,
-      Offset(foldX, height * 2),
-    );
-
-    // ── Shadow intensity ────────────────────────────────────────────────────
-    shadowIntensity = math.sin(progress * math.pi);
-
-    // ── Flap dimensions ─────────────────────────────────────────────────────
-    // flapMaterialWidth is computed above (before angle limits).
-    flapVisibleWidth = flapMaterialWidth *
-        (_kFlapWidthBase - _kFlapWidthModulation * math.sin(progress * math.pi));
-
-    // flapLeft = leftmost x of the visible flap region.
-    // freeEdgeX = x of the lifted page edge (the one the user "holds").
-    if (flapRightOfFold) {
-      // Flap extends RIGHT from foldX.
-      flapLeft = foldX;
-      freeEdgeX = foldX + flapVisibleWidth;
-    } else {
-      // Flap extends LEFT from foldX.
-      flapLeft = foldX - flapVisibleWidth;
-      freeEdgeX = flapLeft;
-    }
-
-    // Flap edge endpoints (screen-space positions of the free edge).
-    flapEdgeTop = MatrixUtils.transformPoint(
-      transform,
-      Offset(freeEdgeX, -height),
-    );
-    flapEdgeBottom = MatrixUtils.transformPoint(
-      transform,
-      Offset(freeEdgeX, height * 2),
-    );
-
-    // ── Fold curvature ──────────────────────────────────────────────────────
-    curvatureAmount = math.sin(progress * math.pi);
-    final curveDirection = flapRightOfFold ? -1.0 : 1.0;
-    curveOffset = curvatureAmount * pageWidth * 0.04 * curveDirection;
-    foldCurveControl = MatrixUtils.transformPoint(
-      transform,
-      Offset(foldX - curveOffset, height / 2),
-    );
-    flapCurveControl = MatrixUtils.transformPoint(
-      transform,
-      Offset(freeEdgeX - curveOffset, height / 2),
-    );
-  }
-  /// Normalised flip progress from 0.0 to 1.0.
-  final double progress;
-
-  /// Whether the flip direction is right-to-left.
-  final bool isRightToLeft;
-
-  /// Touch offset used to compute the fold angle.
-  final Offset touchOffset;
-
-  /// Size of the widget area being flipped.
-  final Size size;
-  
-  /// True if rendering for a dual spread book
-  final bool isDoubleSpread;
-
-  /// True if we are flipping forward.
-  final bool isForward;
-
-  /// X-coordinate of the paper fold hinge limit (Spine)
-  late final double spineX;
-
-  /// X-coordinate of the paper fold hinge.
-  late final double foldX;
-
-  /// Fold rotation angle in radians.
-  late final double angle;
-
-  /// Transformation matrix for the flipping flap.
-  late final Matrix4 transform;
-
-  /// Top endpoint of the fold line (extended for clean clipping).
-  late final Offset foldLineTop;
-
-  /// Bottom endpoint of the fold line (extended for clean clipping).
-  late final Offset foldLineBottom;
-
-  /// Shadow intensity (0.0 to 1.0), peaking mid-animation.
-  late final double shadowIntensity;
-
-  /// Visible width of the flap after foreshortening.
-  late final double flapVisibleWidth;
-
-  /// Whether the flap extends to the RIGHT of foldX (true) or LEFT (false).
-  late final bool flapRightOfFold;
-
-  /// Left edge X-coordinate of the flap.
-  late final double flapLeft;
-
-  /// Free edge X-coordinate of the flap (the lifted page edge).
-  late final double freeEdgeX;
-
-  /// Top endpoint of the flap edge.
-  late final Offset flapEdgeTop;
-
-  /// Bottom endpoint of the flap edge.
-  late final Offset flapEdgeBottom;
-
-  /// Normalised amount of 2D curvature applied (0.0 to 1.0).
-  late final double curvatureAmount;
-
-  /// Local space horizontal offset for the bezier control points.
-  late final double curveOffset;
-
-  /// Bezier control point for the curved fold line in global space.
-  late final Offset foldCurveControl;
-
-  /// Bezier control point for the curved flap edge in global space.
-  late final Offset flapCurveControl;
 }
 
 /// Screen-space flap region clip used by [PageFlipPainter] BEFORE canvas transform.
@@ -763,9 +512,8 @@ Path buildFlapScreenClipPath(
   return path;
 }
 
-/// CustomPainter that renders the flipping page flap with shadow and highlight effects.
-/// Computes an overall flap opacity multiplier based on flip [progress] for thin-paper
-/// and end-reveal effects.
+/// Computes an overall flap opacity multiplier based on flip [progress] for
+/// thin-paper and end-reveal effects.
 ///
 /// [progress] is the raw flip progress (0 = start edge, 1 = end edge of the
 /// fold travel). The function internally normalizes via [isForward] so the
@@ -782,11 +530,12 @@ double flapOpacityModulator(
   double endRevealStrength = 0.35,
   double endRevealStart = 0.85,
   bool isForward = true,
+  bool isDoubleSpread = false,
 }) {
   // Normalize so p always goes 0→1 from start to end of the flip.
-  // Forward:  p = progress (0→1)
-  // Backward: p = 1 - progress (1→0) → (0→1)
-  final p = isForward ? progress : (1.0 - progress);
+  // Invert p only for double-spread backward because its geometry is a reverse animation.
+  final invertProgress = isDoubleSpread && !isForward;
+  final p = invertProgress ? (1.0 - progress) : progress;
 
   if (p <= 0 || p >= 1) return 1;
   if (thinPaperStrength <= 0 && endRevealStrength <= 0) return 1;
@@ -825,7 +574,7 @@ class PageFlipPainter extends CustomPainter {
     /// How much the next page content shows through at end of flip (0.0–1.0).
     this.endRevealStrength = 0.0,
 
-    /// True if rendering for a dual spread book
+    /// True if rendering for a dual spread book.
     this.isDoubleSpread = false,
 
     /// True if we are flipping forward.
@@ -877,8 +626,6 @@ class PageFlipPainter extends CustomPainter {
 
   /// The color of the paper back (flipping page's back side).
   final Color paperBackColor;
-  
-  /// True if rendering for a dual spread book
 
   /// How much the paper appears translucent at mid-flip (0.0–1.0).
   final double thinPaperStrength;
@@ -886,6 +633,7 @@ class PageFlipPainter extends CustomPainter {
   /// How much the next page content shows through at end of flip (0.0–1.0).
   final double endRevealStrength;
 
+  /// True if rendering for a dual spread book.
   final bool isDoubleSpread;
 
   /// True if we are flipping forward.
@@ -960,32 +708,19 @@ class PageFlipPainter extends CustomPainter {
     canvas.clipPath(buildFlapScreenClipPath(g));
 
     // Overall flap opacity modulation (thin paper + end reveal).
-
     // saveLayer composites everything inside at reduced opacity so the
-
     // underlying page content shows through — like real translucent paper.
-
     final flapAlpha = flapOpacityModulator(
-
       progress,
-
       thinPaperStrength: thinPaperStrength,
-
       endRevealStrength: endRevealStrength,
-
       isForward: isForward,
-
+      isDoubleSpread: isDoubleSpread,
     );
-
     final needsLayer = flapAlpha < 0.995;
-
     if (needsLayer) {
-
       canvas.saveLayer(null, Paint()..color = Colors.white.withValues(alpha: flapAlpha));
-
     }
-
-
 
     canvas.transform(g.transform.storage);
 
@@ -1020,7 +755,7 @@ class PageFlipPainter extends CustomPainter {
             flapBackImage!,
             ui.TileMode.clamp,
             ui.TileMode.clamp,
-            Matrix4.identity().storage,
+            _identityMatrixStorage,
           )
           ..filterQuality = FilterQuality.medium,
       );
@@ -1047,6 +782,7 @@ class PageFlipPainter extends CustomPainter {
         revealStart: flapContentRevealStart,
         revealEnd: flapContentRevealEnd,
         isForward: isForward,
+        isDoubleSpread: isDoubleSpread,
       );
       if (contentReveal > 0.001) {
         final srcRect = flapFrontSrcRect!;
@@ -1075,7 +811,7 @@ class PageFlipPainter extends CustomPainter {
                 flapFrontImage!,
                 ui.TileMode.clamp,
                 ui.TileMode.clamp,
-                Matrix4.identity().storage,
+                _identityMatrixStorage,
               )
               ..filterQuality = FilterQuality.medium,
           );
@@ -1291,8 +1027,8 @@ class PageFlipPainter extends CustomPainter {
     }
   }
 
-  @override
   /// Only repaints when animation-critical values change.
+  @override
   bool shouldRepaint(covariant PageFlipPainter oldDelegate) =>
       oldDelegate.progress != progress ||
       oldDelegate.touchOffset != touchOffset ||
@@ -1378,8 +1114,8 @@ class PageFlipClipper extends CustomClipper<Path> {
     return buildStationaryPageClipPath(size, g);
   }
 
-  @override
   /// Only reclips when progress or touch offset changes.
+  @override
   bool shouldReclip(covariant PageFlipClipper oldClipper) =>
       oldClipper.progress != progress ||
       oldClipper.touchOffset != touchOffset ||
@@ -1449,126 +1185,12 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
     return buildOpenPageClipPath(size, g);
   }
 
-  @override
   /// Only reclips when progress or touch offset changes.
+  @override
   bool shouldReclip(covariant PageFlipOpenClipper oldClipper) =>
       oldClipper.progress != progress ||
       oldClipper.touchOffset != touchOffset ||
       oldClipper.isRightToLeft != isRightToLeft ||
       oldClipper.isDoubleSpread != isDoubleSpread ||
       oldClipper.isForward != isForward;
-}
-
-/// Shared horizontal-vs-vertical arbitration for page-flip drags.
-class PageFlipGestureArbitration {
-  PageFlipGestureArbitration._();
-
-  /// Touch slop derived from [sensitivity] (0.0–1.0).
-  static double checkSlopForSensitivity(double sensitivity) =>
-      18.0 - (17.0 * sensitivity);
-
-  /// True when accumulated movement is predominantly vertical (text scroll / selection).
-  static bool shouldYieldToContent({
-    required double totalDx,
-    required double totalDy,
-    required double sensitivity,
-  }) {
-    final checkSlop = checkSlopForSensitivity(sensitivity);
-    return totalDy.abs() > checkSlop && totalDy.abs() > totalDx.abs() * 1.2;
-  }
-
-  /// True when accumulated movement should start a page-flip drag.
-  static bool shouldAcceptFlipDrag({
-    required double totalDx,
-    required double totalDy,
-    required double sensitivity,
-  }) {
-    if (shouldYieldToContent(
-      totalDx: totalDx,
-      totalDy: totalDy,
-      sensitivity: sensitivity,
-    )) {
-      return false;
-    }
-
-    final checkSlop = checkSlopForSensitivity(sensitivity);
-
-    if (totalDx.abs() > checkSlop) {
-      if (totalDx.abs() * 2.5 > totalDy.abs()) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-}
-
-/// A custom HorizontalDragGestureRecognizer that allows for more natural thumb arcs
-/// by having a configurable sensitivity and allowing a certain amount of vertical movement.
-class PageFlipGestureRecognizer extends HorizontalDragGestureRecognizer {
-  /// Creates a [PageFlipGestureRecognizer] with the given sensitivity.
-  PageFlipGestureRecognizer({
-    super.debugOwner,
-    /// Sensitivity of the gesture recognizer (0.0 to 1.0).
-    /// Lower values require more horizontal movement to trigger a flip.
-    this.sensitivity = 0.5,
-  });
-
-  /// Sensitivity of the gesture recognizer (0.0 to 1.0).
-  final double sensitivity;
-  double _totalDx = 0;
-  double _totalDy = 0;
-  bool _flipArenaAccepted = false;
-
-  @override
-  /// Resets accumulated deltas when a new pointer is added.
-  void addAllowedPointer(PointerDownEvent event) {
-    _flipArenaAccepted = false;
-    super.addAllowedPointer(event);
-    _totalDx = 0.0;
-    _totalDy = 0.0;
-  }
-
-  @override
-  void rejectGesture(int pointer) {
-    _flipArenaAccepted = false;
-    super.rejectGesture(pointer);
-  }
-
-  @override
-  void handleEvent(PointerEvent event) {
-    if (event is PointerMoveEvent) {
-      _totalDx += event.delta.dx;
-      _totalDy += event.delta.dy;
-      _acceptFlipArenaWhenReady();
-    }
-    super.handleEvent(event);
-  }
-
-  /// Eagerly wins the arena for horizontal page-flip intent only.
-  ///
-  /// Vertical/content gestures are not rejected here; [hasSufficientGlobalDistanceToAccept]
-  /// stays false so [SelectableText] and scrollables can win instead.
-  void _acceptFlipArenaWhenReady() {
-    if (_flipArenaAccepted) return;
-
-    if (PageFlipGestureArbitration.shouldAcceptFlipDrag(
-      totalDx: _totalDx,
-      totalDy: _totalDy,
-      sensitivity: sensitivity,
-    )) {
-      _flipArenaAccepted = true;
-      resolve(GestureDisposition.accepted);
-    }
-  }
-
-  @override
-  bool hasSufficientGlobalDistanceToAccept(
-    PointerDeviceKind pointerDeviceKind,
-    double? deviceTouchSlop,
-  ) => PageFlipGestureArbitration.shouldAcceptFlipDrag(
-      totalDx: _totalDx,
-      totalDy: _totalDy,
-      sensitivity: sensitivity,
-    );
 }

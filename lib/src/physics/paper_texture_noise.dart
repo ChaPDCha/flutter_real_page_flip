@@ -46,7 +46,7 @@ class PaperTextureNoise {
   }) {
     double value = 0;
     double amplitude = 1;
-    double frequency = baseFrequency;
+    var frequency = baseFrequency;
     double maxValue = 0;
     for (var i = 0; i < octaves; i++) {
       value += _noise1d(position * frequency) * amplitude;

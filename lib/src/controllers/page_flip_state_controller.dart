@@ -116,7 +116,7 @@ class PageFlipStateController {
   final math.Random _random = math.Random();
 
   // Perlin-like noise phase (persists across session).
-  double _noisePhase = 0.0;
+  double _noisePhase = 0;
 
   int _currentIndex = 0;
   double _dragProgress = 0;
