@@ -1,0 +1,3 @@
+• Improved test coverage for effects handler (14 tests)
+• Fixed type safety: removed mutable late fields, replaced var with explicit types
+• Fixed vibration channel mocking for more reliable tests
