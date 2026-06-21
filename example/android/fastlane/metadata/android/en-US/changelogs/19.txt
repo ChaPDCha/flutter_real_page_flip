@@ -1,0 +1,1 @@
+• Fixed forward single-page flip: restored correct content orientation (was horizontally mirrored)

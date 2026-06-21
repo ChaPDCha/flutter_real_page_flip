@@ -3,6 +3,10 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.13+19] - 2026-06-21
+### 🐛 수정
+- 앞으로 1단보기 페이지플립 콘텐츠 좌우 반전 버그 수정 (flipHorizontal 플래그 오류)
+
 ## [1.0.12+18] - 2026-06-21
 ### 🐛 수정
 - 1단보기 forward 페이지플립 원래 방식으로 복원 (이동하는 접힘선)
