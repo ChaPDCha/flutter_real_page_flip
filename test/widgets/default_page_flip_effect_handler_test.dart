@@ -28,6 +28,15 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
       const MethodChannel('flutter_plugin_vibration'),
+      (methodCall) async {
+        if (methodCall.method == 'hasVibrator') return true;
+        return null;
+      },
+    );
+    // Vibration.cancel() uses the 'vibration' channel
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('vibration'),
       (methodCall) async => null,
     );
   }
@@ -54,6 +63,11 @@ void main() {
       const MethodChannel('flutter_plugin_vibration'),
       null,
     );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('vibration'),
+      null,
+    );
   }
 
   group('DefaultPageFlipEffectHandler', () {
@@ -61,7 +75,10 @@ void main() {
       setupAudioMocks((methodCall) async => null);
     });
 
-    tearDown(() {
+    tearDown(() async {
+      // Drain pending async (e.g. Vibration.hasVibrator().then(...)) before
+      // clearing mocks to avoid MissingPluginException in background callbacks.
+      await Future.delayed(const Duration(milliseconds: 50));
       clearMocks();
     });
 
@@ -255,6 +272,35 @@ void main() {
         returnsNormally,
       );
       await Future.delayed(Duration.zero);
+      handler.dispose();
+      await Future.delayed(Duration.zero);
+    });
+
+    test('stopHaptic handles cancel and engine reset gracefully', () async {
+      final handler = DefaultPageFlipEffectHandler();
+      await Future.delayed(Duration.zero);
+      // stopHaptic without pageIndex — just cancels vibration
+      expect(
+        () => handler.onHandleEffect(PageFlipEvent.stopHaptic),
+        returnsNormally,
+      );
+      // stopHaptic with pageIndex — cancels + resets engine
+      expect(
+        () => handler.onHandleEffect(PageFlipEvent.stopHaptic, pageIndex: 5),
+        returnsNormally,
+      );
+      handler.dispose();
+      // Allow any pending async work to drain before mock teardown
+      await Future.delayed(const Duration(milliseconds: 50));
+    });
+
+    test('sound skipped when audio not ready', () async {
+      final handler = DefaultPageFlipEffectHandler();
+      // Immediately call before _initAudio completes
+      expect(
+        () => handler.onHandleEffect(PageFlipEvent.sound, volume: 0.5),
+        returnsNormally,
+      );
       handler.dispose();
       await Future.delayed(Duration.zero);
     });

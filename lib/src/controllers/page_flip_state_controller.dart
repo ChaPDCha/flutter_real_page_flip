@@ -115,8 +115,8 @@ class PageFlipStateController {
   // 난수 생성기 (텍스쳐 노이즈용)
   final math.Random _random = math.Random();
 
-  // Perlin-like 노이즈 위상 (세션당 지속)
-  late double _noisePhase;
+  // Perlin-like noise phase (persists across session).
+  double _noisePhase = 0.0;
 
   int _currentIndex = 0;
   double _dragProgress = 0;
