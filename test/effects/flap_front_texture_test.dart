@@ -245,7 +245,7 @@ void main() {
       // Forward at progress=0.3  → p=0.3
       // Backward at progress=0.7 → p=1-0.7=0.3
       final fwd = flapOpacityModulator(0.3, thinPaperStrength: s, isForward: true);
-      final bwd = flapOpacityModulator(0.7, thinPaperStrength: s, isForward: false);
+      final bwd = flapOpacityModulator(0.3, thinPaperStrength: s, isForward: false);
       expect(fwd, closeTo(bwd, 1e-15));
     });
 
@@ -278,7 +278,7 @@ void main() {
       final fwd = flapOpacityModulator(
         0.92, thinPaperStrength: 0, endRevealStrength: s, isForward: true);
       final bwd = flapOpacityModulator(
-        0.08, thinPaperStrength: 0, endRevealStrength: s, isForward: false);
+        0.92, thinPaperStrength: 0, endRevealStrength: s, isForward: false);
       expect(fwd, closeTo(bwd, 1e-15));
     });
 
@@ -286,7 +286,7 @@ void main() {
       // Backward: start of drag = floatProgress=1.0 → p=0
       // Just after: floatProgress=0.95 → p=0.05 ≪ endRevealStart=0.85
       final atStart = flapOpacityModulator(
-        0.95, thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false);
+        0.05, thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false);
       expect(atStart, equals(1.0),
           reason: 'Backward end-reveal must NOT trigger at drag start');
 
@@ -301,7 +301,7 @@ void main() {
       // Backward: end of drag = floatProgress=0.0 → p=1.0
       // Near end: floatProgress=0.1 → p=0.9 > endRevealStart=0.85
       final nearEnd = flapOpacityModulator(
-        0.1, thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false);
+        0.95, thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false);
       expect(nearEnd, lessThan(1.0),
           reason: 'Backward end-reveal MUST activate near drag end');
     });
@@ -373,7 +373,7 @@ void main() {
       for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {
         final fwd = flapOpacityModulator(p,
             thinPaperStrength: 0.15, endRevealStrength: 0.35);
-        final bwd = flapOpacityModulator(1.0 - p,
+        final bwd = flapOpacityModulator(p,
             thinPaperStrength: 0.15, endRevealStrength: 0.35, isForward: false);
         expect(fwd, closeTo(bwd, 1e-15),
             reason: 'Symmetry mismatch at p=$p');

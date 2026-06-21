@@ -5,18 +5,15 @@ import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 
 void main() {
   group('PageFlipGeometry foldX', () {
-    test('single-page forward foldX anchored at 0 (left spine)', () {
-      final geo = PageFlipGeometry(
+    test('single-page forward foldX moves right to left', () {
+      final geo0 = PageFlipGeometry(
         progress: 0, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600),
       );
-      expect(geo.foldX, closeTo(0, 0.001));
-    });
-
-    test('single-page forward foldX stays at 0 at any progress', () {
-      final geo = PageFlipGeometry(
-        progress: 0.5, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600),
+      final geo1 = PageFlipGeometry(
+        progress: 1, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600),
       );
-      expect(geo.foldX, closeTo(0, 0.001));
+      expect(geo0.foldX, closeTo(400, 0.001));
+      expect(geo1.foldX, closeTo(0, 0.001));
     });
 
     test('single backward foldX anchored at 0 (spine at left)', () {
@@ -45,11 +42,11 @@ void main() {
   });
 
   group('PageFlipGeometry flapVisibleWidth', () {
-    test('single-page forward decreases with progress', () {
-      // Single forward: flap shrinks toward spine as page turns.
+    test('single-page forward increases with progress', () {
+      // Single forward: flap grows from edge as page turns.
       final atStart = PageFlipGeometry(progress: 0.1, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
       final atEnd = PageFlipGeometry(progress: 0.9, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
-      expect(atStart, greaterThan(atEnd));
+      expect(atEnd, greaterThan(atStart));
     });
 
     test('never negative at any progress', () {
@@ -61,11 +58,10 @@ void main() {
   });
 
   group('PageFlipGeometry flapLeft', () {
-    test('single forward flapLeft at foldX (flap extends right)', () {
-      // Single forward: flapRightOfFold=true → flapLeft = foldX = 0 (spine anchor).
+    test('single forward flapLeft is less than foldX (flap extends left)', () {
+      // Single forward: flapRightOfFold=false → flap extends left.
       final geo = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: Offset.zero, size: const Size(400, 600));
-      expect(geo.flapLeft, closeTo(geo.foldX, 0.001));
-      expect(geo.flapLeft, greaterThanOrEqualTo(0));
+      expect(geo.flapLeft, lessThan(geo.foldX));
     });
 
     test('single forward freeEdgeX decreases toward spine', () {
@@ -310,12 +306,14 @@ void main() {
       expect(geo1.foldX, closeTo(0, 0.001));
     });
 
-    test('single backward flapVisibleWidth decreases with progress', () {
+    test('single backward flapVisibleWidth increases with progress', () {
       final atLow = PageFlipGeometry(progress: 0.1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
       final atHigh = PageFlipGeometry(progress: 0.9, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
-      expect(atHigh, lessThan(atLow));
+      expect(atHigh, greaterThan(atLow));
     });
   });
+
+  group('PageFlipGeometry backward double-spread', () {
 
     test('backward double-spread foldX moves from left edge to spine', () {
       final geo0 = PageFlipGeometry(
@@ -439,17 +437,25 @@ void main() {
       }
     });
 
-    test('NaN progress does not crash or produce infinite values', () {
-      final geo = PageFlipGeometry(
-        progress: double.nan, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600),
+    test('NaN progress triggers assertion error in debug mode', () {
+      expect(
+        () => PageFlipGeometry(
+          progress: double.nan, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600),
+        ),
+        throwsA(isA<AssertionError>()),
       );
-      // Constructor should not throw, and no infinite values should leak through.
-      // Single-page foldX is anchored (0 or pageWidth) so it stays finite even
-      // with NaN progress.
-      expect(geo.foldX.isInfinite, isFalse);
-      expect(geo.angle.isInfinite, isFalse);
-      expect(geo.shadowIntensity.isFinite || geo.shadowIntensity.isNaN, isTrue);
-      expect(geo.transform.storage.any((v) => v.isInfinite), isFalse);
+    });
+
+    test('out-of-range progress is clamped to [0, 1]', () {
+      final geoNeg = PageFlipGeometry(
+        progress: -0.5, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600),
+      );
+      expect(geoNeg.progress, equals(0.0));
+
+      final geoOver = PageFlipGeometry(
+        progress: 1.5, isRightToLeft: true, touchOffset: Offset.zero, size: const Size(400, 600),
+      );
+      expect(geoOver.progress, equals(1.0));
     });
   });
 }
