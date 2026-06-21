@@ -5,44 +5,73 @@ import 'package:flutter/services.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/physics/paper_physics.dart';
+import 'package:real_page_flip/src/physics/stick_slip_controller.dart';
 import 'package:vibration/vibration.dart';
 
 /// Professional-grade implementation of [PageFlipEffectHandler].
 /// Highlights:
 /// - Physics-based haptics: Uses [PaperPhysicsEngine] for realistic paper feel.
-/// - Zero-latency audio: Pre-fetched [AudioPlayer] with [AssetSource].
+/// - Zero-latency audio: Pre-fetched [AudioPlayer] pool with [AssetSource].
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
-  /// Creates a [DefaultPageFlipEffectHandler] and initialises audio.
+  /// Creates a [DefaultPageFlipEffectHandler] and initialises audio and vibrator.
   DefaultPageFlipEffectHandler() {
     _initAudio();
+    _initVibrator();
   }
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  static const int _audioPoolSize = 3;
+  final List<AudioPlayer> _audioPool = List.generate(
+    _audioPoolSize,
+    (_) => AudioPlayer(),
+  );
+  int _audioPoolIndex = 0;
   bool _audioReady = false;
+
+  // Cached hardware vibration capabilities to avoid asynchronous platform channels in the hot path.
+  bool _hasVibrator = false;
+  bool _hasAmplitudeControl = false;
+  bool _initializedVibrator = false;
 
   /// Cache of physics engines per page index for consistent texture.
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
 
   Future<void> _initAudio() async {
-    try {
-      // 1. Try Opus first (More efficient, supported on Android 5.0+, iOS 11+)
-      await _audioPlayer.setSource(
-        AssetSource('packages/real_page_flip/assets/sounds/page_flip.opus'),
-      );
-      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
-      _audioReady = true;
-    } on Object {
+    for (final player in _audioPool) {
       try {
-        // 2. Fallback to MP3 (Legacy support)
-        await _audioPlayer.setSource(
-          AssetSource('packages/real_page_flip/assets/sounds/page_flip.mp3'),
+        await player.setPlayerMode(PlayerMode.lowLatency);
+        // 1. Try Opus first (More efficient, supported on Android 5.0+, iOS 11+)
+        await player.setSource(
+          AssetSource('packages/real_page_flip/assets/sounds/page_flip.opus'),
         );
-        await _audioPlayer.setReleaseMode(ReleaseMode.stop);
-        _audioReady = true;
+        await player.setReleaseMode(ReleaseMode.stop);
       } on Object {
-        _audioReady = false;
+        try {
+          // 2. Fallback to MP3 (Legacy support)
+          await player.setSource(
+            AssetSource('packages/real_page_flip/assets/sounds/page_flip.mp3'),
+          );
+          await player.setReleaseMode(ReleaseMode.stop);
+        } on Object {
+          // Ignore failures on individual players, readiness check is based on whether at least one succeeds.
+        }
       }
     }
+    _audioReady = true;
+  }
+
+  Future<void> _initVibrator() async {
+    try {
+      final has = await Vibration.hasVibrator();
+      _hasVibrator = has;
+      if (_hasVibrator) {
+        final hasAmp = await Vibration.hasAmplitudeControl();
+        _hasAmplitudeControl = hasAmp;
+      }
+    } on Object {
+      _hasVibrator = false;
+      _hasAmplitudeControl = false;
+    }
+    _initializedVibrator = true;
   }
 
   @override
@@ -104,17 +133,37 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       screenWidth: 400, // standard reference
     );
 
-    // Execute via Vibration for granular control
-    Vibration.hasVibrator().then((has) {
-      if (has == true) {
+    final stickSlip = frame.stickSlipEvent;
+
+    // 1. Handle Stick-Slip tactile events (High-fidelity physical state shifts)
+    if (stickSlip != null) {
+      if (stickSlip.type == StickSlipEventType.slipRelease) {
+        _triggerImpact(HapticImpactType.medium);
+        return; // Prioritize major tactile event over minor ticks
+      } else if (stickSlip.type == StickSlipEventType.microSlip) {
+        _triggerImpact(HapticImpactType.light);
+        return;
+      }
+    }
+
+    // 2. Handle granular paper texture vibration (the feel of paper fiber ridges)
+    // Trigger tick when texture noise crosses standard ridge threshold
+    final triggerTextureTick = frame.rawTexture > 0.65;
+
+    if (triggerTextureTick) {
+      if (_initializedVibrator && _hasVibrator && _hasAmplitudeControl) {
+        // High-end Android devices with precise linear motors: use custom short vibrator pulses
+        final amplitude = (frame.amplitude * 255).round().clamp(10, 255);
+        final duration = frame.durationMs.clamp(5, 20); // Keep it short and crisp!
         Vibration.vibrate(
-          duration: frame.durationMs,
-          amplitude: (frame.amplitude * 255).round().clamp(0, 255),
+          duration: duration,
+          amplitude: amplitude,
         );
       } else {
+        // iOS or devices without precise amplitude control: use native crisp system clicks
         HapticFeedback.selectionClick();
       }
-    });
+    }
   }
 
   void _triggerImpact(HapticImpactType type) {
@@ -133,15 +182,19 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
   void _playSound(double volume) {
     if (!_audioReady) return;
-    _audioPlayer.stop().then((_) {
-      _audioPlayer.setVolume(volume);
-      _audioPlayer.resume();
+    final player = _audioPool[_audioPoolIndex];
+    _audioPoolIndex = (_audioPoolIndex + 1) % _audioPoolSize;
+    player.stop().then((_) {
+      player.setVolume(volume);
+      player.resume();
     });
   }
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
+    for (final player in _audioPool) {
+      player.dispose();
+    }
     _physicsEngines.clear();
   }
 }

@@ -30,6 +30,7 @@ void main() {
       const MethodChannel('flutter_plugin_vibration'),
       (methodCall) async {
         if (methodCall.method == 'hasVibrator') return true;
+        if (methodCall.method == 'hasAmplitudeControl') return true;
         return null;
       },
     );
@@ -85,15 +86,16 @@ void main() {
     test('handler was created without errors', () async {
       final handler = DefaultPageFlipEffectHandler();
       expect(handler, isNotNull);
+      // Wait for initialization
+      await Future.delayed(const Duration(milliseconds: 10));
       handler.dispose();
-      // Let any remaining async work drain
       await Future.delayed(Duration.zero);
     });
 
     test('handleEffect with sound triggers platform channel calls', () async {
       final handler = DefaultPageFlipEffectHandler();
       // Wait for async _initAudio to complete so _audioReady is true
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
 
       expect(
         () => handler.onHandleEffect(PageFlipEvent.sound, volume: 0.5),
@@ -124,7 +126,7 @@ void main() {
       );
 
       // Wait for both try-catch blocks in _initAudio to complete
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
 
       expect(failingHandler, isNotNull);
       // Restore normal mocks so dispose() can clean up without errors
@@ -135,13 +137,14 @@ void main() {
 
     test('dispose method cleans up resources', () async {
       final handler = DefaultPageFlipEffectHandler();
+      await Future.delayed(const Duration(milliseconds: 10));
       expect(() => handler.dispose(), returnsNormally);
       await Future.delayed(Duration.zero);
     });
 
     test('handleEffect with impulseHaptic triggers medium impact', () async {
       final handler = DefaultPageFlipEffectHandler();
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
       expect(
         () => handler.onHandleEffect(PageFlipEvent.impulseHaptic),
         returnsNormally,
@@ -152,7 +155,7 @@ void main() {
 
     test('continuousHaptic without pageIndex falls back to light impact', () async {
       final handler = DefaultPageFlipEffectHandler();
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
       expect(
         () => handler.onHandleEffect(PageFlipEvent.continuousHaptic),
         returnsNormally,
@@ -163,7 +166,7 @@ void main() {
 
     test('continuousHaptic with pageIndex and texture runs physics haptic', () async {
       final handler = DefaultPageFlipEffectHandler();
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
       expect(
         () => handler.onHandleEffect(
           PageFlipEvent.continuousHaptic,
@@ -180,7 +183,7 @@ void main() {
 
     test('texturedHaptic with null pageIndex falls back to light impact', () async {
       final handler = DefaultPageFlipEffectHandler();
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
       expect(
         () => handler.onHandleEffect(PageFlipEvent.texturedHaptic, texture: 0.5),
         returnsNormally,
@@ -191,7 +194,7 @@ void main() {
 
     test('startHaptic triggers light impact', () async {
       final handler = DefaultPageFlipEffectHandler();
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
       expect(
         () => handler.onHandleEffect(PageFlipEvent.startHaptic),
         returnsNormally,
@@ -201,17 +204,19 @@ void main() {
     });
 
     test('MP3 fallback when Opus source fails', () async {
-      int callCount = 0;
       setupAudioMocks((methodCall) async {
-        callCount++;
-        if (methodCall.method == 'setSource' && callCount <= 2) {
-          throw PlatformException(code: 'ERROR', message: 'Opus not found');
+        if (methodCall.method == 'setSource') {
+          final args = methodCall.arguments as Map<dynamic, dynamic>;
+          final url = args['url'] as String;
+          if (url.contains('.opus')) {
+            throw PlatformException(code: 'ERROR', message: 'Opus not found');
+          }
         }
         return null;
       });
 
       final handler = DefaultPageFlipEffectHandler();
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
       expect(
         () => handler.onHandleEffect(PageFlipEvent.sound, volume: 0.5),
         returnsNormally,
@@ -230,6 +235,7 @@ void main() {
         const MethodChannel('flutter_plugin_vibration'),
         (methodCall) async {
           if (methodCall.method == 'hasVibrator') return true;
+          if (methodCall.method == 'hasAmplitudeControl') return true;
           return null;
         },
       );
@@ -238,7 +244,7 @@ void main() {
       setupAudioMocks((methodCall) async => null);
 
       final handler = DefaultPageFlipEffectHandler();
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
 
       expect(
         () => handler.onHandleEffect(
@@ -264,9 +270,7 @@ void main() {
 
     test('Opus audio init sets audioReady', () async {
       final handler = DefaultPageFlipEffectHandler();
-      for (int i = 0; i < 5; i++) {
-        await Future.delayed(Duration.zero);
-      }
+      await Future.delayed(const Duration(milliseconds: 10));
       expect(
         () => handler.onHandleEffect(PageFlipEvent.sound),
         returnsNormally,
@@ -278,7 +282,7 @@ void main() {
 
     test('stopHaptic handles cancel and engine reset gracefully', () async {
       final handler = DefaultPageFlipEffectHandler();
-      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
       // stopHaptic without pageIndex — just cancels vibration
       expect(
         () => handler.onHandleEffect(PageFlipEvent.stopHaptic),
