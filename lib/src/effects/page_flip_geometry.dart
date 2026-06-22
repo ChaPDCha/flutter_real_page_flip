@@ -100,7 +100,12 @@ class PageFlipGeometry {
     // Flap direction is determined solely by animation direction:
     // forward → flap extends LEFT of foldX (peeling away from right edge)
     // backward → flap extends RIGHT of foldX (growing from spine)
-    flapRightOfFold = !isForward;
+    if (isDoubleSpread) {
+      flapRightOfFold = !isForward;
+    } else {
+      // 1단보기에서는 이전/다음페이지 모두 플랩이 접힌 선(foldX)의 왼쪽에 위치합니다.
+      flapRightOfFold = false;
+    }
 
     // ── Fold line position ──────────────────────────────────────────────────
     // Double-spread: foldX moves across the spread between the edges/spine.
@@ -109,7 +114,12 @@ class PageFlipGeometry {
     if (isForward) {
       foldX = width - (pageWidth * progress);
     } else {
-      foldX = pageWidth * (1.0 - progress);
+      if (isDoubleSpread) {
+        foldX = pageWidth * (1.0 - progress);
+      } else {
+        // 1단보기 역순: foldX가 0(왼쪽)에서 width(오른쪽)로 이동
+        foldX = pageWidth * progress;
+      }
     }
 
     // ── Rotation angle ──────────────────────────────────────────────────────
@@ -117,7 +127,7 @@ class PageFlipGeometry {
     // Double: flapMaterialWidth is the distance from foldX to the page edge.
     // Single: flapMaterialWidth represents how much of the page is visible.
     //         Forward (progress=0→1): 0 → pageWidth (flap grows as page turns).
-    //         Backward (progress=1→0): 0 → pageWidth (flap grows from spine).
+    //         Backward (progress=0→1): pageWidth → 0 (flap shrinks as page lands).
     final flapMaterialWidth = isForward
         ? pageWidth * this.progress
         : pageWidth * (1.0 - this.progress);

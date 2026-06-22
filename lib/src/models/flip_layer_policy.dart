@@ -111,15 +111,10 @@ class FlipLayerPolicy {
 
   // ─── Flap front texture snapshot ───
 
-  /// Spread index whose snapshot provides the flap-front texture, or null.
-  ///
-  /// In single mode (both forward and backward) the current page wraps onto
-  /// the flap so the user sees page content being turned away. In double mode
-  /// the current spread provides the full-width texture.
-  /// Only null when the index would be out of bounds (shouldn't happen since
-  /// currentIndex is always valid).
   int? get flapSnapshotSpreadIndex {
-    if (isDoubleSpread) return currentIndex;
+    if (!isDoubleSpread && !isForward) {
+      return currentIndex > 0 ? currentIndex - 1 : null;
+    }
     return currentIndex;
   }
 

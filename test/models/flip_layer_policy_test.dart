@@ -297,14 +297,14 @@ void main() {
         expect(policy.flapSnapshotSpreadIndex, 1);
       });
 
-      test('single backward returns currentIndex (flap shows current page turning)', () {
+      test('single backward returns previous page index (peels previous page from left)', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
           currentIndex: 2,
           itemCount: itemCount,
         );
-        expect(policy.flapSnapshotSpreadIndex, 2);
+        expect(policy.flapSnapshotSpreadIndex, 1);
       });
     });
 
@@ -398,7 +398,7 @@ void main() {
         expect(policy.bottomPageIndex, 0);
         expect(policy.middleSpreadIndex, isNull);
         expect(policy.middlePageIndex, isNull);
-        expect(policy.flapSnapshotSpreadIndex, 0);
+        expect(policy.flapSnapshotSpreadIndex, isNull);
       });
 
       test('single forward at index 0: bottomPageIndex=null (out of bounds), '

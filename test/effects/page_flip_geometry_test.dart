@@ -181,10 +181,10 @@ void main() {
       expect(geo.foldCurveControl.dx, lessThan(geo.foldX));
     });
 
-    test('single backward curvature offsets fold curve control right', () {
-      // Single backward: flapRightOfFold=true → curveDirection=-1 → foldCurveControl > foldX.
+    test('single backward curvature offsets fold curve control left', () {
+      // Single backward: flapRightOfFold=false → curveDirection=1 → foldCurveControl < foldX.
       final geo = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
-      expect(geo.foldCurveControl.dx, greaterThan(geo.foldX));
+      expect(geo.foldCurveControl.dx, lessThan(geo.foldX));
     });
 
     test('no curvature at progress=0 so control equals fold point', () {
@@ -236,13 +236,13 @@ void main() {
       expect(geo.foldX, closeTo(200, 0.001));
     });
 
-    test('single backward curvature opposite to forward', () {
+    test('single backward curvature same as forward', () {
       // Single forward: flapRightOfFold=false → curveDirection=1 → positive.
-      // Single backward: flapRightOfFold=true → curveDirection=-1 → negative.
+      // Single backward: flapRightOfFold=false → curveDirection=1 → positive.
       final fwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: true, touchOffset: Offset.zero, size: const Size(400, 600));
       final bwd = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
       expect(fwd.curveOffset, greaterThan(0));
-      expect(bwd.curveOffset, lessThan(0));
+      expect(bwd.curveOffset, greaterThan(0));
     });
   });
 
@@ -290,26 +290,26 @@ void main() {
   });
 
   group('PageFlipGeometry single-page backward details', () {
-    test('single backward flap extends right from foldX', () {
+    test('single backward flap extends left from foldX', () {
       final geo = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600));
-      // foldX is at 200, flapRightOfFold=true → flapLeft = foldX = 200.
-      expect(geo.flapLeft, closeTo(200, 0.001));
-      expect(geo.freeEdgeX, greaterThan(geo.foldX));
+      // foldX is at 200, flapRightOfFold=false → flapLeft < foldX.
+      expect(geo.flapLeft, lessThan(geo.foldX));
+      expect(geo.freeEdgeX, lessThan(geo.foldX));
     });
 
     test('single backward foldX moves left to right', () {
-      final geo0 = PageFlipGeometry(progress: 0, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // end
+      final geo0 = PageFlipGeometry(progress: 0, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // start
       final geo5 = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // mid
-      final geo1 = PageFlipGeometry(progress: 1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // start
-      expect(geo0.foldX, closeTo(400, 0.001));
+      final geo1 = PageFlipGeometry(progress: 1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // end
+      expect(geo0.foldX, closeTo(0, 0.001));
       expect(geo5.foldX, closeTo(200, 0.001));
-      expect(geo1.foldX, closeTo(0, 0.001));
+      expect(geo1.foldX, closeTo(400, 0.001));
     });
 
-    test('single backward flapVisibleWidth increases as progress decreases (closer to end of flip)', () {
-      final atStartProgress = PageFlipGeometry(progress: 0.9, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
-      final atEndProgress = PageFlipGeometry(progress: 0.1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
-      expect(atEndProgress, greaterThan(atStartProgress));
+    test('single backward flapVisibleWidth decreases as progress increases (page is landing)', () {
+      final atStartProgress = PageFlipGeometry(progress: 0.1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
+      final atEndProgress = PageFlipGeometry(progress: 0.9, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
+      expect(atEndProgress, lessThan(atStartProgress));
     });
   });
 
