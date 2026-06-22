@@ -1,1 +1,1 @@
-Read with paper-realistic 3D page turning. TTS audio, custom modes, and effortless navigation.
+Realistic 3D page flip reader. EPUB, PDF, TTS & dark mode.
