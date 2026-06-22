@@ -3,6 +3,10 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.6.1] - 2026-06-23
+### Fixed
+- Single backward page flip: unified `foldX` and `flapMaterialWidth` formulas with forward direction. Now single backward foldX moves right-to-left (same as forward) and flap grows with progress, eliminating directional inconsistency.
+
 ## [1.6.0] - 2026-06-22
 ### Added
 - `DevicePerformanceProfile` enum (high/medium/low) for adaptive rendering quality.

@@ -1,0 +1,1 @@
+• Fixed single-page backward flip direction to match forward behavior

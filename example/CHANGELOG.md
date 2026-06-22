@@ -3,6 +3,10 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.18+24] - 2026-06-23
+### 🐛 수정
+- 1단보기 backward 페이지플립 foldX/flapMaterialWidth 방향을 forward와 통일하여 일관된 넘김 방향 보장
+
 ## [1.0.17+23] - 2026-06-22
 ### 🎨 UI/UX
 - Bookshelf 화면 Sliver 기반 레이아웃으로 재설계 (BouncingScrollPhysics)
