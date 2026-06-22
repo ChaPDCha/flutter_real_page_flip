@@ -297,19 +297,19 @@ void main() {
       expect(geo.freeEdgeX, lessThan(geo.foldX));
     });
 
-    test('single backward foldX moves left to right', () {
-      final geo0 = PageFlipGeometry(progress: 0, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // start
+    test('single backward foldX moves right to left with progress (since drag progress goes 1->0)', () {
+      final geo0 = PageFlipGeometry(progress: 0, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // end of drag
       final geo5 = PageFlipGeometry(progress: 0.5, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // mid
-      final geo1 = PageFlipGeometry(progress: 1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // end
-      expect(geo0.foldX, closeTo(0, 0.001));
+      final geo1 = PageFlipGeometry(progress: 1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)); // start of drag
+      expect(geo0.foldX, closeTo(400, 0.001));
       expect(geo5.foldX, closeTo(200, 0.001));
-      expect(geo1.foldX, closeTo(400, 0.001));
+      expect(geo1.foldX, closeTo(0, 0.001));
     });
 
-    test('single backward flapVisibleWidth decreases as progress increases (page is landing)', () {
+    test('single backward flapVisibleWidth increases with progress', () {
       final atStartProgress = PageFlipGeometry(progress: 0.1, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
       final atEndProgress = PageFlipGeometry(progress: 0.9, isRightToLeft: true, isForward: false, touchOffset: Offset.zero, size: const Size(400, 600)).flapVisibleWidth;
-      expect(atEndProgress, lessThan(atStartProgress));
+      expect(atEndProgress, greaterThan(atStartProgress));
     });
   });
 

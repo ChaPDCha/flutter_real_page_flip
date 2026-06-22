@@ -111,15 +111,10 @@ class PageFlipGeometry {
     // Double-spread: foldX moves across the spread between the edges/spine.
     // Single forward: foldX moves right→left (crease).
     // Single backward: foldX moves left→right (crease).
-    if (isForward) {
-      foldX = width - (pageWidth * progress);
+    if (isDoubleSpread && !isForward) {
+      foldX = pageWidth * (1.0 - progress);
     } else {
-      if (isDoubleSpread) {
-        foldX = pageWidth * (1.0 - progress);
-      } else {
-        // 1단보기 역순: foldX가 0(왼쪽)에서 width(오른쪽)로 이동
-        foldX = pageWidth * progress;
-      }
+      foldX = width - (pageWidth * progress);
     }
 
     // ── Rotation angle ──────────────────────────────────────────────────────
@@ -128,9 +123,9 @@ class PageFlipGeometry {
     // Single: flapMaterialWidth represents how much of the page is visible.
     //         Forward (progress=0→1): 0 → pageWidth (flap grows as page turns).
     //         Backward (progress=0→1): pageWidth → 0 (flap shrinks as page lands).
-    final flapMaterialWidth = isForward
-        ? pageWidth * this.progress
-        : pageWidth * (1.0 - this.progress);
+    final flapMaterialWidth = (isDoubleSpread && !isForward)
+        ? pageWidth * (1.0 - this.progress)
+        : pageWidth * this.progress;
 
     final angleT = math.pow(this.progress, 0.82).toDouble();
     final angleProfile = math.sin(angleT * math.pi);
