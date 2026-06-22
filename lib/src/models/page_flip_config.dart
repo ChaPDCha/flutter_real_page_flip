@@ -26,6 +26,19 @@ extension PageFlipSpreadModeCompat on PageFlipSpreadMode {
       isDoubleSpread ? PageFlipSpreadMode.doubleSpread : PageFlipSpreadMode.single;
 }
 
+/// Represents the performance tier of the device to adjust rendering quality.
+enum DevicePerformanceProfile {
+  /// Flagship devices: High resolution snapshots, dense meshes, full shadows.
+  high,
+
+  /// Mid-range devices: Moderate resolution, standard meshes, standard shadows.
+  medium,
+
+  /// Low-end devices (2020+ budget): Lower resolution snapshots, sparse meshes, simplified shadows, throttled haptics.
+  low,
+}
+
+
 /// Configuration for PageFlipWidget behavior and styling.
 ///
 /// ## Dark Mode Support
@@ -83,7 +96,11 @@ class PageFlipConfig {
     this.flapContentRevealStart = 0.85,
     this.flapContentRevealEnd = 0.95,
     this.flapBackStrength = 0.3,
+    this.performanceProfile = DevicePerformanceProfile.high,
   });
+
+  /// The performance profile to use for rendering quality.
+  final DevicePerformanceProfile performanceProfile;
 
   /// The opacity of the page-flip flap (paper back side). Defaults to 1.0 (fully opaque).
   final double paperOpacity;
@@ -218,6 +235,7 @@ class PageFlipConfig {
           flapContentRevealStart == other.flapContentRevealStart &&
           flapContentRevealEnd == other.flapContentRevealEnd &&
           flapBackStrength == other.flapBackStrength &&
+          performanceProfile == other.performanceProfile &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
           edgeTapNextLabel == other.edgeTapNextLabel &&
           edgeTapPreviousHint == other.edgeTapPreviousHint &&
@@ -244,6 +262,7 @@ class PageFlipConfig {
       flapContentRevealStart.hashCode ^
       flapContentRevealEnd.hashCode ^
       flapBackStrength.hashCode ^
+      performanceProfile.hashCode ^
       edgeTapPreviousLabel.hashCode ^
       edgeTapNextLabel.hashCode ^
       edgeTapPreviousHint.hashCode ^

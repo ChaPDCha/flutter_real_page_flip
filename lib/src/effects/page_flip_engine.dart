@@ -13,6 +13,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 part 'page_flip_geometry.dart';
 part 'page_flip_gesture.dart';
@@ -612,6 +613,9 @@ class PageFlipPainter extends CustomPainter {
 
     /// Pre-computed geometry shared with clippers (avoids redundant construction).
     this.geo,
+
+    /// Performance profile to control mesh density and shadows.
+    this.performanceProfile = DevicePerformanceProfile.high,
   });
 
   /// Normalised flip progress from 0.0 to 1.0.
@@ -670,6 +674,9 @@ class PageFlipPainter extends CustomPainter {
 
   /// Pre-computed geometry (avoids redundant construction in paint).
   final PageFlipGeometry? geo;
+
+  /// Performance profile to control mesh density and shadows.
+  final DevicePerformanceProfile performanceProfile;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -738,12 +745,24 @@ class PageFlipPainter extends CustomPainter {
     final hasFlapBack =
         flapBackImage != null && flapBackSrcRect != null && isDoubleSpread;
     if (hasFlapBack && g.flapVisibleWidth >= 8.0) {
+      var segments = 16;
+      var columns = 4;
+      if (performanceProfile == DevicePerformanceProfile.low) {
+        segments = 8;
+        columns = 1;
+      } else if (performanceProfile == DevicePerformanceProfile.medium) {
+        segments = 12;
+        columns = 2;
+      }
+
       final backMesh = buildFlapContentMesh(
         size: size,
         foldX: g.foldX,
         flapLeft: g.freeEdgeX,
         curveOffset: g.curveOffset,
         srcRect: flapBackSrcRect!,
+        segments: segments,
+        columns: columns,
         flipHorizontal: true,
       );
       canvas.drawVertices(
@@ -794,13 +813,24 @@ class PageFlipPainter extends CustomPainter {
           // images appear to bend with the paper — not a flat board tilting.
           // 16 vertical segments × 6 horizontal columns (4 interior) with
           // surface bulge creates a convex 3D paper curl effect.
+          var segments = 16;
+          var columns = 4;
+          if (performanceProfile == DevicePerformanceProfile.low) {
+            segments = 8;
+            columns = 1;
+          } else if (performanceProfile == DevicePerformanceProfile.medium) {
+            segments = 12;
+            columns = 2;
+          }
+
           final mesh = buildFlapContentMesh(
             size: size,
             foldX: g.foldX,
             flapLeft: g.freeEdgeX,
             curveOffset: g.curveOffset,
             srcRect: srcRect,
-            flipHorizontal: !isDoubleSpread && !isForward,
+            segments: segments,
+            columns: columns,
           );
           canvas.drawVertices(
             mesh,
@@ -837,7 +867,7 @@ class PageFlipPainter extends CustomPainter {
     // to look like the paper is tightly rolled.
     // Fold side vs free-edge side determined by flapRightOfFold.
     final bendStrength = g.shadowIntensity; // 0–1, peaks mid-flip
-    if (bendStrength > 0.005) {
+    if (bendStrength > 0.005 && performanceProfile != DevicePerformanceProfile.low) {
       // Fold-side alignment: where the flap meets the page.
       final foldAlign = g.flapRightOfFold
           ? Alignment.centerLeft   // fold on left, flap extends right
@@ -954,16 +984,24 @@ class PageFlipPainter extends CustomPainter {
         shadowWidth,
         size.height,
       );
-      canvas.drawRect(
-        revealedRect,
-        Paint()
-          ..shader = LinearGradient(
-            colors: [
-              Colors.black.withValues(alpha: revealedAlpha),
-              Colors.transparent,
-            ],
-          ).createShader(revealedRect),
-      );
+      if (performanceProfile == DevicePerformanceProfile.low) {
+        canvas.drawRect(
+          revealedRect,
+          Paint()
+            ..color = Colors.black.withValues(alpha: revealedAlpha * 0.5),
+        );
+      } else {
+        canvas.drawRect(
+          revealedRect,
+          Paint()
+            ..shader = LinearGradient(
+              colors: [
+                Colors.black.withValues(alpha: revealedAlpha),
+                Colors.transparent,
+              ],
+            ).createShader(revealedRect),
+        );
+      }
     }
     canvas.restore();
 
@@ -983,18 +1021,26 @@ class PageFlipPainter extends CustomPainter {
           stationaryWidth,
           size.height,
         );
-        canvas.drawRect(
-          stationaryRect,
-          Paint()
-            ..shader = LinearGradient(
-              begin: Alignment.centerRight,
-              end: Alignment.centerLeft,
-              colors: [
-                Colors.black.withValues(alpha: stationaryAlpha),
-                Colors.transparent,
-              ],
-            ).createShader(stationaryRect),
-        );
+        if (performanceProfile == DevicePerformanceProfile.low) {
+          canvas.drawRect(
+            stationaryRect,
+            Paint()
+              ..color = Colors.black.withValues(alpha: stationaryAlpha * 0.5),
+          );
+        } else {
+          canvas.drawRect(
+            stationaryRect,
+            Paint()
+              ..shader = LinearGradient(
+                begin: Alignment.centerRight,
+                end: Alignment.centerLeft,
+                colors: [
+                  Colors.black.withValues(alpha: stationaryAlpha),
+                  Colors.transparent,
+                ],
+              ).createShader(stationaryRect),
+          );
+        }
       }
       canvas.restore();
     }
@@ -1011,17 +1057,26 @@ class PageFlipPainter extends CustomPainter {
         spineShadowWidth,
         size.height,
       );
-      canvas.drawRect(
-        spineRect,
-        Paint()
-          ..blendMode = BlendMode.multiply
-          ..shader = LinearGradient(
-            colors: [
-              Colors.black.withValues(alpha: 0.09 * g.shadowIntensity),
-              Colors.transparent,
-            ],
-          ).createShader(spineRect),
-      );
+      if (performanceProfile == DevicePerformanceProfile.low) {
+        canvas.drawRect(
+          spineRect,
+          Paint()
+            ..blendMode = BlendMode.multiply
+            ..color = Colors.black.withValues(alpha: 0.04 * g.shadowIntensity),
+        );
+      } else {
+        canvas.drawRect(
+          spineRect,
+          Paint()
+            ..blendMode = BlendMode.multiply
+            ..shader = LinearGradient(
+              colors: [
+                Colors.black.withValues(alpha: 0.09 * g.shadowIntensity),
+                Colors.transparent,
+              ],
+            ).createShader(spineRect),
+        );
+      }
       canvas.restore();
     }
   }

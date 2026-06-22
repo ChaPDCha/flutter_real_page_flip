@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 import 'package:real_page_flip/src/models/flip_layer_policy.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 // LAYOUT GATE: constrainedSize + _wrapWithConstraints for Offstage/current/flip pages.
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
@@ -50,6 +51,9 @@ class PageFlipLayerView extends StatelessWidget {
 
     /// True if rendering for a dual spread book
     this.isDoubleSpread = false,
+
+    /// Performance profile to control rendering quality.
+    this.performanceProfile = DevicePerformanceProfile.high,
     super.key,
   });
 
@@ -113,6 +117,9 @@ class PageFlipLayerView extends StatelessWidget {
 
   /// True if rendering for a dual spread book
   final bool isDoubleSpread;
+
+  /// Performance profile to control rendering quality.
+  final DevicePerformanceProfile performanceProfile;
 
   /// Wraps a widget with SizedBox if constrainedSize is provided.
   /// Prevents infinite height propagation from Stack(fit: StackFit.expand).
@@ -336,6 +343,7 @@ class PageFlipLayerView extends StatelessWidget {
               flapBackSrcRect: flapBackSrcRect,
               flapBackStrength: flapBackStrength,
               geo: geo,
+              performanceProfile: performanceProfile,
             ),
           ),
         ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/physics/paper_physics.dart';
 import 'package:real_page_flip/src/physics/stick_slip_controller.dart';
@@ -14,10 +15,15 @@ import 'package:vibration/vibration.dart';
 /// - Zero-latency audio: Pre-fetched [AudioPlayer] pool with [AssetSource].
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   /// Creates a [DefaultPageFlipEffectHandler] and initialises audio and vibrator.
-  DefaultPageFlipEffectHandler() {
+  DefaultPageFlipEffectHandler({
+    this.performanceProfile = DevicePerformanceProfile.high,
+  }) {
     _initAudio();
     _initVibrator();
   }
+
+  /// Performance profile to control haptic and audio frequency.
+  final DevicePerformanceProfile performanceProfile;
 
   static const int _audioPoolSize = 3;
   final List<AudioPlayer> _audioPool = List.generate(
@@ -31,19 +37,23 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   bool _hasVibrator = false;
   bool _hasAmplitudeControl = false;
   bool _initializedVibrator = false;
+  DateTime _lastTextureTick = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// Cache of physics engines per page index for consistent texture.
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
 
   Future<void> _initAudio() async {
+    var atLeastOneSuccess = false;
     for (final player in _audioPool) {
       try {
         await player.setPlayerMode(PlayerMode.lowLatency);
+        player.audioCache.prefix = '';
         // 1. Try Opus first (More efficient, supported on Android 5.0+, iOS 11+)
         await player.setSource(
           AssetSource('packages/real_page_flip/assets/sounds/page_flip.opus'),
         );
         await player.setReleaseMode(ReleaseMode.stop);
+        atLeastOneSuccess = true;
       } on Object {
         try {
           // 2. Fallback to MP3 (Legacy support)
@@ -51,12 +61,13 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
             AssetSource('packages/real_page_flip/assets/sounds/page_flip.mp3'),
           );
           await player.setReleaseMode(ReleaseMode.stop);
+          atLeastOneSuccess = true;
         } on Object {
           // Ignore failures on individual players, readiness check is based on whether at least one succeeds.
         }
       }
     }
-    _audioReady = true;
+    _audioReady = atLeastOneSuccess;
   }
 
   Future<void> _initVibrator() async {
@@ -88,7 +99,13 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         _triggerImpact(HapticImpactType.light);
         break;
       case PageFlipEvent.stopHaptic:
-        Vibration.cancel();
+        if (_initializedVibrator && _hasVibrator) {
+          try {
+            Vibration.cancel();
+          } on Object {
+            // Ignore cancel errors on unsupported platforms
+          }
+        }
         if (pageIndex != null) {
           _physicsEngines[pageIndex]?.reset();
         }
@@ -110,6 +127,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         }
         break;
       case PageFlipEvent.sound:
+        _triggerImpact(HapticImpactType.medium);
         _playSound(volume ?? 1.0);
         break;
     }
@@ -151,32 +169,56 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     final triggerTextureTick = frame.rawTexture > 0.65;
 
     if (triggerTextureTick) {
-      if (_initializedVibrator && _hasVibrator && _hasAmplitudeControl) {
-        // High-end Android devices with precise linear motors: use custom short vibrator pulses
-        final amplitude = (frame.amplitude * 255).round().clamp(10, 255);
-        final duration = frame.durationMs.clamp(5, 20); // Keep it short and crisp!
-        Vibration.vibrate(
-          duration: duration,
-          amplitude: amplitude,
-        );
-      } else {
-        // iOS or devices without precise amplitude control: use native crisp system clicks
-        HapticFeedback.selectionClick();
+      final now = DateTime.now();
+      var throttleMs = 40;
+      if (performanceProfile == DevicePerformanceProfile.low) {
+        throttleMs = 200; // Heavily throttle haptics on low-end
+      } else if (performanceProfile == DevicePerformanceProfile.medium) {
+        throttleMs = 80;
+      }
+
+      // Throttle texture haptics to prevent motor buzzing
+      if (now.difference(_lastTextureTick).inMilliseconds > throttleMs) {
+        _lastTextureTick = now;
+        if (_initializedVibrator && _hasVibrator && _hasAmplitudeControl) {
+          // High-end Android devices with precise linear motors: use custom short vibrator pulses
+          final amplitude = (frame.amplitude * 255).round().clamp(10, 255);
+          final duration = frame.durationMs.clamp(5, 20); // Keep it short and crisp!
+          try {
+            Vibration.vibrate(
+              duration: duration,
+              amplitude: amplitude,
+            );
+          } on Object {
+            // Fail silently on unsupported or problematic platforms
+          }
+        } else {
+          // iOS or devices without precise amplitude control: use native crisp system clicks
+          try {
+            HapticFeedback.selectionClick();
+          } on Object {
+            // Fail silently on unsupported or problematic platforms
+          }
+        }
       }
     }
   }
 
   void _triggerImpact(HapticImpactType type) {
-    switch (type) {
-      case HapticImpactType.light:
-        HapticFeedback.lightImpact();
-        break;
-      case HapticImpactType.medium:
-        HapticFeedback.mediumImpact();
-        break;
-      case HapticImpactType.heavy:
-        HapticFeedback.heavyImpact();
-        break;
+    try {
+      switch (type) {
+        case HapticImpactType.light:
+          HapticFeedback.lightImpact();
+          break;
+        case HapticImpactType.medium:
+          HapticFeedback.mediumImpact();
+          break;
+        case HapticImpactType.heavy:
+          HapticFeedback.heavyImpact();
+          break;
+      }
+    } on Object {
+      // Fail silently on unsupported or problematic platforms
     }
   }
 

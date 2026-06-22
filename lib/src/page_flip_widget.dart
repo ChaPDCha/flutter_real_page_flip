@@ -143,7 +143,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
     // Initialize Effect Handler
     _effectHandler =
-        widget.config.effectHandler ?? DefaultPageFlipEffectHandler();
+        widget.config.effectHandler ?? DefaultPageFlipEffectHandler(
+          performanceProfile: widget.config.performanceProfile,
+        );
 
     // Warm snapshots immediately after first frame. Using immediate capture
     // (no debounce) so snapshots are ready before the user's first drag gesture.
@@ -179,7 +181,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     widget.onFlipEnd?.call();
   }
 
-  late final PageFlipEffectHandler _effectHandler;
+  late PageFlipEffectHandler _effectHandler;
 
   // Incremented on every didUpdateWidget so ValueListenableBuilder below can
   // use it as a key to force rebuild when itemBuilder dependencies change
@@ -195,11 +197,16 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // forcing the flip layers to rebuild with fresh itemBuilder output.
     _flipLayerVersion++;
 
-    // Update effect handler if changed in config
-    if (widget.config.effectHandler != oldWidget.config.effectHandler) {
+    // Update effect handler if changed in config, or if we are using the default
+    // handler and the performance profile has changed.
+    final effectHandlerChanged = widget.config.effectHandler != oldWidget.config.effectHandler;
+    final profileChanged = widget.config.performanceProfile != oldWidget.config.performanceProfile;
+    if (effectHandlerChanged || (widget.config.effectHandler == null && profileChanged)) {
       _effectHandler.dispose();
       _effectHandler =
-          widget.config.effectHandler ?? DefaultPageFlipEffectHandler();
+          widget.config.effectHandler ?? DefaultPageFlipEffectHandler(
+            performanceProfile: widget.config.performanceProfile,
+          );
     }
 
     final indexChangedExternally = widget.initialIndex != _controller.currentIndex;
@@ -260,7 +267,20 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   void _captureSnapshots({bool immediate = false}) {
     if (!mounted) return;
     final mediaQuery = MediaQuery.maybeOf(context);
-    final pixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
+    var pixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
+    
+    // Apply dynamic resolution scaling based on performance profile
+    switch (widget.config.performanceProfile) {
+      case DevicePerformanceProfile.low:
+        pixelRatio = pixelRatio.clamp(1.0, 1.25);
+        break;
+      case DevicePerformanceProfile.medium:
+        pixelRatio = pixelRatio.clamp(1.0, 2.0);
+        break;
+      case DevicePerformanceProfile.high:
+        break;
+    }
+
     _preRenderManager.captureSnapshots(
       _controller.currentIndex,
       _totalPages,
@@ -402,6 +422,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               flapBackStrength: widget.config.flapBackStrength,
               constrainedSize: constrainedSize,
               isDoubleSpread: widget.spreadMode.isDoubleSpread,
+              performanceProfile: widget.config.performanceProfile,
             ),
         );
 
