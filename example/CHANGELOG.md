@@ -3,6 +3,17 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.17+23] - 2026-06-22
+### 🎨 UI/UX
+- Bookshelf 화면 Sliver 기반 레이아웃으로 재설계 (BouncingScrollPhysics)
+- ReaderTypography 도입: Noto Sans KR (UI), Outfit (기하학적), Serif/Sans (본문) 3가지 폰트 시스템
+- BookshelfSettingsPanel 추가 (동기화 상태, 설정)
+- 다크 테마로 통일
+
+### 🐛 수정
+- AdaptiveBannerAd initState → didChangeDependencies 이동으로 광고 중복 로드 방지
+- 테스트 환경에서 Google Fonts 대신 기본 폰트 사용하도록 fallback 처리
+
 ## [1.0.15+21] - 2026-06-21
 ### ✨ 기능
 - 앱 브랜딩 로고 전면 리뉴얼 및 전체 플랫폼(Android, iOS, macOS, Windows, Web) 앱 아이콘 교체 (기존 무한대 로고 폐기)

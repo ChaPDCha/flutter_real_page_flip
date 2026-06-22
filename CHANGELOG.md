@@ -3,6 +3,16 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.6.0] - 2026-06-22
+### Added
+- `DevicePerformanceProfile` enum (high/medium/low) for adaptive rendering quality.
+- `performanceProfile` field on `PageFlipConfig` and `PageFlipLayerView`.
+- `DefaultPageFlipEffectHandler` now accepts an optional `performanceProfile` to throttle haptic feedback on low-end devices.
+
+### Fixed
+- Single-page backward flip: corrected `flapRightOfFold` to `false` for single-page mode so the flap extends left from foldX (consistent with forward direction).
+- `flapSnapshotSpreadIndex` now returns `currentIndex - 1` for single backward (previously returned `currentIndex`), ensuring the correct snap page is displayed as the flap texture.
+
 ## [1.5.1] - 2026-06-21
 ### Changed
 - Split page flip engine library into part files (`page_flip_geometry.dart`, `page_flip_gesture.dart`) for cleaner code organization.

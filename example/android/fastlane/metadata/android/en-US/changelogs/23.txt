@@ -1,0 +1,5 @@
+• Redesigned bookshelf with smooth scrolling
+• Added bookshelf settings panel (sync controls)
+• Improved reading settings layout
+• Dark theme unification
+• Fixed ad banner duplicate loading
