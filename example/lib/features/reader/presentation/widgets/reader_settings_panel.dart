@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
-import '../../../../shared/theme/app_theme_controller.dart';
 import '../../../../shared/theme/reader_theme.dart';
+import '../../../../shared/theme/reader_typography.dart';
 import '../../../bookshelf/domain/book.dart';
 import '../reader_controller.dart';
 import '../reader_state.dart';
@@ -16,7 +16,7 @@ class ReaderSettingsPanel {
     required ReaderState state,
     required ReaderController controller,
   }) {
-    final theme = ReaderThemeData.get(ref.read(appThemeControllerProvider));
+    const theme = ReaderThemeData.charcoal; // Unified to premium dark mode
 
     WoltModalSheet.show(
       context: context,
@@ -25,56 +25,31 @@ class ReaderSettingsPanel {
           backgroundColor: theme.panelColor,
           topBarTitle: Text(
             '독서 설정',
-            style: TextStyle(fontWeight: FontWeight.bold, color: theme.textColor, fontSize: 16),
+            style: ReaderTypography.getUiStyle(
+              fontWeight: FontWeight.bold,
+              color: theme.textColor,
+              fontSize: 16,
+            ),
           ),
           child: Consumer(
             builder: (context, ref, child) {
               final currentState = ref.watch(readerControllerProvider(book));
-              final themeType = ref.watch(appThemeControllerProvider);
-              final currentTheme = ReaderThemeData.get(themeType);
 
               return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('테마 설정', style: TextStyle(color: currentTheme.textColor, fontSize: 14)),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildThemeOption(
-                            ref,
-                            ReaderThemeType.cream,
-                            '크림',
-                            currentTheme,
-                            themeType,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildThemeOption(
-                            ref,
-                            ReaderThemeType.charcoal,
-                            '차콜',
-                            currentTheme,
-                            themeType,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
-
                     // Font Size
                     _SettingRow(
                       label: '글자 크기',
-                      theme: currentTheme,
+                      theme: theme,
                       child: _SizeControl(
                         value: currentState.settings.fontSize,
                         formatValue: (v) => '${v.toInt()}',
                         onDecrement: () => controller.updateFontSize(-1.0),
                         onIncrement: () => controller.updateFontSize(1.0),
-                        theme: currentTheme,
+                        theme: theme,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -82,13 +57,13 @@ class ReaderSettingsPanel {
                     // Line Spacing
                     _SettingRow(
                       label: '줄 간격',
-                      theme: currentTheme,
+                      theme: theme,
                       child: _SizeControl(
                         value: currentState.settings.lineHeight,
                         formatValue: (v) => v.toStringAsFixed(1),
                         onDecrement: () => controller.updateLineHeight(-0.1),
                         onIncrement: () => controller.updateLineHeight(0.1),
-                        theme: currentTheme,
+                        theme: theme,
                         step: 0.1,
                       ),
                     ),
@@ -97,22 +72,22 @@ class ReaderSettingsPanel {
                     // Brightness
                     _SettingRow(
                       label: '화면 밝기',
-                      theme: currentTheme,
+                      theme: theme,
                       child: SizedBox(
                         width: 160,
                         child: Row(
                           children: [
-                            Icon(Icons.brightness_low, color: currentTheme.secondaryTextColor, size: 16),
+                            Icon(Icons.brightness_low, color: theme.secondaryTextColor, size: 15),
                             Expanded(
                               child: SliderTheme(
                                 data: SliderThemeData(
-                                  trackHeight: 4,
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-                                  activeTrackColor: currentTheme.accentColor,
-                                  inactiveTrackColor: currentTheme.dividerColor,
-                                  thumbColor: currentTheme.accentColor,
-                                  overlayColor: currentTheme.accentColor.withValues(alpha: 0.12),
+                                  trackHeight: 2,
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                                  activeTrackColor: theme.accentColor,
+                                  inactiveTrackColor: theme.dividerColor,
+                                  thumbColor: theme.accentColor,
+                                  overlayColor: theme.accentColor.withValues(alpha: 0.12),
                                 ),
                                 child: Slider(
                                   value: currentState.settings.brightness,
@@ -123,7 +98,7 @@ class ReaderSettingsPanel {
                                 ),
                               ),
                             ),
-                            Icon(Icons.brightness_high, color: currentTheme.secondaryTextColor, size: 16),
+                            Icon(Icons.brightness_high, color: theme.secondaryTextColor, size: 15),
                           ],
                         ),
                       ),
@@ -133,24 +108,24 @@ class ReaderSettingsPanel {
                     // Font Family
                     _SettingRow(
                       label: '글꼴',
-                      theme: currentTheme,
+                      theme: theme,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _FontOption(
-                            label: '기본',
+                            label: '기본 고딕',
                             isSelected: currentState.settings.fontFamily == null,
                             onTap: () => controller.updateFontFamily(null),
-                            theme: currentTheme,
+                            theme: theme,
                           ),
                           const SizedBox(width: 8),
                           _FontOption(
-                            label: 'Serif',
+                            label: '바른 명조',
                             isSelected: currentState.settings.fontFamily == 'serif',
                             onTap: () => controller.updateFontFamily(
                               currentState.settings.fontFamily == 'serif' ? null : 'serif',
                             ),
-                            theme: currentTheme,
+                            theme: theme,
                           ),
                         ],
                       ),
@@ -160,7 +135,7 @@ class ReaderSettingsPanel {
                     // Haptics
                     _SettingRow(
                       label: '햅틱 피드백',
-                      theme: currentTheme,
+                      theme: theme,
                       child: ShadSwitch(
                         value: currentState.settings.enableHaptics,
                         onChanged: (val) async {
@@ -173,7 +148,7 @@ class ReaderSettingsPanel {
                     // Sound
                     _SettingRow(
                       label: '소리 효과',
-                      theme: currentTheme,
+                      theme: theme,
                       child: ShadSwitch(
                         value: currentState.settings.enableSound,
                         onChanged: (val) async {
@@ -189,58 +164,19 @@ class ReaderSettingsPanel {
           ),
           stickyActionBar: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Consumer(
-              builder: (context, ref, child) {
-                final currentTheme = ReaderThemeData.get(ref.watch(appThemeControllerProvider));
-                return ShadButton(
-                  onPressed: () => Navigator.of(modalContext).pop(),
-                  backgroundColor: currentTheme.accentColor,
-                  foregroundColor: currentTheme.buttonForegroundColor,
-                  width: double.infinity,
-                  child: const Text('설정 완료'),
-                );
-              }
+            child: ShadButton(
+              onPressed: () => Navigator.of(modalContext).pop(),
+              backgroundColor: theme.accentColor,
+              foregroundColor: theme.buttonForegroundColor,
+              width: double.infinity,
+              child: Text(
+                '설정 완료',
+                style: ReaderTypography.getUiStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  static Widget _buildThemeOption(
-    WidgetRef ref,
-    ReaderThemeType type,
-    String name,
-    ReaderThemeData panelTheme,
-    ReaderThemeType currentType,
-  ) {
-    final optionTheme = ReaderThemeData.get(type);
-    final isSelected = type == currentType;
-    return GestureDetector(
-      onTap: () {
-        ref.read(appThemeControllerProvider.notifier).setTheme(type);
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: optionTheme.backgroundColor,
-          border: Border.all(
-            color: isSelected ? panelTheme.accentColor : optionTheme.dividerColor,
-            width: isSelected ? 2.5 : 1,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          name,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: optionTheme.textColor,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 13,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -266,7 +202,7 @@ class _SettingRow extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: theme.textColor, fontSize: 14),
+            style: ReaderTypography.getUiStyle(color: theme.textColor, fontSize: 14),
           ),
         ),
         child,
@@ -300,15 +236,17 @@ class _SizeControl extends StatelessWidget {
       children: [
         IconButton(
           onPressed: onDecrement,
-          icon: Icon(Icons.remove, color: theme.textColor, size: 16),
+          icon: Icon(Icons.remove, color: theme.textColor, size: 15),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         ),
         SizedBox(
-          width: 36,
+          width: 32,
           child: Text(
             formatValue(value),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
+            style: ReaderTypography.getGeometricStyle(
+              fontSize: 15,
               fontWeight: FontWeight.bold,
               color: theme.textColor,
             ),
@@ -316,7 +254,9 @@ class _SizeControl extends StatelessWidget {
         ),
         IconButton(
           onPressed: onIncrement,
-          icon: Icon(Icons.add, color: theme.textColor, size: 16),
+          icon: Icon(Icons.add, color: theme.textColor, size: 15),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         ),
       ],
     );
@@ -342,25 +282,25 @@ class _FontOption extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? theme.accentColor.withValues(alpha: 0.15) : Colors.transparent,
+          color: isSelected ? theme.accentColor.withValues(alpha: 0.12) : Colors.transparent,
           border: Border.all(
             color: isSelected ? theme.accentColor : theme.dividerColor,
-            width: isSelected ? 1.5 : 1,
+            width: isSelected ? 1.2 : 1,
           ),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           label,
-          style: TextStyle(
+          style: ReaderTypography.getUiStyle(
             color: isSelected ? theme.accentColor : theme.textColor,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 13,
-            fontFamily: label == 'Serif' ? 'serif' : null,
+            fontSize: 12,
           ),
         ),
       ),
     );
   }
 }
+

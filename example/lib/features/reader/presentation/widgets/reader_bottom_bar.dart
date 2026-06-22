@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../shared/theme/reader_theme.dart';
+import '../../../../shared/theme/reader_typography.dart';
 import '../../../bookshelf/domain/book.dart';
 import '../reader_state.dart';
 
@@ -22,14 +23,18 @@ class ReaderBottomBar extends StatelessWidget {
     required this.onNextChapter,
   });
 
-  static const _labelStyle = TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.w500,
-  );
-
   @override
   Widget build(BuildContext context) {
-    final textStyle = _labelStyle.copyWith(color: themeData.textColor);
+    final textStyle = ReaderTypography.getUiStyle(
+      color: themeData.textColor,
+      fontSize: 13,
+      fontWeight: FontWeight.w500,
+    );
+    final pageStyle = ReaderTypography.getGeometricStyle(
+      color: themeData.textColor,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+    );
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 250),
@@ -42,37 +47,37 @@ class ReaderBottomBar extends StatelessWidget {
         opacity: showUi ? 1.0 : 0.0,
         child: ClipRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+            filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
             child: Container(
-              color: themeData.panelColor.withValues(alpha: 0.8),
+              decoration: BoxDecoration(
+                color: themeData.panelColor.withValues(alpha: 0.75),
+                border: Border(top: BorderSide(color: themeData.textColor.withValues(alpha: 0.1))),
+              ),
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).padding.bottom + 8,
-                top: 8,
-                left: 16,
-                right: 16,
+                bottom: MediaQuery.of(context).padding.bottom + 12,
+                top: 12,
+                left: 20,
+                right: 20,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (book.format == BookFormat.pdf)
-                    _InfoRow(
-                      textStyle: textStyle,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Flexible(
-                          flex: 3,
-                          child: _EllipsisLabel(
-                            text: book.title,
-                            textStyle: textStyle,
+                        Expanded(
+                          child: Text(
+                            book.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textStyle,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          flex: 2,
-                          child: _EllipsisLabel(
-                            text: _pageCounterLabel(readerState, pdf: true),
-                            textStyle: textStyle,
-                            textAlign: TextAlign.end,
-                          ),
+                        const SizedBox(width: 16),
+                        Text(
+                          _pageCounterLabel(readerState, pdf: true),
+                          style: pageStyle,
                         ),
                       ],
                     )
@@ -81,37 +86,45 @@ class ReaderBottomBar extends StatelessWidget {
                       children: [
                         _ChapterNavButton(
                           enabled: readerState.currentChapterIndex > 0,
-                          icon: Icons.chevron_left_rounded,
+                          icon: Icons.keyboard_arrow_left_rounded,
                           color: themeData.textColor,
                           tooltip: '이전 장',
                           onPressed: onPreviousChapter,
                         ),
                         Expanded(
-                          child: _InfoRow(
-                            textStyle: textStyle,
+                          child: Row(
                             children: [
                               Flexible(
                                 flex: 2,
-                                child: _EllipsisLabel(
-                                  text: _pageCounterLabel(readerState, pdf: false),
-                                  textStyle: textStyle,
+                                child: Text(
+                                  _pageCounterLabel(readerState, pdf: false),
+                                  style: pageStyle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 8),
                               Expanded(
                                 flex: 4,
-                                child: _EllipsisLabel(
-                                  text: book.title,
-                                  textStyle: textStyle,
+                                child: Text(
+                                  book.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: textStyle.copyWith(
+                                    color: themeData.textColor.withValues(alpha: 0.6),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 8),
                               Flexible(
                                 flex: 3,
-                                child: _EllipsisLabel(
-                                  text: _chapterLabel(readerState),
-                                  textStyle: textStyle,
+                                child: Text(
+                                  _chapterLabel(readerState),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.end,
+                                  style: textStyle,
                                 ),
                               ),
                             ],
@@ -120,7 +133,7 @@ class ReaderBottomBar extends StatelessWidget {
                         _ChapterNavButton(
                           enabled: readerState.currentChapterIndex <
                               readerState.chapters.length - 1,
-                          icon: Icons.chevron_right_rounded,
+                          icon: Icons.keyboard_arrow_right_rounded,
                           color: themeData.textColor,
                           tooltip: '다음 장',
                           onPressed: onNextChapter,
@@ -154,46 +167,6 @@ class ReaderBottomBar extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.textStyle,
-    required this.children,
-  });
-
-  final TextStyle textStyle;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: children,
-    );
-  }
-}
-
-class _EllipsisLabel extends StatelessWidget {
-  const _EllipsisLabel({
-    required this.text,
-    required this.textStyle,
-    this.textAlign = TextAlign.start,
-  });
-
-  final String text;
-  final TextStyle textStyle;
-  final TextAlign textAlign;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: textAlign,
-      style: textStyle,
-    );
-  }
-}
-
 class _ChapterNavButton extends StatelessWidget {
   const _ChapterNavButton({
     required this.enabled,
@@ -215,13 +188,13 @@ class _ChapterNavButton extends StatelessWidget {
       onPressed: enabled ? onPressed : null,
       icon: Icon(
         icon,
-        color: enabled ? color : color.withValues(alpha: 0.25),
-        size: 28,
+        color: enabled ? color : color.withValues(alpha: 0.2),
+        size: 26,
       ),
       tooltip: tooltip,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
     );
   }
 }

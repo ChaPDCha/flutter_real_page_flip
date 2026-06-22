@@ -16,7 +16,9 @@ void main() {
 
   testWidgets('Bookshelf screen smoke test', (WidgetTester tester) async {
     // Mock SharedPreferences values for testing environment
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'demo_book_created': true,
+    });
     final prefs = await SharedPreferences.getInstance();
 
     final mockRepository = MockBookRepository();
@@ -45,5 +47,8 @@ void main() {
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(scaffold.backgroundColor, ReaderThemeData.charcoal.backgroundColor);
+
+    // Let the 2-second deferred sync timer fire so it doesn't leak into teardown
+    await tester.pump(const Duration(seconds: 2));
   });
 }

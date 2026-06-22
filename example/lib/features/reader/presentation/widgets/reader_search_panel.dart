@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/theme/reader_theme.dart';
+import '../../../../shared/theme/reader_typography.dart';
 import '../../../bookshelf/domain/book.dart';
 import '../../application/search_service.dart';
 import '../../application/search_service_provider.dart';
@@ -71,15 +72,17 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final panelTheme = widget.theme;
+
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
       child: Container(
-        color: widget.theme.panelColor.withValues(alpha: 0.88),
+        color: panelTheme.panelColor.withValues(alpha: 0.85),
         padding: EdgeInsets.only(
           top: MediaQuery.of(context).padding.top + 16,
           left: 20,
           right: 20,
-          bottom: 20,
+          bottom: MediaQuery.of(context).padding.bottom + 20,
         ),
         child: Column(
           children: [
@@ -89,23 +92,23 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    style: TextStyle(color: widget.theme.textColor, fontSize: 16),
-                    cursorColor: widget.theme.accentColor,
+                    style: ReaderTypography.getUiStyle(color: panelTheme.textColor, fontSize: 15),
+                    cursorColor: panelTheme.accentColor,
                     decoration: InputDecoration(
                       hintText: '책 내용 검색...',
-                      hintStyle: TextStyle(color: widget.theme.secondaryTextColor.withValues(alpha: 0.5)),
-                      prefixIcon: Icon(Icons.search, color: widget.theme.secondaryTextColor),
+                      hintStyle: ReaderTypography.getUiStyle(color: panelTheme.secondaryTextColor.withValues(alpha: 0.4), fontSize: 15),
+                      prefixIcon: Icon(Icons.search_outlined, color: panelTheme.secondaryTextColor, size: 20),
                       border: InputBorder.none,
                       filled: true,
-                      fillColor: widget.theme.backgroundColor.withValues(alpha: 0.5),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      fillColor: panelTheme.backgroundColor.withValues(alpha: 0.6),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: widget.theme.dividerColor),
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: panelTheme.dividerColor),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: widget.theme.accentColor, width: 1.5),
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: panelTheme.accentColor, width: 1.2),
                       ),
                     ),
                     onChanged: _onSearchChanged,
@@ -116,7 +119,11 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                   onPressed: () => Navigator.of(context).pop(),
                   child: Text(
                     '닫기',
-                    style: TextStyle(color: widget.theme.accentColor, fontSize: 15, fontWeight: FontWeight.bold),
+                    style: ReaderTypography.getUiStyle(
+                      color: panelTheme.accentColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -126,32 +133,41 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
             // Search Results Body
             Expanded(
               child: _isSearching
-                  ? Center(child: CircularProgressIndicator(color: widget.theme.accentColor))
+                  ? Center(child: CircularProgressIndicator(color: panelTheme.accentColor))
                   : _results.isEmpty
                       ? Center(
                           child: Text(
                             _searchController.text.isEmpty ? '검색어를 입력해 보세요.' : '검색 결과가 없습니다.',
-                            style: TextStyle(color: widget.theme.secondaryTextColor, fontSize: 14),
+                            style: ReaderTypography.getUiStyle(color: panelTheme.secondaryTextColor, fontSize: 13),
                           ),
                         )
                       : ListView.separated(
                           itemCount: _results.length,
-                          separatorBuilder: (context, index) => Divider(color: widget.theme.dividerColor, height: 1),
+                          separatorBuilder: (context, index) => Divider(color: panelTheme.dividerColor, height: 1),
                           itemBuilder: (context, index) {
                             final result = _results[index];
                             return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                               title: Text(
                                 result.snippet,
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: widget.theme.textColor, fontSize: 14, height: 1.4),
+                                style: ReaderTypography.getUiStyle(
+                                  color: panelTheme.textColor,
+                                  fontSize: 14,
+                                  letterSpacing: -0.1,
+                                ),
                               ),
                               subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 6),
+                                padding: const EdgeInsets.only(top: 8),
                                 child: Text(
                                   '제 ${result.chapterIndex + 1}장',
-                                  style: TextStyle(color: widget.theme.accentColor, fontSize: 11, fontWeight: FontWeight.w600),
+                                  style: ReaderTypography.getGeometricStyle(
+                                    color: panelTheme.accentColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
+                                  ),
                                 ),
                               ),
                               onTap: () {
@@ -168,3 +184,4 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
     );
   }
 }
+

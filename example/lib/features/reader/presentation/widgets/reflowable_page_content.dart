@@ -98,12 +98,11 @@ class ReflowablePageContent extends ConsumerWidget {
                 chapterTitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: theme.secondaryTextColor.withValues(alpha: 0.65),
-                  fontFamily: state.settings.fontFamily,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -0.2,
+                style: ReaderTypography.getUiStyle(
+                  fontSize: 11,
+                  color: theme.secondaryTextColor.withValues(alpha: 0.45),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
                 ),
               ),
               const SizedBox(height: 18),
@@ -141,11 +140,16 @@ class ReflowablePageContent extends ConsumerWidget {
                   },
                 ),
               ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Text(
                     '${index + 1} / ${state.pages.length}',
-                    style: TextStyle(fontSize: 11, color: theme.secondaryTextColor),
+                    style: ReaderTypography.getGeometricStyle(
+                      fontSize: 10,
+                      color: theme.secondaryTextColor.withValues(alpha: 0.45),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -154,7 +158,11 @@ class ReflowablePageContent extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.end,
-                      style: TextStyle(fontSize: 11, color: theme.secondaryTextColor),
+                      style: ReaderTypography.getUiStyle(
+                        fontSize: 10,
+                        color: theme.secondaryTextColor.withValues(alpha: 0.45),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],

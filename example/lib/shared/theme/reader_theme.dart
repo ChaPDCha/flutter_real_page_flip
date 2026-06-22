@@ -27,42 +27,37 @@ class ReaderThemeData {
 
   static const cream = ReaderThemeData(
     type: ReaderThemeType.cream,
-    backgroundColor: Color(0xFFF9F6F0), // Warm cream/off-white paper
-    textColor: Color(0xFF2C2A29), // Charcoal text
-    secondaryTextColor: Color(0xFF706D6B), // Muted warm grey
-    accentColor: Color(0xFF8C6239), // Soft leather brown
-    dividerColor: Color(0xFFE5DEC9), // Muted gold/beige
-    panelColor: Color(0xFFF2ECE0), // Slightly darker cream for settings panel
+    backgroundColor: Color(0xFF0A0A0B), // Low-contrast warm black for night reading
+    textColor: Color(0xFFC8C5C0), // Low-glare warm silver-sand (neutralizes eye strain)
+    secondaryTextColor: Color(0xFF76757A), // Muted grey
+    accentColor: Color(0xFFC5A880), // Luxury champagne-bronze
+    dividerColor: Color(0xFF1C1C1E), // Soft dark divider
+    panelColor: Color(0xFF141416), // Surface panel
   );
 
   static const charcoal = ReaderThemeData(
     type: ReaderThemeType.charcoal,
-    backgroundColor: Color(0xFF1E1E1E), // Low-contrast black/dark grey
-    textColor: Color(0xFFE0E0E0), // Soft off-white
-    secondaryTextColor: Color(0xFF888888), // Slate grey
-    accentColor: Color(0xFFD4AF37), // Soft gold accent
-    dividerColor: Color(0xFF2D2D2D), // Dark grey divider
-    panelColor: Color(0xFF252525), // Solid dark grey for panel
+    backgroundColor: Color(0xFF0A0A0B), // Low-contrast warm black
+    textColor: Color(0xFFC8C5C0), // Low-glare warm silver-sand
+    secondaryTextColor: Color(0xFF76757A), // Muted grey
+    accentColor: Color(0xFFC5A880),
+    dividerColor: Color(0xFF1C1C1E),
+    panelColor: Color(0xFF141416),
   );
 
   static ReaderThemeData get(ReaderThemeType type) {
-    switch (type) {
-      case ReaderThemeType.cream:
-        return cream;
-      case ReaderThemeType.charcoal:
-        return charcoal;
-    }
+    return charcoal; // Exclusively dark mode
   }
 
   bool get isDark => type == ReaderThemeType.charcoal;
 
-  Color get buttonForegroundColor => isDark ? Colors.black : Colors.white;
+  Color get buttonForegroundColor => Colors.black; // High-contrast black on champagne gold
 
-  static const Color errorColor = Color(0xFFE53935);
+  static const Color errorColor = Color(0xFFC65D5D); // Premium ruby/rose error
 
-  static const Color successColor = Color(0xFF4CAF50);
+  static const Color successColor = Color(0xFF8CAE7A); // Muted sage success
 
-  Color get shadowColor => textColor.withValues(alpha: 0.15);
+  Color get shadowColor => Colors.black.withValues(alpha: 0.4);
 
   Color get coverBackgroundColor => isDark ? const Color(0xFF2A2A2A) : panelColor;
 
@@ -71,7 +66,7 @@ class ReaderThemeData {
   Color get coverTitleColor => isDark ? const Color(0xFFD0D0D0) : textColor;
 
   ThemeData toMaterialTheme() {
-    final brightness = isDark ? Brightness.dark : Brightness.light;
+    const brightness = Brightness.dark;
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -106,7 +101,7 @@ class ReaderThemeData {
 
   ShadThemeData toShadTheme() {
     return ShadThemeData(
-      brightness: isDark ? Brightness.dark : Brightness.light,
+      brightness: Brightness.dark,
       primaryButtonTheme: ShadButtonTheme(
         backgroundColor: accentColor,
         foregroundColor: buttonForegroundColor,
@@ -114,3 +109,4 @@ class ReaderThemeData {
     );
   }
 }
+

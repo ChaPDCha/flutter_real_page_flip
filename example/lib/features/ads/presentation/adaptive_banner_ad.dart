@@ -11,11 +11,15 @@ class AdaptiveBannerAdWidget extends StatefulWidget {
 
 class _AdaptiveBannerAdWidgetState extends State<AdaptiveBannerAdWidget> {
   BannerAd? _bannerAd;
+  bool _initialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadAd();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      _loadAd();
+    }
   }
 
   @override

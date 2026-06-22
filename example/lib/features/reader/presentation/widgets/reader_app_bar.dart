@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/theme/reader_theme.dart';
 import '../../../bookshelf/domain/book.dart';
 import '../reader_state.dart';
@@ -41,14 +42,14 @@ class ReaderAppBar extends StatelessWidget {
         opacity: showUi ? 1.0 : 0.0,
         child: ClipRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+            filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
             child: Container(
               height: kToolbarHeight + MediaQuery.of(context).padding.top,
               padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-              color: themeData.panelColor.withValues(alpha: 0.8),
+              color: themeData.panelColor.withValues(alpha: 0.75),
               child: NavigationToolbar(
                 leading: IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new, color: themeData.textColor, size: 20),
+                  icon: Icon(Icons.arrow_back_ios_new, color: themeData.textColor, size: 18),
                   onPressed: onBack,
                 ),
                 middle: Text(
@@ -56,11 +57,10 @@ class ReaderAppBar extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'serif',
+                  style: GoogleFonts.notoSerifKr(
+                    fontWeight: FontWeight.bold,
                     color: themeData.textColor,
-                    fontSize: 16,
+                    fontSize: 15,
                   ),
                 ),
                 trailing: book.format == BookFormat.pdf
@@ -69,19 +69,19 @@ class ReaderAppBar extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: Icon(Icons.search, color: themeData.textColor, size: 22),
+                            icon: Icon(Icons.search_outlined, color: themeData.textColor, size: 22),
                             onPressed: onSearchPressed,
                           ),
                           IconButton(
                             icon: Icon(
-                              isTtsPlaying ? Icons.pause_circle_filled : Icons.volume_up,
+                              isTtsPlaying ? Icons.pause_circle_outline : Icons.volume_up_outlined,
                               color: isTtsPlaying ? themeData.accentColor : themeData.textColor,
                               size: 22,
                             ),
                             onPressed: onTtsPressed,
                           ),
                           IconButton(
-                            icon: Icon(Icons.text_fields, color: themeData.textColor, size: 22),
+                            icon: Icon(Icons.tune_outlined, color: themeData.textColor, size: 22),
                             onPressed: onSettingsPressed,
                           ),
                         ],
@@ -94,3 +94,4 @@ class ReaderAppBar extends StatelessWidget {
     );
   }
 }
+
