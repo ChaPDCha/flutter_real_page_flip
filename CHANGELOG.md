@@ -3,6 +3,10 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.6.2] - 2026-06-23
+### Changed
+- Minor style and formatting lint fixes to pass strict quality gate standards.
+
 ## [1.6.1] - 2026-06-23
 ### Fixed
 - Single backward page flip: unified `foldX` and `flapMaterialWidth` formulas with forward direction. Now single backward foldX moves right-to-left (same as forward) and flap grows with progress, eliminating directional inconsistency.

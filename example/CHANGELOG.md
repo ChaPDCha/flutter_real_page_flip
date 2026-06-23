@@ -3,6 +3,10 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.19+25] - 2026-06-23
+### 🔧 빌드/배포
+- 엄격한 품질 게이트 준수를 위한 코드 포맷팅 및 린트 경고 교정 완료
+
 ## [1.0.18+24] - 2026-06-23
 ### 🐛 수정
 - 1단보기 backward 페이지플립 foldX/flapMaterialWidth 방향을 forward와 통일하여 일관된 넘김 방향 보장
