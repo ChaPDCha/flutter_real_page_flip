@@ -181,20 +181,28 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       if (now.difference(_lastTextureTick).inMilliseconds > throttleMs) {
         _lastTextureTick = now;
         if (_initializedVibrator && _hasVibrator && _hasAmplitudeControl) {
-          // High-end Android devices with precise linear motors: use custom short vibrator pulses
-          final amplitude = (frame.amplitude * 255).round().clamp(10, 255);
-          final duration =
-              frame.durationMs.clamp(5, 20); // Keep it short and crisp!
+          // High-end Android with precise linear motors: custom short pulses
+          final amp = (frame.amplitude * 255).round().clamp(10, 255);
+          final dur = frame.durationMs.clamp(8, 35);
           try {
             Vibration.vibrate(
-              duration: duration,
-              amplitude: amplitude,
+              duration: dur,
+              amplitude: amp,
             );
           } on Object {
             // Fail silently on unsupported or problematic platforms
           }
+        } else if (_hasVibrator) {
+          // Mid-range / budget Android: use duration-only vibration to
+          // ensure the motor actually fires. Amplitude control unavailable.
+          final dur = frame.durationMs.clamp(8, 35);
+          try {
+            Vibration.vibrate(duration: dur);
+          } on Object {
+            // Fail silently on unsupported platforms
+          }
         } else {
-          // iOS or devices without precise amplitude control: use native crisp system clicks
+          // iOS or no-vibrator devices: use crisp system click
           try {
             HapticFeedback.selectionClick();
           } on Object {
@@ -206,6 +214,25 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }
 
   void _triggerImpact(HapticImpactType type) {
+    // Determine vibration parameters for this impact type.
+    int durationMs;
+    int amplitude;
+    switch (type) {
+      case HapticImpactType.light:
+        durationMs = 8;
+        amplitude = 80;
+        break;
+      case HapticImpactType.medium:
+        durationMs = 15;
+        amplitude = 160;
+        break;
+      case HapticImpactType.heavy:
+        durationMs = 25;
+        amplitude = 255;
+        break;
+    }
+
+    // Fire HapticFeedback first (works well on iOS / some Android).
     try {
       switch (type) {
         case HapticImpactType.light:
@@ -219,7 +246,27 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
           break;
       }
     } on Object {
-      // Fail silently on unsupported or problematic platforms
+      // HapticFeedback not supported on this platform.
+    }
+
+    // On Android, HapticFeedback is often too subtle to feel. Fire the
+    // Vibration motor directly so the user actually feels the feedback.
+    _vibrateMotor(durationMs: durationMs, amplitude: amplitude);
+  }
+
+  /// Fires the Vibration motor if available (Android). No-op on unsupported
+  /// platforms (iOS HapticFeedback already handled above).
+  void _vibrateMotor({required int durationMs, int amplitude = 128}) {
+    if (!_initializedVibrator || !_hasVibrator) return;
+    try {
+      if (_hasAmplitudeControl) {
+        Vibration.vibrate(duration: durationMs, amplitude: amplitude);
+      } else {
+        Vibration.vibrate(duration: durationMs);
+      }
+    } on Object {
+      // Vibration.vibrate(duration) requires Android 8+; silently skip
+      // on iOS / unsupported platforms.
     }
   }
 

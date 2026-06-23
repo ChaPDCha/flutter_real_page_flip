@@ -20,3 +20,5 @@ export 'src/physics/paper_physics_config.dart';
 export 'src/physics/paper_physics_frame.dart';
 export 'src/physics/stick_slip_controller.dart'
     show StickSlipEvent, StickSlipEventType;
+export 'src/widgets/default_page_flip_effect_handler.dart'
+    show DefaultPageFlipEffectHandler;
