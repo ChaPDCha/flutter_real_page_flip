@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../bookshelf/data/database.dart'; // Drift database contains Highlight model
 
-
 List<TextSpan> buildPageSpans({
   required String pageText,
   required List<Highlight> pageHighlights,
@@ -12,7 +11,9 @@ List<TextSpan> buildPageSpans({
 }) {
   final splitPoints = <int>{0, pageText.length};
   for (final hl in pageHighlights) {
-    splitPoints.add((hl.startOffset - pageStartOffset).clamp(0, pageText.length));
+    splitPoints.add(
+      (hl.startOffset - pageStartOffset).clamp(0, pageText.length),
+    );
     splitPoints.add((hl.endOffset - pageStartOffset).clamp(0, pageText.length));
   }
 
@@ -32,23 +33,31 @@ List<TextSpan> buildPageSpans({
     final segmentText = pageText.substring(start, end);
 
     // 1. TTS Karaoke-style highlight takes priority
-    final isTts = ttsStartInPage != -1 &&
+    final isTts =
+        ttsStartInPage != -1 &&
         ttsEndInPage != -1 &&
         start >= ttsStartInPage &&
         end <= ttsEndInPage;
 
     if (isTts) {
-      spans.add(TextSpan(
-        text: segmentText,
-        style: baseStyle.copyWith(backgroundColor: Colors.amber.withValues(alpha: 0.3)),
-      ));
+      spans.add(
+        TextSpan(
+          text: segmentText,
+          style: baseStyle.copyWith(
+            backgroundColor: Colors.amber.withValues(alpha: 0.3),
+          ),
+        ),
+      );
       continue;
     }
 
     // 2. User dynamic highlight
     Highlight? activeUserHl;
     for (final hl in pageHighlights) {
-      final hlStart = (hl.startOffset - pageStartOffset).clamp(0, pageText.length);
+      final hlStart = (hl.startOffset - pageStartOffset).clamp(
+        0,
+        pageText.length,
+      );
       final hlEnd = (hl.endOffset - pageStartOffset).clamp(0, pageText.length);
       if (start >= hlStart && end <= hlEnd) {
         activeUserHl = hl;
@@ -65,10 +74,12 @@ List<TextSpan> buildPageSpans({
         }
       } catch (_) {}
 
-      spans.add(TextSpan(
-        text: segmentText,
-        style: baseStyle.copyWith(backgroundColor: color),
-      ));
+      spans.add(
+        TextSpan(
+          text: segmentText,
+          style: baseStyle.copyWith(backgroundColor: color),
+        ),
+      );
     } else {
       spans.add(TextSpan(text: segmentText, style: baseStyle));
     }

@@ -53,9 +53,11 @@ class PageFlipStateController {
 
     /// Called when a flip gesture or animation completes (whether successful or cancelled).
     this.onFlipEnd,
+
     /// Forward drag threshold. Drag must exceed this progress to complete
     /// a forward flip. Range [0, 1]. Default 0.4.
     this.cutoffForward = 0.4,
+
     /// Backward drag threshold. Drag must exceed this progress to complete
     /// a backward flip. Range [0, 1]. Default 0.4.
     this.cutoffPrevious = 0.4,
@@ -107,7 +109,8 @@ class PageFlipStateController {
   final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0);
 
   /// Notified when the touch position changes during a drag.
-  final ValueNotifier<Offset> touchNotifier = ValueNotifier<Offset>(Offset.zero);
+  final ValueNotifier<Offset> touchNotifier =
+      ValueNotifier<Offset>(Offset.zero);
 
   /// The underlying animation controller driving flip transitions.
   late final AnimationController animationController;

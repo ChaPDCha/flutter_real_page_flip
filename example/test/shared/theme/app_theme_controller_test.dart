@@ -16,9 +16,7 @@ void main() {
 
     ProviderContainer createContainer() {
       final container = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       );
       addTearDown(container.dispose);
       return container;
@@ -26,25 +24,41 @@ void main() {
 
     test('defaults to charcoal when no preference is saved', () {
       final container = createContainer();
-      expect(container.read(appThemeControllerProvider), equals(ReaderThemeType.charcoal));
+      expect(
+        container.read(appThemeControllerProvider),
+        equals(ReaderThemeType.charcoal),
+      );
     });
 
     test('loads saved theme from SharedPreferences', () async {
       await prefs.setString('app_theme', 'cream');
 
       final container = createContainer();
-      expect(container.read(appThemeControllerProvider), equals(ReaderThemeType.cream));
+      expect(
+        container.read(appThemeControllerProvider),
+        equals(ReaderThemeType.cream),
+      );
     });
 
     test('setTheme persists selection to SharedPreferences', () async {
       final container = createContainer();
 
-      await container.read(appThemeControllerProvider.notifier).setTheme(ReaderThemeType.cream);
-      expect(container.read(appThemeControllerProvider), equals(ReaderThemeType.cream));
+      await container
+          .read(appThemeControllerProvider.notifier)
+          .setTheme(ReaderThemeType.cream);
+      expect(
+        container.read(appThemeControllerProvider),
+        equals(ReaderThemeType.cream),
+      );
       expect(prefs.getString('app_theme'), equals('cream'));
 
-      await container.read(appThemeControllerProvider.notifier).setTheme(ReaderThemeType.charcoal);
-      expect(container.read(appThemeControllerProvider), equals(ReaderThemeType.charcoal));
+      await container
+          .read(appThemeControllerProvider.notifier)
+          .setTheme(ReaderThemeType.charcoal);
+      expect(
+        container.read(appThemeControllerProvider),
+        equals(ReaderThemeType.charcoal),
+      );
       expect(prefs.getString('app_theme'), equals('charcoal'));
     });
 
@@ -55,7 +69,10 @@ void main() {
       );
 
       final container = createContainer();
-      expect(container.read(appThemeControllerProvider), equals(ReaderThemeType.cream));
+      expect(
+        container.read(appThemeControllerProvider),
+        equals(ReaderThemeType.cream),
+      );
     });
   });
 }

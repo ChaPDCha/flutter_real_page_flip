@@ -412,7 +412,8 @@ void main() {
       // Page 0 is now in Offstage pre-render (was previously skipped).
     });
 
-    testWidgets('forward bottom layer uses next page snapshot not live widget', (
+    testWidgets('forward bottom layer uses next page snapshot not live widget',
+        (
       tester,
     ) async {
       final recorder = ui.PictureRecorder();
@@ -466,7 +467,8 @@ void main() {
       );
     });
 
-    testWidgets('backward bottom layer uses current page snapshot not live widget', (
+    testWidgets(
+        'backward bottom layer uses current page snapshot not live widget', (
       tester,
     ) async {
       final recorder = ui.PictureRecorder();

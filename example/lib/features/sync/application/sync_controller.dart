@@ -21,7 +21,9 @@ class SyncController extends Notifier<SyncState> {
     final lastSyncedMs = _prefs.getInt('sync_last_synced_at_ms') ?? 0;
     return SyncState(
       status: SyncStatus.idle,
-      lastSyncedAt: lastSyncedMs > 0 ? DateTime.fromMillisecondsSinceEpoch(lastSyncedMs, isUtc: true) : null,
+      lastSyncedAt: lastSyncedMs > 0
+          ? DateTime.fromMillisecondsSinceEpoch(lastSyncedMs, isUtc: true)
+          : null,
     );
   }
 
@@ -33,10 +35,13 @@ class SyncController extends Notifier<SyncState> {
     try {
       // 1. Frictionless Anonymous Onboarding Setup
       final userId = await _syncClient.signInAnonymously();
-      
+
       // Load last sync anchor
       final lastSyncedMs = _prefs.getInt('sync_last_synced_at_ms') ?? 0;
-      final lastSyncedAt = DateTime.fromMillisecondsSinceEpoch(lastSyncedMs, isUtc: true);
+      final lastSyncedAt = DateTime.fromMillisecondsSinceEpoch(
+        lastSyncedMs,
+        isUtc: true,
+      );
       final syncStartEpoch = DateTime.now().toUtc();
 
       // 2. Pull Remote Deltas
@@ -52,8 +57,12 @@ class SyncController extends Notifier<SyncState> {
       // 3. Push Local Deltas with secured user_id attributes (RLS requirement)
       state = state.copyWith(status: SyncStatus.pushing);
       final localBooks = await _repository.getLocalBooksDelta(lastSyncedAt);
-      final localHighlights = await _repository.getLocalHighlightsDelta(lastSyncedAt);
-      final localBookmarks = await _repository.getLocalBookmarksDelta(lastSyncedAt);
+      final localHighlights = await _repository.getLocalHighlightsDelta(
+        lastSyncedAt,
+      );
+      final localBookmarks = await _repository.getLocalBookmarksDelta(
+        lastSyncedAt,
+      );
 
       final securedBooks = _bindUserId(localBooks, userId);
       final securedHighlights = _bindUserId(localHighlights, userId);
@@ -64,8 +73,14 @@ class SyncController extends Notifier<SyncState> {
       await _syncClient.pushBookmarks(securedBookmarks);
 
       // 4. Finalize Sync Vector
-      await _prefs.setInt('sync_last_synced_at_ms', syncStartEpoch.millisecondsSinceEpoch);
-      state = SyncState(status: SyncStatus.success, lastSyncedAt: syncStartEpoch);
+      await _prefs.setInt(
+        'sync_last_synced_at_ms',
+        syncStartEpoch.millisecondsSinceEpoch,
+      );
+      state = SyncState(
+        status: SyncStatus.success,
+        lastSyncedAt: syncStartEpoch,
+      );
     } catch (e) {
       state = SyncState(
         status: SyncStatus.error,
@@ -76,9 +91,13 @@ class SyncController extends Notifier<SyncState> {
   }
 
   /// Dynamically binds current authenticating userId to out-going REST payloads.
-  List<Map<String, dynamic>> _bindUserId(List<Map<String, dynamic>> payloads, String userId) {
+  List<Map<String, dynamic>> _bindUserId(
+    List<Map<String, dynamic>> payloads,
+    String userId,
+  ) {
     return payloads.map((payload) {
-      return Map<String, dynamic>.from(payload)..putIfAbsent('user_id', () => userId);
+      return Map<String, dynamic>.from(payload)
+        ..putIfAbsent('user_id', () => userId);
     }).toList();
   }
 }

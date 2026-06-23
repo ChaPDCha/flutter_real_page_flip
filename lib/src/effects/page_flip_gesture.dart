@@ -50,6 +50,7 @@ class PageFlipGestureRecognizer extends HorizontalDragGestureRecognizer {
   /// Creates a [PageFlipGestureRecognizer] with the given sensitivity.
   PageFlipGestureRecognizer({
     super.debugOwner,
+
     /// Sensitivity of the gesture recognizer (0.0 to 1.0).
     /// Lower values require more horizontal movement to trigger a flip.
     this.sensitivity = 0.5,
@@ -107,9 +108,10 @@ class PageFlipGestureRecognizer extends HorizontalDragGestureRecognizer {
   bool hasSufficientGlobalDistanceToAccept(
     PointerDeviceKind pointerDeviceKind,
     double? deviceTouchSlop,
-  ) => PageFlipGestureArbitration.shouldAcceptFlipDrag(
-      totalDx: _totalDx,
-      totalDy: _totalDy,
-      sensitivity: sensitivity,
-    );
+  ) =>
+      PageFlipGestureArbitration.shouldAcceptFlipDrag(
+        totalDx: _totalDx,
+        totalDy: _totalDy,
+        sensitivity: sensitivity,
+      );
 }

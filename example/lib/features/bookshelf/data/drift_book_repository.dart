@@ -25,17 +25,19 @@ class DriftBookRepository implements BookRepository {
 
   @override
   Future<void> addBook(Book book) async {
-    await _db.into(_db.books).insertOnConflictUpdate(
-      BooksCompanion(
-        id: Value(book.id),
-        title: Value(book.title),
-        author: Value(book.author),
-        filePath: Value(book.filePath),
-        coverPath: Value(book.coverImagePath),
-        addedAt: Value(book.addedAt),
-        format: Value(book.filePath.split('.').last.toLowerCase()),
-      ),
-    );
+    await _db
+        .into(_db.books)
+        .insertOnConflictUpdate(
+          BooksCompanion(
+            id: Value(book.id),
+            title: Value(book.title),
+            author: Value(book.author),
+            filePath: Value(book.filePath),
+            coverPath: Value(book.coverImagePath),
+            addedAt: Value(book.addedAt),
+            format: Value(book.filePath.split('.').last.toLowerCase()),
+          ),
+        );
   }
 
   @override

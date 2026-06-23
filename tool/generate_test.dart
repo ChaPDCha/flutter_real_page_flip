@@ -39,9 +39,7 @@ void main(List<String> arguments) {
   testFile.parent.createSync(recursive: true);
 
   // Generate the test scaffold content
-  final description = featureName
-      .replaceAll('_', ' ')
-      .replaceAllMapped(
+  final description = featureName.replaceAll('_', ' ').replaceAllMapped(
         RegExp(r'\b\w'),
         (m) => m.group(0)!.toUpperCase(),
       );

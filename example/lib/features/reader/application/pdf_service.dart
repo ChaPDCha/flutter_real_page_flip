@@ -6,7 +6,8 @@ class PdfService {
   static final Map<String, Uint8List> _pageImageCache = {};
   static const int _maxCacheSize = 40;
 
-  static String _cacheKey(String filePath, int pageIndex) => '$filePath#$pageIndex';
+  static String _cacheKey(String filePath, int pageIndex) =>
+      '$filePath#$pageIndex';
 
   /// Retrieves a cached page image if it exists.
   static Uint8List? getCachedPageImage(String filePath, int pageIndex) {

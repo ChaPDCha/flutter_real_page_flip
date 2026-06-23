@@ -45,24 +45,18 @@ class RecordingCanvas extends Fake implements Canvas {
       records.add(_Record('drawRect', [rect, paint]));
 
   @override
-  void drawVertices(
-      ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {
+  void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {
     records.add(_Record('drawVertices', [vertices, blendMode, paint]));
   }
 
   /// Query helpers
-  int get saveCount =>
-      records.where((r) => r.method == 'save').length;
-  int get restoreCount =>
-      records.where((r) => r.method == 'restore').length;
+  int get saveCount => records.where((r) => r.method == 'save').length;
+  int get restoreCount => records.where((r) => r.method == 'restore').length;
   int get saveLayerCount =>
       records.where((r) => r.method == 'saveLayer').length;
-  int get clipRectCount =>
-      records.where((r) => r.method == 'clipRect').length;
-  int get clipPathCount =>
-      records.where((r) => r.method == 'clipPath').length;
-  int get drawRectCount =>
-      records.where((r) => r.method == 'drawRect').length;
+  int get clipRectCount => records.where((r) => r.method == 'clipRect').length;
+  int get clipPathCount => records.where((r) => r.method == 'clipPath').length;
+  int get drawRectCount => records.where((r) => r.method == 'drawRect').length;
   int get drawVerticesCount =>
       records.where((r) => r.method == 'drawVertices').length;
 
@@ -294,9 +288,8 @@ void main() {
 
       // First drawRect inside clip is the paper underlay.
       // Find it: it has NO shader.
-      final paperDraw = canvas.records.firstWhere((r) =>
-          r.method == 'drawRect' &&
-          (r.args[1] as Paint).shader == null);
+      final paperDraw = canvas.records.firstWhere(
+          (r) => r.method == 'drawRect' && (r.args[1] as Paint).shader == null);
       final paint = paperDraw.args[1] as Paint;
       // Verify the paper color is approximately the given paperBackColor.
       // Use channel-by-channel comparison because Color.withValues() may
@@ -339,9 +332,8 @@ void main() {
       ).paint(canvas, size);
 
       // Paper underlay drawRect has alpha = 0.5 (or adjusted)
-      final paperDraws = canvas.records.where((r) =>
-          r.method == 'drawRect' &&
-          (r.args[1] as Paint).shader == null);
+      final paperDraws = canvas.records.where(
+          (r) => r.method == 'drawRect' && (r.args[1] as Paint).shader == null);
       expect(paperDraws.isNotEmpty, isTrue);
       final paint = paperDraws.first.args[1] as Paint;
       expect(paint.color.alpha, lessThan(255));
@@ -595,10 +587,9 @@ void main() {
       ).paint(canvas, size);
 
       // Sequence: save → clipPath → [saveLayer] → transform → drawRect(paper) → ...
-      final clipIdx = canvas.records
-          .indexWhere((r) => r.method == 'clipPath');
-      final paperIdx = canvas.records
-          .indexWhere((r) => r.method == 'drawRect' && (r.args[1] as Paint).shader == null);
+      final clipIdx = canvas.records.indexWhere((r) => r.method == 'clipPath');
+      final paperIdx = canvas.records.indexWhere(
+          (r) => r.method == 'drawRect' && (r.args[1] as Paint).shader == null);
 
       expect(paperIdx, greaterThan(clipIdx),
           reason: 'Paper underlay drawRect must come after clipPath');
@@ -642,13 +633,12 @@ void main() {
 
       // At progress=0.96: contentReveal = 1.0 → front vertices drawn
       // Find the last drawVertices and first gradient drawRect
-      final lastVerticesIdx = canvas.records
-          .lastIndexWhere((r) => r.method == 'drawVertices');
+      final lastVerticesIdx =
+          canvas.records.lastIndexWhere((r) => r.method == 'drawVertices');
       // Bend highlight: BlendMode.screen
-      final firstBendIdx = canvas.records
-          .indexWhere((r) =>
-              r.method == 'drawRect' &&
-              (r.args[1] as Paint).blendMode == BlendMode.screen);
+      final firstBendIdx = canvas.records.indexWhere((r) =>
+          r.method == 'drawRect' &&
+          (r.args[1] as Paint).blendMode == BlendMode.screen);
 
       expect(lastVerticesIdx, lessThan(firstBendIdx),
           reason: 'Vertices must be drawn before bend shading overlay');
@@ -705,7 +695,9 @@ void main() {
       );
     });
 
-    test('backward double-spread with isRightToLeft=true has correct clip and shadow', () {
+    test(
+        'backward double-spread with isRightToLeft=true has correct clip and shadow',
+        () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(

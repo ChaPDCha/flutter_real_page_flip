@@ -33,14 +33,13 @@ class DeepSeekConfig {
 
     return DeepSeekConfig(
       apiKey: apiKey,
-      baseUrl:
-          Platform.environment['DEEPSEEK_BASE_URL'] ??
+      baseUrl: Platform.environment['DEEPSEEK_BASE_URL'] ??
           'https://api.deepseek.com/v1',
       model: Platform.environment['DEEPSEEK_MODEL'] ?? 'deepseek-v4-flash',
       timeout: Duration(
         seconds:
             int.tryParse(Platform.environment['DEEPSEEK_TIMEOUT'] ?? '60') ??
-            60,
+                60,
       ),
     );
   }
@@ -134,8 +133,7 @@ Focus on:
 Return ONLY valid JSON, no markdown wrapper or extra text.
 ''';
 
-    final userPrompt =
-        '''
+    final userPrompt = '''
 File: $filePath
 
 Code:
@@ -185,8 +183,7 @@ test('should do something', () {
 Return ONLY valid JSON, no markdown wrapper or extra text.
 ''';
 
-    final userPrompt =
-        '''
+    final userPrompt = '''
 File: $filePath
 Class: $className
 Function: $functionName
@@ -229,8 +226,7 @@ Focus on:
 Return ONLY valid JSON, no markdown wrapper or extra text.
 ''';
 
-    final userPrompt =
-        '''
+    final userPrompt = '''
 File: $filePath
 Refactoring Goal: $refactoringGoal
 

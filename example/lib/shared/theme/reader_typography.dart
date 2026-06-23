@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ReaderTypography {
-  static bool get _isTest => !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+  static bool get _isTest =>
+      !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
 
   // Editorial UI Font (Sans-Serif)
   static TextStyle getUiStyle({
@@ -123,4 +124,3 @@ class ReaderTypography {
     );
   }
 }
-

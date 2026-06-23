@@ -23,7 +23,9 @@ void main() {
 
   group('fold seam overlap', () {
     for (final progress in [0.5, 0.85, 0.92]) {
-      test('stationary and open fold boundaries overlap by 2× bleed at $progress', () {
+      test(
+          'stationary and open fold boundaries overlap by 2× bleed at $progress',
+          () {
         final g = geo(progress: progress);
         final statTop = snapClipPoint(
           g.foldLineTop,
@@ -43,7 +45,8 @@ void main() {
   });
 
   group('buildFlapClipPathLocal vs fold clip', () {
-    test('flap clip uses snapped fold bleed and curves leftward at mid-height', () {
+    test('flap clip uses snapped fold bleed and curves leftward at mid-height',
+        () {
       final g = geo(progress: 0.85);
       final bounds = buildFlapClipPathLocal(g).getBounds();
       expect(bounds.right, snapClipCoord(g.foldX + kSpineRevealOverlapPx));
@@ -51,7 +54,6 @@ void main() {
       // point pulls the mid-height edge further left (paper curl).
       expect(bounds.left, lessThan(snapClipCoord(g.flapLeft)));
     });
-
   });
 
   group('clippers delegate to shared builders', () {
@@ -91,7 +93,8 @@ void main() {
       );
     });
 
-    test('backward mid-flip foldX left of spine, open clip covers right side', () {
+    test('backward mid-flip foldX left of spine, open clip covers right side',
+        () {
       final g = geo(progress: 0.15, isForward: false);
 
       // Backward: foldX moves from left edge (0) toward spineX.

@@ -9,6 +9,7 @@ class PaperPhysicsEngine {
   /// Creates a [PaperPhysicsEngine] for the given page number.
   PaperPhysicsEngine({
     required int pageNumber,
+
     /// Configuration for paper physics parameters.
     this.config = PaperPhysicsConfig.standard,
   })  : _textureNoise = PaperTextureNoise(seed: pageNumber),

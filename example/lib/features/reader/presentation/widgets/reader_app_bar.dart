@@ -49,7 +49,11 @@ class ReaderAppBar extends StatelessWidget {
               color: themeData.panelColor.withValues(alpha: 0.75),
               child: NavigationToolbar(
                 leading: IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new, color: themeData.textColor, size: 18),
+                  icon: Icon(
+                    Icons.arrow_back_ios_new,
+                    color: themeData.textColor,
+                    size: 18,
+                  ),
                   onPressed: onBack,
                 ),
                 middle: Text(
@@ -69,19 +73,31 @@ class ReaderAppBar extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: Icon(Icons.search_outlined, color: themeData.textColor, size: 22),
+                            icon: Icon(
+                              Icons.search_outlined,
+                              color: themeData.textColor,
+                              size: 22,
+                            ),
                             onPressed: onSearchPressed,
                           ),
                           IconButton(
                             icon: Icon(
-                              isTtsPlaying ? Icons.pause_circle_outline : Icons.volume_up_outlined,
-                              color: isTtsPlaying ? themeData.accentColor : themeData.textColor,
+                              isTtsPlaying
+                                  ? Icons.pause_circle_outline
+                                  : Icons.volume_up_outlined,
+                              color: isTtsPlaying
+                                  ? themeData.accentColor
+                                  : themeData.textColor,
                               size: 22,
                             ),
                             onPressed: onTtsPressed,
                           ),
                           IconButton(
-                            icon: Icon(Icons.tune_outlined, color: themeData.textColor, size: 22),
+                            icon: Icon(
+                              Icons.tune_outlined,
+                              color: themeData.textColor,
+                              size: 22,
+                            ),
                             onPressed: onSettingsPressed,
                           ),
                         ],
@@ -94,4 +110,3 @@ class ReaderAppBar extends StatelessWidget {
     );
   }
 }
-

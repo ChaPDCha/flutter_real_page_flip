@@ -9,9 +9,14 @@ class EdgeTapFeedback extends StatefulWidget {
   /// Creates an [EdgeTapFeedback] widget for the given edge.
   const EdgeTapFeedback({
     /// Callback invoked when the edge tap area is tapped.
-    required this.onTap, /// Whether this is the left edge (true) or right edge (false).
-    required this.isLeftEdge, /// The width of the tap area in pixels.
-    required this.width, super.key,
+    required this.onTap,
+
+    /// Whether this is the left edge (true) or right edge (false).
+    required this.isLeftEdge,
+
+    /// The width of the tap area in pixels.
+    required this.width,
+    super.key,
 
     /// Accessibility label for the edge tap area.
     this.label,
@@ -49,9 +54,10 @@ class _EdgeTapFeedbackState extends State<EdgeTapFeedback>
     super.initState();
     // In: 50ms (매우 빠름), Out: 250ms (부드럽게)
     _controller = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 250),
-        reverseDuration: const Duration(milliseconds: 50),);
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+      reverseDuration: const Duration(milliseconds: 50),
+    );
 
     // Decelerate 커브로 자연스러운 감속 효과
     _opacityAnimation =

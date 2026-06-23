@@ -1220,7 +1220,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.6.0"
+    version: "1.6.1"
   realtime_client:
     dependency: transitive
     description:

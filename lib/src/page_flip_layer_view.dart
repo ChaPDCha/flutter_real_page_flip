@@ -12,15 +12,33 @@ class PageFlipLayerView extends StatelessWidget {
   /// Creates a [PageFlipLayerView].
   const PageFlipLayerView({
     /// Total number of pages.
-    required this.itemCount, /// Currently visible page index.
-    required this.currentIndex, /// Normalised drag progress (0.0 to 1.0).
-    required this.dragProgress, /// Whether a drag gesture is active.
-    required this.isDragging, /// Whether the drag direction is forward.
-    required this.isForward, /// Current touch position in local coordinates.
-    required this.touchPosition,     /// Cached snapshots of pre-rendered pages.
-    required this.pageSnapshots, /// Spread snapshots for flap front texture.
-    required this.spreadSnapshots, /// GlobalKeys for tracking rendered pages.
-    required this.pageKeys, /// Builder for page widgets.
+    required this.itemCount,
+
+    /// Currently visible page index.
+    required this.currentIndex,
+
+    /// Normalised drag progress (0.0 to 1.0).
+    required this.dragProgress,
+
+    /// Whether a drag gesture is active.
+    required this.isDragging,
+
+    /// Whether the drag direction is forward.
+    required this.isForward,
+
+    /// Current touch position in local coordinates.
+    required this.touchPosition,
+
+    /// Cached snapshots of pre-rendered pages.
+    required this.pageSnapshots,
+
+    /// Spread snapshots for flap front texture.
+    required this.spreadSnapshots,
+
+    /// GlobalKeys for tracking rendered pages.
+    required this.pageKeys,
+
+    /// Builder for page widgets.
     this.itemBuilder,
 
     /// Color of the paper flap back side.
@@ -28,6 +46,7 @@ class PageFlipLayerView extends StatelessWidget {
 
     /// Opacity of the paper flap back side.
     this.paperOpacity = 1.0,
+
     /// How much the paper appears translucent at mid-flip (0.0–1.0).
     this.thinPaperStrength = 0.0,
 
@@ -92,7 +111,6 @@ class PageFlipLayerView extends StatelessWidget {
 
   /// Opacity of the paper flap back side.
   final double paperOpacity;
-
 
   /// How much the paper appears translucent at mid-flip (0.0–1.0).
   final double thinPaperStrength;
@@ -232,9 +250,8 @@ class PageFlipLayerView extends StatelessWidget {
     }
 
     final flapSpreadIndex = policy.flapSnapshotSpreadIndex;
-    final flapFrontImage = flapSpreadIndex != null
-        ? spreadSnapshots[flapSpreadIndex]
-        : null;
+    final flapFrontImage =
+        flapSpreadIndex != null ? spreadSnapshots[flapSpreadIndex] : null;
     final canvasSize = constrainedSize ?? Size.zero;
     final flapFrontSrcRect = flapFrontImage != null
         ? flapFrontSourceRect(
@@ -246,14 +263,15 @@ class PageFlipLayerView extends StatelessWidget {
             isForward: isForward,
           )
         : null;
-    final resolvedFlapDestRect =
-        flapFrontSrcRect != null && canvasSize.width > 0 && canvasSize.height > 0
-            ? flapFrontDestRect(
-                size: canvasSize,
-                isDoubleSpread: isDoubleSpread,
-                isForward: isForward,
-              )
-            : null;
+    final resolvedFlapDestRect = flapFrontSrcRect != null &&
+            canvasSize.width > 0 &&
+            canvasSize.height > 0
+        ? flapFrontDestRect(
+            size: canvasSize,
+            isDoubleSpread: isDoubleSpread,
+            isForward: isForward,
+          )
+        : null;
 
     // 2.5D page back content: same half geometry as front, from adjacent spread.
     final flapBackSpreadIndex = policy.flapBackSnapshotSpreadIndex;
@@ -351,7 +369,8 @@ class PageFlipLayerView extends StatelessWidget {
     );
   }
 
-  Widget _buildPage(BuildContext context, int index) => itemBuilder!(context, index);
+  Widget _buildPage(BuildContext context, int index) =>
+      itemBuilder!(context, index);
 
   /// One half of a spread snapshot or live spread widget.
   Widget _buildSpreadHalfContent(

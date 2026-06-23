@@ -26,18 +26,25 @@ class EpubService {
     }
 
     final document = parse(htmlContent);
-    
+
     // Remove unwanted tags
     document.querySelectorAll('script').forEach((e) => e.remove());
     document.querySelectorAll('style').forEach((e) => e.remove());
     document.querySelectorAll('head').forEach((e) => e.remove());
 
     // Select common block-level tags to preserve structure
-    final blocks = document.body?.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, tr') ?? [];
-    
+    final blocks =
+        document.body?.querySelectorAll(
+          'p, div, h1, h2, h3, h4, h5, h6, li, tr',
+        ) ??
+        [];
+
     if (blocks.isEmpty) {
       // Fallback to simple text extraction if no standard blocks are found
-      final text = document.body?.text.trim() ?? document.documentElement?.text.trim() ?? '';
+      final text =
+          document.body?.text.trim() ??
+          document.documentElement?.text.trim() ??
+          '';
       _chapterTextCache[chapter] = text;
       return text;
     }
@@ -77,7 +84,18 @@ class EpubService {
 
   /// True when a nested block-level element already contributes non-empty text.
   bool _hasDescendantTextBlock(Element block) {
-    const blockTags = {'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'tr'};
+    const blockTags = {
+      'p',
+      'div',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'li',
+      'tr',
+    };
     for (final descendant in block.querySelectorAll(blockTags.join(', '))) {
       if (identical(descendant, block)) {
         continue;

@@ -7,15 +7,75 @@ import 'package:real_page_flip_example/shared/theme/reader_theme.dart';
 
 /// Valid 1×1 red pixel PNG bytes.
 const _kRedPngBytes = <int>[
-  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
-  0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-  0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
-  0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41,
-  0x54, 0x78, 0x9C, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
-  0x00, 0x03, 0x01, 0x01, 0x00, 0xC9, 0xFE, 0x92,
-  0xEF, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E,
-  0x44, 0xAE, 0x42, 0x60, 0x82,
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x02,
+  0x00,
+  0x00,
+  0x00,
+  0x90,
+  0x77,
+  0x53,
+  0xDE,
+  0x00,
+  0x00,
+  0x00,
+  0x0C,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0xF8,
+  0xCF,
+  0xC0,
+  0x00,
+  0x00,
+  0x03,
+  0x01,
+  0x01,
+  0x00,
+  0xC9,
+  0xFE,
+  0x92,
+  0xEF,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
 ];
 
 /// The MethodChannel that pdfx uses for platform calls.
@@ -47,10 +107,9 @@ void main() {
     testWidgets('shows loading indicator initially when no cache', (
       tester,
     ) async {
-      await tester.pumpWidget(_buildPdfPageRenderer(
-        filePath: filePath,
-        pageIndex: 0,
-      ));
+      await tester.pumpWidget(
+        _buildPdfPageRenderer(filePath: filePath, pageIndex: 0),
+      );
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -63,10 +122,9 @@ void main() {
 
       PdfService.cachePageImage(filePath, 0, dummyBytes);
 
-      await tester.pumpWidget(_buildPdfPageRenderer(
-        filePath: filePath,
-        pageIndex: 0,
-      ));
+      await tester.pumpWidget(
+        _buildPdfPageRenderer(filePath: filePath, pageIndex: 0),
+      );
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
@@ -93,10 +151,9 @@ void main() {
         );
       });
 
-      await tester.pumpWidget(_buildPdfPageRenderer(
-        filePath: '/nonexistent/test.pdf',
-        pageIndex: 0,
-      ));
+      await tester.pumpWidget(
+        _buildPdfPageRenderer(filePath: '/nonexistent/test.pdf', pageIndex: 0),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -109,18 +166,16 @@ void main() {
       PdfService.cachePageImage(filePath, 0, dummyBytes);
       PdfService.cachePageImage(filePath, 1, dummyBytes);
 
-      await tester.pumpWidget(_buildPdfPageRenderer(
-        filePath: filePath,
-        pageIndex: 0,
-      ));
+      await tester.pumpWidget(
+        _buildPdfPageRenderer(filePath: filePath, pageIndex: 0),
+      );
       await tester.pump();
 
       expect(find.byType(Image), findsOneWidget);
 
-      await tester.pumpWidget(_buildPdfPageRenderer(
-        filePath: filePath,
-        pageIndex: 1,
-      ));
+      await tester.pumpWidget(
+        _buildPdfPageRenderer(filePath: filePath, pageIndex: 1),
+      );
       await tester.pump();
 
       expect(find.byType(Image), findsOneWidget);
@@ -143,17 +198,13 @@ void main() {
         );
       });
 
-      await tester.pumpWidget(_buildPdfPageRenderer(
-        filePath: '/fail/path.pdf',
-        pageIndex: 0,
-      ));
+      await tester.pumpWidget(
+        _buildPdfPageRenderer(filePath: '/fail/path.pdf', pageIndex: 0),
+      );
       await tester.pump();
       await tester.pump();
 
-      expect(
-        find.textContaining('페이지를 로드할 수 없습니다'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('페이지를 로드할 수 없습니다'), findsOneWidget);
     });
   });
 }

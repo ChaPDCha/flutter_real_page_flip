@@ -14,5 +14,6 @@ class ReaderSettings with _$ReaderSettings {
     String? fontFamily,
   }) = _ReaderSettings;
 
-  factory ReaderSettings.fromJson(Map<String, dynamic> json) => _$ReaderSettingsFromJson(json);
+  factory ReaderSettings.fromJson(Map<String, dynamic> json) =>
+      _$ReaderSettingsFromJson(json);
 }

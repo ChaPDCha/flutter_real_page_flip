@@ -126,11 +126,13 @@ void main() {
 
     test('hashCode consistent for equal configs', () {
       const a = PageFlipConfig(
-        flapContentRevealEnd: 0.95, flapBackStrength: 0.3,
+        flapContentRevealEnd: 0.95,
+        flapBackStrength: 0.3,
         edgeTapPreviousLabel: 'Previous',
       );
       const b = PageFlipConfig(
-        flapContentRevealEnd: 0.95, flapBackStrength: 0.3,
+        flapContentRevealEnd: 0.95,
+        flapBackStrength: 0.3,
         edgeTapPreviousLabel: 'Previous',
       );
       expect(a.hashCode, equals(b.hashCode));

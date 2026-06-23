@@ -53,7 +53,8 @@ class PreRenderManager {
 
   /// Removes snapshots and keys for pages that are no longer adjacent.
   void cleanup(int currentIndex, int totalPages) {
-    final targetIndices = getCaptureIndices(currentIndex, totalPages, includeCurrent: true);
+    final targetIndices =
+        getCaptureIndices(currentIndex, totalPages, includeCurrent: true);
     final toDispose = <ui.Image>{};
 
     pageSnapshots.removeWhere((index, image) {
@@ -106,7 +107,8 @@ class PreRenderManager {
     // Ensure current index always has a key
     pageKeys.putIfAbsent(currentIndex, GlobalKey.new);
 
-    final targetIndices = getCaptureIndices(currentIndex, totalPages, includeCurrent: true);
+    final targetIndices =
+        getCaptureIndices(currentIndex, totalPages, includeCurrent: true);
     for (final index in targetIndices) {
       pageKeys.putIfAbsent(index, GlobalKey.new);
     }
@@ -376,9 +378,7 @@ class PreRenderManager {
       final retryGen = _retryGeneration;
       final retryIncludeSpread = _retryIncludeCurrentSpread;
       final retryRatio = _retryPixelRatio;
-      if (retryCurrent == null ||
-          retryTotal == null ||
-          retryCallback == null) {
+      if (retryCurrent == null || retryTotal == null || retryCallback == null) {
         return;
       }
 

@@ -297,7 +297,9 @@ void main() {
         expect(policy.flapSnapshotSpreadIndex, 1);
       });
 
-      test('single backward returns previous page index (peels previous page from left)', () {
+      test(
+          'single backward returns previous page index (peels previous page from left)',
+          () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
@@ -354,13 +356,19 @@ void main() {
       test('single mode returns null regardless of direction', () {
         expect(
           FlipLayerPolicy(
-            isDoubleSpread: false, isForward: true, currentIndex: 2, itemCount: itemCount,
+            isDoubleSpread: false,
+            isForward: true,
+            currentIndex: 2,
+            itemCount: itemCount,
           ).flapBackSnapshotSpreadIndex,
           isNull,
         );
         expect(
           FlipLayerPolicy(
-            isDoubleSpread: false, isForward: false, currentIndex: 2, itemCount: itemCount,
+            isDoubleSpread: false,
+            isForward: false,
+            currentIndex: 2,
+            itemCount: itemCount,
           ).flapBackSnapshotSpreadIndex,
           isNull,
         );
@@ -370,7 +378,9 @@ void main() {
     // ─── Edge: single-item collection ───
 
     group('single-item collection (itemCount=1)', () {
-      test('double forward at index 0: bottom returns null (no next spread), middle=current', () {
+      test(
+          'double forward at index 0: bottom returns null (no next spread), middle=current',
+          () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
@@ -387,7 +397,9 @@ void main() {
         expect(policy.flapSnapshotSpreadIndex, 0);
       });
 
-      test('single backward at index 0: bottomPageIndex=0, middlePageIndex=null', () {
+      test(
+          'single backward at index 0: bottomPageIndex=0, middlePageIndex=null',
+          () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
@@ -401,7 +413,8 @@ void main() {
         expect(policy.flapSnapshotSpreadIndex, isNull);
       });
 
-      test('single forward at index 0: bottomPageIndex=null (out of bounds), '
+      test(
+          'single forward at index 0: bottomPageIndex=null (out of bounds), '
           'middlePageIndex=0 (current page stays)', () {
         final policy = FlipLayerPolicy(
           isDoubleSpread: false,

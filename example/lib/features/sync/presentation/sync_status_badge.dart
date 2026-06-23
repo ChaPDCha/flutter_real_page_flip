@@ -12,7 +12,8 @@ class SyncStatusBadge extends ConsumerStatefulWidget {
   ConsumerState<SyncStatusBadge> createState() => _SyncStatusBadgeState();
 }
 
-class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTickerProviderStateMixin {
+class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
   bool _isVisible = false;
   Color _dotColor = Colors.grey;
@@ -28,7 +29,9 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final themeData = ReaderThemeData.get(ref.read(appThemeControllerProvider));
+        final themeData = ReaderThemeData.get(
+          ref.read(appThemeControllerProvider),
+        );
         _updateBadge(ref.read(syncControllerProvider), themeData);
       }
     });
@@ -65,7 +68,8 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
         _pulseController.value = 1.0;
         // Automatically fade out after 2 seconds of success state
         Future.delayed(const Duration(seconds: 2), () {
-          if (mounted && ref.read(syncControllerProvider).status == SyncStatus.success) {
+          if (mounted &&
+              ref.read(syncControllerProvider).status == SyncStatus.success) {
             setState(() => _isVisible = false);
           }
         });
@@ -76,7 +80,8 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
         _pulseController.value = 1.0;
         // Auto fade out error after 3 seconds
         Future.delayed(const Duration(seconds: 3), () {
-          if (mounted && ref.read(syncControllerProvider).status == SyncStatus.error) {
+          if (mounted &&
+              ref.read(syncControllerProvider).status == SyncStatus.error) {
             setState(() => _isVisible = false);
           }
         });
@@ -88,7 +93,9 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    final themeData = ReaderThemeData.get(ref.watch(appThemeControllerProvider));
+    final themeData = ReaderThemeData.get(
+      ref.watch(appThemeControllerProvider),
+    );
 
     ref.listen(syncControllerProvider, (_, next) {
       _updateBadge(next, themeData);
@@ -103,10 +110,7 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge> with SingleTi
               child: AnimatedBuilder(
                 animation: _pulseController,
                 builder: (context, child) {
-                  return Opacity(
-                    opacity: _pulseController.value,
-                    child: child,
-                  );
+                  return Opacity(opacity: _pulseController.value, child: child);
                 },
                 child: Container(
                   width: 8.0,

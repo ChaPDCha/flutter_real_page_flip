@@ -41,13 +41,13 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
 
   @override
   Widget build(BuildContext context) => Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: _onPointerDown,
-      onPointerMove: _onPointerMove,
-      onPointerUp: _onPointerUp,
-      onPointerCancel: _onPointerCancel,
-      child: const SizedBox.expand(),
-    );
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: _onPointerDown,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerUp,
+        onPointerCancel: _onPointerCancel,
+        child: const SizedBox.expand(),
+      );
 
   Offset _localPosition(Offset global) {
     final box = context.findRenderObject() as RenderBox?;
@@ -119,8 +119,7 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
       if (canceled) {
         widget.controller.onDragCancel(widget.totalPages);
       } else {
-        final velocity =
-            _velocityTracker?.getVelocity() ?? Velocity.zero;
+        final velocity = _velocityTracker?.getVelocity() ?? Velocity.zero;
         widget.controller.onDragEnd(
           DragEndDetails(
             primaryVelocity:

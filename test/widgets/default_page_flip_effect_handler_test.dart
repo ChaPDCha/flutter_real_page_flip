@@ -153,7 +153,8 @@ void main() {
       await Future.delayed(Duration.zero);
     });
 
-    test('continuousHaptic without pageIndex falls back to light impact', () async {
+    test('continuousHaptic without pageIndex falls back to light impact',
+        () async {
       final handler = DefaultPageFlipEffectHandler();
       await Future.delayed(const Duration(milliseconds: 10));
       expect(
@@ -164,7 +165,8 @@ void main() {
       await Future.delayed(Duration.zero);
     });
 
-    test('continuousHaptic with pageIndex and texture runs physics haptic', () async {
+    test('continuousHaptic with pageIndex and texture runs physics haptic',
+        () async {
       final handler = DefaultPageFlipEffectHandler();
       await Future.delayed(const Duration(milliseconds: 10));
       expect(
@@ -181,11 +183,13 @@ void main() {
       await Future.delayed(Duration.zero);
     });
 
-    test('texturedHaptic with null pageIndex falls back to light impact', () async {
+    test('texturedHaptic with null pageIndex falls back to light impact',
+        () async {
       final handler = DefaultPageFlipEffectHandler();
       await Future.delayed(const Duration(milliseconds: 10));
       expect(
-        () => handler.onHandleEffect(PageFlipEvent.texturedHaptic, texture: 0.5),
+        () =>
+            handler.onHandleEffect(PageFlipEvent.texturedHaptic, texture: 0.5),
         returnsNormally,
       );
       handler.dispose();

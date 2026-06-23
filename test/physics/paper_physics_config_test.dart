@@ -124,19 +124,27 @@ void main() {
 
     test('hashCode differs when fields differ', () {
       const a = PaperPhysicsConfig(
-        sigmoidK: 6.0, muStatic: 0.6, muKinetic: 0.25,
-        perlinOctaves: 4, throttleIntervalMs: 18,
+        sigmoidK: 6.0,
+        muStatic: 0.6,
+        muKinetic: 0.25,
+        perlinOctaves: 4,
+        throttleIntervalMs: 18,
       );
       const b = PaperPhysicsConfig(
-        sigmoidK: 6.0, muStatic: 0.6, muKinetic: 0.25,
-        perlinOctaves: 6, throttleIntervalMs: 18,
+        sigmoidK: 6.0,
+        muStatic: 0.6,
+        muKinetic: 0.25,
+        perlinOctaves: 6,
+        throttleIntervalMs: 18,
       );
       expect(a.hashCode, isNot(equals(b.hashCode)));
     });
 
     test('hashCode consistent for equal configs', () {
-      const a = PaperPhysicsConfig(perlinBaseFreq: 0.08, stationaryThresholdMs: 50);
-      const b = PaperPhysicsConfig(perlinBaseFreq: 0.08, stationaryThresholdMs: 50);
+      const a =
+          PaperPhysicsConfig(perlinBaseFreq: 0.08, stationaryThresholdMs: 50);
+      const b =
+          PaperPhysicsConfig(perlinBaseFreq: 0.08, stationaryThresholdMs: 50);
       expect(a.hashCode, equals(b.hashCode));
     });
 

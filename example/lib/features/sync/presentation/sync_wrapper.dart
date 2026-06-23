@@ -7,21 +7,20 @@ import '../application/sync_provider.dart';
 import 'sync_status_badge.dart';
 
 /// Global route observer to monitor screen pops and focus shifts.
-final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
 
 class SyncWrapper extends ConsumerStatefulWidget {
   final Widget child;
 
-  const SyncWrapper({
-    super.key,
-    required this.child,
-  });
+  const SyncWrapper({super.key, required this.child});
 
   @override
   ConsumerState<SyncWrapper> createState() => _SyncWrapperState();
 }
 
-class _SyncWrapperState extends ConsumerState<SyncWrapper> with WidgetsBindingObserver, RouteAware {
+class _SyncWrapperState extends ConsumerState<SyncWrapper>
+    with WidgetsBindingObserver, RouteAware {
   Timer? _autoSyncTimer;
 
   @override
@@ -78,7 +77,9 @@ class _SyncWrapperState extends ConsumerState<SyncWrapper> with WidgetsBindingOb
 
   @override
   Widget build(BuildContext context) {
-    final themeData = ReaderThemeData.get(ref.watch(appThemeControllerProvider));
+    final themeData = ReaderThemeData.get(
+      ref.watch(appThemeControllerProvider),
+    );
 
     return Scaffold(
       backgroundColor: themeData.backgroundColor,
@@ -87,9 +88,7 @@ class _SyncWrapperState extends ConsumerState<SyncWrapper> with WidgetsBindingOb
           widget.child,
           const Align(
             alignment: Alignment.topRight,
-            child: SafeArea(
-              child: SyncStatusBadge(),
-            ),
+            child: SafeArea(child: SyncStatusBadge()),
           ),
         ],
       ),

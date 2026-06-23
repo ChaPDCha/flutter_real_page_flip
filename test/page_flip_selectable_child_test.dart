@@ -108,8 +108,8 @@ void main() {
       );
 
       final layerElement = tester.element(find.byType(PageFlipGestureLayer));
-      final hostStack = layerElement
-          .findAncestorWidgetOfExactType<Stack>() as Stack;
+      final hostStack =
+          layerElement.findAncestorWidgetOfExactType<Stack>() as Stack;
       expect(hostStack.children.last, isA<PageFlipGestureLayer>());
     },
   );

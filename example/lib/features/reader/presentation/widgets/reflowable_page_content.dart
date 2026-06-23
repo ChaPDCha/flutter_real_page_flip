@@ -30,12 +30,15 @@ class ReflowablePageContent extends ConsumerWidget {
 
     final pageText = state.pages[index];
     final chapterTitle = state.chapters.isNotEmpty
-        ? state.chapters[state.currentChapterIndex].Title ?? 'Chapter ${state.currentChapterIndex + 1}'
+        ? state.chapters[state.currentChapterIndex].Title ??
+              'Chapter ${state.currentChapterIndex + 1}'
         : '';
 
     // Calculate absolute page character offsets in the chapter
     final epubService = EpubService();
-    final chapterText = epubService.getChapterText(state.chapters[state.currentChapterIndex]);
+    final chapterText = epubService.getChapterText(
+      state.chapters[state.currentChapterIndex],
+    );
     int pageStartOffset = 0;
     int previousEnd = 0;
     for (int i = 0; i < index; i++) {
@@ -111,16 +114,26 @@ class ReflowablePageContent extends ConsumerWidget {
                   builder: (context, constraints) {
                     return GestureDetector(
                       onDoubleTapDown: (details) {
-                        _handleDoubleTap(context, ref, details.localPosition, constraints);
+                        _handleDoubleTap(
+                          context,
+                          ref,
+                          details.localPosition,
+                          constraints,
+                        );
                       },
                       child: SingleChildScrollView(
                         physics: const NeverScrollableScrollPhysics(),
                         child: SelectableText.rich(
                           TextSpan(children: spans),
                           contextMenuBuilder: (context, editableTextState) {
-                            final selection = editableTextState.textEditingValue.selection;
-                            if (selection.isCollapsed) return const SizedBox.shrink();
-                            final selectedText = editableTextState.textEditingValue.text
+                            final selection =
+                                editableTextState.textEditingValue.selection;
+                            if (selection.isCollapsed) {
+                              return const SizedBox.shrink();
+                            }
+                            final selectedText = editableTextState
+                                .textEditingValue
+                                .text
                                 .substring(selection.start, selection.end);
                             return buildSelectionToolbar(
                               context: context,

@@ -11,7 +11,9 @@ import 'sync_controller.dart';
 
 /// Provider for SharedPreferences. Must be overridden in main() upon initialization.
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError('sharedPreferencesProvider must be overridden in ProviderScope');
+  throw UnimplementedError(
+    'sharedPreferencesProvider must be overridden in ProviderScope',
+  );
 });
 
 /// Decoupled Sync Repository provider targeting Drift local SQLite database.
@@ -47,17 +49,20 @@ class _FakeCloudSyncClient implements CloudSyncClient {
   Future<void> pushBooks(List<Map<String, dynamic>> books) async {}
 
   @override
-  Future<List<Map<String, dynamic>>> pullBooks(DateTime since) async => const [];
+  Future<List<Map<String, dynamic>>> pullBooks(DateTime since) async =>
+      const [];
 
   @override
   Future<void> pushHighlights(List<Map<String, dynamic>> highlights) async {}
 
   @override
-  Future<List<Map<String, dynamic>>> pullHighlights(DateTime since) async => const [];
+  Future<List<Map<String, dynamic>>> pullHighlights(DateTime since) async =>
+      const [];
 
   @override
   Future<void> pushBookmarks(List<Map<String, dynamic>> bookmarks) async {}
 
   @override
-  Future<List<Map<String, dynamic>>> pullBookmarks(DateTime since) async => const [];
+  Future<List<Map<String, dynamic>>> pullBookmarks(DateTime since) async =>
+      const [];
 }

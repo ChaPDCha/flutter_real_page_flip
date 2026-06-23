@@ -103,13 +103,14 @@ class EpubPagingCalculator {
 
     if (useCache) {
       _pageCache[_cacheKey(
-        text: text,
-        viewportWidth: viewportWidth,
-        viewportHeight: viewportHeight,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        baseStyle: baseStyle,
-      )] = pages;
+            text: text,
+            viewportWidth: viewportWidth,
+            viewportHeight: viewportHeight,
+            fontSize: fontSize,
+            lineHeight: lineHeight,
+            baseStyle: baseStyle,
+          )] =
+          pages;
     }
 
     return pages;
@@ -141,10 +142,8 @@ class EpubPagingCalculator {
     final double viewportArea = viewportWidth * viewportHeight;
     final int expectedChars = (viewportArea / charArea).toInt();
 
-    final int maxCharsPerPage =
-        (expectedChars * 2.2).toInt().clamp(1000, 5000);
-    final int minCharsPerPage =
-        (expectedChars * 0.4).toInt().clamp(100, 2000);
+    final int maxCharsPerPage = (expectedChars * 2.2).toInt().clamp(1000, 5000);
+    final int minCharsPerPage = (expectedChars * 0.4).toInt().clamp(100, 2000);
 
     while (startOffset < text.length) {
       while (startOffset < text.length) {
@@ -177,8 +176,10 @@ class EpubPagingCalculator {
       }
 
       int low = startOffset;
-      int high =
-          (startOffset + maxCharsPerPage).clamp(startOffset, text.length);
+      int high = (startOffset + maxCharsPerPage).clamp(
+        startOffset,
+        text.length,
+      );
 
       int minEnd = startOffset + minCharsPerPage;
       if (minEnd < high) {
@@ -213,10 +214,7 @@ class EpubPagingCalculator {
 
         final subText = text.substring(startOffset, adjustedMid);
 
-        textPainter.text = TextSpan(
-          text: subText,
-          style: resolvedStyle,
-        );
+        textPainter.text = TextSpan(text: subText, style: resolvedStyle);
 
         textPainter.layout(maxWidth: viewportWidth);
 

@@ -34,12 +34,20 @@ void main() {
 
     test('equality with same values', () {
       const a = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       const b = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
@@ -47,84 +55,140 @@ void main() {
 
     test('inequality with different amplitude', () {
       const a = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       const b = PaperPhysicsFrame(
-        amplitude: 0.7, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.7,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different sharpness', () {
       const a = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       const b = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.3, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.3,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different durationMs', () {
       const a = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       const b = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 30,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 30,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different rawResistance', () {
       const a = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       const b = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.7, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.7,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different rawTexture', () {
       const a = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       const b = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.9, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.9,
+        rawFriction: 0.4,
       );
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different rawFriction', () {
       const a = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       const b = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.7,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.7,
       );
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different stickSlipEvent (null vs non-null)', () {
       const a = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       final b = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
         stickSlipEvent: StickSlipEvent.slipRelease(intensity: 0.5),
       );
       expect(a, isNot(equals(b)));
@@ -132,16 +196,28 @@ void main() {
 
     test('hashCode consistent with equality', () {
       const a = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       const b = PaperPhysicsFrame(
-        amplitude: 0.5, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.5,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       const c = PaperPhysicsFrame(
-        amplitude: 0.7, sharpness: 0.8, durationMs: 60,
-        rawResistance: 0.3, rawTexture: 0.6, rawFriction: 0.4,
+        amplitude: 0.7,
+        sharpness: 0.8,
+        durationMs: 60,
+        rawResistance: 0.3,
+        rawTexture: 0.6,
+        rawFriction: 0.4,
       );
       expect(a.hashCode, equals(b.hashCode));
       expect(a.hashCode, isNot(equals(c.hashCode)));

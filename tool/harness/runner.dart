@@ -149,11 +149,14 @@ Future<TestExecutionResult> runTests({
   String directory = 'test',
   List<String> arguments = const [],
 }) async {
-  final process = await Process.start('dart', [
-    'test',
-    '--machine',
-    ...arguments,
-  ], workingDirectory: Directory(directory).absolute.path);
+  final process = await Process.start(
+      'dart',
+      [
+        'test',
+        '--machine',
+        ...arguments,
+      ],
+      workingDirectory: Directory(directory).absolute.path);
 
   final outputLines = <String>[];
   process.stdout

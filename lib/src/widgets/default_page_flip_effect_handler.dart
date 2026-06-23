@@ -183,7 +183,8 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         if (_initializedVibrator && _hasVibrator && _hasAmplitudeControl) {
           // High-end Android devices with precise linear motors: use custom short vibrator pulses
           final amplitude = (frame.amplitude * 255).round().clamp(10, 255);
-          final duration = frame.durationMs.clamp(5, 20); // Keep it short and crisp!
+          final duration =
+              frame.durationMs.clamp(5, 20); // Keep it short and crisp!
           try {
             Vibration.vibrate(
               duration: duration,

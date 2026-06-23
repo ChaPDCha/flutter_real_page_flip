@@ -16,12 +16,16 @@ void main() {
       mockAudioPlayer = MockAudioPlayer();
 
       // Mock audio player methods to avoid hanging on native platform channels
-      when(() => mockAudioPlayer.playerStateStream).thenAnswer((_) => const Stream<PlayerState>.empty());
+      when(
+        () => mockAudioPlayer.playerStateStream,
+      ).thenAnswer((_) => const Stream<PlayerState>.empty());
       when(() => mockAudioPlayer.pause()).thenAnswer((_) async {});
       when(() => mockAudioPlayer.play()).thenAnswer((_) async {});
       when(() => mockAudioPlayer.stop()).thenAnswer((_) async {});
       when(() => mockAudioPlayer.dispose()).thenAnswer((_) async {});
-      when(() => mockAudioPlayer.setFilePath(any())).thenAnswer((_) async => null);
+      when(
+        () => mockAudioPlayer.setFilePath(any()),
+      ).thenAnswer((_) async => null);
 
       ttsService = SupertonicTtsService(audioPlayer: mockAudioPlayer);
     });
@@ -43,22 +47,22 @@ void main() {
     test('speak() falls back gracefully when init fails (no crash)', () async {
       // Since assets/onnx doesn't exist/work in test, speak should hit the fallback try-catch
       // and print fallback message without throwing.
-      await expectLater(
-        ttsService.speak('테스트 문장입니다.'),
-        completes,
-      );
+      await expectLater(ttsService.speak('테스트 문장입니다.'), completes);
       expect(ttsService.isSpeaking, isTrue);
     });
 
-    test('pause, resume, and stop delegate to AudioPlayer without crash', () async {
-      await expectLater(ttsService.pause(), completes);
-      await expectLater(ttsService.resume(), completes);
-      await expectLater(ttsService.stop(), completes);
-      expect(ttsService.isSpeaking, isFalse);
+    test(
+      'pause, resume, and stop delegate to AudioPlayer without crash',
+      () async {
+        await expectLater(ttsService.pause(), completes);
+        await expectLater(ttsService.resume(), completes);
+        await expectLater(ttsService.stop(), completes);
+        expect(ttsService.isSpeaking, isFalse);
 
-      verify(() => mockAudioPlayer.pause()).called(1);
-      verify(() => mockAudioPlayer.play()).called(1);
-      verify(() => mockAudioPlayer.stop()).called(1);
-    });
+        verify(() => mockAudioPlayer.pause()).called(1);
+        verify(() => mockAudioPlayer.play()).called(1);
+        verify(() => mockAudioPlayer.stop()).called(1);
+      },
+    );
   });
 }

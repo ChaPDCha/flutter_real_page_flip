@@ -65,9 +65,7 @@ void main() async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       child: const MyApp(),
     ),
   );
@@ -92,9 +90,7 @@ class MyApp extends ConsumerWidget {
       darkTheme: shadTheme,
       themeMode: themeData.isDark ? ThemeMode.dark : ThemeMode.light,
       materialThemeBuilder: (context, theme) => materialTheme,
-      home: const SyncWrapper(
-        child: BookshelfScreen(),
-      ),
+      home: const SyncWrapper(child: BookshelfScreen()),
     );
   }
 }

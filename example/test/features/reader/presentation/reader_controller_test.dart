@@ -12,15 +12,20 @@ import 'package:real_page_flip_example/features/sync/application/sync_provider.d
 List<int> createMultiChapterEpubBytes({
   String title = 'Test Title',
   String author = 'Test Author',
-  String chapter1Content = 'This is chapter one content. It should contain enough text to test.',
-  String chapter2Content = 'This is chapter two content. The journey continues here.',
+  String chapter1Content =
+      'This is chapter one content. It should contain enough text to test.',
+  String chapter2Content =
+      'This is chapter two content. The journey continues here.',
 }) {
   final archive = Archive();
-  
+
   // 1. mimetype file
   final mimetypeData = 'application/epub+zip'.codeUnits;
-  archive.addFile(ArchiveFile('mimetype', mimetypeData.length, mimetypeData)..compress = false);
-  
+  archive.addFile(
+    ArchiveFile('mimetype', mimetypeData.length, mimetypeData)
+      ..compress = false,
+  );
+
   // 2. META-INF/container.xml
   const containerXml = '''<?xml version="1.0"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
@@ -29,10 +34,13 @@ List<int> createMultiChapterEpubBytes({
   </rootfiles>
 </container>''';
   final containerData = containerXml.codeUnits;
-  archive.addFile(ArchiveFile('META-INF/container.xml', containerData.length, containerData));
-  
+  archive.addFile(
+    ArchiveFile('META-INF/container.xml', containerData.length, containerData),
+  );
+
   // 3. OEBPS/content.opf
-  final contentOpf = '''<?xml version="1.0" encoding="UTF-8"?>
+  final contentOpf =
+      '''<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="db_id" version="2.0">
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:title>$title</dc:title>
@@ -51,9 +59,10 @@ List<int> createMultiChapterEpubBytes({
 </package>''';
   final opfData = contentOpf.codeUnits;
   archive.addFile(ArchiveFile('OEBPS/content.opf', opfData.length, opfData));
-  
+
   // 3.5 OEBPS/toc.ncx
-  final tocXml = '''<?xml version="1.0" encoding="UTF-8"?>
+  final tocXml =
+      '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">
 <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
   <head>
@@ -76,26 +85,32 @@ List<int> createMultiChapterEpubBytes({
 </ncx>''';
   final tocData = tocXml.codeUnits;
   archive.addFile(ArchiveFile('OEBPS/toc.ncx', tocData.length, tocData));
-  
+
   // 4. OEBPS/chapter1.html
-  final chapter1Xml = '''<?xml version="1.0" encoding="utf-8"?>
+  final chapter1Xml =
+      '''<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><title>Chapter 1</title></head>
 <body><p>$chapter1Content</p></body>
 </html>''';
   final chapter1Data = chapter1Xml.codeUnits;
-  archive.addFile(ArchiveFile('OEBPS/chapter1.html', chapter1Data.length, chapter1Data));
+  archive.addFile(
+    ArchiveFile('OEBPS/chapter1.html', chapter1Data.length, chapter1Data),
+  );
 
   // 5. OEBPS/chapter2.html
-  final chapter2Xml = '''<?xml version="1.0" encoding="utf-8"?>
+  final chapter2Xml =
+      '''<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><title>Chapter 2</title></head>
 <body><p>$chapter2Content</p></body>
 </html>''';
   final chapter2Data = chapter2Xml.codeUnits;
-  archive.addFile(ArchiveFile('OEBPS/chapter2.html', chapter2Data.length, chapter2Data));
+  archive.addFile(
+    ArchiveFile('OEBPS/chapter2.html', chapter2Data.length, chapter2Data),
+  );
 
   final encoder = ZipEncoder();
   return encoder.encode(archive)!;
@@ -119,15 +134,15 @@ void main() {
       const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(pathChannel, (MethodCall methodCall) async {
-        if (methodCall.method == 'getApplicationDocumentsDirectory') {
-          return tempDir.path;
-        }
-        return null;
-      });
+            if (methodCall.method == 'getApplicationDocumentsDirectory') {
+              return tempDir.path;
+            }
+            return null;
+          });
 
       epubFile = File('${tempDir.path}/test_reader_book.epub');
       await epubFile.writeAsBytes(createMultiChapterEpubBytes());
-      
+
       testBook = Book(
         id: 'test_reader_book_id',
         title: 'Test Title',
@@ -147,9 +162,7 @@ void main() {
 
     ProviderContainer createContainer() {
       final container = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       );
       // Keep provider active in Riverpod
       container.listen(readerControllerProvider(testBook), (_, __) {});
@@ -175,24 +188,29 @@ void main() {
       }
     }
 
-    test('ReaderController initializes and loads EPUB chapters and settings', () async {
-      final container = createContainer();
-      await waitForInitialization(container);
+    test(
+      'ReaderController initializes and loads EPUB chapters and settings',
+      () async {
+        final container = createContainer();
+        await waitForInitialization(container);
 
-      final state = container.read(readerControllerProvider(testBook));
-      expect(state.isLoading, isFalse);
-      expect(state.epubBook, isNotNull);
-      expect(state.chapters.length, equals(2));
-      expect(state.currentChapterIndex, equals(0));
-      expect(state.currentPageIndex, equals(0));
-    });
+        final state = container.read(readerControllerProvider(testBook));
+        expect(state.isLoading, isFalse);
+        expect(state.epubBook, isNotNull);
+        expect(state.chapters.length, equals(2));
+        expect(state.currentChapterIndex, equals(0));
+        expect(state.currentPageIndex, equals(0));
+      },
+    );
 
     test('setViewportSize triggers paging calculations', () async {
       final container = createContainer();
       await waitForInitialization(container);
 
-      final controller = container.read(readerControllerProvider(testBook).notifier);
-      
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+
       // Initially, no pages are calculated because viewport size is 0
       var state = container.read(readerControllerProvider(testBook));
       expect(state.pages, isEmpty);
@@ -208,38 +226,50 @@ void main() {
       expect(state.pages.first, contains('This is chapter one content'));
     });
 
-    test('Navigation: next page and previous page inside single chapter', () async {
-      // Create EPUB with long text that splits into multiple pages
-      final longChapter1 = 'Paragraph 1. ' * 50;
-      await epubFile.writeAsBytes(createMultiChapterEpubBytes(chapter1Content: longChapter1));
+    test(
+      'Navigation: next page and previous page inside single chapter',
+      () async {
+        // Create EPUB with long text that splits into multiple pages
+        final longChapter1 = 'Paragraph 1. ' * 50;
+        await epubFile.writeAsBytes(
+          createMultiChapterEpubBytes(chapter1Content: longChapter1),
+        );
 
-      final container = createContainer();
-      await waitForInitialization(container);
+        final container = createContainer();
+        await waitForInitialization(container);
 
-      final controller = container.read(readerControllerProvider(testBook).notifier);
-      controller.setViewportSize(375.0, 300.0); // Small height to ensure multiple pages
-      await waitForPagination(container);
+        final controller = container.read(
+          readerControllerProvider(testBook).notifier,
+        );
+        controller.setViewportSize(
+          375.0,
+          300.0,
+        ); // Small height to ensure multiple pages
+        await waitForPagination(container);
 
-      var state = container.read(readerControllerProvider(testBook));
-      expect(state.pages.length, greaterThan(1));
-      expect(state.currentPageIndex, equals(0));
+        var state = container.read(readerControllerProvider(testBook));
+        expect(state.pages.length, greaterThan(1));
+        expect(state.currentPageIndex, equals(0));
 
-      // Go to next page
-      controller.nextPage();
-      state = container.read(readerControllerProvider(testBook));
-      expect(state.currentPageIndex, equals(1));
+        // Go to next page
+        controller.nextPage();
+        state = container.read(readerControllerProvider(testBook));
+        expect(state.currentPageIndex, equals(1));
 
-      // Go to previous page
-      controller.previousPage();
-      state = container.read(readerControllerProvider(testBook));
-      expect(state.currentPageIndex, equals(0));
-    });
+        // Go to previous page
+        controller.previousPage();
+        state = container.read(readerControllerProvider(testBook));
+        expect(state.currentPageIndex, equals(0));
+      },
+    );
 
     test('Navigation: next page crosses chapter boundary', () async {
       final container = createContainer();
       await waitForInitialization(container);
 
-      final controller = container.read(readerControllerProvider(testBook).notifier);
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
       controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
@@ -268,7 +298,9 @@ void main() {
       final container = createContainer();
       await waitForInitialization(container);
 
-      final controller = container.read(readerControllerProvider(testBook).notifier);
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
       controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
@@ -297,7 +329,9 @@ void main() {
       final container = createContainer();
       await waitForInitialization(container);
 
-      final controller = container.read(readerControllerProvider(testBook).notifier);
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
       controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
@@ -332,7 +366,9 @@ void main() {
       final container = createContainer();
       await waitForInitialization(container);
 
-      final controller = container.read(readerControllerProvider(testBook).notifier);
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
       controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
@@ -341,7 +377,7 @@ void main() {
       await waitForPagination(container);
       var state = container.read(readerControllerProvider(testBook));
       expect(state.currentChapterIndex, equals(1));
-      
+
       // Verify SharedPreferences has progress stored
       final prefs = await SharedPreferences.getInstance();
       final progressKey = 'reader_progress_${testBook.id}';
@@ -354,9 +390,7 @@ void main() {
 
       // Create a brand new container (simulating app relaunch)
       final newContainer = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       );
       newContainer.listen(readerControllerProvider(testBook), (_, __) {});
       addTearDown(newContainer.dispose);

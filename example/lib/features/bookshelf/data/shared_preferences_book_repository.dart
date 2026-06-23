@@ -20,7 +20,7 @@ class SharedPreferencesBookRepository implements BookRepository {
   Future<void> addBook(Book book) async {
     final prefs = await SharedPreferences.getInstance();
     final books = await getBooks();
-    
+
     // Remove if duplicates exist
     books.removeWhere((b) => b.id == book.id);
     books.add(book);

@@ -29,7 +29,10 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
   @override
   void initState() {
     super.initState();
-    final cachedBytes = PdfService.getCachedPageImage(widget.filePath, widget.pageIndex);
+    final cachedBytes = PdfService.getCachedPageImage(
+      widget.filePath,
+      widget.pageIndex,
+    );
     if (cachedBytes != null) {
       _imageBytes = cachedBytes;
       _isLoading = false;
@@ -41,8 +44,12 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
   @override
   void didUpdateWidget(PdfPageRenderer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.filePath != widget.filePath || oldWidget.pageIndex != widget.pageIndex) {
-      final cachedBytes = PdfService.getCachedPageImage(widget.filePath, widget.pageIndex);
+    if (oldWidget.filePath != widget.filePath ||
+        oldWidget.pageIndex != widget.pageIndex) {
+      final cachedBytes = PdfService.getCachedPageImage(
+        widget.filePath,
+        widget.pageIndex,
+      );
       if (cachedBytes != null) {
         setState(() {
           _imageBytes = cachedBytes;
@@ -66,7 +73,7 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
       final document = await PdfService.getOrOpenDocument(widget.filePath);
       // pdfx page indices are 1-based
       final pageNumber = widget.pageIndex + 1;
-      
+
       if (pageNumber < 1 || pageNumber > document.pagesCount) {
         throw Exception('Invalid page number: $pageNumber');
       }
@@ -119,12 +126,19 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: ReaderThemeData.errorColor, size: 40),
+              const Icon(
+                Icons.error_outline,
+                color: ReaderThemeData.errorColor,
+                size: 40,
+              ),
               const SizedBox(height: 8),
               const Text(
                 '페이지를 로드할 수 없습니다.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: ReaderThemeData.errorColor, fontSize: 12),
+                style: TextStyle(
+                  color: ReaderThemeData.errorColor,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -132,7 +146,10 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: ReaderThemeData.errorColor, fontSize: 11),
+                style: const TextStyle(
+                  color: ReaderThemeData.errorColor,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),

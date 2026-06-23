@@ -17,11 +17,7 @@ class Book with _$Book {
   factory Book.fromJson(Map<String, dynamic> json) => _$BookFromJson(json);
 }
 
-enum BookFormat {
-  epub,
-  txt,
-  pdf,
-}
+enum BookFormat { epub, txt, pdf }
 
 extension BookFormatExtension on Book {
   BookFormat get format {
@@ -32,4 +28,3 @@ extension BookFormatExtension on Book {
     return BookFormat.epub; // Fallback
   }
 }
-

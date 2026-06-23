@@ -135,9 +135,9 @@ double snapClipCoord(double value) => (value * 2).round() / 2;
 /// Applies [snapClipCoord] to a point, optionally shifting X by [overlapShift].
 @visibleForTesting
 Offset snapClipPoint(Offset point, {double overlapShift = 0}) => Offset(
-    snapClipCoord(point.dx + overlapShift),
-    snapClipCoord(point.dy),
-  );
+      snapClipCoord(point.dx + overlapShift),
+      snapClipCoord(point.dy),
+    );
 
 /// Appends the global fold-line boundary to [path] (caller must [Path.moveTo] first).
 ///
@@ -174,8 +174,7 @@ void appendFoldLineBoundary(
 /// Clip path for layer 2 (stationary spread half, left of fold + bleed).
 @visibleForTesting
 Path buildStationaryPageClipPath(Size size, PageFlipGeometry geo) {
-  final path = Path()
-    ..moveTo(0, 0);
+  final path = Path()..moveTo(0, 0);
   appendFoldLineBoundary(
     path,
     geo,
@@ -189,8 +188,7 @@ Path buildStationaryPageClipPath(Size size, PageFlipGeometry geo) {
 /// Clip path for layer 1 (revealed page, right of fold − bleed).
 @visibleForTesting
 Path buildOpenPageClipPath(Size size, PageFlipGeometry geo) {
-  final path = Path()
-    ..moveTo(size.width, 0);
+  final path = Path()..moveTo(size.width, 0);
   appendFoldLineBoundary(
     path,
     geo,
@@ -357,20 +355,32 @@ ui.Vertices buildFlapContentMesh({
       final i1j1 = row1 + j + 1;
 
       // Triangle 1: (i,j), (i+1,j), (i,j+1)
-      positions[offset] = gridX[i0j0]; texCoords[offset++] = gridU[i0j0];
-      positions[offset] = gridY[i0j0]; texCoords[offset++] = gridV[i0j0];
-      positions[offset] = gridX[i1j0]; texCoords[offset++] = gridU[i1j0];
-      positions[offset] = gridY[i1j0]; texCoords[offset++] = gridV[i1j0];
-      positions[offset] = gridX[i0j1]; texCoords[offset++] = gridU[i0j1];
-      positions[offset] = gridY[i0j1]; texCoords[offset++] = gridV[i0j1];
+      positions[offset] = gridX[i0j0];
+      texCoords[offset++] = gridU[i0j0];
+      positions[offset] = gridY[i0j0];
+      texCoords[offset++] = gridV[i0j0];
+      positions[offset] = gridX[i1j0];
+      texCoords[offset++] = gridU[i1j0];
+      positions[offset] = gridY[i1j0];
+      texCoords[offset++] = gridV[i1j0];
+      positions[offset] = gridX[i0j1];
+      texCoords[offset++] = gridU[i0j1];
+      positions[offset] = gridY[i0j1];
+      texCoords[offset++] = gridV[i0j1];
 
       // Triangle 2: (i,j+1), (i+1,j), (i+1,j+1)
-      positions[offset] = gridX[i0j1]; texCoords[offset++] = gridU[i0j1];
-      positions[offset] = gridY[i0j1]; texCoords[offset++] = gridV[i0j1];
-      positions[offset] = gridX[i1j0]; texCoords[offset++] = gridU[i1j0];
-      positions[offset] = gridY[i1j0]; texCoords[offset++] = gridV[i1j0];
-      positions[offset] = gridX[i1j1]; texCoords[offset++] = gridU[i1j1];
-      positions[offset] = gridY[i1j1]; texCoords[offset++] = gridV[i1j1];
+      positions[offset] = gridX[i0j1];
+      texCoords[offset++] = gridU[i0j1];
+      positions[offset] = gridY[i0j1];
+      texCoords[offset++] = gridV[i0j1];
+      positions[offset] = gridX[i1j0];
+      texCoords[offset++] = gridU[i1j0];
+      positions[offset] = gridY[i1j0];
+      texCoords[offset++] = gridV[i1j0];
+      positions[offset] = gridX[i1j1];
+      texCoords[offset++] = gridU[i1j1];
+      positions[offset] = gridY[i1j1];
+      texCoords[offset++] = gridV[i1j1];
     }
   }
 
@@ -408,13 +418,14 @@ Rect flipSideShadowClipRect(PageFlipGeometry geo) {
 Widget clipFullSpreadHalf({
   required Widget child,
   required Alignment alignment,
-}) => ClipRect(
-    child: Align(
-      alignment: alignment,
-      widthFactor: 0.5,
-      child: child,
-    ),
-  );
+}) =>
+    ClipRect(
+      child: Align(
+        alignment: alignment,
+        widthFactor: 0.5,
+        child: child,
+      ),
+    );
 
 /// Clips [child] to the left or right half when [child] lives in a **half-width**
 /// slot (e.g. [Expanded] in a [Row]) and must be expanded to full spread width
@@ -422,17 +433,18 @@ Widget clipFullSpreadHalf({
 Widget clipSpreadPageHalf({
   required Widget child,
   required Alignment alignment,
-}) => ClipRect(
-    child: Align(
-      alignment: alignment,
-      widthFactor: 0.5,
-      child: FractionallySizedBox(
-        widthFactor: 2,
+}) =>
+    ClipRect(
+      child: Align(
         alignment: alignment,
-        child: child,
+        widthFactor: 0.5,
+        child: FractionallySizedBox(
+          widthFactor: 2,
+          alignment: alignment,
+          child: child,
+        ),
       ),
-    ),
-  );
+    );
 
 /// Displays a pre-render snapshot at [viewportSize] without aspect distortion.
 ///
@@ -486,24 +498,31 @@ Path buildFlapScreenClipPath(
     if (geo.curvatureAmount > 0.001) {
       final control = snapClipPoint(geo.flapCurveControl);
       path.quadraticBezierTo(
-        control.dx, control.dy,
-        flapEdgeTop.dx, flapEdgeTop.dy,
+        control.dx,
+        control.dy,
+        flapEdgeTop.dx,
+        flapEdgeTop.dy,
       );
     }
   } else {
     // Flap spans RIGHT of foldX.
     // Path: fold line (left) → free edge (right) → bottom → back to fold line.
-    final foldLineTop = snapClipPoint(geo.foldLineTop, overlapShift: -foldEdgeBleedPx);
-    final foldLineBottom = snapClipPoint(geo.foldLineBottom, overlapShift: -foldEdgeBleedPx);
+    final foldLineTop =
+        snapClipPoint(geo.foldLineTop, overlapShift: -foldEdgeBleedPx);
+    final foldLineBottom =
+        snapClipPoint(geo.foldLineBottom, overlapShift: -foldEdgeBleedPx);
     path.moveTo(foldLineTop.dx, foldLineTop.dy);
     path.lineTo(flapEdgeTop.dx, flapEdgeTop.dy);
     path.lineTo(flapEdgeBottom.dx, flapEdgeBottom.dy);
     path.lineTo(foldLineBottom.dx, foldLineBottom.dy);
     if (geo.curvatureAmount > 0.001) {
-      final control = snapClipPoint(geo.foldCurveControl, overlapShift: -foldEdgeBleedPx);
+      final control =
+          snapClipPoint(geo.foldCurveControl, overlapShift: -foldEdgeBleedPx);
       path.quadraticBezierTo(
-        control.dx, control.dy,
-        foldLineTop.dx, foldLineTop.dy,
+        control.dx,
+        control.dy,
+        foldLineTop.dx,
+        foldLineTop.dy,
       );
     }
   }
@@ -544,7 +563,8 @@ double flapOpacityModulator(
   final thinFactor = math.sin(p * math.pi) * thinPaperStrength;
 
   // End reveal: smoothstep from [endRevealStart] to 1.0.
-  final revealT = ((p - endRevealStart) / (1.0 - endRevealStart)).clamp(0.0, 1.0);
+  final revealT =
+      ((p - endRevealStart) / (1.0 - endRevealStart)).clamp(0.0, 1.0);
   final endFactor = (revealT * revealT * (3 - 2 * revealT)) * endRevealStrength;
 
   return (1.0 - thinFactor - endFactor).clamp(0.2, 1.0);
@@ -566,7 +586,6 @@ class PageFlipPainter extends CustomPainter {
 
     /// The color of the paper back (flipping page's back side).
     required this.paperBackColor,
-    
 
     /// How much the paper appears translucent at mid-flip (0.0–1.0).
     this.thinPaperStrength = 0.0,
@@ -686,14 +705,15 @@ class PageFlipPainter extends CustomPainter {
 
     // Use pre-computed geo when available; otherwise construct here
     // (backward compatible when geo is not passed).
-    final g = geo ?? PageFlipGeometry(
-      progress: progress,
-      isRightToLeft: isRightToLeft,
-      touchOffset: touchOffset,
-      size: size,
-      isDoubleSpread: isDoubleSpread,
-      isForward: isForward,
-    );
+    final g = geo ??
+        PageFlipGeometry(
+          progress: progress,
+          isRightToLeft: isRightToLeft,
+          touchOffset: touchOffset,
+          size: size,
+          isDoubleSpread: isDoubleSpread,
+          isForward: isForward,
+        );
 
     // Determine dark mode from paper luminance.
     final luminance = paperBackColor.computeLuminance();
@@ -725,7 +745,8 @@ class PageFlipPainter extends CustomPainter {
     );
     final needsLayer = flapAlpha < 0.995;
     if (needsLayer) {
-      canvas.saveLayer(null, Paint()..color = Colors.white.withValues(alpha: flapAlpha));
+      canvas.saveLayer(
+          null, Paint()..color = Colors.white.withValues(alpha: flapAlpha),);
     }
 
     canvas.transform(g.transform.storage);
@@ -791,8 +812,7 @@ class PageFlipPainter extends CustomPainter {
       }
     }
 
-    final hasFlapTexture =
-        flapFrontImage != null && flapFrontSrcRect != null;
+    final hasFlapTexture = flapFrontImage != null && flapFrontSrcRect != null;
     if (hasFlapTexture) {
       final contentReveal = flapFrontContentRevealOpacity(
         progress,
@@ -867,15 +887,15 @@ class PageFlipPainter extends CustomPainter {
     // to look like the paper is tightly rolled.
     // Fold side vs free-edge side determined by flapRightOfFold.
     final bendStrength = g.shadowIntensity; // 0–1, peaks mid-flip
-    if (bendStrength > 0.005 && performanceProfile != DevicePerformanceProfile.low) {
+    if (bendStrength > 0.005 &&
+        performanceProfile != DevicePerformanceProfile.low) {
       // Fold-side alignment: where the flap meets the page.
       final foldAlign = g.flapRightOfFold
-          ? Alignment.centerLeft   // fold on left, flap extends right
+          ? Alignment.centerLeft // fold on left, flap extends right
           : Alignment.centerRight; // fold on right, flap extends left
       // Free-edge alignment: the lifted page edge.
-      final freeAlign = g.flapRightOfFold
-          ? Alignment.centerRight
-          : Alignment.centerLeft;
+      final freeAlign =
+          g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
 
       // Gentle centre highlight (catches light on the bulge).
       canvas.drawRect(
@@ -918,14 +938,13 @@ class PageFlipPainter extends CustomPainter {
     // fragments at the mesh boundary without affecting visible flap content.
     const double edgeFadeWidth = 8;
     final edgeFadeRect = g.flapRightOfFold
-        ? Rect.fromLTWH(g.freeEdgeX - edgeFadeWidth, 0, edgeFadeWidth, size.height)
+        ? Rect.fromLTWH(
+            g.freeEdgeX - edgeFadeWidth, 0, edgeFadeWidth, size.height,)
         : Rect.fromLTWH(g.flapLeft, 0, edgeFadeWidth, size.height);
-    final edgeFadeBegin = g.flapRightOfFold
-        ? Alignment.centerRight
-        : Alignment.centerLeft;
-    final edgeFadeEnd = g.flapRightOfFold
-        ? Alignment.centerLeft
-        : Alignment.centerRight;
+    final edgeFadeBegin =
+        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
+    final edgeFadeEnd =
+        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
     canvas.drawRect(
       edgeFadeRect,
       Paint()
@@ -947,12 +966,10 @@ class PageFlipPainter extends CustomPainter {
     final foldFadeRect = g.flapRightOfFold
         ? Rect.fromLTWH(g.foldX, 0, foldFadeWidth, size.height)
         : Rect.fromLTWH(g.foldX - foldFadeWidth, 0, foldFadeWidth, size.height);
-    final foldFadeBegin = g.flapRightOfFold
-        ? Alignment.centerLeft
-        : Alignment.centerRight;
-    final foldFadeEnd = g.flapRightOfFold
-        ? Alignment.centerRight
-        : Alignment.centerLeft;
+    final foldFadeBegin =
+        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+    final foldFadeEnd =
+        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
     canvas.drawRect(
       foldFadeRect,
       Paint()
@@ -987,8 +1004,7 @@ class PageFlipPainter extends CustomPainter {
       if (performanceProfile == DevicePerformanceProfile.low) {
         canvas.drawRect(
           revealedRect,
-          Paint()
-            ..color = Colors.black.withValues(alpha: revealedAlpha * 0.5),
+          Paint()..color = Colors.black.withValues(alpha: revealedAlpha * 0.5),
         );
       } else {
         canvas.drawRect(
@@ -1149,14 +1165,15 @@ class PageFlipClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     // Use pre-computed geo when available (fast path during animation).
     // Falls back to constructing from individual params (backward compatible).
-    final g = geo ?? PageFlipGeometry(
-      progress: progress,
-      isRightToLeft: isRightToLeft,
-      touchOffset: touchOffset,
-      size: size,
-      isDoubleSpread: isDoubleSpread,
-      isForward: isForward,
-    );
+    final g = geo ??
+        PageFlipGeometry(
+          progress: progress,
+          isRightToLeft: isRightToLeft,
+          touchOffset: touchOffset,
+          size: size,
+          isDoubleSpread: isDoubleSpread,
+          isForward: isForward,
+        );
 
     if (g.progress <= 0) {
       return Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
@@ -1223,14 +1240,15 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     // Use pre-computed geo when available (fast path during animation).
-    final g = geo ?? PageFlipGeometry(
-      progress: progress,
-      isRightToLeft: isRightToLeft,
-      touchOffset: touchOffset,
-      size: size,
-      isDoubleSpread: isDoubleSpread,
-      isForward: isForward,
-    );
+    final g = geo ??
+        PageFlipGeometry(
+          progress: progress,
+          isRightToLeft: isRightToLeft,
+          touchOffset: touchOffset,
+          size: size,
+          isDoubleSpread: isDoubleSpread,
+          isForward: isForward,
+        );
 
     if (g.progress <= 0 || g.progress >= 1) {
       return Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));

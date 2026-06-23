@@ -16,9 +16,7 @@ void main() {
 
   testWidgets('Bookshelf screen smoke test', (WidgetTester tester) async {
     // Mock SharedPreferences values for testing environment
-    SharedPreferences.setMockInitialValues({
-      'demo_book_created': true,
-    });
+    SharedPreferences.setMockInitialValues({'demo_book_created': true});
     final prefs = await SharedPreferences.getInstance();
 
     final mockRepository = MockBookRepository();

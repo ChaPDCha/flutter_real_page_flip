@@ -22,8 +22,11 @@ extension PageFlipSpreadModeCompat on PageFlipSpreadMode {
   bool get isDoubleSpread => this == PageFlipSpreadMode.doubleSpread;
 
   /// Converts the historical boolean API to [PageFlipSpreadMode].
-  static PageFlipSpreadMode fromIsDoubleSpread({required bool isDoubleSpread}) =>
-      isDoubleSpread ? PageFlipSpreadMode.doubleSpread : PageFlipSpreadMode.single;
+  static PageFlipSpreadMode fromIsDoubleSpread(
+          {required bool isDoubleSpread,}) =>
+      isDoubleSpread
+          ? PageFlipSpreadMode.doubleSpread
+          : PageFlipSpreadMode.single;
 }
 
 /// Represents the performance tier of the device to adjust rendering quality.
@@ -37,7 +40,6 @@ enum DevicePerformanceProfile {
   /// Low-end devices (2020+ budget): Lower resolution snapshots, sparse meshes, simplified shadows, throttled haptics.
   low,
 }
-
 
 /// Configuration for PageFlipWidget behavior and styling.
 ///
@@ -105,20 +107,20 @@ class PageFlipConfig {
   /// The opacity of the page-flip flap (paper back side). Defaults to 1.0 (fully opaque).
   final double paperOpacity;
 
-
   /// How much the paper appears translucent like thin paper during flip (0.0–1.0).
   /// 0.0 = fully opaque, 0.15 = subtle thin-paper effect at mid-flip.
-  /// 
+  ///
   /// At mid-flip (progress ~0.5) the paper is most transparent, letting the
   /// underlying page content show through slightly — like real thin paper.
   final double thinPaperStrength;
 
   /// How much the next page content shows through the paper at end of flip (0.0–1.0).
   /// 0.0 = no reveal, 0.35 = moderate reveal as animation completes.
-  /// 
+  ///
   /// At the end of the animation (progress > 0.85), the paper gradually becomes
   /// transparent, revealing the next/previous page content beneath.
   final double endRevealStrength;
+
   /// Flip progress (0–1) by which flap-front content is fully hidden during fold.
   ///
   /// Text fades out quickly between progress 0 and this value so bent flap

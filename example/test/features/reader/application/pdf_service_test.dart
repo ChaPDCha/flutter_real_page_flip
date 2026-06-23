@@ -12,9 +12,9 @@ void main() {
 
     test('should cache and retrieve page image bytes correctly', () {
       final dummyBytes = Uint8List.fromList([1, 2, 3, 4]);
-      
+
       PdfService.cachePageImage('dummy_path_1', 0, dummyBytes);
-      
+
       final retrieved = PdfService.getCachedPageImage('dummy_path_1', 0);
       expect(retrieved, isNotNull);
       expect(retrieved, equals(dummyBytes));
@@ -25,25 +25,28 @@ void main() {
       expect(retrieved, isNull);
     });
 
-    test('should maintain maximum cache limit (40) and remove oldest item (FIFO)', () {
-      // Fill cache to limit
-      for (int i = 0; i < 40; i++) {
-        PdfService.cachePageImage('dummy_path_1', i, Uint8List.fromList([i]));
-      }
+    test(
+      'should maintain maximum cache limit (40) and remove oldest item (FIFO)',
+      () {
+        // Fill cache to limit
+        for (int i = 0; i < 40; i++) {
+          PdfService.cachePageImage('dummy_path_1', i, Uint8List.fromList([i]));
+        }
 
-      // First item (page 0) must exist
-      expect(PdfService.getCachedPageImage('dummy_path_1', 0), isNotNull);
+        // First item (page 0) must exist
+        expect(PdfService.getCachedPageImage('dummy_path_1', 0), isNotNull);
 
-      // Add 41st item
-      PdfService.cachePageImage('dummy_path_1', 40, Uint8List.fromList([40]));
+        // Add 41st item
+        PdfService.cachePageImage('dummy_path_1', 40, Uint8List.fromList([40]));
 
-      // Oldest item (page 0) should be evicted due to size limit
-      expect(PdfService.getCachedPageImage('dummy_path_1', 0), isNull);
-      
-      // Page 1 and Page 40 should still be intact
-      expect(PdfService.getCachedPageImage('dummy_path_1', 1), isNotNull);
-      expect(PdfService.getCachedPageImage('dummy_path_1', 40), isNotNull);
-    });
+        // Oldest item (page 0) should be evicted due to size limit
+        expect(PdfService.getCachedPageImage('dummy_path_1', 0), isNull);
+
+        // Page 1 and Page 40 should still be intact
+        expect(PdfService.getCachedPageImage('dummy_path_1', 1), isNotNull);
+        expect(PdfService.getCachedPageImage('dummy_path_1', 40), isNotNull);
+      },
+    );
 
     test('should only evict page images belonging to closed document', () {
       final bytes1 = Uint8List.fromList([10]);
@@ -75,15 +78,29 @@ void main() {
 
     test('re-caching same page overwrites without triggering eviction', () {
       for (int i = 0; i < 39; i++) {
-        PdfService.cachePageImage('overwrite_test.pdf', i, Uint8List.fromList([i]));
+        PdfService.cachePageImage(
+          'overwrite_test.pdf',
+          i,
+          Uint8List.fromList([i]),
+        );
       }
 
       // Overwrite page 0 with different bytes
-      PdfService.cachePageImage('overwrite_test.pdf', 0, Uint8List.fromList([0xFF]));
+      PdfService.cachePageImage(
+        'overwrite_test.pdf',
+        0,
+        Uint8List.fromList([0xFF]),
+      );
 
-      expect(PdfService.getCachedPageImage('overwrite_test.pdf', 0), equals(Uint8List.fromList([0xFF])));
+      expect(
+        PdfService.getCachedPageImage('overwrite_test.pdf', 0),
+        equals(Uint8List.fromList([0xFF])),
+      );
       // Page 39 (the 40th) survives since no eviction needed
-      expect(PdfService.getCachedPageImage('overwrite_test.pdf', 38), isNotNull);
+      expect(
+        PdfService.getCachedPageImage('overwrite_test.pdf', 38),
+        isNotNull,
+      );
     });
 
     test('different files use independent cache entries', () {

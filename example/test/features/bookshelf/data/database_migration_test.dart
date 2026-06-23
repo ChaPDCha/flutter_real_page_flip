@@ -26,14 +26,16 @@ void main() {
     }
   });
 
-  test('Drift Schema V1 to V2 Migration preserves data and adds sync columns', () async {
-    // 1. Create a raw SQLite file replicating Schema Version 1
-    final rawDb = sqlite3.open(tempDbFile.path);
-    
-    // Explicitly set SQLite user_version to 1 so Drift triggers onUpgrade
-    rawDb.execute('PRAGMA user_version = 1;');
-    
-    rawDb.execute('''
+  test(
+    'Drift Schema V1 to V2 Migration preserves data and adds sync columns',
+    () async {
+      // 1. Create a raw SQLite file replicating Schema Version 1
+      final rawDb = sqlite3.open(tempDbFile.path);
+
+      // Explicitly set SQLite user_version to 1 so Drift triggers onUpgrade
+      rawDb.execute('PRAGMA user_version = 1;');
+
+      rawDb.execute('''
       CREATE TABLE books (
         id TEXT NOT NULL PRIMARY KEY,
         title TEXT NOT NULL,
@@ -46,8 +48,8 @@ void main() {
         last_read_page_index INTEGER NOT NULL DEFAULT 0
       );
     ''');
-    
-    rawDb.execute('''
+
+      rawDb.execute('''
       CREATE TABLE bookmarks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         book_id TEXT NOT NULL,
@@ -59,37 +61,38 @@ void main() {
       );
     ''');
 
-    // Seed test data in raw Schema Version 1
-    rawDb.execute('''
+      // Seed test data in raw Schema Version 1
+      rawDb.execute('''
       INSERT INTO books (id, title, author, file_path, format, added_at)
       VALUES ('book-1', 'Legacy Book', 'Legacy Author', 'path/to/legacy.epub', 'epub', 1700000000);
     ''');
-    
-    rawDb.execute('''
+
+      rawDb.execute('''
       INSERT INTO bookmarks (book_id, chapter_index, page_index, label, created_at, is_deleted)
       VALUES ('book-1', 1, 2, 'Legacy Bookmark', 1700000100, 0);
     ''');
-    
-    rawDb.dispose(); // Gracefully release raw lock
 
-    // 2. Open database via Drift AppDatabase configured with Schema Version 2
-    final db = AppDatabase(NativeDatabase(tempDbFile));
-    
-    // Fetch records to trigger automatic onUpgrade migrations
-    final booksList = await db.select(db.books).get();
-    expect(booksList.length, 1);
-    expect(booksList.first.title, 'Legacy Book');
-    expect(booksList.first.id, 'book-1');
+      rawDb.dispose(); // Gracefully release raw lock
 
-    // Verify V2 fields are added and initialized with defaults
-    expect(booksList.first.isDeleted, false);
-    expect(booksList.first.updatedAt, isNotNull);
+      // 2. Open database via Drift AppDatabase configured with Schema Version 2
+      final db = AppDatabase(NativeDatabase(tempDbFile));
 
-    final bookmarksList = await db.select(db.bookmarks).get();
-    expect(bookmarksList.length, 1);
-    expect(bookmarksList.first.label, 'Legacy Bookmark');
-    expect(bookmarksList.first.updatedAt, isNotNull);
+      // Fetch records to trigger automatic onUpgrade migrations
+      final booksList = await db.select(db.books).get();
+      expect(booksList.length, 1);
+      expect(booksList.first.title, 'Legacy Book');
+      expect(booksList.first.id, 'book-1');
 
-    await db.close();
-  });
+      // Verify V2 fields are added and initialized with defaults
+      expect(booksList.first.isDeleted, false);
+      expect(booksList.first.updatedAt, isNotNull);
+
+      final bookmarksList = await db.select(db.bookmarks).get();
+      expect(bookmarksList.length, 1);
+      expect(bookmarksList.first.label, 'Legacy Bookmark');
+      expect(bookmarksList.first.updatedAt, isNotNull);
+
+      await db.close();
+    },
+  );
 }

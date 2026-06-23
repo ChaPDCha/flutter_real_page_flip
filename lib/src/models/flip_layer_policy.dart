@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:real_page_flip/src/effects/page_flip_engine.dart' show PageFlipOpenClipper;
-import 'package:real_page_flip/src/page_flip_layer_view.dart' show PageFlipLayerView;
+import 'package:real_page_flip/src/effects/page_flip_engine.dart'
+    show PageFlipOpenClipper;
+import 'package:real_page_flip/src/page_flip_layer_view.dart'
+    show PageFlipLayerView;
 
 /// Strategy object that encapsulates 4-mode (single/double × forward/backward)
 /// layer content allocation for the page flip compositing stack.
@@ -25,13 +27,13 @@ import 'package:real_page_flip/src/page_flip_layer_view.dart' show PageFlipLayer
 /// | Double forward | Next spread right half | Current spread left half |
 /// | Double backward | Previous spread left half | Current spread right half |
 class FlipLayerPolicy {
-
   const FlipLayerPolicy({
     required this.isDoubleSpread,
     required this.isForward,
     required this.currentIndex,
     required this.itemCount,
   });
+
   /// Whether the book is in double-spread mode (two pages per viewport).
   final bool isDoubleSpread;
 
@@ -105,7 +107,9 @@ class FlipLayerPolicy {
   /// in from the left edge.
   int? get middlePageIndex {
     if (isDoubleSpread) return null; // uses full spread
-    if (isForward) return currentIndex; // current page stays visible on stationary side
+    if (isForward) {
+      return currentIndex; // current page stays visible on stationary side
+    }
     return currentIndex > 0 ? currentIndex - 1 : null;
   }
 

@@ -82,15 +82,14 @@ class PageFlipGeometry {
 
     /// Size of the widget area being flipped.
     required this.size,
-    
+
     /// True if the layout is double-spread with a central spine
     this.isDoubleSpread = false,
 
     /// True if we are flipping forward (right-to-left), false if backward
     this.isForward = true,
-  }) : assert(!progress.isNaN, 'PageFlipGeometry: progress must not be NaN'),
-       progress = progress.clamp(0.0, 1.0) {
-
+  })  : assert(!progress.isNaN, 'PageFlipGeometry: progress must not be NaN'),
+        progress = progress.clamp(0.0, 1.0) {
     final width = size.width;
     final height = size.height;
     spineX = isDoubleSpread ? width / 2 : 0.0;
@@ -129,9 +128,8 @@ class PageFlipGeometry {
 
     final angleT = math.pow(this.progress, 0.82).toDouble();
     final angleProfile = math.sin(angleT * math.pi);
-    final baseAngle = (touchOffset.dy / height - 0.5) *
-        _kAngleScale *
-        angleProfile;
+    final baseAngle =
+        (touchOffset.dy / height - 0.5) * _kAngleScale * angleProfile;
 
     // Limit angle so the flap stays within page bounds.
     // flapSideWidth: width on the flap side of foldX.
@@ -142,8 +140,7 @@ class PageFlipGeometry {
         : (pageWidth - foldX).clamp(0.0, double.infinity);
     final limitFlap = math.atan2(flapSideWidth, height / 2);
     final limitRevealed = math.atan2(revealedSideWidth, height / 2);
-    final absLimit =
-        math.max(0, math.min(limitFlap, limitRevealed)).toDouble();
+    final absLimit = math.max(0, math.min(limitFlap, limitRevealed)).toDouble();
 
     // Invert angle when flap is on the right so top-touch lifts the flap top
     // consistently regardless of which side of foldX the flap sits on.
@@ -171,7 +168,8 @@ class PageFlipGeometry {
     // ── Flap dimensions ─────────────────────────────────────────────────────
     // flapMaterialWidth is computed above (before angle limits).
     flapVisibleWidth = flapMaterialWidth *
-        (_kFlapWidthBase - _kFlapWidthModulation * math.sin(this.progress * math.pi));
+        (_kFlapWidthBase -
+            _kFlapWidthModulation * math.sin(this.progress * math.pi));
 
     // flapLeft = leftmost x of the visible flap region.
     // freeEdgeX = x of the lifted page edge (the one the user "holds").
@@ -208,6 +206,7 @@ class PageFlipGeometry {
       Offset(freeEdgeX - curveOffset, height / 2),
     );
   }
+
   /// Normalised flip progress from 0.0 to 1.0.
   final double progress;
 
@@ -219,7 +218,7 @@ class PageFlipGeometry {
 
   /// Size of the widget area being flipped.
   final Size size;
-  
+
   /// True if rendering for a dual spread book
   final bool isDoubleSpread;
 

@@ -12,5 +12,6 @@ class ReadingProgress with _$ReadingProgress {
     required DateTime lastReadAt,
   }) = _ReadingProgress;
 
-  factory ReadingProgress.fromJson(Map<String, dynamic> json) => _$ReadingProgressFromJson(json);
+  factory ReadingProgress.fromJson(Map<String, dynamic> json) =>
+      _$ReadingProgressFromJson(json);
 }

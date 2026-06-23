@@ -23,7 +23,9 @@ const _foregroundSizes = <String, int>{
 
 void main() {
   if (!File(_source).existsSync()) {
-    stderr.writeln('Run from example/: dart run tool/generate_launcher_icons.dart');
+    stderr.writeln(
+      'Run from example/: dart run tool/generate_launcher_icons.dart',
+    );
     exit(1);
   }
 

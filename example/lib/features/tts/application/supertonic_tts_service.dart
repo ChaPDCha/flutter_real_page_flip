@@ -40,7 +40,7 @@ class SupertonicTtsService {
   StreamSubscription? _positionSubscription;
 
   SupertonicTtsService({AudioPlayer? audioPlayer})
-      : _audioPlayer = audioPlayer ?? AudioPlayer();
+    : _audioPlayer = audioPlayer ?? AudioPlayer();
 
   bool get isInitialized => _isInitialized;
   bool get isSpeaking => _isSpeaking;
@@ -61,29 +61,42 @@ class SupertonicTtsService {
     }
   }
 
-  Future<void> speak(String text, {String language = 'ko', double speed = 1.0}) async {
+  Future<void> speak(
+    String text, {
+    String language = 'ko',
+    double speed = 1.0,
+  }) async {
     if (!_isInitialized) {
       try {
         await init();
       } catch (e) {
         // Fallback simulation mode for testing or mock environment
-        debugPrint('Fallback mode: Assets missing, simulation activated. Text: $text');
+        debugPrint(
+          'Fallback mode: Assets missing, simulation activated. Text: $text',
+        );
         _isSpeaking = true;
-        _activeAlignments = _calculateAlignments(text, const Duration(seconds: 4));
+        _activeAlignments = _calculateAlignments(
+          text,
+          const Duration(seconds: 4),
+        );
         await _positionSubscription?.cancel();
-        
+
         // Emulate position ticks for fallback/testing
         int ticks = 0;
-        _positionSubscription = Stream.periodic(const Duration(milliseconds: 100))
-            .take(40)
-            .listen((_) {
-          ticks += 100;
-          final pos = Duration(milliseconds: ticks);
-          _emitHighlightAtPosition(pos);
-        }, onDone: () {
-          _highlightController.add(null);
-          _isSpeaking = false;
-        });
+        _positionSubscription =
+            Stream.periodic(const Duration(milliseconds: 100))
+                .take(40)
+                .listen(
+                  (_) {
+                    ticks += 100;
+                    final pos = Duration(milliseconds: ticks);
+                    _emitHighlightAtPosition(pos);
+                  },
+                  onDone: () {
+                    _highlightController.add(null);
+                    _isSpeaking = false;
+                  },
+                );
         return;
       }
     }
@@ -113,7 +126,8 @@ class SupertonicTtsService {
       writeWavFile(outputPath, wav, _textToSpeech!.sampleRate);
 
       final duration = await _audioPlayer.setFilePath(outputPath);
-      final resolvedDuration = duration ?? Duration(milliseconds: text.length * 150);
+      final resolvedDuration =
+          duration ?? Duration(milliseconds: text.length * 150);
 
       _activeAlignments = _calculateAlignments(text, resolvedDuration);
 
@@ -140,16 +154,18 @@ class SupertonicTtsService {
     }
 
     if (activeWord != null) {
-      _highlightController.add(TtsWordHighlight(
-        activeWord.startCharOffset,
-        activeWord.endCharOffset,
-      ));
+      _highlightController.add(
+        TtsWordHighlight(activeWord.startCharOffset, activeWord.endCharOffset),
+      );
     } else {
       _highlightController.add(null);
     }
   }
 
-  List<TtsWordAlignment> _calculateAlignments(String text, Duration totalDuration) {
+  List<TtsWordAlignment> _calculateAlignments(
+    String text,
+    Duration totalDuration,
+  ) {
     final words = <_WordInfo>[];
     final regex = RegExp(r'\S+');
     final matches = regex.allMatches(text);
@@ -161,7 +177,10 @@ class SupertonicTtsService {
       final end = match.end;
 
       double weight = word.length.toDouble();
-      if (word.endsWith('.') || word.endsWith(',') || word.endsWith('?') || word.endsWith('!')) {
+      if (word.endsWith('.') ||
+          word.endsWith(',') ||
+          word.endsWith('?') ||
+          word.endsWith('!')) {
         weight += 2.0;
       }
 
@@ -181,13 +200,15 @@ class SupertonicTtsService {
       currentMs += durationMs;
       final endTime = Duration(milliseconds: currentMs.toInt());
 
-      alignments.add(TtsWordAlignment(
-        word: w.word,
-        startCharOffset: w.start,
-        endCharOffset: w.end,
-        startTime: startTime,
-        endTime: endTime,
-      ));
+      alignments.add(
+        TtsWordAlignment(
+          word: w.word,
+          startCharOffset: w.start,
+          endCharOffset: w.end,
+          startTime: startTime,
+          endTime: endTime,
+        ),
+      );
     }
 
     return alignments;

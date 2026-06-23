@@ -146,9 +146,9 @@ void main() {
       );
 
       return recorder.endRecording().toImage(
-        size.width.toInt(),
-        size.height.toInt(),
-      );
+            size.width.toInt(),
+            size.height.toInt(),
+          );
     }
 
     test('mesh covers area between flapLeft and foldX at mid-height', () async {
@@ -234,9 +234,9 @@ void main() {
       );
 
       final image = await recorder.endRecording().toImage(
-        size.width.toInt(),
-        size.height.toInt(),
-      );
+            size.width.toInt(),
+            size.height.toInt(),
+          );
       expect(image, isNotNull);
       image.dispose();
     });

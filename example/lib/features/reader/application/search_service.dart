@@ -32,19 +32,21 @@ class SearchService {
 
   /// Indexes the book content asynchronously inside a background Isolate.
   Future<void> indexBook(Book book) async {
-    if (book.format == BookFormat.pdf) return; // PDF contains fixed vector layout
+    if (book.format == BookFormat.pdf) {
+      return; // PDF contains fixed vector layout
+    }
 
-    final params = {
-      'filePath': book.filePath,
-      'format': book.format.name,
-    };
+    final params = {'filePath': book.filePath, 'format': book.format.name};
 
     // Run heavy EPUB/TXT content parsing in background isolate to keep 120 FPS
     final parsed = await compute(_parseBookInIsolate, params);
     if (parsed.isEmpty) return;
 
     // Delete existing indices to prevent duplicates on re-import
-    await _db.customStatement('DELETE FROM book_contents_fts WHERE bookId = ?', [book.id]);
+    await _db.customStatement(
+      'DELETE FROM book_contents_fts WHERE bookId = ?',
+      [book.id],
+    );
 
     // Batch insert using custom SQL in a single fast transaction
     await _db.transaction(() async {
@@ -64,13 +66,15 @@ class SearchService {
   Future<List<SearchResult>> searchBook(String bookId, String query) async {
     if (query.trim().isEmpty) return [];
 
-    final rows = await _db.customSelect(
-      'SELECT chapterIndex, content FROM book_contents_fts WHERE bookId = ? AND content LIKE ?',
-      variables: [
-        Variable.withString(bookId),
-        Variable.withString('%$query%'),
-      ],
-    ).get();
+    final rows = await _db
+        .customSelect(
+          'SELECT chapterIndex, content FROM book_contents_fts WHERE bookId = ? AND content LIKE ?',
+          variables: [
+            Variable.withString(bookId),
+            Variable.withString('%$query%'),
+          ],
+        )
+        .get();
 
     final results = <SearchResult>[];
     for (final row in rows) {
@@ -81,19 +85,24 @@ class SearchService {
       while (index != -1) {
         final start = (index - 25).clamp(0, content.length);
         final end = (index + query.length + 35).clamp(0, content.length);
-        final snippet = '${start > 0 ? "..." : ""}'
+        final snippet =
+            '${start > 0 ? "..." : ""}'
             '${content.substring(start, end).replaceAll('\n', ' ').trim()}'
             '${end < content.length ? "..." : ""}';
 
-        results.add(SearchResult(
-          chapterIndex: chapterIndex,
-          snippet: snippet,
-          matchIndex: index,
-        ));
+        results.add(
+          SearchResult(
+            chapterIndex: chapterIndex,
+            snippet: snippet,
+            matchIndex: index,
+          ),
+        );
 
         // Find next match in the same chapter
         index = content.toLowerCase().indexOf(query.toLowerCase(), index + 1);
-        if (results.length >= 50) break; // Limit to top 50 matches to prevent overflow
+        if (results.length >= 50) {
+          break; // Limit to top 50 matches to prevent overflow
+        }
       }
       if (results.length >= 50) break;
     }
@@ -103,7 +112,9 @@ class SearchService {
 }
 
 /// Parsing function executed completely inside the background Isolate
-Future<List<ParsedChapterContent>> _parseBookInIsolate(Map<String, dynamic> params) async {
+Future<List<ParsedChapterContent>> _parseBookInIsolate(
+  Map<String, dynamic> params,
+) async {
   final filePath = params['filePath'] as String;
   final format = params['format'] as String;
   final chaptersText = <ParsedChapterContent>[];

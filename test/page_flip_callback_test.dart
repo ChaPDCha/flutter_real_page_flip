@@ -121,7 +121,8 @@ void main() {
       expect(flippedCount, equals(0));
     });
 
-    testWidgets('onFlipStart and onFlipEnd fire during a successful programmatic flip',
+    testWidgets(
+        'onFlipStart and onFlipEnd fire during a successful programmatic flip',
         (tester) async {
       int startCount = 0;
       int endCount = 0;
@@ -147,7 +148,8 @@ void main() {
       expect(endCount, equals(1));
     });
 
-    testWidgets('onFlipStart and onFlipEnd fire during a programmatically cancelled flip (snapback)',
+    testWidgets(
+        'onFlipStart and onFlipEnd fire during a programmatically cancelled flip (snapback)',
         (tester) async {
       int startCount = 0;
       int endCount = 0;
@@ -173,7 +175,8 @@ void main() {
       expect(endCount, equals(1));
     });
 
-    testWidgets('onFlipEnd fires during a boundary swipe at the first page (gesture reject)',
+    testWidgets(
+        'onFlipEnd fires during a boundary swipe at the first page (gesture reject)',
         (tester) async {
       int startCount = 0;
       int endCount = 0;

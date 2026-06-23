@@ -56,9 +56,8 @@ void main() {
                 dragProgress: dragProgress,
                 isDragging: true,
                 isForward: isForward,
-                touchPosition: isForward
-                    ? const Offset(350, 150)
-                    : const Offset(50, 150),
+                touchPosition:
+                    isForward ? const Offset(350, 150) : const Offset(50, 150),
                 pageSnapshots: pageSnapshots,
                 spreadSnapshots: const {},
                 pageKeys: {

@@ -67,7 +67,7 @@ void main() {
       // Both are valid — just verify we get something non-none
       expect(
         event.type == StickSlipEventType.slipRelease ||
-        event.type == StickSlipEventType.microSlip,
+            event.type == StickSlipEventType.microSlip,
         isTrue,
         reason: 'Should detect either slip-release or micro-slip',
       );
@@ -91,7 +91,9 @@ void main() {
       }
     });
 
-    test('energy accumulates only when stationary threshold is exceeded (regression)', () {
+    test(
+        'energy accumulates only when stationary threshold is exceeded (regression)',
+        () {
       // Regression: _lastMoveTime was being updated every frame outside the
       // dt-threshold check, so dt was always ~16ms and never accumulated energy.
       DateTime fakeNow = DateTime(2024, 1, 1);

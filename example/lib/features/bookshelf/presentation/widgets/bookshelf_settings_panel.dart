@@ -8,10 +8,7 @@ import '../../../sync/application/sync_provider.dart';
 import '../../../sync/domain/sync_state.dart';
 
 class BookshelfSettingsPanel {
-  static void show({
-    required BuildContext context,
-    required WidgetRef ref,
-  }) {
+  static void show({required BuildContext context, required WidgetRef ref}) {
     const theme = ReaderThemeData.charcoal; // Unified to dark mode
 
     WoltModalSheet.show(
@@ -64,7 +61,10 @@ class BookshelfSettingsPanel {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    _buildStatusIndicator(syncState.status, theme),
+                                    _buildStatusIndicator(
+                                      syncState.status,
+                                      theme,
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
                                       _getSyncStatusText(syncState.status),
@@ -79,9 +79,11 @@ class BookshelfSettingsPanel {
                             ),
                           ),
                           ShadButton(
-                            onPressed: syncState.status == SyncStatus.pulling ||
+                            onPressed:
+                                syncState.status == SyncStatus.pulling ||
                                     syncState.status == SyncStatus.pushing ||
-                                    syncState.status == SyncStatus.authenticating
+                                    syncState.status ==
+                                        SyncStatus.authenticating
                                 ? null
                                 : () => syncNotifier.sync(),
                             backgroundColor: theme.accentColor,
@@ -156,7 +158,11 @@ class BookshelfSettingsPanel {
     );
   }
 
-  static Widget _buildInfoRow(String label, String value, ReaderThemeData theme) {
+  static Widget _buildInfoRow(
+    String label,
+    String value,
+    ReaderThemeData theme,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -179,7 +185,10 @@ class BookshelfSettingsPanel {
     );
   }
 
-  static Widget _buildStatusIndicator(SyncStatus status, ReaderThemeData theme) {
+  static Widget _buildStatusIndicator(
+    SyncStatus status,
+    ReaderThemeData theme,
+  ) {
     Color color = theme.secondaryTextColor;
     switch (status) {
       case SyncStatus.authenticating:
@@ -201,10 +210,7 @@ class BookshelfSettingsPanel {
     return Container(
       width: 6,
       height: 6,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 

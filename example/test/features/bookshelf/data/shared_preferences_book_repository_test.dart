@@ -38,30 +38,33 @@ void main() {
       expect(books.first.author, equals('Test Author'));
     });
 
-    test('addBook overwrites/replaces duplicate book instead of duplicating in list', () async {
-      final book1 = Book(
-        id: 'test_id',
-        title: 'Title V1',
-        author: 'Author',
-        filePath: '/path/to/v1.epub',
-        addedAt: DateTime.now(),
-      );
+    test(
+      'addBook overwrites/replaces duplicate book instead of duplicating in list',
+      () async {
+        final book1 = Book(
+          id: 'test_id',
+          title: 'Title V1',
+          author: 'Author',
+          filePath: '/path/to/v1.epub',
+          addedAt: DateTime.now(),
+        );
 
-      final book2 = Book(
-        id: 'test_id',
-        title: 'Title V2', // Same ID, new metadata
-        author: 'Author',
-        filePath: '/path/to/v2.epub',
-        addedAt: DateTime.now(),
-      );
+        final book2 = Book(
+          id: 'test_id',
+          title: 'Title V2', // Same ID, new metadata
+          author: 'Author',
+          filePath: '/path/to/v2.epub',
+          addedAt: DateTime.now(),
+        );
 
-      await repository.addBook(book1);
-      await repository.addBook(book2);
+        await repository.addBook(book1);
+        await repository.addBook(book2);
 
-      final books = await repository.getBooks();
-      expect(books.length, equals(1));
-      expect(books.first.title, equals('Title V2'));
-    });
+        final books = await repository.getBooks();
+        expect(books.length, equals(1));
+        expect(books.first.title, equals('Title V2'));
+      },
+    );
 
     test('removeBook deletes the book from list', () async {
       final book = Book(
@@ -73,12 +76,12 @@ void main() {
       );
 
       await repository.addBook(book);
-      
+
       var books = await repository.getBooks();
       expect(books.length, equals(1));
 
       await repository.removeBook('delete_id');
-      
+
       books = await repository.getBooks();
       expect(books, isEmpty);
     });

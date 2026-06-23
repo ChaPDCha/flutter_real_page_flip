@@ -45,7 +45,8 @@ void main() {
       expect(find.byType(FractionallySizedBox), findsNothing);
     });
 
-    testWidgets('right half align clips to viewport half width', (tester) async {
+    testWidgets('right half align clips to viewport half width',
+        (tester) async {
       final image = await solidSpreadImage();
       addTearDown(image.dispose);
 
@@ -76,7 +77,8 @@ void main() {
   });
 
   group('clipSpreadPageHalf', () {
-    testWidgets('expands half-width slot child for host layouts', (tester) async {
+    testWidgets('expands half-width slot child for host layouts',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

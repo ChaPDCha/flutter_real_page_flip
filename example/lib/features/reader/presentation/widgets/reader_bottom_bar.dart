@@ -51,7 +51,11 @@ class ReaderBottomBar extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: themeData.panelColor.withValues(alpha: 0.75),
-                border: Border(top: BorderSide(color: themeData.textColor.withValues(alpha: 0.1))),
+                border: Border(
+                  top: BorderSide(
+                    color: themeData.textColor.withValues(alpha: 0.1),
+                  ),
+                ),
               ),
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).padding.bottom + 12,
@@ -112,7 +116,9 @@ class ReaderBottomBar extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.center,
                                   style: textStyle.copyWith(
-                                    color: themeData.textColor.withValues(alpha: 0.6),
+                                    color: themeData.textColor.withValues(
+                                      alpha: 0.6,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -131,7 +137,8 @@ class ReaderBottomBar extends StatelessWidget {
                           ),
                         ),
                         _ChapterNavButton(
-                          enabled: readerState.currentChapterIndex <
+                          enabled:
+                              readerState.currentChapterIndex <
                               readerState.chapters.length - 1,
                           icon: Icons.keyboard_arrow_right_rounded,
                           color: themeData.textColor,
@@ -151,9 +158,10 @@ class ReaderBottomBar extends StatelessWidget {
 
   static String _pageCounterLabel(ReaderState state, {required bool pdf}) {
     if (state.pages.isEmpty) return '';
-    final counter =
-        '${state.currentPageIndex + 1} / ${state.pages.length}';
-    return pdf ? '페이지 $counter' : '${state.currentPageIndex + 1}/${state.pages.length}';
+    final counter = '${state.currentPageIndex + 1} / ${state.pages.length}';
+    return pdf
+        ? '페이지 $counter'
+        : '${state.currentPageIndex + 1}/${state.pages.length}';
   }
 
   static String _chapterLabel(ReaderState state) {

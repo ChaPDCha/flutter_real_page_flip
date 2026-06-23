@@ -25,7 +25,9 @@ class AppThemeController extends _$AppThemeController {
 
     state = themeType;
     unawaited(FirebaseService.logThemeChanged(themeType.name));
-    await ref.read(sharedPreferencesProvider).setString(_appThemeKey, themeType.name);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setString(_appThemeKey, themeType.name);
   }
 
   ReaderThemeType _loadTheme(String? savedTheme) {
@@ -40,7 +42,9 @@ class AppThemeController extends _$AppThemeController {
   }
 
   ReaderThemeType? _migrateLegacyTheme() {
-    final legacyJson = ref.read(sharedPreferencesProvider).getString(_legacyReaderSettingsKey);
+    final legacyJson = ref
+        .read(sharedPreferencesProvider)
+        .getString(_legacyReaderSettingsKey);
     if (legacyJson == null) return null;
 
     try {

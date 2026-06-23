@@ -92,7 +92,8 @@ void main() {
       expect(currentPage, equals(0));
     });
 
-    testWidgets('methods safe when not attached to widget', (WidgetTester tester) async {
+    testWidgets('methods safe when not attached to widget',
+        (WidgetTester tester) async {
       final controller = PageFlipController();
 
       // No widget attached — should not throw

@@ -32,9 +32,19 @@ void main() {
       expect(overlapX, greaterThanOrEqualTo(0.0),
           reason: 'No overlap found at y=$y. '
               'stationary contains at any X? '
-              '${[0, 200, 400, 600].map((x) => '($x,${y}):${stationaryPath.contains(Offset(x.toDouble(), y))}').join(', ')}. '
+              '${[
+            0,
+            200,
+            400,
+            600
+          ].map((x) => '($x,${y}):${stationaryPath.contains(Offset(x.toDouble(), y))}').join(', ')}. '
               'flap contains at any X? '
-              '${[0, 200, 400, 600].map((x) => '($x,${y}):${flapPath.contains(Offset(x.toDouble(), y))}').join(', ')}');
+              '${[
+            0,
+            200,
+            400,
+            600
+          ].map((x) => '($x,${y}):${flapPath.contains(Offset(x.toDouble(), y))}').join(', ')}');
     }
 
     // ---------------------------------------------------------------------------
@@ -181,7 +191,9 @@ void main() {
         expect(flapPath.contains(const Offset(0, 0)), isFalse);
       });
 
-      test('progress≈1 does NOT trigger degenerate guard (flap spans full width)', () {
+      test(
+          'progress≈1 does NOT trigger degenerate guard (flap spans full width)',
+          () {
         final geo = PageFlipGeometry(
           progress: 0.999,
           isRightToLeft: true,
@@ -309,8 +321,7 @@ void main() {
         expect(openPath.contains(const Offset(5, 300)), isFalse);
 
         // far-right should be in open path, not stationary.
-        expect(stationaryPath.contains(const Offset(width - 5, 300)),
-            isFalse);
+        expect(stationaryPath.contains(const Offset(width - 5, 300)), isFalse);
         expect(openPath.contains(const Offset(width - 5, 300)), isTrue);
       });
     });

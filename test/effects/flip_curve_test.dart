@@ -63,7 +63,8 @@ void main() {
       const curve = PaperFlipCurve();
       const eps = 0.001;
       final derivStart = (curve.transform(eps) - curve.transform(0.0)) / eps;
-      final derivEnd = (curve.transform(1.0) - curve.transform(1.0 - eps)) / eps;
+      final derivEnd =
+          (curve.transform(1.0) - curve.transform(1.0 - eps)) / eps;
       // Slope should be finite and positive at both ends.
       expect(derivStart, greaterThan(0.0));
       expect(derivEnd, greaterThan(0.0));

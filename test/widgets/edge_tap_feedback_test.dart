@@ -43,7 +43,8 @@ void main() {
           ),
         ),
       );
-      final screenSize = tester.view.physicalSize / tester.view.devicePixelRatio;
+      final screenSize =
+          tester.view.physicalSize / tester.view.devicePixelRatio;
       await tester.tapAt(Offset(screenSize.width - 20, screenSize.height / 2));
       expect(tapped, isTrue);
     });

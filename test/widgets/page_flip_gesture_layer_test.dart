@@ -14,7 +14,13 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (_) {},
-        onEffectTrigger: (_, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+        onEffectTrigger: (_,
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
       );
       controller.setIndex(0, 5);
       controller.updateCachedWidth(400);

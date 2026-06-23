@@ -82,7 +82,8 @@ void main() {
       expect(() => mgr.dispose(), returnsNormally);
     });
 
-    test('getCaptureIndices includes current index when includeCurrent is true', () {
+    test('getCaptureIndices includes current index when includeCurrent is true',
+        () {
       final mgr = PreRenderManager();
 
       expect(
@@ -104,7 +105,8 @@ void main() {
         mgr.getSpreadCaptureIndices(5, 10, includeCurrent: true),
         equals([4, 5, 6]),
       );
-      expect(mgr.getSpreadCaptureIndices(0, 10, includeCurrent: true), equals([0, 1]));
+      expect(mgr.getSpreadCaptureIndices(0, 10, includeCurrent: true),
+          equals([0, 1]));
       expect(mgr.getSpreadCaptureIndices(5, 10), isEmpty);
     });
 
@@ -119,7 +121,9 @@ void main() {
       expect(mgr.spreadSnapshots.containsKey(99), isFalse);
     });
 
-    test('_doCaptureSnapshots Set-dispose prevents double dispose on shared image (regression)', () async {
+    test(
+        '_doCaptureSnapshots Set-dispose prevents double dispose on shared image (regression)',
+        () async {
       // Regression: captureAsSpread && index != currentIndex stores the same
       // image ref in both pageSnapshots and spreadSnapshots. When that index
       // is later evicted, the old image must be disposed exactly once (Set
@@ -164,7 +168,8 @@ void main() {
       );
     });
 
-    test('hasAdjacentSnapshots returns true when all targets are cached', () async {
+    test('hasAdjacentSnapshots returns true when all targets are cached',
+        () async {
       final mgr = PreRenderManager();
       mgr.prepareKeys(5, 10);
       final image = await _createTestImage();

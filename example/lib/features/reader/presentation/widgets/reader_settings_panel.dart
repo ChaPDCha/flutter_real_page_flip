@@ -77,28 +77,43 @@ class ReaderSettingsPanel {
                         width: 160,
                         child: Row(
                           children: [
-                            Icon(Icons.brightness_low, color: theme.secondaryTextColor, size: 15),
+                            Icon(
+                              Icons.brightness_low,
+                              color: theme.secondaryTextColor,
+                              size: 15,
+                            ),
                             Expanded(
                               child: SliderTheme(
                                 data: SliderThemeData(
                                   trackHeight: 2,
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 6,
+                                  ),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 12,
+                                  ),
                                   activeTrackColor: theme.accentColor,
                                   inactiveTrackColor: theme.dividerColor,
                                   thumbColor: theme.accentColor,
-                                  overlayColor: theme.accentColor.withValues(alpha: 0.12),
+                                  overlayColor: theme.accentColor.withValues(
+                                    alpha: 0.12,
+                                  ),
                                 ),
                                 child: Slider(
                                   value: currentState.settings.brightness,
                                   min: 0.3,
                                   max: 1.0,
                                   divisions: 14,
-                                  onChanged: (val) => controller.updateBrightness(val),
+                                  onChanged: (val) =>
+                                      controller.updateBrightness(val),
                                 ),
                               ),
                             ),
-                            Icon(Icons.brightness_high, color: theme.secondaryTextColor, size: 15),
+                            Icon(
+                              Icons.brightness_high,
+                              color: theme.secondaryTextColor,
+                              size: 15,
+                            ),
                           ],
                         ),
                       ),
@@ -114,16 +129,20 @@ class ReaderSettingsPanel {
                         children: [
                           _FontOption(
                             label: '기본 고딕',
-                            isSelected: currentState.settings.fontFamily == null,
+                            isSelected:
+                                currentState.settings.fontFamily == null,
                             onTap: () => controller.updateFontFamily(null),
                             theme: theme,
                           ),
                           const SizedBox(width: 8),
                           _FontOption(
                             label: '바른 명조',
-                            isSelected: currentState.settings.fontFamily == 'serif',
+                            isSelected:
+                                currentState.settings.fontFamily == 'serif',
                             onTap: () => controller.updateFontFamily(
-                              currentState.settings.fontFamily == 'serif' ? null : 'serif',
+                              currentState.settings.fontFamily == 'serif'
+                                  ? null
+                                  : 'serif',
                             ),
                             theme: theme,
                           ),
@@ -160,7 +179,7 @@ class ReaderSettingsPanel {
                   ],
                 ),
               );
-            }
+            },
           ),
           stickyActionBar: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -202,7 +221,10 @@ class _SettingRow extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: ReaderTypography.getUiStyle(color: theme.textColor, fontSize: 14),
+            style: ReaderTypography.getUiStyle(
+              color: theme.textColor,
+              fontSize: 14,
+            ),
           ),
         ),
         child,
@@ -284,7 +306,9 @@ class _FontOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? theme.accentColor.withValues(alpha: 0.12) : Colors.transparent,
+          color: isSelected
+              ? theme.accentColor.withValues(alpha: 0.12)
+              : Colors.transparent,
           border: Border.all(
             color: isSelected ? theme.accentColor : theme.dividerColor,
             width: isSelected ? 1.2 : 1,
@@ -303,4 +327,3 @@ class _FontOption extends StatelessWidget {
     );
   }
 }
-

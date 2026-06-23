@@ -17,7 +17,7 @@ class TxtService {
       return [
         EpubChapter()
           ..Title = '빈 책'
-          ..HtmlContent = '<html><body><p>내용이 없는 책입니다.</p></body></html>'
+          ..HtmlContent = '<html><body><p>내용이 없는 책입니다.</p></body></html>',
       ];
     }
 
@@ -30,7 +30,9 @@ class TxtService {
       if (content.length > maxChapterLength) {
         int index = 1;
         for (int i = 0; i < content.length; i += maxChapterLength) {
-          final end = (i + maxChapterLength < content.length) ? i + maxChapterLength : content.length;
+          final end = (i + maxChapterLength < content.length)
+              ? i + maxChapterLength
+              : content.length;
           final chunk = content.substring(i, end);
           chapters.add(
             EpubChapter()
@@ -64,16 +66,18 @@ class TxtService {
       for (int i = 0; i < matches.length; i++) {
         final currentMatch = matches[i];
         final start = currentMatch.start;
-        final end = (i < matches.length - 1) ? matches[i + 1].start : content.length;
-        
+        final end = (i < matches.length - 1)
+            ? matches[i + 1].start
+            : content.length;
+
         // Extract chapter title (the matched line)
         final fullMatchText = content.substring(start, end).trim();
-        
+
         // Find the end of the matched title line
         final firstNewline = fullMatchText.indexOf('\n');
         String title = '';
         String body = '';
-        
+
         if (firstNewline != -1) {
           title = fullMatchText.substring(0, firstNewline).trim();
           body = fullMatchText.substring(firstNewline).trim();

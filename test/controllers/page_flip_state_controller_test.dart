@@ -14,7 +14,13 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+        onEffectTrigger: (effect,
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
       );
     });
 
@@ -63,8 +69,10 @@ void main() {
       controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
       controller.onDragUpdate(
         DragUpdateDetails(
-          primaryDelta: -50, delta: const Offset(-50, 0),
-          globalPosition: Offset.zero, localPosition: Offset.zero,
+          primaryDelta: -50,
+          delta: const Offset(-50, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
         ),
         5,
       );
@@ -135,7 +143,11 @@ void main() {
 
       // Drag far beyond the screen width
       controller.onDragUpdate(
-        DragUpdateDetails(primaryDelta: -500, delta: const Offset(-500, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        DragUpdateDetails(
+            primaryDelta: -500,
+            delta: const Offset(-500, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero),
         5,
       );
       expect(controller.dragProgress, greaterThanOrEqualTo(0.0));
@@ -143,7 +155,11 @@ void main() {
 
       // Drag in opposite direction
       controller.onDragUpdate(
-        DragUpdateDetails(primaryDelta: 200, delta: const Offset(200, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        DragUpdateDetails(
+            primaryDelta: 200,
+            delta: const Offset(200, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero),
         5,
       );
       expect(controller.dragProgress, greaterThanOrEqualTo(0.0));
@@ -157,7 +173,11 @@ void main() {
       // Try forward drag (negative delta = forward)
       controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
       controller.onDragUpdate(
-        DragUpdateDetails(primaryDelta: -50, delta: const Offset(-50, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        DragUpdateDetails(
+            primaryDelta: -50,
+            delta: const Offset(-50, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero),
         5,
       );
       expect(controller.isDragging, false,
@@ -171,7 +191,11 @@ void main() {
       // Try backward drag (positive delta = backward)
       controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
       controller.onDragUpdate(
-        DragUpdateDetails(primaryDelta: 50, delta: const Offset(50, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        DragUpdateDetails(
+            primaryDelta: 50,
+            delta: const Offset(50, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero),
         5,
       );
       expect(controller.isDragging, false,
@@ -185,7 +209,11 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (PageFlipEvent effect, {int? intensity, double? volume, double? texture, double? resistance}) {},
+        onEffectTrigger: (PageFlipEvent effect,
+            {int? intensity,
+            double? volume,
+            double? texture,
+            double? resistance}) {},
       );
       // No exception expected
       expect(() => fresh.dispose(), returnsNormally);
@@ -198,7 +226,8 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
+        onEffectTrigger: (effect,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
           effects.add(effect);
         },
       );
@@ -229,7 +258,8 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
+        onEffectTrigger: (effect,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
           if (effect == PageFlipEvent.texturedHaptic && intensity != null) {
             intensities.add(intensity);
           }
@@ -242,19 +272,35 @@ void main() {
         5,
       );
       effectController.onDragUpdate(
-        DragUpdateDetails(primaryDelta: -10, delta: const Offset(-10, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        DragUpdateDetails(
+            primaryDelta: -10,
+            delta: const Offset(-10, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero),
         5,
       );
       effectController.onDragUpdate(
-        DragUpdateDetails(primaryDelta: -15, delta: const Offset(-15, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        DragUpdateDetails(
+            primaryDelta: -15,
+            delta: const Offset(-15, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero),
         5,
       );
       effectController.onDragUpdate(
-        DragUpdateDetails(primaryDelta: -20, delta: const Offset(-20, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        DragUpdateDetails(
+            primaryDelta: -20,
+            delta: const Offset(-20, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero),
         5,
       );
       effectController.onDragUpdate(
-        DragUpdateDetails(primaryDelta: -25, delta: const Offset(-25, 0), globalPosition: Offset.zero, localPosition: Offset.zero),
+        DragUpdateDetails(
+            primaryDelta: -25,
+            delta: const Offset(-25, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero),
         5,
       );
 
@@ -281,7 +327,13 @@ void main() {
           dragProgressAtFinalize = flipController.dragProgress;
           isDraggingAtFinalize = flipController.isDragging;
         },
-        onEffectTrigger: (_, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+        onEffectTrigger: (_,
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
       );
       flipController.setIndex(0, 3);
       flipController.updateCachedWidth(400);
@@ -310,7 +362,8 @@ void main() {
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (effect, {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
+        onEffectTrigger: (effect,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
           if (effect == PageFlipEvent.sound) soundFired = true;
           if (effect == PageFlipEvent.impulseHaptic) hapticFired = true;
         },

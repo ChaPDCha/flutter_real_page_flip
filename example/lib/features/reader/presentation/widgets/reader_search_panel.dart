@@ -92,15 +92,29 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    style: ReaderTypography.getUiStyle(color: panelTheme.textColor, fontSize: 15),
+                    style: ReaderTypography.getUiStyle(
+                      color: panelTheme.textColor,
+                      fontSize: 15,
+                    ),
                     cursorColor: panelTheme.accentColor,
                     decoration: InputDecoration(
                       hintText: '책 내용 검색...',
-                      hintStyle: ReaderTypography.getUiStyle(color: panelTheme.secondaryTextColor.withValues(alpha: 0.4), fontSize: 15),
-                      prefixIcon: Icon(Icons.search_outlined, color: panelTheme.secondaryTextColor, size: 20),
+                      hintStyle: ReaderTypography.getUiStyle(
+                        color: panelTheme.secondaryTextColor.withValues(
+                          alpha: 0.4,
+                        ),
+                        fontSize: 15,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_outlined,
+                        color: panelTheme.secondaryTextColor,
+                        size: 20,
+                      ),
                       border: InputBorder.none,
                       filled: true,
-                      fillColor: panelTheme.backgroundColor.withValues(alpha: 0.6),
+                      fillColor: panelTheme.backgroundColor.withValues(
+                        alpha: 0.6,
+                      ),
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -108,7 +122,10 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: panelTheme.accentColor, width: 1.2),
+                        borderSide: BorderSide(
+                          color: panelTheme.accentColor,
+                          width: 1.2,
+                        ),
                       ),
                     ),
                     onChanged: _onSearchChanged,
@@ -133,50 +150,66 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
             // Search Results Body
             Expanded(
               child: _isSearching
-                  ? Center(child: CircularProgressIndicator(color: panelTheme.accentColor))
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: panelTheme.accentColor,
+                      ),
+                    )
                   : _results.isEmpty
-                      ? Center(
-                          child: Text(
-                            _searchController.text.isEmpty ? '검색어를 입력해 보세요.' : '검색 결과가 없습니다.',
-                            style: ReaderTypography.getUiStyle(color: panelTheme.secondaryTextColor, fontSize: 13),
-                          ),
-                        )
-                      : ListView.separated(
-                          itemCount: _results.length,
-                          separatorBuilder: (context, index) => Divider(color: panelTheme.dividerColor, height: 1),
-                          itemBuilder: (context, index) {
-                            final result = _results[index];
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                              title: Text(
-                                result.snippet,
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: ReaderTypography.getUiStyle(
-                                  color: panelTheme.textColor,
-                                  fontSize: 14,
-                                  letterSpacing: -0.1,
-                                ),
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(
-                                  '제 ${result.chapterIndex + 1}장',
-                                  style: ReaderTypography.getGeometricStyle(
-                                    color: panelTheme.accentColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-                              ),
-                              onTap: () {
-                                widget.onResultSelected(result.chapterIndex, _currentQuery);
-                                Navigator.of(context).pop();
-                              },
-                            );
-                          },
+                  ? Center(
+                      child: Text(
+                        _searchController.text.isEmpty
+                            ? '검색어를 입력해 보세요.'
+                            : '검색 결과가 없습니다.',
+                        style: ReaderTypography.getUiStyle(
+                          color: panelTheme.secondaryTextColor,
+                          fontSize: 13,
                         ),
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: _results.length,
+                      separatorBuilder: (context, index) =>
+                          Divider(color: panelTheme.dividerColor, height: 1),
+                      itemBuilder: (context, index) {
+                        final result = _results[index];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 8,
+                          ),
+                          title: Text(
+                            result.snippet,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: ReaderTypography.getUiStyle(
+                              color: panelTheme.textColor,
+                              fontSize: 14,
+                              letterSpacing: -0.1,
+                            ),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              '제 ${result.chapterIndex + 1}장',
+                              style: ReaderTypography.getGeometricStyle(
+                                color: panelTheme.accentColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                          onTap: () {
+                            widget.onResultSelected(
+                              result.chapterIndex,
+                              _currentQuery,
+                            );
+                            Navigator.of(context).pop();
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -184,4 +217,3 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
     );
   }
 }
-

@@ -15,7 +15,8 @@ class Books extends Table {
   TextColumn get coverPath => text().nullable()();
   TextColumn get format => text()();
   DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
-  IntColumn get lastReadChapterIndex => integer().withDefault(const Constant(0))();
+  IntColumn get lastReadChapterIndex =>
+      integer().withDefault(const Constant(0))();
   IntColumn get lastReadPageIndex => integer().withDefault(const Constant(0))();
   DateTimeColumn get updatedAt => dateTime().nullable()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
@@ -26,7 +27,8 @@ class Books extends Table {
 
 class Highlights extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get bookId => text().references(Books, #id, onDelete: KeyAction.cascade)();
+  TextColumn get bookId =>
+      text().references(Books, #id, onDelete: KeyAction.cascade)();
   IntColumn get chapterIndex => integer()();
   IntColumn get startOffset => integer()();
   IntColumn get endOffset => integer()();
@@ -40,7 +42,8 @@ class Highlights extends Table {
 
 class Bookmarks extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get bookId => text().references(Books, #id, onDelete: KeyAction.cascade)();
+  TextColumn get bookId =>
+      text().references(Books, #id, onDelete: KeyAction.cascade)();
   IntColumn get chapterIndex => integer()();
   IntColumn get pageIndex => integer()();
   TextColumn get label => text()();
@@ -51,7 +54,8 @@ class Bookmarks extends Table {
 
 class ReadingLogs extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get bookId => text().references(Books, #id, onDelete: KeyAction.cascade)();
+  TextColumn get bookId =>
+      text().references(Books, #id, onDelete: KeyAction.cascade)();
   IntColumn get chapterIndex => integer()();
   IntColumn get durationSeconds => integer()();
   DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
@@ -69,7 +73,7 @@ class AppDatabase extends _$AppDatabase {
     onCreate: (m) async {
       await m.createAll();
       await customStatement(
-        'CREATE VIRTUAL TABLE IF NOT EXISTS book_contents_fts USING fts5(bookId, chapterIndex, content, tokenize="unicode61");'
+        'CREATE VIRTUAL TABLE IF NOT EXISTS book_contents_fts USING fts5(bookId, chapterIndex, content, tokenize="unicode61");',
       );
     },
     onUpgrade: (m, from, to) async {
@@ -77,21 +81,26 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(books, books.updatedAt);
         await m.addColumn(books, books.isDeleted);
         await m.addColumn(bookmarks, bookmarks.updatedAt);
-        
+
         // Populate default time vectors and tombstones for legacy records to prevent Null mapping errors
-        await customStatement("UPDATE books SET updated_at = CAST(strftime('%s', 'now') AS INTEGER), is_deleted = 0;");
-        await customStatement("UPDATE bookmarks SET updated_at = CAST(strftime('%s', 'now') AS INTEGER);");
+        await customStatement(
+          "UPDATE books SET updated_at = CAST(strftime('%s', 'now') AS INTEGER), is_deleted = 0;",
+        );
+        await customStatement(
+          "UPDATE bookmarks SET updated_at = CAST(strftime('%s', 'now') AS INTEGER);",
+        );
       }
       await customStatement(
-        'CREATE VIRTUAL TABLE IF NOT EXISTS book_contents_fts USING fts5(bookId, chapterIndex, content, tokenize="unicode61");'
+        'CREATE VIRTUAL TABLE IF NOT EXISTS book_contents_fts USING fts5(bookId, chapterIndex, content, tokenize="unicode61");',
       );
     },
   );
 
   // Highlights DB Helpers
   Future<List<Highlight>> getHighlightsForBook(String bookId) {
-    return (select(highlights)
-          ..where((tbl) => tbl.bookId.equals(bookId) & tbl.isDeleted.equals(false)))
+    return (select(highlights)..where(
+          (tbl) => tbl.bookId.equals(bookId) & tbl.isDeleted.equals(false),
+        ))
         .get();
   }
 
@@ -100,14 +109,19 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> deleteHighlight(int id) {
-    return (update(highlights)..where((tbl) => tbl.id.equals(id)))
-        .write(HighlightsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now())));
+    return (update(highlights)..where((tbl) => tbl.id.equals(id))).write(
+      HighlightsCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   // Bookmarks DB Helpers
   Future<List<Bookmark>> getBookmarksForBook(String bookId) {
-    return (select(bookmarks)
-          ..where((tbl) => tbl.bookId.equals(bookId) & tbl.isDeleted.equals(false)))
+    return (select(bookmarks)..where(
+          (tbl) => tbl.bookId.equals(bookId) & tbl.isDeleted.equals(false),
+        ))
         .get();
   }
 
@@ -116,8 +130,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> deleteBookmark(int id) {
-    return (update(bookmarks)..where((tbl) => tbl.id.equals(id)))
-        .write(const BookmarksCompanion(isDeleted: Value(true)));
+    return (update(bookmarks)..where((tbl) => tbl.id.equals(id))).write(
+      const BookmarksCompanion(isDeleted: Value(true)),
+    );
   }
 }
 

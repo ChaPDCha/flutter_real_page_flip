@@ -28,10 +28,12 @@ void main() {
 
     test('higher sigmoidK produces sharper transition', () {
       final lowK = PaperResistanceModel.resistance(
-        foldAngle: 0.5, sigmoidK: 2.0,
+        foldAngle: 0.5,
+        sigmoidK: 2.0,
       );
       final highK = PaperResistanceModel.resistance(
-        foldAngle: 0.5, sigmoidK: 12.0,
+        foldAngle: 0.5,
+        sigmoidK: 12.0,
       );
       // Both at center should give similar values
       expect(lowK, greaterThan(0));
@@ -42,14 +44,20 @@ void main() {
   group('PaperResistanceModel.frictionCoefficient', () {
     test('at velocity=0 equals muStatic', () {
       final f = PaperResistanceModel.frictionCoefficient(
-        velocity: 0, muStatic: 0.6, muKinetic: 0.25, stribeckV0: 0.08,
+        velocity: 0,
+        muStatic: 0.6,
+        muKinetic: 0.25,
+        stribeckV0: 0.08,
       );
       expect(f, closeTo(0.6, 0.001));
     });
 
     test('at high velocity approaches muKinetic', () {
       final f = PaperResistanceModel.frictionCoefficient(
-        velocity: 1.0, muStatic: 0.6, muKinetic: 0.25, stribeckV0: 0.08,
+        velocity: 1.0,
+        muStatic: 0.6,
+        muKinetic: 0.25,
+        stribeckV0: 0.08,
       );
       expect(f, closeTo(0.25, 0.01));
     });
@@ -68,10 +76,16 @@ void main() {
   group('PaperResistanceModel.hapticAmplitude', () {
     test('returns value in [0.05, 1.0] range', () {
       final minAmp = PaperResistanceModel.hapticAmplitude(
-        velocity: 0, friction: 0, texture: 0, resistance: 0,
+        velocity: 0,
+        friction: 0,
+        texture: 0,
+        resistance: 0,
       );
       final maxAmp = PaperResistanceModel.hapticAmplitude(
-        velocity: 1.0, friction: 1.0, texture: 1.0, resistance: 1.0,
+        velocity: 1.0,
+        friction: 1.0,
+        texture: 1.0,
+        resistance: 1.0,
       );
       expect(minAmp, greaterThanOrEqualTo(0.05));
       expect(maxAmp, lessThanOrEqualTo(1.0));
@@ -79,20 +93,32 @@ void main() {
 
     test('higher velocity increases amplitude', () {
       final slow = PaperResistanceModel.hapticAmplitude(
-        velocity: 0.2, friction: 0.5, texture: 0.5, resistance: 0.5,
+        velocity: 0.2,
+        friction: 0.5,
+        texture: 0.5,
+        resistance: 0.5,
       );
       final fast = PaperResistanceModel.hapticAmplitude(
-        velocity: 0.9, friction: 0.5, texture: 0.5, resistance: 0.5,
+        velocity: 0.9,
+        friction: 0.5,
+        texture: 0.5,
+        resistance: 0.5,
       );
       expect(fast, greaterThan(slow));
     });
 
     test('resistance boost adds amplitude above 0.75', () {
       final low = PaperResistanceModel.hapticAmplitude(
-        velocity: 0.5, friction: 0.5, texture: 0.5, resistance: 0.7,
+        velocity: 0.5,
+        friction: 0.5,
+        texture: 0.5,
+        resistance: 0.7,
       );
       final high = PaperResistanceModel.hapticAmplitude(
-        velocity: 0.5, friction: 0.5, texture: 0.5, resistance: 0.9,
+        velocity: 0.5,
+        friction: 0.5,
+        texture: 0.5,
+        resistance: 0.9,
       );
       expect(high, greaterThan(low));
     });
@@ -101,7 +127,10 @@ void main() {
   group('PaperResistanceModel.hapticDuration', () {
     test('clamps to [minDurationMs, maxDurationMs]', () {
       final d = PaperResistanceModel.hapticDuration(
-        resistance: 2.0, friction: 2.0, minDurationMs: 8, maxDurationMs: 120,
+        resistance: 2.0,
+        friction: 2.0,
+        minDurationMs: 8,
+        maxDurationMs: 120,
       );
       expect(d, greaterThanOrEqualTo(8));
       expect(d, lessThanOrEqualTo(120));
@@ -109,10 +138,12 @@ void main() {
 
     test('higher resistance increases duration', () {
       final low = PaperResistanceModel.hapticDuration(
-        resistance: 0.2, friction: 0.5,
+        resistance: 0.2,
+        friction: 0.5,
       );
       final high = PaperResistanceModel.hapticDuration(
-        resistance: 0.9, friction: 0.5,
+        resistance: 0.9,
+        friction: 0.5,
       );
       expect(high, greaterThanOrEqualTo(low));
     });

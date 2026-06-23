@@ -51,13 +51,24 @@ class BookshelfScreen extends ConsumerWidget {
                     Row(
                       children: [
                         IconButton(
-                          icon: Icon(Icons.settings_outlined, color: themeData.textColor, size: 22),
-                          onPressed: () => BookshelfSettingsPanel.show(context: context, ref: ref),
+                          icon: Icon(
+                            Icons.settings_outlined,
+                            color: themeData.textColor,
+                            size: 22,
+                          ),
+                          onPressed: () => BookshelfSettingsPanel.show(
+                            context: context,
+                            ref: ref,
+                          ),
                           tooltip: '서재 설정',
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: Icon(Icons.add, color: themeData.textColor, size: 24),
+                          icon: Icon(
+                            Icons.add,
+                            color: themeData.textColor,
+                            size: 24,
+                          ),
                           onPressed: () => _pickAndImportEpub(context, ref),
                           tooltip: '책 추가 (EPUB, TXT, PDF)',
                         ),
@@ -75,25 +86,29 @@ class BookshelfScreen extends ConsumerWidget {
                       child: _buildEmptyState(context, ref, themeData),
                     )
                   : SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 8.0,
+                      ),
                       sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 0.55,
-                          crossAxisSpacing: 20,
-                          mainAxisSpacing: 28,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final book = books[index];
-                            return _buildBookCard(context, ref, book, themeData);
-                          },
-                          childCount: books.length,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              childAspectRatio: 0.55,
+                              crossAxisSpacing: 20,
+                              mainAxisSpacing: 28,
+                            ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final book = books[index];
+                          return _buildBookCard(context, ref, book, themeData);
+                        }, childCount: books.length),
                       ),
                     ),
               loading: () => SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 8.0,
+                ),
                 sliver: _buildSkeletonSliverGrid(themeData),
               ),
               error: (err, stack) => SliverFillRemaining(
@@ -158,14 +173,22 @@ class BookshelfScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorState(Object err, ReaderThemeData themeData, WidgetRef ref) {
+  Widget _buildErrorState(
+    Object err,
+    ReaderThemeData themeData,
+    WidgetRef ref,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: ReaderThemeData.errorColor),
+            const Icon(
+              Icons.error_outline,
+              size: 48,
+              color: ReaderThemeData.errorColor,
+            ),
             const SizedBox(height: 16),
             Text(
               '오류가 발생했습니다:\n$err',
@@ -233,7 +256,11 @@ class BookshelfScreen extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.file_open_outlined, size: 16, color: themeData.buttonForegroundColor),
+                  Icon(
+                    Icons.file_open_outlined,
+                    size: 16,
+                    color: themeData.buttonForegroundColor,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     '책 파일 가져오기',
@@ -260,9 +287,7 @@ class BookshelfScreen extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => BookReaderScreen(book: book),
-          ),
+          MaterialPageRoute(builder: (context) => BookReaderScreen(book: book)),
         );
       },
       onLongPress: () => _showBookActionsSheet(context, ref, book, themeData),
@@ -481,7 +506,10 @@ class BookshelfScreen extends ConsumerWidget {
                   '저자: ${book.author}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: ReaderTypography.getUiStyle(fontSize: 13, color: themeData.secondaryTextColor),
+                  style: ReaderTypography.getUiStyle(
+                    fontSize: 13,
+                    color: themeData.secondaryTextColor,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -498,7 +526,10 @@ class BookshelfScreen extends ConsumerWidget {
                   foregroundColor: themeData.buttonForegroundColor,
                   child: Text(
                     '책 읽기',
-                    style: ReaderTypography.getUiStyle(fontWeight: FontWeight.bold, color: themeData.buttonForegroundColor),
+                    style: ReaderTypography.getUiStyle(
+                      fontWeight: FontWeight.bold,
+                      color: themeData.buttonForegroundColor,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -511,25 +542,37 @@ class BookshelfScreen extends ConsumerWidget {
                         backgroundColor: themeData.panelColor,
                         title: Text(
                           '책 삭제',
-                          style: ReaderTypography.getUiStyle(color: themeData.textColor, fontWeight: FontWeight.bold),
+                          style: ReaderTypography.getUiStyle(
+                            color: themeData.textColor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         content: Text(
                           '"${book.title}" 책을 서재에서 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
-                          style: ReaderTypography.getUiStyle(color: themeData.secondaryTextColor),
+                          style: ReaderTypography.getUiStyle(
+                            color: themeData.secondaryTextColor,
+                          ),
                         ),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.of(dialogContext).pop(false),
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
                             child: Text(
                               '취소',
-                              style: ReaderTypography.getUiStyle(color: themeData.secondaryTextColor),
+                              style: ReaderTypography.getUiStyle(
+                                color: themeData.secondaryTextColor,
+                              ),
                             ),
                           ),
                           TextButton(
-                            onPressed: () => Navigator.of(dialogContext).pop(true),
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(true),
                             child: Text(
                               '삭제',
-                              style: ReaderTypography.getUiStyle(color: ReaderThemeData.errorColor, fontWeight: FontWeight.bold),
+                              style: ReaderTypography.getUiStyle(
+                                color: ReaderThemeData.errorColor,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -537,12 +580,17 @@ class BookshelfScreen extends ConsumerWidget {
                     );
                     if (confirm == true && modalContext.mounted) {
                       Navigator.of(modalContext).pop();
-                      await ref.read(bookshelfControllerProvider.notifier).removeBook(book.id);
+                      await ref
+                          .read(bookshelfControllerProvider.notifier)
+                          .removeBook(book.id);
                     }
                   },
                   child: Text(
                     '서재에서 삭제',
-                    style: ReaderTypography.getUiStyle(color: themeData.textColor, fontWeight: FontWeight.bold),
+                    style: ReaderTypography.getUiStyle(
+                      color: themeData.textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -550,7 +598,9 @@ class BookshelfScreen extends ConsumerWidget {
                   onPressed: () => Navigator.of(modalContext).pop(),
                   child: Text(
                     '닫기',
-                    style: ReaderTypography.getUiStyle(color: themeData.textColor),
+                    style: ReaderTypography.getUiStyle(
+                      color: themeData.textColor,
+                    ),
                   ),
                 ),
               ],

@@ -58,8 +58,7 @@ class FirebaseService {
   // Remote Config helpers
   // ---------------------------------------------------------------------------
 
-  static bool get adsEnabled =>
-      _remoteConfig?.getBool('ads_enabled') ?? true;
+  static bool get adsEnabled => _remoteConfig?.getBool('ads_enabled') ?? true;
 
   static int get maxBookshelfItems =>
       _remoteConfig?.getInt('max_bookshelf_items') ?? 50;
@@ -81,8 +80,7 @@ class FirebaseService {
   static Future<void> setUserProperty({
     required String name,
     required String value,
-  }) =>
-      _analytics?.setUserProperty(name: name, value: value) ?? Future.value();
+  }) => _analytics?.setUserProperty(name: name, value: value) ?? Future.value();
 
   // ---------------------------------------------------------------------------
   // Events
@@ -92,27 +90,29 @@ class FirebaseService {
     required String name,
     Map<String, Object>? parameters,
   }) =>
-      _analytics?.logEvent(name: name, parameters: parameters) ?? Future.value();
+      _analytics?.logEvent(name: name, parameters: parameters) ??
+      Future.value();
 
   // -- Book lifecycle --------------------------------------------------------
 
-  static Future<void> logBookOpened(String bookId, String format) =>
-      logEvent(name: 'book_opened', parameters: {
-        'book_id': bookId,
-        'format': format,
-      });
+  static Future<void> logBookOpened(String bookId, String format) => logEvent(
+    name: 'book_opened',
+    parameters: {'book_id': bookId, 'format': format},
+  );
 
-  static Future<void> logBookClosed(String bookId, int durationSec) =>
-      logEvent(name: 'book_closed', parameters: {
-        'book_id': bookId,
-        'duration_sec': durationSec,
-      });
+  static Future<void> logBookClosed(String bookId, int durationSec) => logEvent(
+    name: 'book_closed',
+    parameters: {'book_id': bookId, 'duration_sec': durationSec},
+  );
 
   static Future<void> logPageTurned(String bookId, {bool isForward = true}) =>
-      logEvent(name: 'page_turned', parameters: {
-        'book_id': bookId,
-        'direction': isForward ? 'forward' : 'backward',
-      });
+      logEvent(
+        name: 'page_turned',
+        parameters: {
+          'book_id': bookId,
+          'direction': isForward ? 'forward' : 'backward',
+        },
+      );
 
   // -- Reader settings -------------------------------------------------------
 
@@ -147,8 +147,10 @@ class FirebaseService {
 
   // -- Search / Highlight ----------------------------------------------------
 
-  static Future<void> logSearchPerformed(String query) =>
-      logEvent(name: 'search_performed', parameters: {'query_length': query.length});
+  static Future<void> logSearchPerformed(String query) => logEvent(
+    name: 'search_performed',
+    parameters: {'query_length': query.length},
+  );
 
   static Future<void> logHighlightAdded(String bookId) =>
       logEvent(name: 'highlight_added', parameters: {'book_id': bookId});

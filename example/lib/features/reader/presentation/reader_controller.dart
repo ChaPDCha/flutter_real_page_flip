@@ -35,14 +35,16 @@ class ReaderController extends _$ReaderController {
     _disposed = false;
     ref.onDispose(() => _disposed = true);
     ref.listen(appThemeControllerProvider, (previous, next) {
-      if (previous != next && state.viewportWidth > 0 && state.viewportHeight > 0) {
+      if (previous != next &&
+          state.viewportWidth > 0 &&
+          state.viewportHeight > 0) {
         _recalculatePages();
       }
     });
 
     // Asynchronously initialize book content
     _init(book);
-    
+
     // Register general dispose hooks if needed
     ref.onDispose(() {
       PdfService.closeDocument(book.filePath);
@@ -66,7 +68,9 @@ class ReaderController extends _$ReaderController {
       if (format == BookFormat.epub) {
         final epubBook = await _epubService.loadBook(book.filePath);
         final chapters = _epubService.flattenChapters(epubBook);
-        final chapterIndex = progress.chapterIndex < chapters.length ? progress.chapterIndex : 0;
+        final chapterIndex = progress.chapterIndex < chapters.length
+            ? progress.chapterIndex
+            : 0;
 
         state = state.copyWith(
           epubBook: epubBook,
@@ -84,7 +88,9 @@ class ReaderController extends _$ReaderController {
       } else if (format == BookFormat.txt) {
         final txtService = TxtService();
         final chapters = await txtService.parseChapters(book.filePath);
-        final chapterIndex = progress.chapterIndex < chapters.length ? progress.chapterIndex : 0;
+        final chapterIndex = progress.chapterIndex < chapters.length
+            ? progress.chapterIndex
+            : 0;
 
         state = state.copyWith(
           chapters: chapters,
@@ -112,7 +118,9 @@ class ReaderController extends _$ReaderController {
           ..HtmlContent = '';
 
         final pages = List.generate(pageCount, (index) => '$index');
-        final pageIndex = progress.pageIndex < pageCount ? progress.pageIndex : 0;
+        final pageIndex = progress.pageIndex < pageCount
+            ? progress.pageIndex
+            : 0;
 
         state = state.copyWith(
           chapters: [mockChapter],
@@ -137,10 +145,7 @@ class ReaderController extends _$ReaderController {
     if (state.viewportWidth == width && state.viewportHeight == height) {
       return;
     }
-    state = state.copyWith(
-      viewportWidth: width,
-      viewportHeight: height,
-    );
+    state = state.copyWith(viewportWidth: width, viewportHeight: height);
     _recalculatePages();
   }
 
@@ -156,7 +161,9 @@ class ReaderController extends _$ReaderController {
     final themeData = ReaderThemeData.get(ref.read(appThemeControllerProvider));
     final isDouble = state.isDoublePage;
     final spacing = isDouble ? 56.0 : 0.0;
-    final activeWidth = isDouble ? (state.viewportWidth - spacing) / 2 : state.viewportWidth;
+    final activeWidth = isDouble
+        ? (state.viewportWidth - spacing) / 2
+        : state.viewportWidth;
     final baseStyle = ReaderTypography.getBookStyle(
       fontSize: state.settings.fontSize,
       color: themeData.textColor,
@@ -176,20 +183,23 @@ class ReaderController extends _$ReaderController {
 
     var pageIndex = state.currentPageIndex;
     // Align starting index to the left page of a spread in double-page mode
-    if (isDouble && !state.isPdfLandscape && pageIndex > 0 && pageIndex % 2 != 0) {
+    if (isDouble &&
+        !state.isPdfLandscape &&
+        pageIndex > 0 &&
+        pageIndex % 2 != 0) {
       pageIndex--;
     }
     if (pageIndex >= pages.length) {
       pageIndex = pages.isEmpty ? 0 : pages.length - 1;
-      if (isDouble && !state.isPdfLandscape && pageIndex > 0 && pageIndex % 2 != 0) {
+      if (isDouble &&
+          !state.isPdfLandscape &&
+          pageIndex > 0 &&
+          pageIndex % 2 != 0) {
         pageIndex--;
       }
     }
 
-    state = state.copyWith(
-      pages: pages,
-      currentPageIndex: pageIndex,
-    );
+    state = state.copyWith(pages: pages, currentPageIndex: pageIndex);
 
     _saveProgress();
   }
@@ -236,7 +246,9 @@ class ReaderController extends _$ReaderController {
       settings: state.settings.copyWith(fontFamily: fontFamily),
     );
     _recalculatePages();
-    if (fontFamily != null) unawaited(FirebaseService.logFontFamilyChanged(fontFamily));
+    if (fontFamily != null) {
+      unawaited(FirebaseService.logFontFamilyChanged(fontFamily));
+    }
     await _saveSettings();
   }
 
@@ -264,7 +276,7 @@ class ReaderController extends _$ReaderController {
 
   void jumpToChapterWithQuery(int chapterIndex, String query) {
     if (chapterIndex < 0 || chapterIndex >= state.chapters.length) return;
-    
+
     state = state.copyWith(
       currentChapterIndex: chapterIndex,
       currentPageIndex: 0,
@@ -272,7 +284,7 @@ class ReaderController extends _$ReaderController {
     );
 
     _recalculatePages();
-    
+
     // Find the exact page index containing the matching search term
     for (int i = 0; i < state.pages.length; i++) {
       if (state.pages[i].toLowerCase().contains(query.toLowerCase())) {
@@ -306,12 +318,16 @@ class ReaderController extends _$ReaderController {
       final prevChapterIndex = state.currentChapterIndex - 1;
       final currentChapter = state.chapters[prevChapterIndex];
       final text = _epubService.getChapterText(currentChapter);
-      
-      final themeData = ReaderThemeData.get(ref.read(appThemeControllerProvider));
+
+      final themeData = ReaderThemeData.get(
+        ref.read(appThemeControllerProvider),
+      );
       final isDouble = state.isDoublePage;
       final spacing = isDouble ? 56.0 : 0.0;
-      final activeWidth = isDouble ? (state.viewportWidth - spacing) / 2 : state.viewportWidth;
-      
+      final activeWidth = isDouble
+          ? (state.viewportWidth - spacing) / 2
+          : state.viewportWidth;
+
       final pages = EpubPagingCalculator.splitIntoPages(
         text: text,
         viewportWidth: activeWidth,
@@ -323,12 +339,15 @@ class ReaderController extends _$ReaderController {
           color: themeData.textColor,
         ),
       );
-      
+
       int targetPageIndex = pages.isEmpty ? 0 : pages.length - 1;
-      if (isDouble && !state.isPdfLandscape && targetPageIndex > 0 && targetPageIndex % 2 != 0) {
+      if (isDouble &&
+          !state.isPdfLandscape &&
+          targetPageIndex > 0 &&
+          targetPageIndex % 2 != 0) {
         targetPageIndex--;
       }
-      
+
       state = state.copyWith(
         currentChapterIndex: prevChapterIndex,
         pages: pages,
@@ -362,10 +381,7 @@ class ReaderController extends _$ReaderController {
         return ReadingProgress.fromJson(json.decode(jsonStr));
       } catch (_) {}
     }
-    return ReadingProgress(
-      bookId: bookId,
-      lastReadAt: DateTime.now(),
-    );
+    return ReadingProgress(bookId: bookId, lastReadAt: DateTime.now());
   }
 
   Future<void> _saveProgress() async {
@@ -391,20 +407,24 @@ class ReaderController extends _$ReaderController {
     required String colorHex,
     String? note,
   }) async {
-    await ref.read(appDatabaseProvider).insertHighlight(
-      HighlightsCompanion(
-        bookId: Value(book.id),
-        chapterIndex: Value(chapterIndex),
-        startOffset: Value(startOffset),
-        endOffset: Value(endOffset),
-        selectedText: Value(text),
-        highlightColor: Value(colorHex),
-        note: Value(note),
-      ),
-    );
+    await ref
+        .read(appDatabaseProvider)
+        .insertHighlight(
+          HighlightsCompanion(
+            bookId: Value(book.id),
+            chapterIndex: Value(chapterIndex),
+            startOffset: Value(startOffset),
+            endOffset: Value(endOffset),
+            selectedText: Value(text),
+            highlightColor: Value(colorHex),
+            note: Value(note),
+          ),
+        );
 
     // Refresh highlights in state
-    final highlights = await ref.read(appDatabaseProvider).getHighlightsForBook(book.id);
+    final highlights = await ref
+        .read(appDatabaseProvider)
+        .getHighlightsForBook(book.id);
     state = state.copyWith(highlights: highlights);
   }
 
@@ -412,7 +432,9 @@ class ReaderController extends _$ReaderController {
     await ref.read(appDatabaseProvider).deleteHighlight(id);
 
     // Refresh highlights in state
-    final highlights = await ref.read(appDatabaseProvider).getHighlightsForBook(book.id);
+    final highlights = await ref
+        .read(appDatabaseProvider)
+        .getHighlightsForBook(book.id);
     state = state.copyWith(highlights: highlights);
   }
 }

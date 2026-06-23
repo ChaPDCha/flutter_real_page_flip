@@ -26,15 +26,72 @@ Widget buildSelectionToolbar({
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildColorOption(ref, pageStart, sel, txt, 'FFD48F', const Color(0xFFDDB032), state, book, currentChapterIndex, theme),
-          _buildColorOption(ref, pageStart, sel, txt, 'A2D497', const Color(0xFF76A665), state, book, currentChapterIndex, theme),
-          _buildColorOption(ref, pageStart, sel, txt, 'F2A6A6', const Color(0xFFC05D5D), state, book, currentChapterIndex, theme),
-          _buildColorOption(ref, pageStart, sel, txt, 'A6C7F2', const Color(0xFF5D80A6), state, book, currentChapterIndex, theme),
+          _buildColorOption(
+            ref,
+            pageStart,
+            sel,
+            txt,
+            'FFD48F',
+            const Color(0xFFDDB032),
+            state,
+            book,
+            currentChapterIndex,
+            theme,
+          ),
+          _buildColorOption(
+            ref,
+            pageStart,
+            sel,
+            txt,
+            'A2D497',
+            const Color(0xFF76A665),
+            state,
+            book,
+            currentChapterIndex,
+            theme,
+          ),
+          _buildColorOption(
+            ref,
+            pageStart,
+            sel,
+            txt,
+            'F2A6A6',
+            const Color(0xFFC05D5D),
+            state,
+            book,
+            currentChapterIndex,
+            theme,
+          ),
+          _buildColorOption(
+            ref,
+            pageStart,
+            sel,
+            txt,
+            'A6C7F2',
+            const Color(0xFF5D80A6),
+            state,
+            book,
+            currentChapterIndex,
+            theme,
+          ),
           IconButton(
-            icon: Icon(Icons.note_add_outlined, size: 18, color: theme.textColor),
+            icon: Icon(
+              Icons.note_add_outlined,
+              size: 18,
+              color: theme.textColor,
+            ),
             onPressed: () {
               state.hideToolbar();
-              _showNoteDialog(context, ref, pageStart, sel, txt, book, currentChapterIndex, theme);
+              _showNoteDialog(
+                context,
+                ref,
+                pageStart,
+                sel,
+                txt,
+                book,
+                currentChapterIndex,
+                theme,
+              );
             },
           ),
         ],
@@ -121,7 +178,11 @@ void _showNoteDialog(
       backgroundColor: theme.panelColor,
       title: Text(
         '메모 추가',
-        style: ReaderTypography.getUiStyle(color: theme.textColor, fontSize: 16, fontWeight: FontWeight.bold),
+        style: ReaderTypography.getUiStyle(
+          color: theme.textColor,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       content: TextField(
         controller: noteController,
@@ -129,9 +190,15 @@ void _showNoteDialog(
         cursorColor: theme.accentColor,
         decoration: InputDecoration(
           hintText: '메모를 입력하세요...',
-          hintStyle: ReaderTypography.getUiStyle(color: theme.secondaryTextColor.withValues(alpha: 0.4)),
-          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.dividerColor)),
-          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.accentColor)),
+          hintStyle: ReaderTypography.getUiStyle(
+            color: theme.secondaryTextColor.withValues(alpha: 0.4),
+          ),
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: theme.dividerColor),
+          ),
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: theme.accentColor),
+          ),
         ),
       ),
       actions: [
@@ -145,7 +212,9 @@ void _showNoteDialog(
         TextButton(
           onPressed: () async {
             final navigator = Navigator.of(context);
-            final controller = ref.read(readerControllerProvider(book).notifier);
+            final controller = ref.read(
+              readerControllerProvider(book).notifier,
+            );
             await controller.addHighlight(
               chapterIndex: currentChapterIndex,
               startOffset: pageStart + sel.start,
@@ -158,7 +227,10 @@ void _showNoteDialog(
           },
           child: Text(
             '저장',
-            style: ReaderTypography.getUiStyle(color: theme.accentColor, fontWeight: FontWeight.bold),
+            style: ReaderTypography.getUiStyle(
+              color: theme.accentColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],

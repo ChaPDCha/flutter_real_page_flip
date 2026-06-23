@@ -31,4 +31,3 @@ class ActiveTtsStartOffset extends _$ActiveTtsStartOffset {
     state = offset;
   }
 }
-

@@ -173,7 +173,8 @@ void main() {
       expect(clipper.shouldReclip(clipper2), isTrue);
     });
 
-    test('shouldReclip returns false when progress and touchOffset are same', () {
+    test('shouldReclip returns false when progress and touchOffset are same',
+        () {
       final clipper = PageFlipClipper(
         progress: 0.5,
         isRightToLeft: true,
@@ -310,7 +311,8 @@ void main() {
       expect(canvas.didDrawVertices, isTrue);
     });
 
-    test('early progress draws texture when fade-out window includes progress', () {
+    test('early progress draws texture when fade-out window includes progress',
+        () {
       final canvas = MockCanvas();
 
       PageFlipPainter(
@@ -408,7 +410,7 @@ void main() {
           flapBackStrength: 0.3,
           isDoubleSpread: true,
           isForward: true,
-          flapContentRevealEnd: 0.95,  // progress=0.96 > 0.95 → full reveal
+          flapContentRevealEnd: 0.95, // progress=0.96 > 0.95 → full reveal
           flapContentFadeOutEnd: 0.20,
           flapContentRevealStart: 0.85,
         ).paint(canvas, const Size(800, 600));
@@ -579,10 +581,12 @@ class TrackingShaderCanvas extends Fake implements Canvas {
   void transform(Float64List matrix4) {}
 
   @override
-  void clipRect(Rect rect, {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
+  void clipRect(Rect rect,
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
 
   @override
-  void clipPath(Path path, {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
+  void clipPath(Path path,
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
 }
 
 class MockCanvas extends Fake implements Canvas {
@@ -611,8 +615,10 @@ class MockCanvas extends Fake implements Canvas {
   void transform(Float64List matrix4) {}
 
   @override
-  void clipRect(Rect rect, {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
+  void clipRect(Rect rect,
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
 
   @override
-  void clipPath(Path path, {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
+  void clipPath(Path path,
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
 }
