@@ -1,12 +1,8 @@
 /// A high-fidelity, physics-based page flip animation engine for Flutter.
 ///
-/// This package provides [PageFlipWidget] which models real-world paper
+/// This package provides PageFlipWidget which models real-world paper
 /// friction, resistance, and dynamic shadows.
 library real_page_flip;
-
-import 'package:real_page_flip/page_flip.dart' show PageFlipWidget;
-import 'package:real_page_flip/real_page_flip.dart' show PageFlipWidget;
-import 'package:real_page_flip/src/page_flip_widget.dart' show PageFlipWidget;
 
 export 'src/controllers/page_flip_state_controller.dart' show PageFlipEvent;
 export 'src/effects/page_flip_engine.dart'

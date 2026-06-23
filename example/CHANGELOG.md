@@ -3,6 +3,14 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.21+27] - 2026-06-24
+### 🎨 UI/UX
+- Play Store 리스팅 아이콘을 신규 브랜드 로고로 교체
+
+### 🐛 수정
+- 햅틱 진동 엔진 전면 재설계: 이벤트별 고유 진동 시그니처 적용 (시작/더블탭/미끄러짐/질감)
+- 물리 엔진 stickSlip 강도를 진동 세기에 반영하여 종이 넘김 촉감 현실화
+
 ## [1.0.20+26] - 2026-06-23
 ### 🐛 수정
 - 페이지플립 햅틱 진동 출력 개선: Android에서 `Vibration.vibrate()` 모터 직접 구동으로 실제 진동 보장

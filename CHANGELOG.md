@@ -3,6 +3,22 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.7.1] - 2026-06-24
+### Changed
+- Haptic engine redesigned with event-specific vibration signatures:
+  - `startHaptic`: single 45ms pulse at amplitude 180
+  - `impulseHaptic`: crisp double-tap pattern for tap-flip confirmation
+  - `slipRelease`: intensity-based double-tap pattern (pages slipping feel)
+  - `microSlip`: intensity-based single pulse (acceleration bursts)
+  - `sound`: 28ms pulse synchronized with audio
+  - `texturedHaptic`: duration reduced to 10-30ms for cleaner throttle separation
+- Added `_vibratePattern()` using `Vibration.vibrate(pattern:, intensities:)` for
+  multi-pulse haptic sequences on amplitude-control-capable devices
+- Added `_iosHaptic()` / `_cancelHaptic()` primitives
+- Removed `_triggerImpact()` / `HapticImpactType` in favour of event-specific handlers
+- Stick-slip events now use their `intensity` field (0.0-1.0) to dynamically scale
+  vibration duration and amplitude instead of hardcoded light/medium presets
+
 ## [1.7.0] - 2026-06-23
 ### Added
 - `DefaultPageFlipEffectHandler` is now exported from the public API

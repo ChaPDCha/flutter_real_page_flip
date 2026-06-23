@@ -1,0 +1,2 @@
+• Updated Play Store listing icon to new brand logo
+• Enhanced haptic feedback with richer paper-texture vibration
