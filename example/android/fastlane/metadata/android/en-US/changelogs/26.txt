@@ -1,0 +1,1 @@
+• Improved haptic vibration — page flip motor feedback now works reliably on Android

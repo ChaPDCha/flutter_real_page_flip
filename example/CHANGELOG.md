@@ -3,6 +3,10 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.20+26] - 2026-06-23
+### 🐛 수정
+- 페이지플립 햅틱 진동 출력 개선: Android에서 `Vibration.vibrate()` 모터 직접 구동으로 실제 진동 보장
+
 ## [1.0.19+25] - 2026-06-23
 ### 🔧 빌드/배포
 - 엄격한 품질 게이트 준수를 위한 코드 포맷팅 및 린트 경고 교정 완료

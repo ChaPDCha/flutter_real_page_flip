@@ -3,6 +3,22 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.7.0] - 2026-06-23
+### Added
+- `DefaultPageFlipEffectHandler` is now exported from the public API
+  (`package:real_page_flip/real_page_flip.dart`)
+
+### Fixed
+- `_triggerImpact()` now fires `Vibration.vibrate()` after `HapticFeedback`,
+  ensuring haptic vibration is actually felt on Android devices where
+  `HapticFeedback` is too subtle or imperceptible. Impact events
+  (startHaptic, impulseHaptic) now produce real motor vibration.
+- Non-amplitude-control Android devices now use `Vibration.vibrate(duration:)`
+  instead of `HapticFeedback.selectionClick()` during paper-texture haptics
+  (texturedHaptic), providing noticeably stronger feedback.
+- Duration clamp raised from 5-20ms to 8-35ms so paper-texture vibration
+  pulses are long enough to feel.
+
 ## [1.6.2] - 2026-06-23
 ### Changed
 - Minor style and formatting lint fixes to pass strict quality gate standards.
