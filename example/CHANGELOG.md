@@ -3,6 +3,10 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.23+29] - 2026-06-24
+### 🎨 UI/UX
+- 앱 아이콘을 새로운 Realbook 브랜드 로고로 교체 (Android/iOS 전체 해상도)
+
 ## [1.0.22+28] - 2026-06-24
 ### ✨ 기능
 - Firebase Crashlytics + Sentry 이중 오류 리포팅 시스템 구축
