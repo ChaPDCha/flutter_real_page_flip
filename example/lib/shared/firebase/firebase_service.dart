@@ -1,5 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 /// Central Firebase facade — Analytics + Remote Config.
 ///
@@ -22,6 +24,15 @@ class FirebaseService {
     }
   }
 
+  /// Lazy — returns null if Firebase Crashlytics is not yet initialized.
+  static FirebaseCrashlytics? get _crashlytics {
+    try {
+      return FirebaseCrashlytics.instance;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Lazy — returns null if Firebase Remote Config is not yet initialized.
   static FirebaseRemoteConfig? get _remoteConfig {
     try {
@@ -29,6 +40,29 @@ class FirebaseService {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Record a non-fatal error to Crashlytics. Safe to call before Firebase init.
+  static void recordError(
+    Object error,
+    StackTrace? stack, {
+    String? reason,
+    bool fatal = false,
+  }) {
+    // Crashlytics
+    final crashlytics = _crashlytics;
+    if (crashlytics != null) {
+      crashlytics.recordError(error, stack, fatal: fatal);
+      if (reason != null) {
+        crashlytics.log(reason);
+      }
+    }
+
+    // Sentry
+    Sentry.captureException(
+      error,
+      stackTrace: stack,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -49,8 +83,8 @@ class FirebaseService {
 
     try {
       await config.fetchAndActivate();
-    } catch (_) {
-      // Use defaults if fetch fails.
+    } catch (e, st) {
+      recordError(e, st, reason: 'RemoteConfig fetchAndActivate');
     }
   }
 

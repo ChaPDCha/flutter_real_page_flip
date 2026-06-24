@@ -10,6 +10,7 @@ class SyncController extends Notifier<SyncState> {
   late final CloudSyncClient _syncClient;
   late final SyncRepository _repository;
   late final SharedPreferences _prefs;
+  bool _isSyncing = false;
 
   @override
   SyncState build() {
@@ -29,6 +30,8 @@ class SyncController extends Notifier<SyncState> {
 
   /// Silent anonymous onboarding and bi-directional delta synchronization.
   Future<void> sync() async {
+    if (_isSyncing) return;
+    _isSyncing = true;
     final originalState = state;
     state = state.copyWith(status: SyncStatus.authenticating);
 
@@ -87,6 +90,8 @@ class SyncController extends Notifier<SyncState> {
         errorMessage: e.toString(),
         lastSyncedAt: originalState.lastSyncedAt,
       );
+    } finally {
+      _isSyncing = false;
     }
   }
 

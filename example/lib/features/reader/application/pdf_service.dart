@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:pdfx/pdfx.dart';
+import '../../../shared/firebase/firebase_service.dart';
 
 class PdfService {
   static final Map<String, PdfDocument> _documentCache = {};
@@ -40,7 +41,9 @@ class PdfService {
     if (document != null) {
       try {
         await document.close();
-      } catch (_) {}
+      } catch (e, st) {
+        FirebaseService.recordError(e, st, reason: 'PDF document close');
+      }
     }
     // Remove all cached page images for this file
     _pageImageCache.removeWhere((key, _) => key.startsWith('$filePath#'));
@@ -62,7 +65,10 @@ class PdfService {
         await page.close();
         return isLandscape;
       }
-    } catch (_) {}
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'PDF landscape check');
+      return false;
+    }
     return false;
   }
 }

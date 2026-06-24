@@ -6,14 +6,12 @@ import '../../../../shared/theme/reader_theme.dart';
 import '../../../../shared/theme/reader_typography.dart';
 import '../../../bookshelf/domain/book.dart';
 import '../reader_controller.dart';
-import '../reader_state.dart';
 
 class ReaderSettingsPanel {
   static void show({
     required BuildContext context,
     required WidgetRef ref,
     required Book book,
-    required ReaderState state,
     required ReaderController controller,
   }) {
     const theme = ReaderThemeData.charcoal; // Unified to premium dark mode

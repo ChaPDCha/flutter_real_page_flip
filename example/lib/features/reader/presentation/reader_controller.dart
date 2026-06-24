@@ -363,7 +363,13 @@ class ReaderController extends _$ReaderController {
     if (jsonStr != null) {
       try {
         return ReaderSettings.fromJson(json.decode(jsonStr));
-      } catch (_) {}
+      } catch (e, st) {
+        FirebaseService.recordError(
+          e,
+          st,
+          reason: 'ReaderSettings deserialization',
+        );
+      }
     }
     return const ReaderSettings();
   }
@@ -379,7 +385,13 @@ class ReaderController extends _$ReaderController {
     if (jsonStr != null) {
       try {
         return ReadingProgress.fromJson(json.decode(jsonStr));
-      } catch (_) {}
+      } catch (e, st) {
+        FirebaseService.recordError(
+          e,
+          st,
+          reason: 'ReadingProgress deserialization',
+        );
+      }
     }
     return ReadingProgress(bookId: bookId, lastReadAt: DateTime.now());
   }

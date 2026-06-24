@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/firebase/firebase_service.dart';
 import '../domain/cloud_sync_client.dart';
 
 class SupabaseSyncClient implements CloudSyncClient {
@@ -8,56 +9,91 @@ class SupabaseSyncClient implements CloudSyncClient {
 
   @override
   Future<String> signInAnonymously() async {
-    final response = await _client.auth.signInAnonymously();
-    final user = response.user;
-    if (user == null) {
-      throw Exception('Supabase anonymous sign-in returned a null user.');
+    try {
+      final response = await _client.auth.signInAnonymously();
+      final user = response.user;
+      if (user == null) {
+        throw Exception('Supabase anonymous sign-in returned a null user.');
+      }
+      return user.id;
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'Supabase signInAnonymously');
+      rethrow;
     }
-    return user.id;
   }
 
   @override
   Future<void> pushBooks(List<Map<String, dynamic>> books) async {
     if (books.isEmpty) return;
-    await _client.from('books').upsert(books);
+    try {
+      await _client.from('books').upsert(books);
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'Supabase pushBooks');
+      rethrow;
+    }
   }
 
   @override
   Future<List<Map<String, dynamic>>> pullBooks(DateTime since) async {
-    final response = await _client
-        .from('books')
-        .select()
-        .gt('updated_at', since.toUtc().toIso8601String());
-    return List<Map<String, dynamic>>.from(response);
+    try {
+      final response = await _client
+          .from('books')
+          .select()
+          .gt('updated_at', since.toUtc().toIso8601String());
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'Supabase pullBooks');
+      rethrow;
+    }
   }
 
   @override
   Future<void> pushHighlights(List<Map<String, dynamic>> highlights) async {
     if (highlights.isEmpty) return;
-    await _client.from('highlights').upsert(highlights);
+    try {
+      await _client.from('highlights').upsert(highlights);
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'Supabase pushHighlights');
+      rethrow;
+    }
   }
 
   @override
   Future<List<Map<String, dynamic>>> pullHighlights(DateTime since) async {
-    final response = await _client
-        .from('highlights')
-        .select()
-        .gt('updated_at', since.toUtc().toIso8601String());
-    return List<Map<String, dynamic>>.from(response);
+    try {
+      final response = await _client
+          .from('highlights')
+          .select()
+          .gt('updated_at', since.toUtc().toIso8601String());
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'Supabase pullHighlights');
+      rethrow;
+    }
   }
 
   @override
   Future<void> pushBookmarks(List<Map<String, dynamic>> bookmarks) async {
     if (bookmarks.isEmpty) return;
-    await _client.from('bookmarks').upsert(bookmarks);
+    try {
+      await _client.from('bookmarks').upsert(bookmarks);
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'Supabase pushBookmarks');
+      rethrow;
+    }
   }
 
   @override
   Future<List<Map<String, dynamic>>> pullBookmarks(DateTime since) async {
-    final response = await _client
-        .from('bookmarks')
-        .select()
-        .gt('updated_at', since.toUtc().toIso8601String());
-    return List<Map<String, dynamic>>.from(response);
+    try {
+      final response = await _client
+          .from('bookmarks')
+          .select()
+          .gt('updated_at', since.toUtc().toIso8601String());
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'Supabase pullBookmarks');
+      rethrow;
+    }
   }
 }

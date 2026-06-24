@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import '../../../shared/firebase/firebase_service.dart';
 
 part 'database.g.dart';
 
@@ -77,22 +78,31 @@ class AppDatabase extends _$AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {
-      if (from < 2) {
-        await m.addColumn(books, books.updatedAt);
-        await m.addColumn(books, books.isDeleted);
-        await m.addColumn(bookmarks, bookmarks.updatedAt);
+      try {
+        if (from < 2) {
+          await m.addColumn(books, books.updatedAt);
+          await m.addColumn(books, books.isDeleted);
+          await m.addColumn(bookmarks, bookmarks.updatedAt);
 
-        // Populate default time vectors and tombstones for legacy records to prevent Null mapping errors
+          // Populate default time vectors and tombstones for legacy records to prevent Null mapping errors
+          await customStatement(
+            "UPDATE books SET updated_at = CAST(strftime('%s', 'now') AS INTEGER), is_deleted = 0;",
+          );
+          await customStatement(
+            "UPDATE bookmarks SET updated_at = CAST(strftime('%s', 'now') AS INTEGER);",
+          );
+        }
         await customStatement(
-          "UPDATE books SET updated_at = CAST(strftime('%s', 'now') AS INTEGER), is_deleted = 0;",
+          'CREATE VIRTUAL TABLE IF NOT EXISTS book_contents_fts USING fts5(bookId, chapterIndex, content, tokenize="unicode61");',
         );
-        await customStatement(
-          "UPDATE bookmarks SET updated_at = CAST(strftime('%s', 'now') AS INTEGER);",
+      } catch (e, st) {
+        FirebaseService.recordError(
+          e,
+          st,
+          reason: 'DB migration v$from→v$to',
         );
+        rethrow;
       }
-      await customStatement(
-        'CREATE VIRTUAL TABLE IF NOT EXISTS book_contents_fts USING fts5(bookId, chapterIndex, content, tokenize="unicode61");',
-      );
     },
   );
 

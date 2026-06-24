@@ -3,6 +3,7 @@ import '../domain/book_repository.dart';
 import 'database.dart';
 import 'drift_book_repository.dart';
 import 'shared_preferences_book_repository.dart';
+import '../../../shared/firebase/firebase_service.dart';
 
 part 'book_repository_provider.g.dart';
 
@@ -37,7 +38,7 @@ Future<void> _migrateFromSharedPreferences(DriftBookRepository newRepo) async {
         await oldRepo.removeBook(book.id);
       }
     }
-  } catch (_) {
-    // Gracefully handle migration failures
+  } catch (e, st) {
+    FirebaseService.recordError(e, st, reason: 'SharedPreferences → Drift migration');
   }
 }

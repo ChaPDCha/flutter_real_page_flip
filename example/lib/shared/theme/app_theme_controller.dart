@@ -56,7 +56,8 @@ class AppThemeController extends _$AppThemeController {
         'sepia' => ReaderThemeType.cream,
         _ => null,
       };
-    } catch (_) {
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'Legacy theme migration');
       return null;
     }
   }

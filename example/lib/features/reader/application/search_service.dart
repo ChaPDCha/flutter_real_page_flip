@@ -5,6 +5,7 @@ import '../../bookshelf/domain/book.dart';
 import '../../bookshelf/data/database.dart';
 import '../../epub/data/epub_service.dart';
 import 'txt_service.dart';
+import '../../../shared/firebase/firebase_service.dart';
 
 class SearchResult {
   final int chapterIndex;
@@ -39,7 +40,13 @@ class SearchService {
     final params = {'filePath': book.filePath, 'format': book.format.name};
 
     // Run heavy EPUB/TXT content parsing in background isolate to keep 120 FPS
-    final parsed = await compute(_parseBookInIsolate, params);
+    final List<ParsedChapterContent> parsed;
+    try {
+      parsed = await compute(_parseBookInIsolate, params);
+    } catch (e, st) {
+      FirebaseService.recordError(e, st, reason: 'Book indexing');
+      return;
+    }
     if (parsed.isEmpty) return;
 
     // Delete existing indices to prevent duplicates on re-import

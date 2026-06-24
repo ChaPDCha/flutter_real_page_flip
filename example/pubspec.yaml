@@ -61,6 +61,7 @@ dependencies:
   firebase_analytics: ^11.4.4
   firebase_remote_config: ^5.4.4
   google_fonts: ^6.1.0
+  sentry_flutter: ^8.14.2
 
 dev_dependencies:
   flutter_test:
