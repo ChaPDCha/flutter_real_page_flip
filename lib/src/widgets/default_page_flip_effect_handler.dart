@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
@@ -38,6 +40,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   bool _hasAmplitudeControl = false;
   bool _initializedVibrator = false;
   DateTime _lastTextureTick = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastIosTextureTick = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// Cache of physics engines per page index for consistent texture.
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
@@ -164,20 +167,35 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
     if (triggerTextureTick) {
       final now = DateTime.now();
-      var throttleMs = 40;
-      if (performanceProfile == DevicePerformanceProfile.low) {
-        throttleMs = 200;
-      } else if (performanceProfile == DevicePerformanceProfile.medium) {
-        throttleMs = 80;
-      }
+      final normalizedSpeed = (velocityIntensity / 255.0).clamp(0.1, 1.0);
 
-      if (now.difference(_lastTextureTick).inMilliseconds > throttleMs) {
-        _lastTextureTick = now;
-        // Use full physics amplitude range for rich dynamic texture feel
-        final amp = (frame.amplitude * 255).round().clamp(10, 255);
-        // Crisp duration — shorter than throttle to avoid overlap
-        final dur = frame.durationMs.clamp(10, 30);
-        _vibrateMotor(durationMs: dur, amplitude: amp);
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        // iOS Continuous Texture Feedback: trigger crisp ticks using selectionClick
+        final baseIosThrottle = performanceProfile == DevicePerformanceProfile.low
+            ? 220
+            : (performanceProfile == DevicePerformanceProfile.medium ? 90 : 45);
+        final iosThrottleMs = (baseIosThrottle / (normalizedSpeed * 1.3)).round().clamp(20, 300);
+
+        if (now.difference(_lastIosTextureTick).inMilliseconds > iosThrottleMs) {
+          _lastIosTextureTick = now;
+          HapticFeedback.selectionClick();
+        }
+      } else {
+        // Android Continuous Texture Feedback: dynamic frequency modulation (speed-adaptive throttling)
+        final baseAndroidThrottle = performanceProfile == DevicePerformanceProfile.low
+            ? 200
+            : (performanceProfile == DevicePerformanceProfile.medium ? 80 : 35);
+        final throttleMs = (baseAndroidThrottle / (normalizedSpeed * 1.5)).round().clamp(15, 300);
+
+        if (now.difference(_lastTextureTick).inMilliseconds > throttleMs) {
+          _lastTextureTick = now;
+          // Weber-Fechner non-linear amplitude curve mapping for premium organic feel
+          final perceivedAmplitude = math.pow(frame.amplitude, 1.4);
+          final amp = (perceivedAmplitude * 245 + 10).round().clamp(10, 255);
+          // Crisp duration — shorter than throttle to avoid overlaps
+          final dur = frame.durationMs.clamp(10, 30);
+          _vibrateMotor(durationMs: dur, amplitude: amp);
+        }
       }
     }
   }
@@ -273,8 +291,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   /// Intensity (0.0-1.0) from the stick-slip controller's accumulated energy.
   void _handleSlipRelease(double intensity) {
     _iosHaptic(medium: true);
-    final onMs = (30 + (intensity * 30)).round().clamp(30, 60);
-    final peakAmp = (140 + (intensity * 115)).round().clamp(140, 255);
+    final perceivedIntensity = math.pow(intensity, 1.3).toDouble();
+    final onMs = (30 + (perceivedIntensity * 30)).round().clamp(30, 60);
+    final peakAmp = (140 + (perceivedIntensity * 115)).round().clamp(140, 255);
     _vibratePattern(
       pattern: [0, onMs, 14, (onMs * 0.75).round()],
       intensities: [0, peakAmp, 0, (peakAmp * 0.7).round()],
@@ -285,9 +304,10 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   /// Intensity (0.0-0.6) from sudden velocity changes.
   void _handleMicroSlip(double intensity) {
     _iosHaptic(light: true);
+    final perceivedIntensity = math.pow(intensity, 1.3).toDouble();
     _vibrateMotor(
-      durationMs: (14 + (intensity * 26)).round().clamp(14, 40),
-      amplitude: (80 + (intensity * 130)).round().clamp(80, 210),
+      durationMs: (14 + (perceivedIntensity * 26)).round().clamp(14, 40),
+      amplitude: (80 + (perceivedIntensity * 130)).round().clamp(80, 210),
     );
   }
 
