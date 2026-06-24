@@ -8,6 +8,9 @@ import 'package:archive/archive.dart';
 import 'package:real_page_flip_example/features/bookshelf/domain/book.dart';
 import 'package:real_page_flip_example/features/reader/presentation/reader_controller.dart';
 import 'package:real_page_flip_example/features/sync/application/sync_provider.dart';
+import 'package:drift/native.dart';
+import 'package:real_page_flip_example/features/bookshelf/data/database.dart';
+import 'package:real_page_flip_example/features/bookshelf/data/book_repository_provider.dart';
 
 List<int> createMultiChapterEpubBytes({
   String title = 'Test Title',
@@ -403,6 +406,210 @@ void main() {
       final newState = newContainer.read(readerControllerProvider(testBook));
       expect(newState.currentChapterIndex, equals(1));
       expect(newState.currentPageIndex, equals(0));
+    });
+
+    test('Settings: updateLineHeight persists to SharedPreferences', () async {
+      final container = createContainer();
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+      controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
+
+      var state = container.read(readerControllerProvider(testBook));
+      final originalLineHeight = state.settings.lineHeight;
+
+      await controller.updateLineHeight(0.2);
+      state = container.read(readerControllerProvider(testBook));
+      expect(state.settings.lineHeight, equals(originalLineHeight + 0.2));
+
+      // Verify persistence
+      final jsonStr = prefs.getString('reader_settings');
+      expect(jsonStr, isNotNull);
+      final Map<String, dynamic> savedMap = json.decode(jsonStr!);
+      expect(savedMap['lineHeight'], equals(originalLineHeight + 0.2));
+    });
+
+    test('Settings: updateBrightness persists to SharedPreferences', () async {
+      final container = createContainer();
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+
+      await controller.updateBrightness(0.5);
+      var state = container.read(readerControllerProvider(testBook));
+      expect(state.settings.brightness, equals(0.5));
+
+      // Verify persistence
+      final jsonStr = prefs.getString('reader_settings');
+      expect(jsonStr, isNotNull);
+      final Map<String, dynamic> savedMap = json.decode(jsonStr!);
+      expect(savedMap['brightness'], equals(0.5));
+    });
+
+    test('Settings: updateFontFamily persists to SharedPreferences', () async {
+      final container = createContainer();
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+
+      await controller.updateFontFamily('Serif');
+      var state = container.read(readerControllerProvider(testBook));
+      expect(state.settings.fontFamily, equals('Serif'));
+
+      // Verify persistence
+      final jsonStr = prefs.getString('reader_settings');
+      expect(jsonStr, isNotNull);
+      final Map<String, dynamic> savedMap = json.decode(jsonStr!);
+      expect(savedMap['fontFamily'], equals('Serif'));
+
+      // Set to null
+      await controller.updateFontFamily(null);
+      state = container.read(readerControllerProvider(testBook));
+      expect(state.settings.fontFamily, isNull);
+    });
+
+    test('goToPageIndex navigates to specific page with bounds checking',
+        () async {
+      // Long text ensures multi-page layout
+      await epubFile.writeAsBytes(
+        createMultiChapterEpubBytes(
+          chapter1Content: 'Page content. ' * 80,
+          chapter2Content: 'Second chapter. ' * 20,
+        ),
+      );
+
+      final container = createContainer();
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+      controller.setViewportSize(375.0, 300.0);
+      await waitForPagination(container);
+
+      var state = container.read(readerControllerProvider(testBook));
+      expect(state.pages.length, greaterThan(1));
+
+      // Go to last page
+      final lastIndex = state.pages.length - 1;
+      controller.goToPageIndex(lastIndex);
+      state = container.read(readerControllerProvider(testBook));
+      expect(state.currentPageIndex, equals(lastIndex));
+
+      // Negative index should be ignored
+      controller.goToPageIndex(-1);
+      expect(state.currentPageIndex, equals(lastIndex));
+
+      // Over-large index should be ignored
+      controller.goToPageIndex(9999);
+      expect(state.currentPageIndex, equals(lastIndex));
+
+      // Go back to first page
+      controller.goToPageIndex(0);
+      state = container.read(readerControllerProvider(testBook));
+      expect(state.currentPageIndex, equals(0));
+    });
+
+    test('jumpToChapterWithQuery navigates to target chapter', () async {
+      await epubFile.writeAsBytes(
+        createMultiChapterEpubBytes(
+          chapter1Content: 'Some introductory text here.',
+          chapter2Content: 'UniqueSearchTerm in chapter two.',
+        ),
+      );
+
+      final container = createContainer();
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+      controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
+
+      // Jump to chapter 1 (index 1)
+      controller.jumpToChapterWithQuery(1, 'UniqueSearchTerm');
+      await waitForPagination(container);
+
+      final state = container.read(readerControllerProvider(testBook));
+      expect(state.currentChapterIndex, equals(1));
+      expect(state.pages.isNotEmpty, isTrue);
+    });
+
+    test('addHighlight inserts highlight and updates state', () async {
+      final inMemoryDb = AppDatabase(NativeDatabase.memory());
+      addTearDown(() => inMemoryDb.close());
+
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          appDatabaseProvider.overrideWithValue(inMemoryDb),
+        ],
+      );
+      container.listen(readerControllerProvider(testBook), (_, __) {});
+      addTearDown(container.dispose);
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+
+      await controller.addHighlight(
+        chapterIndex: 0,
+        startOffset: 5,
+        endOffset: 25,
+        text: 'test highlight text',
+        colorHex: '#FFFF00',
+      );
+
+      final state = container.read(readerControllerProvider(testBook));
+      expect(state.highlights.length, equals(1));
+      expect(state.highlights.first.selectedText,
+          equals('test highlight text'));
+      expect(state.highlights.first.highlightColor, equals('#FFFF00'));
+    });
+
+    test('removeHighlight deletes highlight and updates state', () async {
+      final inMemoryDb = AppDatabase(NativeDatabase.memory());
+      addTearDown(() => inMemoryDb.close());
+
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          appDatabaseProvider.overrideWithValue(inMemoryDb),
+        ],
+      );
+      container.listen(readerControllerProvider(testBook), (_, __) {});
+      addTearDown(container.dispose);
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+
+      // Add then remove
+      await controller.addHighlight(
+        chapterIndex: 0,
+        startOffset: 5,
+        endOffset: 25,
+        text: 'removable highlight',
+        colorHex: '#FF0000',
+      );
+
+      var state = container.read(readerControllerProvider(testBook));
+      expect(state.highlights.length, equals(1));
+
+      await controller.removeHighlight(state.highlights.first.id);
+
+      state = container.read(readerControllerProvider(testBook));
+      expect(state.highlights, isEmpty);
     });
   });
 }

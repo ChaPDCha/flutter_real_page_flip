@@ -1,17 +1,16 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drift/drift.dart' hide isNotNull;
 import 'package:drift/native.dart';
 import 'package:real_page_flip_example/features/bookshelf/data/database.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
-  late File tempDbFile;
   late Directory tempDir;
 
   setUp(() {
     tempDir = Directory.systemTemp.createTempSync('realbook_migration_test');
-    tempDbFile = File(p.join(tempDir.path, 'migration_test.db'));
   });
 
   tearDown(() async {
@@ -27,10 +26,45 @@ void main() {
   });
 
   test(
+    'Fresh database onCreate creates all tables and FTS5 index',
+    () async {
+      final dbFile = File(p.join(tempDir.path, 'fresh.db'));
+      final db = AppDatabase(NativeDatabase(dbFile));
+
+      // Verify all 4 business tables exist via SELECT
+      final booksList = await db.select(db.books).get();
+      expect(booksList, isEmpty);
+
+      final highlightsList = await db.select(db.highlights).get();
+      expect(highlightsList, isEmpty);
+
+      final bookmarksList = await db.select(db.bookmarks).get();
+      expect(bookmarksList, isEmpty);
+
+      final readingLogsList = await db.select(db.readingLogs).get();
+      expect(readingLogsList, isEmpty);
+
+      // Verify FTS5 virtual table exists and accepts inserts
+      await db.customStatement(
+        'INSERT INTO book_contents_fts (bookId, chapterIndex, content) VALUES (?, ?, ?)',
+        ['book-1', 0, 'fresh db test content'],
+      );
+      final rows = await db.customSelect(
+        'SELECT content FROM book_contents_fts WHERE book_contents_fts MATCH ?',
+        variables: [Variable.withString('fresh')],
+      ).get();
+      expect(rows.length, 1);
+
+      await db.close();
+    },
+  );
+
+  test(
     'Drift Schema V1 to V2 Migration preserves data and adds sync columns',
     () async {
       // 1. Create a raw SQLite file replicating Schema Version 1
-      final rawDb = sqlite3.open(tempDbFile.path);
+      final dbFile = File(p.join(tempDir.path, 'migration_test.db'));
+      final rawDb = sqlite3.open(dbFile.path);
 
       // Explicitly set SQLite user_version to 1 so Drift triggers onUpgrade
       rawDb.execute('PRAGMA user_version = 1;');
@@ -75,7 +109,7 @@ void main() {
       rawDb.dispose(); // Gracefully release raw lock
 
       // 2. Open database via Drift AppDatabase configured with Schema Version 2
-      final db = AppDatabase(NativeDatabase(tempDbFile));
+      final db = AppDatabase(NativeDatabase(dbFile));
 
       // Fetch records to trigger automatic onUpgrade migrations
       final booksList = await db.select(db.books).get();
@@ -91,6 +125,17 @@ void main() {
       expect(bookmarksList.length, 1);
       expect(bookmarksList.first.label, 'Legacy Bookmark');
       expect(bookmarksList.first.updatedAt, isNotNull);
+
+      // Verify FTS5 virtual table exists after migration
+      await db.customStatement(
+        'INSERT INTO book_contents_fts (bookId, chapterIndex, content) VALUES (?, ?, ?)',
+        ['book-1', 0, 'fts5 migrated content'],
+      );
+      final ftsRows = await db.customSelect(
+        'SELECT content FROM book_contents_fts WHERE book_contents_fts MATCH ?',
+        variables: [Variable.withString('migrated')],
+      ).get();
+      expect(ftsRows.length, 1);
 
       await db.close();
     },

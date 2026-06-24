@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -158,6 +159,69 @@ void main() {
         finalState.lastSyncedAt?.millisecondsSinceEpoch,
         1000,
       ); // Preserves previous anchor
+    },
+  );
+
+  test(
+    'SyncController succeeds with no-op when all deltas are empty',
+    () async {
+      final controller = container.read(syncControllerProvider.notifier);
+
+      await controller.sync();
+
+      verify(() => mockClient.signInAnonymously()).called(1);
+      verify(() => mockClient.pullBooks(any())).called(1);
+      verify(() => mockClient.pushBooks(any())).called(1);
+
+      final finalState = container.read(syncControllerProvider);
+      expect(finalState.status, SyncStatus.success);
+    },
+  );
+
+  test(
+    'SyncController handles partial failure on push after successful pull',
+    () async {
+      final controller = container.read(syncControllerProvider.notifier);
+
+      // Pull succeeds, push fails
+      when(
+        () => mockClient.pushBooks(any()),
+      ).thenThrow(Exception('Push failed'));
+
+      await controller.sync();
+
+      final finalState = container.read(syncControllerProvider);
+      expect(finalState.status, SyncStatus.error);
+      expect(finalState.errorMessage, contains('Push failed'));
+    },
+  );
+
+  test(
+    'SyncController ignores concurrent sync calls while already syncing',
+    () async {
+      final controller = container.read(syncControllerProvider.notifier);
+
+      // signInAnonymously never completes — simulates in-flight sync
+      final completer = Completer<String>();
+      when(() => mockClient.signInAnonymously()).thenAnswer(
+        (_) => completer.future,
+      );
+
+      // Fire first sync (in flight, not completed)
+      controller.sync();
+
+      // Allow microtask to set _isSyncing = true
+      await Future<void>.delayed(Duration.zero);
+
+      // Second call should return immediately without calling signInAnonymously again
+      await controller.sync();
+
+      // Complete the first sync
+      completer.complete('user-1');
+      // Let the sync method settle
+      await Future<void>.delayed(Duration.zero);
+
+      verify(() => mockClient.signInAnonymously()).called(1);
     },
   );
 }
