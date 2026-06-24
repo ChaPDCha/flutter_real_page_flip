@@ -3,6 +3,25 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.22+28] - 2026-06-24
+### ✨ 기능
+- Firebase Crashlytics + Sentry 이중 오류 리포팅 시스템 구축
+- 전역 오류 처리: Flutter 프레임워크 및 네이티브 영역 오류를 두 서비스에 동시 전송
+- 모든 데이터베이스/동기화/읽기 화면 작업에 오류 추적 적용
+- SentryFlutter 초기화 (--dart-define SENTRY_DSN 설정 시 활성화)
+
+### ♻️ 리팩토링
+- 서재 데모 콘텐츠를 별도 파일로 분리
+- PageFlipPainter/Clippers를 part 파일로 추출하여 코어 라이브러리 코드 정리
+- 햅틱 엔진 개선: iOS/Android 플랫폼별 질감 피드백 경로 분리, Weber-Fechner 비선형 진폭 곡선 적용
+
+### 🧪 테스트
+- SupabaseSyncClient 21개 단위 테스트 추가
+- BookshelfSettingsPanel 15개 위젯 테스트 추가
+- ReaderSettingsPanel 11개 위젯 테스트 추가
+- DefaultPageFlipEffectHandler 20개 단위 테스트 추가
+- 기존 테스트 업데이트 및 리팩토링 대응
+
 ## [1.0.21+27] - 2026-06-24
 ### 🎨 UI/UX
 - Play Store 리스팅 아이콘을 신규 브랜드 로고로 교체

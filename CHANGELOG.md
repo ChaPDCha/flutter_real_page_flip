@@ -3,6 +3,16 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.7.2] - 2026-06-24
+### Changed
+- Extracted `PageFlipPainter` and `PageFlipClippers` into separate part files for
+  cleaner code organization.
+- Haptic engine enhancements:
+  - iOS/Android platform-specific texture haptic paths with speed-adaptive throttling.
+  - Weber-Fechner non-linear amplitude curve (pow 1.3-1.4) for slip-release and
+    micro-slip events.
+  - Independent iOS/Android texture tick throttle tracking.
+
 ## [1.7.1] - 2026-06-24
 ### Changed
 - Haptic engine redesigned with event-specific vibration signatures:
