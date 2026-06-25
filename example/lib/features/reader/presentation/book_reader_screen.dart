@@ -178,6 +178,16 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                                   } else if (readerState.currentChapterIndex >
                                       0) {
                                     controller.previousPage();
+                                    final newState = ref.read(
+                                      readerControllerProvider(widget.book),
+                                    );
+                                    _pageFlipController.goToPage(
+                                      isDouble &&
+                                              !readerState.isPdfLandscape
+                                          ? (newState.currentPageIndex / 2)
+                                              .floor()
+                                          : newState.currentPageIndex,
+                                    );
                                   }
                                 } else if (x > rightEdge) {
                                   if (readerState.currentPageIndex + step <
@@ -186,6 +196,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                                   } else if (readerState.currentChapterIndex <
                                       readerState.chapters.length - 1) {
                                     controller.nextPage();
+                                    _pageFlipController.goToPage(0);
                                   }
                                 } else {
                                   _toggleUi();

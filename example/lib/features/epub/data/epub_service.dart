@@ -83,12 +83,28 @@ class EpubService {
   }
 
   /// Flattens all chapters (including sub-chapters) in the book into a single list.
+  ///
+  /// Skips the EPUB TOC page (if present as a spine item) because its HTML
+  /// navigation links have no readable body text — stripping tags turns them
+  /// into scattered single-line entries that do not form a meaningful page.
+  /// The TOC is navigational metadata, not content; readers access it through
+  /// the app bar menu instead.
   List<EpubChapter> flattenChapters(EpubBook book) {
     final list = <EpubChapter>[];
     for (final chapter in book.Chapters ?? <EpubChapter>[]) {
-      _addChapterToList(chapter, list);
+      if (!_isTocChapter(chapter)) {
+        _addChapterToList(chapter, list);
+      }
     }
     return list;
+  }
+
+  /// True when [chapter] is a table-of-contents page (epub:type="toc").
+  bool _isTocChapter(EpubChapter chapter) {
+    final html = chapter.HtmlContent;
+    if (html == null || html.isEmpty) return false;
+    return html.contains('epub:type="toc"') ||
+        html.contains("epub:type='toc'");
   }
 
   /// True when a nested block-level element already contributes non-empty text.
