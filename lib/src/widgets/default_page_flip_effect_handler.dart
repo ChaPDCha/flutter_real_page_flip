@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 import 'package:real_page_flip/src/physics/paper_physics.dart';
 import 'package:real_page_flip/src/physics/stick_slip_controller.dart';
 import 'package:vibration/vibration.dart';
@@ -19,13 +19,20 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   /// Creates a [DefaultPageFlipEffectHandler] and initialises audio and vibrator.
   DefaultPageFlipEffectHandler({
     this.performanceProfile = DevicePerformanceProfile.high,
-  }) {
+    this.hapticTexturePreset = PaperTexturePreset.standard,
+  }) : _textureConfig = PaperTextureConfig.fromPreset(hapticTexturePreset) {
     _initAudio();
     _initVibrator();
   }
 
   /// Performance profile to control haptic and audio frequency.
   final DevicePerformanceProfile performanceProfile;
+
+  /// Paper texture preset for haptic feedback.
+  final PaperTexturePreset hapticTexturePreset;
+
+  /// Resolved texture config (derived from [hapticTexturePreset]).
+  final PaperTextureConfig _textureConfig;
 
   static const int _audioPoolSize = 3;
   final List<AudioPlayer> _audioPool = List.generate(
@@ -162,38 +169,45 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     }
 
     // 2. Handle granular paper texture vibration (the feel of paper fiber ridges)
-    // Trigger tick when texture noise crosses standard ridge threshold
-    final triggerTextureTick = frame.rawTexture > 0.65;
+    // Trigger tick when texture noise crosses the preset's ridge threshold
+    final triggerTextureTick = frame.rawTexture > _textureConfig.textureThreshold;
 
     if (triggerTextureTick) {
       final now = DateTime.now();
       final normalizedSpeed = (velocityIntensity / 255.0).clamp(0.1, 1.0);
 
       if (defaultTargetPlatform == TargetPlatform.iOS) {
-        // iOS Continuous Texture Feedback: trigger crisp ticks using selectionClick
+        // iOS: frequency-modulated selectionClick — higher amplitude = denser ticks
+        // Amplitude modulates tick density since iOS has no per-tick amplitude control
         final baseIosThrottle = performanceProfile == DevicePerformanceProfile.low
             ? 220
             : (performanceProfile == DevicePerformanceProfile.medium ? 90 : 45);
-        final iosThrottleMs = (baseIosThrottle / (normalizedSpeed * 1.3)).round().clamp(20, 300);
+        final adjustedThrottle = (baseIosThrottle * _textureConfig.throttleFactor).round();
+        final iosThrottleMs = (adjustedThrottle / (normalizedSpeed * 1.3)).round().clamp(20, 300);
 
         if (now.difference(_lastIosTextureTick).inMilliseconds > iosThrottleMs) {
           _lastIosTextureTick = now;
           HapticFeedback.selectionClick();
         }
       } else {
-        // Android Continuous Texture Feedback: dynamic frequency modulation (speed-adaptive throttling)
+        // Android: direct amplitude modulation with preset scaling
         final baseAndroidThrottle = performanceProfile == DevicePerformanceProfile.low
             ? 200
             : (performanceProfile == DevicePerformanceProfile.medium ? 80 : 35);
-        final throttleMs = (baseAndroidThrottle / (normalizedSpeed * 1.5)).round().clamp(15, 300);
+        final adjustedThrottle = (baseAndroidThrottle * _textureConfig.throttleFactor).round();
+        final throttleMs = (adjustedThrottle / (normalizedSpeed * 1.5)).round().clamp(15, 300);
 
         if (now.difference(_lastTextureTick).inMilliseconds > throttleMs) {
           _lastTextureTick = now;
-          // Weber-Fechner non-linear amplitude curve mapping for premium organic feel
-          final perceivedAmplitude = math.pow(frame.amplitude, 1.4);
-          final amp = (perceivedAmplitude * 245 + 10).round().clamp(10, 255);
-          // Crisp duration — shorter than throttle to avoid overlaps
-          final dur = frame.durationMs.clamp(10, 30);
+          // Direct linear mapping: physics engine's amplitude × preset scale
+          final amp = (frame.amplitude * _textureConfig.amplitudeScale * 255)
+              .round()
+              .clamp(10, 255);
+          // Duration from preset range, modulated by frame amplitude
+          final durRange = _textureConfig.durationMaxMs - _textureConfig.durationMinMs;
+          final dur = (_textureConfig.durationMinMs + (frame.amplitude * durRange))
+              .round()
+              .clamp(_textureConfig.durationMinMs, _textureConfig.durationMaxMs);
           _vibrateMotor(durationMs: dur, amplitude: amp);
         }
       }
@@ -291,9 +305,8 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   /// Intensity (0.0-1.0) from the stick-slip controller's accumulated energy.
   void _handleSlipRelease(double intensity) {
     _iosHaptic(medium: true);
-    final perceivedIntensity = math.pow(intensity, 1.3).toDouble();
-    final onMs = (30 + (perceivedIntensity * 30)).round().clamp(30, 60);
-    final peakAmp = (140 + (perceivedIntensity * 115)).round().clamp(140, 255);
+    final onMs = (30 + (intensity * 30)).round().clamp(30, 60);
+    final peakAmp = (140 + (intensity * 115)).round().clamp(140, 255);
     _vibratePattern(
       pattern: [0, onMs, 14, (onMs * 0.75).round()],
       intensities: [0, peakAmp, 0, (peakAmp * 0.7).round()],
@@ -304,10 +317,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   /// Intensity (0.0-0.6) from sudden velocity changes.
   void _handleMicroSlip(double intensity) {
     _iosHaptic(light: true);
-    final perceivedIntensity = math.pow(intensity, 1.3).toDouble();
     _vibrateMotor(
-      durationMs: (14 + (perceivedIntensity * 26)).round().clamp(14, 40),
-      amplitude: (80 + (perceivedIntensity * 130)).round().clamp(80, 210),
+      durationMs: (14 + (intensity * 26)).round().clamp(14, 40),
+      amplitude: (80 + (intensity * 130)).round().clamp(80, 210),
     );
   }
 
@@ -329,4 +341,5 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     _physicsEngines.clear();
   }
 }
+
 

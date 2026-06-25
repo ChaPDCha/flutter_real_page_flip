@@ -27,6 +27,7 @@ mixin _$ReaderSettings {
   bool get enableSound => throw _privateConstructorUsedError;
   double get brightness => throw _privateConstructorUsedError;
   String? get fontFamily => throw _privateConstructorUsedError;
+  String get hapticTexturePresetName => throw _privateConstructorUsedError;
 
   /// Serializes this ReaderSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -52,6 +53,7 @@ abstract class $ReaderSettingsCopyWith<$Res> {
     bool enableSound,
     double brightness,
     String? fontFamily,
+    String hapticTexturePresetName,
   });
 }
 
@@ -76,6 +78,7 @@ class _$ReaderSettingsCopyWithImpl<$Res, $Val extends ReaderSettings>
     Object? enableSound = null,
     Object? brightness = null,
     Object? fontFamily = freezed,
+    Object? hapticTexturePresetName = null,
   }) {
     return _then(
       _value.copyWith(
@@ -103,6 +106,10 @@ class _$ReaderSettingsCopyWithImpl<$Res, $Val extends ReaderSettings>
                 ? _value.fontFamily
                 : fontFamily // ignore: cast_nullable_to_non_nullable
                       as String?,
+            hapticTexturePresetName: null == hapticTexturePresetName
+                ? _value.hapticTexturePresetName
+                : hapticTexturePresetName // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -125,6 +132,7 @@ abstract class _$$ReaderSettingsImplCopyWith<$Res>
     bool enableSound,
     double brightness,
     String? fontFamily,
+    String hapticTexturePresetName,
   });
 }
 
@@ -148,6 +156,7 @@ class __$$ReaderSettingsImplCopyWithImpl<$Res>
     Object? enableSound = null,
     Object? brightness = null,
     Object? fontFamily = freezed,
+    Object? hapticTexturePresetName = null,
   }) {
     return _then(
       _$ReaderSettingsImpl(
@@ -175,6 +184,10 @@ class __$$ReaderSettingsImplCopyWithImpl<$Res>
             ? _value.fontFamily
             : fontFamily // ignore: cast_nullable_to_non_nullable
                   as String?,
+        hapticTexturePresetName: null == hapticTexturePresetName
+            ? _value.hapticTexturePresetName
+            : hapticTexturePresetName // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -190,6 +203,7 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
     this.enableSound = true,
     this.brightness = 1.0,
     this.fontFamily,
+    this.hapticTexturePresetName = 'standard',
   });
 
   factory _$ReaderSettingsImpl.fromJson(Map<String, dynamic> json) =>
@@ -212,10 +226,13 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
   final double brightness;
   @override
   final String? fontFamily;
+  @override
+  @JsonKey()
+  final String hapticTexturePresetName;
 
   @override
   String toString() {
-    return 'ReaderSettings(fontSize: $fontSize, lineHeight: $lineHeight, enableHaptics: $enableHaptics, enableSound: $enableSound, brightness: $brightness, fontFamily: $fontFamily)';
+    return 'ReaderSettings(fontSize: $fontSize, lineHeight: $lineHeight, enableHaptics: $enableHaptics, enableSound: $enableSound, brightness: $brightness, fontFamily: $fontFamily, hapticTexturePresetName: $hapticTexturePresetName)';
   }
 
   @override
@@ -234,7 +251,9 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
             (identical(other.brightness, brightness) ||
                 other.brightness == brightness) &&
             (identical(other.fontFamily, fontFamily) ||
-                other.fontFamily == fontFamily));
+                other.fontFamily == fontFamily) &&
+            (identical(other.hapticTexturePresetName, hapticTexturePresetName) ||
+                other.hapticTexturePresetName == hapticTexturePresetName));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -247,6 +266,7 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
     enableSound,
     brightness,
     fontFamily,
+    hapticTexturePresetName,
   );
 
   /// Create a copy of ReaderSettings
@@ -274,6 +294,7 @@ abstract class _ReaderSettings implements ReaderSettings {
     final bool enableSound,
     final double brightness,
     final String? fontFamily,
+    final String hapticTexturePresetName,
   }) = _$ReaderSettingsImpl;
 
   factory _ReaderSettings.fromJson(Map<String, dynamic> json) =
@@ -291,6 +312,8 @@ abstract class _ReaderSettings implements ReaderSettings {
   double get brightness;
   @override
   String? get fontFamily;
+  @override
+  String get hapticTexturePresetName;
 
   /// Create a copy of ReaderSettings
   /// with the given fields replaced by the non-null parameter values.

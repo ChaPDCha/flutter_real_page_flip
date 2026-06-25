@@ -167,6 +167,7 @@ class ReaderController extends _$ReaderController {
     final baseStyle = ReaderTypography.getBookStyle(
       fontSize: state.settings.fontSize,
       color: themeData.textColor,
+      fontFamily: state.settings.fontFamily,
     );
 
     final generation = ++_paginationGeneration;
@@ -268,6 +269,14 @@ class ReaderController extends _$ReaderController {
     await _saveSettings();
   }
 
+  Future<void> updateHapticTexturePreset(String presetName) async {
+    if (presetName == state.settings.hapticTexturePresetName) return;
+    state = state.copyWith(
+      settings: state.settings.copyWith(hapticTexturePresetName: presetName),
+    );
+    await _saveSettings();
+  }
+
   void goToPageIndex(int index) {
     if (index < 0 || index >= state.pages.length) return;
     state = state.copyWith(currentPageIndex: index);
@@ -337,6 +346,7 @@ class ReaderController extends _$ReaderController {
         baseStyle: ReaderTypography.getBookStyle(
           fontSize: state.settings.fontSize,
           color: themeData.textColor,
+          fontFamily: state.settings.fontFamily,
         ),
       );
 

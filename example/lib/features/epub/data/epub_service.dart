@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:epubx/epubx.dart';
-import 'package:html/dom.dart' show Element;
+import 'package:html/dom.dart' show Element, Node, Text;
 import 'package:html/parser.dart' show parse;
 
 class EpubService {
@@ -32,10 +32,11 @@ class EpubService {
     document.querySelectorAll('style').forEach((e) => e.remove());
     document.querySelectorAll('head').forEach((e) => e.remove());
 
-    // Select common block-level tags to preserve structure
+    // Select common block-level tags plus HTML5 semantic elements to preserve structure
     final blocks =
         document.body?.querySelectorAll(
-          'p, div, h1, h2, h3, h4, h5, h6, li, tr',
+          'p, div, h1, h2, h3, h4, h5, h6, li, tr, '
+          'section, article, header, main, figure, figcaption, blockquote, td',
         ) ??
         [];
 
@@ -58,6 +59,14 @@ class EpubService {
 
       // Skip wrapper blocks when a descendant block already carries the same text.
       if (_hasDescendantTextBlock(block)) {
+        // Extract direct text nodes (not inside child blocks) to avoid
+        // losing text that lives alongside block children (e.g. EPUB3
+        // with mixed content in wrapper elements).
+        final directText = _getDirectText(block);
+        if (directText.isNotEmpty) {
+          buffer.writeln(directText);
+          buffer.writeln();
+        }
         continue;
       }
 
@@ -84,6 +93,7 @@ class EpubService {
 
   /// True when a nested block-level element already contributes non-empty text.
   bool _hasDescendantTextBlock(Element block) {
+    // Must match the block-level selector used in getChapterText
     const blockTags = {
       'p',
       'div',
@@ -95,6 +105,14 @@ class EpubService {
       'h6',
       'li',
       'tr',
+      'section',
+      'article',
+      'header',
+      'main',
+      'figure',
+      'figcaption',
+      'blockquote',
+      'td',
     };
     for (final descendant in block.querySelectorAll(blockTags.join(', '))) {
       if (identical(descendant, block)) {
@@ -105,6 +123,22 @@ class EpubService {
       }
     }
     return false;
+  }
+
+  /// Extracts only the direct text content of [element], excluding text
+  /// inside child block-level elements. This preserves text that lives
+  /// alongside block children in wrapper elements.
+  String _getDirectText(Element element) {
+    final buffer = StringBuffer();
+    for (final node in element.nodes) {
+      if (node.nodeType == Node.TEXT_NODE) {
+        final text = (node as Text).text.trim();
+        if (text.isNotEmpty) {
+          buffer.write('$text ');
+        }
+      }
+    }
+    return buffer.toString().trim();
   }
 
   void _addChapterToList(EpubChapter chapter, List<EpubChapter> list) {

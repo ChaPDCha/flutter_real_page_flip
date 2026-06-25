@@ -151,6 +151,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _effectHandler = widget.config.effectHandler ??
         DefaultPageFlipEffectHandler(
           performanceProfile: widget.config.performanceProfile,
+          hapticTexturePreset: widget.config.hapticTexturePreset,
         );
 
     // Warm snapshots immediately after first frame. Using immediate capture
@@ -204,17 +205,20 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _flipLayerVersion++;
 
     // Update effect handler if changed in config, or if we are using the default
-    // handler and the performance profile has changed.
+    // handler and the performance profile or texture preset has changed.
     final effectHandlerChanged =
         widget.config.effectHandler != oldWidget.config.effectHandler;
     final profileChanged =
         widget.config.performanceProfile != oldWidget.config.performanceProfile;
+    final texturePresetChanged =
+        widget.config.hapticTexturePreset != oldWidget.config.hapticTexturePreset;
     if (effectHandlerChanged ||
-        (widget.config.effectHandler == null && profileChanged)) {
+        (widget.config.effectHandler == null && (profileChanged || texturePresetChanged))) {
       _effectHandler.dispose();
       _effectHandler = widget.config.effectHandler ??
           DefaultPageFlipEffectHandler(
             performanceProfile: widget.config.performanceProfile,
+            hapticTexturePreset: widget.config.hapticTexturePreset,
           );
     }
 

@@ -115,4 +115,25 @@ void main() {
       expect(beta![0], 0xBB);
     });
   });
+
+  group('PdfService Document Cache Tests', () {
+    test('closeDocument removes document cache and all page images', () async {
+      // Pre-populate page cache
+      PdfService.cachePageImage('doc_test.pdf', 0, Uint8List.fromList([1]));
+      PdfService.cachePageImage('doc_test.pdf', 1, Uint8List.fromList([2]));
+
+      await PdfService.closeDocument('doc_test.pdf');
+
+      expect(PdfService.getCachedPageImage('doc_test.pdf', 0), isNull);
+      expect(PdfService.getCachedPageImage('doc_test.pdf', 1), isNull);
+    });
+
+    test('closeDocument does not affect other documents', () async {
+      PdfService.cachePageImage('keep.pdf', 0, Uint8List.fromList([99]));
+
+      await PdfService.closeDocument('remove.pdf');
+
+      expect(PdfService.getCachedPageImage('keep.pdf', 0), isNotNull);
+    });
+  });
 }

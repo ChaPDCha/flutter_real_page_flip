@@ -61,9 +61,12 @@ class PdfService {
       final document = await getOrOpenDocument(filePath);
       if (document.pagesCount > 0) {
         final page = await document.getPage(1);
-        final isLandscape = page.width > page.height;
-        await page.close();
-        return isLandscape;
+        try {
+          final isLandscape = page.width > page.height;
+          return isLandscape;
+        } finally {
+          await page.close();
+        }
       }
     } catch (e, st) {
       FirebaseService.recordError(e, st, reason: 'PDF landscape check');

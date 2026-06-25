@@ -2,9 +2,18 @@ import 'package:flutter/material.dart';
 
 class EpubPagingCalculator {
   static final Map<String, List<String>> _pageCache = {};
+  static const int _maxCacheSize = 60;
 
   @visibleForTesting
   static void clearCache() => _pageCache.clear();
+
+  static void _cachePut(String key, List<String> pages) {
+    if (_pageCache.length >= _maxCacheSize) {
+      // Evict oldest entry (insertion-ordered map)
+      _pageCache.remove(_pageCache.keys.first);
+    }
+    _pageCache[key] = pages;
+  }
 
   static String _cacheKey({
     required String text,
@@ -59,7 +68,7 @@ class EpubPagingCalculator {
       useCache: false,
     );
 
-    _pageCache[cacheKey] = pages;
+    _cachePut(cacheKey, pages);
     return pages;
   }
 
@@ -102,15 +111,17 @@ class EpubPagingCalculator {
     );
 
     if (useCache) {
-      _pageCache[_cacheKey(
-            text: text,
-            viewportWidth: viewportWidth,
-            viewportHeight: viewportHeight,
-            fontSize: fontSize,
-            lineHeight: lineHeight,
-            baseStyle: baseStyle,
-          )] =
-          pages;
+      _cachePut(
+        _cacheKey(
+          text: text,
+          viewportWidth: viewportWidth,
+          viewportHeight: viewportHeight,
+          fontSize: fontSize,
+          lineHeight: lineHeight,
+          baseStyle: baseStyle,
+        ),
+        pages,
+      );
     }
 
     return pages;

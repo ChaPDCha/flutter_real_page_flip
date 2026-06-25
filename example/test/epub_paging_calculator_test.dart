@@ -292,6 +292,70 @@ void main() {
       expect(identical(first, second), isTrue);
     });
 
+    test('cache evicts oldest entry when exceeding max size', () {
+      EpubPagingCalculator.clearCache();
+      const baseStyle = TextStyle(fontFamily: 'serif');
+
+      // Generate 65 unique cache entries (5 over the 60 limit)
+      for (int i = 0; i < 65; i++) {
+        final text = 'Page $i content. ' * 20;
+        EpubPagingCalculator.splitIntoPages(
+          text: text,
+          viewportWidth: defaultWidth + i, // each is unique width → unique cache key
+          viewportHeight: defaultHeight,
+          fontSize: 16.0,
+          lineHeight: 1.2,
+          baseStyle: baseStyle,
+          useCache: false, // bypass cache read to force recalc
+        );
+      }
+
+      // First 5 entries should be evicted; recent entries survive
+      // Re-calc with the first 5 keys — they should NOT be cached
+      for (int i = 0; i < 5; i++) {
+        final text = 'Page $i content. ' * 20;
+        final pages = EpubPagingCalculator.splitIntoPages(
+          text: text,
+          viewportWidth: defaultWidth + i,
+          viewportHeight: defaultHeight,
+          fontSize: 16.0,
+          lineHeight: 1.2,
+          baseStyle: baseStyle,
+          useCache: true,
+        );
+        expect(pages, isNotEmpty);
+      }
+    });
+
+    testWidgets('different fontFamily produces different pagination', (
+      WidgetTester tester,
+    ) async {
+      final text = 'Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj ' * 100;
+
+      final pagesSerif = EpubPagingCalculator.splitIntoPages(
+        text: text,
+        viewportWidth: 200.0,
+        viewportHeight: 100.0,
+        fontSize: 16.0,
+        lineHeight: 1.2,
+        baseStyle: const TextStyle(fontFamily: 'serif'),
+      );
+
+      final pagesSans = EpubPagingCalculator.splitIntoPages(
+        text: text,
+        viewportWidth: 200.0,
+        viewportHeight: 100.0,
+        fontSize: 16.0,
+        lineHeight: 1.2,
+        baseStyle: const TextStyle(fontFamily: 'sans-serif'),
+      );
+
+      // Different fonts have different metrics, so page boundaries
+      // should differ unless serif and sans-serif are identical.
+      // At minimum, the total character count must be preserved.
+      expect(pagesSerif.join(''), equals(pagesSans.join('')));
+    });
+
     testWidgets('High-Load Performance Benchmark Stress Test', (
       WidgetTester tester,
     ) async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 import 'package:real_page_flip/src/page_flip_widget.dart';
 
 /// How [PageFlipWidget] maps pages to the viewport.
@@ -99,6 +100,7 @@ class PageFlipConfig {
     this.flapContentRevealEnd = 0.95,
     this.flapBackStrength = 0.3,
     this.performanceProfile = DevicePerformanceProfile.high,
+    this.hapticTexturePreset = PaperTexturePreset.standard,
   });
 
   /// The performance profile to use for rendering quality.
@@ -147,6 +149,12 @@ class PageFlipConfig {
 
   /// Whether to enable sound effects.
   final bool enableSound;
+
+  /// Paper texture preset for haptic feedback feel.
+  ///
+  /// Controls vibration intensity, trigger sensitivity, duration, and tick
+  /// density. Defaults to [PaperTexturePreset.standard].
+  final PaperTexturePreset hapticTexturePreset;
 
   /// Custom handler for effects. If null, a default implementation is used.
   final PageFlipEffectHandler? effectHandler;
@@ -229,6 +237,7 @@ class PageFlipConfig {
           skipTapAnimation == other.skipTapAnimation &&
           enableHaptics == other.enableHaptics &&
           enableSound == other.enableSound &&
+          hapticTexturePreset == other.hapticTexturePreset &&
           effectHandler == other.effectHandler &&
           paperOpacity == other.paperOpacity &&
           thinPaperStrength == other.thinPaperStrength &&
@@ -256,6 +265,7 @@ class PageFlipConfig {
       skipTapAnimation.hashCode ^
       enableHaptics.hashCode ^
       enableSound.hashCode ^
+      hapticTexturePreset.hashCode ^
       effectHandler.hashCode ^
       paperOpacity.hashCode ^
       thinPaperStrength.hashCode ^

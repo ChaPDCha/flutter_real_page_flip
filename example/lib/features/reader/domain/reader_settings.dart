@@ -12,6 +12,7 @@ class ReaderSettings with _$ReaderSettings {
     @Default(true) bool enableSound,
     @Default(1.0) double brightness,
     String? fontFamily,
+    @Default('standard') String hapticTexturePresetName,
   }) = _ReaderSettings;
 
   factory ReaderSettings.fromJson(Map<String, dynamic> json) =>

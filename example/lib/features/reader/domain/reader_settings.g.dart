@@ -14,6 +14,8 @@ _$ReaderSettingsImpl _$$ReaderSettingsImplFromJson(Map<String, dynamic> json) =>
       enableSound: json['enableSound'] as bool? ?? true,
       brightness: (json['brightness'] as num?)?.toDouble() ?? 1.0,
       fontFamily: json['fontFamily'] as String?,
+      hapticTexturePresetName:
+          json['hapticTexturePresetName'] as String? ?? 'standard',
     );
 
 Map<String, dynamic> _$$ReaderSettingsImplToJson(
@@ -25,4 +27,5 @@ Map<String, dynamic> _$$ReaderSettingsImplToJson(
   'enableSound': instance.enableSound,
   'brightness': instance.brightness,
   'fontFamily': instance.fontFamily,
+  'hapticTexturePresetName': instance.hapticTexturePresetName,
 };
