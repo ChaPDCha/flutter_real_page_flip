@@ -3,6 +3,19 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.24+30] - 2026-06-25
+### ✨ 기능
+- UI 10개 언어 지원 (한국어, 영어, 스페인어, 필리핀어, 프랑스어, 인도네시아어, 포르투갈어, 중국어, 일본어)
+- slang 기반 i18n 시스템 구축 (type-safe, YAML 기반 번역 관리)
+- 런타임 언어 전환 지원 (설정 저장)
+
+### 🎨 UI/UX
+- 모든 하드코딩 문자열 context.t.* 마이그레이션
+
+### 🧪 테스트
+- l10n 테스트 13개 추가 (모든 로케일 키 존재 검증)
+- 위젯 테스트 TranslationProvider 호환성 수정
+
 ## [1.0.23+29] - 2026-06-24
 ### 🎨 UI/UX
 - 앱 아이콘을 새로운 Realbook 브랜드 로고로 교체 (Android/iOS 전체 해상도)

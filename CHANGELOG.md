@@ -3,6 +3,14 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.8.0] - 2026-06-25
+### ✨ 기능
+- PaperTexturePreset 모델 추가 (smooth/standard/textured/kraft)
+- PageFlipConfig에 hapticTexturePreset 설정 연동
+
+### ⚡ 성능
+- TXT 파일 인코딩 탐지 개선 (UTF-8 BOM → UTF-8 → latin1 fallback)
+
 ## [1.7.2] - 2026-06-24
 ### Changed
 - Extracted `PageFlipPainter` and `PageFlipClippers` into separate part files for
