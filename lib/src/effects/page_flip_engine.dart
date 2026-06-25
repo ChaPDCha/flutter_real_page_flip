@@ -71,6 +71,31 @@ Rect? flapBackSourceRect({
   return Rect.fromLTWH(halfWidth, 0, halfWidth, imageSize.height);
 }
 
+/// Returns the source rect within a spread snapshot for settle-phase flap front content.
+///
+/// During the settle phase (progress 0.85-0.95), the flap shows the **destination**
+/// page instead of the page being peeled:
+/// - Forward double-spread: LEFT half of the NEXT spread (the page appearing
+///   on the right side of the viewport).
+/// - Backward double-spread: RIGHT half of the PREVIOUS spread (the page appearing
+///   on the left side of the viewport).
+/// - Single-page (both directions): unchanged full-page source rect.
+Rect? flapFrontSettleSourceRect({
+  required Size imageSize,
+  required bool isDoubleSpread,
+  required bool isForward,
+}) {
+  if (isDoubleSpread) {
+    final halfWidth = imageSize.width / 2;
+    if (isForward) {
+      return Rect.fromLTWH(0, 0, halfWidth, imageSize.height);
+    }
+    return Rect.fromLTWH(halfWidth, 0, halfWidth, imageSize.height);
+  }
+
+  return Rect.fromLTWH(0, 0, imageSize.width, imageSize.height);
+}
+
 /// Destination rect on the canvas for mapping [flapFrontSourceRect] onto the flap.
 Rect flapFrontDestRect({
   required Size size,

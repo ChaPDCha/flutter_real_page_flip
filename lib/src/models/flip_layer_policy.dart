@@ -122,6 +122,23 @@ class FlipLayerPolicy {
     return currentIndex;
   }
 
+  /// Spread index whose snapshot provides the settle-phase flap front content.
+  ///
+  /// During Phase 3 (settle, progress 0.85-0.95) the flap re-displays content
+  /// from the **destination** page rather than the page being peeled:
+  /// - Forward double: next spread (destination on the right).
+  /// - Backward double: previous spread (destination on the left).
+  /// - Single mode: delegates to [flapSnapshotSpreadIndex] (no change).
+  ///
+  /// Returns null at book boundaries where the destination does not exist.
+  int? get flapSettleSnapshotSpreadIndex {
+    if (!isDoubleSpread) return flapSnapshotSpreadIndex;
+    if (isForward) {
+      return currentIndex < itemCount - 1 ? currentIndex + 1 : null;
+    }
+    return currentIndex > 0 ? currentIndex - 1 : null;
+  }
+
   // ─── Flap back texture snapshot (2.5D back content) ───
 
   /// Spread index whose snapshot provides the 2.5D page back content, or null.

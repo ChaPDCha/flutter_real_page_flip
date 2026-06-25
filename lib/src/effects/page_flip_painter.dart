@@ -46,6 +46,15 @@ class PageFlipPainter extends CustomPainter {
     /// Source rect within [flapFrontImage] to map onto the flap.
     this.flapFrontSrcRect,
 
+    /// Pre-captured settle-phase snapshot (destination page content).
+    ///
+    /// Used during Phase 3 (progress 0.85-0.95) to show destination content
+    /// instead of the peeled page content. Null = fall back to [flapFrontImage].
+    this.flapFrontSettleImage,
+
+    /// Source rect within [flapFrontSettleImage] for settle-phase content.
+    this.flapFrontSettleSrcRect,
+
     /// Destination rect for [flapFrontSrcRect] on the canvas (defaults to right page).
     this.flapFrontDestRect,
 
@@ -107,6 +116,12 @@ class PageFlipPainter extends CustomPainter {
 
   /// Source rect within [flapFrontImage] to map onto the flap.
   final Rect? flapFrontSrcRect;
+
+  /// Pre-captured settle-phase snapshot (destination page content).
+  final ui.Image? flapFrontSettleImage;
+
+  /// Source rect within [flapFrontSettleImage] for settle-phase content.
+  final Rect? flapFrontSettleSrcRect;
 
   /// Destination rect for flap front texture (null = legacy right-page mapping).
   final Rect? flapFrontDestRect;
@@ -254,7 +269,17 @@ class PageFlipPainter extends CustomPainter {
         isDoubleSpread: isDoubleSpread,
       );
       if (contentReveal > 0.001) {
-        final srcRect = flapFrontSrcRect!;
+        // Determine which image/rect to use: settle content for Phase 3,
+        // regular flap content for Phase 1 (early drag).
+        final invertProgress = !isForward;
+        final normalizedProgress =
+            invertProgress ? (1.0 - progress) : progress;
+        final isSettlePhase = normalizedProgress >= flapContentRevealStart;
+        final useSettle = isSettlePhase &&
+            flapFrontSettleImage != null &&
+            flapFrontSettleSrcRect != null;
+        final srcImage = useSettle ? flapFrontSettleImage! : flapFrontImage!;
+        final srcRect = useSettle ? flapFrontSettleSrcRect! : flapFrontSrcRect!;
 
         // Minimum width guard: flap narrower than 8 px compresses the full
         // page texture into garbage. Paper underlay + fade overlay handle
@@ -288,7 +313,7 @@ class PageFlipPainter extends CustomPainter {
             BlendMode.srcOver,
             Paint()
               ..shader = ui.ImageShader(
-                flapFrontImage!,
+                srcImage,
                 ui.TileMode.clamp,
                 ui.TileMode.clamp,
                 _identityMatrixStorage,
@@ -545,6 +570,8 @@ class PageFlipPainter extends CustomPainter {
       oldDelegate.flapContentRevealEnd != flapContentRevealEnd ||
       oldDelegate.flapFrontImage != flapFrontImage ||
       oldDelegate.flapFrontSrcRect != flapFrontSrcRect ||
+      oldDelegate.flapFrontSettleImage != flapFrontSettleImage ||
+      oldDelegate.flapFrontSettleSrcRect != flapFrontSettleSrcRect ||
       oldDelegate.flapFrontDestRect != flapFrontDestRect ||
       oldDelegate.flapBackImage != flapBackImage ||
       oldDelegate.flapBackSrcRect != flapBackSrcRect ||

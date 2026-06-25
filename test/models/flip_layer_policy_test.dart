@@ -375,6 +375,76 @@ void main() {
       });
     });
 
+    // ─── flapSettleSnapshotSpreadIndex (destination content during settle) ───
+
+    group('flapSettleSnapshotSpreadIndex', () {
+      test('double forward returns next spread index', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: true,
+          isForward: true,
+          currentIndex: 2,
+          itemCount: itemCount,
+        );
+        expect(policy.flapSettleSnapshotSpreadIndex, 3);
+      });
+
+      test('double forward at last spread returns null', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: true,
+          isForward: true,
+          currentIndex: 4,
+          itemCount: itemCount,
+        );
+        expect(policy.flapSettleSnapshotSpreadIndex, isNull);
+      });
+
+      test('double backward returns previous spread index', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: true,
+          isForward: false,
+          currentIndex: 3,
+          itemCount: itemCount,
+        );
+        expect(policy.flapSettleSnapshotSpreadIndex, 2);
+      });
+
+      test('double backward at first spread returns null', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: true,
+          isForward: false,
+          currentIndex: 0,
+          itemCount: itemCount,
+        );
+        expect(policy.flapSettleSnapshotSpreadIndex, isNull);
+      });
+
+      test('single forward delegates to flapSnapshotSpreadIndex', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: false,
+          isForward: true,
+          currentIndex: 2,
+          itemCount: itemCount,
+        );
+        expect(
+          policy.flapSettleSnapshotSpreadIndex,
+          policy.flapSnapshotSpreadIndex,
+        );
+      });
+
+      test('single backward delegates to flapSnapshotSpreadIndex', () {
+        final policy = FlipLayerPolicy(
+          isDoubleSpread: false,
+          isForward: false,
+          currentIndex: 2,
+          itemCount: itemCount,
+        );
+        expect(
+          policy.flapSettleSnapshotSpreadIndex,
+          policy.flapSnapshotSpreadIndex,
+        );
+      });
+    });
+
     // ─── Edge: single-item collection ───
 
     group('single-item collection (itemCount=1)', () {

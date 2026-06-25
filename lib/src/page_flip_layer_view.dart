@@ -273,6 +273,23 @@ class PageFlipLayerView extends StatelessWidget {
           )
         : null;
 
+    // Settle-phase flap content: shows the DESTINATION page instead of the
+    // peeled page during Phase 3 (progress 0.85-0.95).
+    final flapSettleSpreadIndex = policy.flapSettleSnapshotSpreadIndex;
+    final flapFrontSettleImage = flapSettleSpreadIndex != null
+        ? spreadSnapshots[flapSettleSpreadIndex]
+        : null;
+    final flapFrontSettleSrcRect = flapFrontSettleImage != null
+        ? flapFrontSettleSourceRect(
+            imageSize: Size(
+              flapFrontSettleImage.width.toDouble(),
+              flapFrontSettleImage.height.toDouble(),
+            ),
+            isDoubleSpread: isDoubleSpread,
+            isForward: isForward,
+          )
+        : null;
+
     // 2.5D page back content: same half geometry as front, from adjacent spread.
     final flapBackSpreadIndex = policy.flapBackSnapshotSpreadIndex;
     final flapBackImage = flapBackSpreadIndex != null
@@ -356,6 +373,8 @@ class PageFlipLayerView extends StatelessWidget {
               flapContentRevealEnd: flapContentRevealEnd,
               flapFrontImage: flapFrontImage,
               flapFrontSrcRect: flapFrontSrcRect,
+              flapFrontSettleImage: flapFrontSettleImage,
+              flapFrontSettleSrcRect: flapFrontSettleSrcRect,
               flapFrontDestRect: resolvedFlapDestRect,
               flapBackImage: flapBackImage,
               flapBackSrcRect: flapBackSrcRect,
