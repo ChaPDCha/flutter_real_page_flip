@@ -3,6 +3,11 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.25+31] - 2026-06-25
+### 🐛 수정
+- EPUB 목차(TOC) 페이지가 여러 페이지로 분할되어 표시되던 버그 수정 (epub:type="toc" 감지 후 제외)
+- 가장자리 탭으로 챕터 경계 이동 시 페이지플립 제스처가 작동하지 않던 버그 수정 (PageFlipController 동기화)
+
 ## [1.0.24+30] - 2026-06-25
 ### ✨ 기능
 - UI 10개 언어 지원 (한국어, 영어, 스페인어, 필리핀어, 프랑스어, 인도네시아어, 포르투갈어, 중국어, 일본어)

@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.8.1] - 2026-06-25
+### 🐛 수정
+- 2단보기 페이지플립 settle 단계(progress 0.85-0.95)에서 목적지 대신 현재 페이지 콘텐츠가 표시되던 버그 수정
+- EPUB TOC 페이지(epub:type="toc")가 일반 챕터로 분할되어 페이지가 흩어지던 문제 수정
+
 ## [1.8.0] - 2026-06-25
 ### ✨ 기능
 - PaperTexturePreset 모델 추가 (smooth/standard/textured/kraft)
