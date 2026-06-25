@@ -8,6 +8,7 @@ import '../../bookshelf/domain/book.dart';
 import '../../../shared/theme/app_theme_controller.dart';
 import '../../../shared/theme/reader_theme.dart';
 import '../../tts/application/supertonic_tts_provider.dart';
+import '../../../l10n/translations.g.dart';
 import 'reader_controller.dart';
 import 'widgets/pdf_page_renderer.dart';
 import 'widgets/reader_app_bar.dart';
@@ -85,6 +86,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
     final controller = ref.read(readerControllerProvider(widget.book).notifier);
     final themeType = ref.watch(appThemeControllerProvider);
     final themeData = ReaderThemeData.get(themeType);
+    final l10n = context.t;
 
     // Dynamic system UI styling based on global theme
     SystemChrome.setSystemUIOverlayStyle(
@@ -132,7 +134,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                             if (readerState.pages.isEmpty) {
                               return Center(
                                 child: Text(
-                                  '로딩 중...',
+                                  l10n.reader.loading,
                                   style: TextStyle(color: themeData.textColor),
                                 ),
                               );
@@ -201,6 +203,10 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                                         readerState.settings.enableHaptics,
                                     enableSound:
                                         readerState.settings.enableSound,
+                                    hapticTexturePreset:
+                                        PaperTexturePreset.values.byName(
+                                      readerState.settings.hapticTexturePresetName,
+                                    ),
                                     backgroundColor: themeData.backgroundColor,
                                     sensitivity: 0.6,
                                     edgeTapWidthRatio: 0.0,
@@ -308,14 +314,13 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                       context: context,
                       ref: ref,
                       book: widget.book,
-                      state: readerState,
                       controller: controller,
                     ),
                     onSearchPressed: () {
                       showGeneralDialog(
                         context: context,
                         barrierDismissible: true,
-                        barrierLabel: 'Search',
+                        barrierLabel: l10n.reader.search,
                         pageBuilder: (context, _, __) {
                           return Scaffold(
                             backgroundColor: Colors.transparent,
@@ -381,7 +386,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                 CircularProgressIndicator(color: themeData.accentColor),
                 const SizedBox(height: 24),
                 Text(
-                  '책을 불러오는 중...',
+                  context.t.reader.loadingBook,
                   style: TextStyle(
                     fontSize: 16,
                     color: themeData.secondaryTextColor,

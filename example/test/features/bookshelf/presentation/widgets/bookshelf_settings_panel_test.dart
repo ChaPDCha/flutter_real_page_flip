@@ -6,6 +6,7 @@ import 'package:real_page_flip_example/features/bookshelf/presentation/widgets/b
 import 'package:real_page_flip_example/features/sync/application/sync_controller.dart';
 import 'package:real_page_flip_example/features/sync/application/sync_provider.dart';
 import 'package:real_page_flip_example/features/sync/domain/sync_state.dart';
+import 'package:real_page_flip_example/l10n/translations.g.dart';
 
 // ---------------------------------------------------------------------------
 // Test SyncController — returns a fixed state and records sync() calls
@@ -38,21 +39,23 @@ Future<_TestSyncController> openModal(
   final controller = _TestSyncController(syncState);
 
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        syncControllerProvider.overrideWith(() => controller),
-      ],
-      child: ShadTheme(
-        data: ShadThemeData(),
-        child: MaterialApp(
-          home: Scaffold(
-            body: Consumer(
-              builder: (context, ref, child) => ElevatedButton(
-                onPressed: () => BookshelfSettingsPanel.show(
-                  context: context,
-                  ref: ref,
+    TranslationProvider(
+      child: ProviderScope(
+        overrides: [
+          syncControllerProvider.overrideWith(() => controller),
+        ],
+        child: ShadTheme(
+          data: ShadThemeData(),
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, child) => ElevatedButton(
+                  onPressed: () => BookshelfSettingsPanel.show(
+                    context: context,
+                    ref: ref,
+                  ),
+                  child: const Text('Open'),
                 ),
-                child: const Text('Open'),
               ),
             ),
           ),
@@ -67,19 +70,6 @@ Future<_TestSyncController> openModal(
 }
 
 // ---------------------------------------------------------------------------
-// Expected status text per SyncStatus
-// ---------------------------------------------------------------------------
-
-const _statusTexts = {
-  SyncStatus.idle: '대기 중',
-  SyncStatus.authenticating: '인증 확인 중...',
-  SyncStatus.pulling: '서재 동기화 가져오는 중...',
-  SyncStatus.pushing: '서재 상태 저장 중...',
-  SyncStatus.success: '동기화 완료',
-  SyncStatus.error: '동기화 중 오류 발생',
-};
-
-// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -88,17 +78,41 @@ void main() {
     testWidgets('opens modal with correct title', (tester) async {
       await openModal(tester, const SyncState(status: SyncStatus.idle));
 
-      expect(find.text('서재 설정'), findsOneWidget);
+      expect(find.text('Shelf Settings'), findsOneWidget);
     });
 
-    for (final status in SyncStatus.values) {
-      testWidgets('shows correct status text for $status', (tester) async {
-        final text = _statusTexts[status]!;
-        await openModal(tester, SyncState(status: status));
+    testWidgets('shows correct status text for idle', (tester) async {
+      await openModal(tester, const SyncState(status: SyncStatus.idle));
+      expect(find.text('Waiting'), findsOneWidget);
+    });
 
-        expect(find.text(text), findsOneWidget);
-      });
-    }
+    testWidgets('shows correct status text for authenticating', (tester) async {
+      await openModal(
+        tester,
+        const SyncState(status: SyncStatus.authenticating),
+      );
+      expect(find.text('Verifying...'), findsOneWidget);
+    });
+
+    testWidgets('shows correct status text for pulling', (tester) async {
+      await openModal(tester, const SyncState(status: SyncStatus.pulling));
+      expect(find.text('Syncing...'), findsOneWidget);
+    });
+
+    testWidgets('shows correct status text for pushing', (tester) async {
+      await openModal(tester, const SyncState(status: SyncStatus.pushing));
+      expect(find.text('Syncing...'), findsOneWidget);
+    });
+
+    testWidgets('shows correct status text for success', (tester) async {
+      await openModal(tester, const SyncState(status: SyncStatus.success));
+      expect(find.text('Sync Complete'), findsOneWidget);
+    });
+
+    testWidgets('shows correct status text for error', (tester) async {
+      await openModal(tester, const SyncState(status: SyncStatus.error));
+      expect(find.text('Sync Error'), findsOneWidget);
+    });
 
     testWidgets('sync button is enabled when idle', (tester) async {
       final controller = await openModal(
@@ -106,7 +120,7 @@ void main() {
         const SyncState(status: SyncStatus.idle),
       );
 
-      await tester.tap(find.text('지금 동기화'));
+      await tester.tap(find.text('Sync Now'));
       expect(controller.syncCallCount, 1);
     });
 
@@ -118,7 +132,7 @@ void main() {
       testWidgets('sync button is disabled during $status', (tester) async {
         final controller = await openModal(tester, SyncState(status: status));
 
-        await tester.tap(find.text('지금 동기화'));
+        await tester.tap(find.text('Sync Now'));
         expect(controller.syncCallCount, 0);
       });
     }
@@ -129,7 +143,7 @@ void main() {
         const SyncState(status: SyncStatus.success),
       );
 
-      await tester.tap(find.text('지금 동기화'));
+      await tester.tap(find.text('Sync Now'));
       expect(controller.syncCallCount, 1);
     });
 
@@ -139,21 +153,21 @@ void main() {
         const SyncState(status: SyncStatus.error, errorMessage: 'err'),
       );
 
-      await tester.tap(find.text('지금 동기화'));
+      await tester.tap(find.text('Sync Now'));
       expect(controller.syncCallCount, 1);
     });
 
     testWidgets('shows app version and engine info', (tester) async {
       await openModal(tester, const SyncState(status: SyncStatus.idle));
 
-      expect(find.text('v1.5.2'), findsOneWidget);
+      expect(find.text('v1.7.2'), findsOneWidget);
       expect(find.text('3D PageFlip Core v2.5.0'), findsOneWidget);
     });
 
     testWidgets('shows settings complete button', (tester) async {
       await openModal(tester, const SyncState(status: SyncStatus.idle));
 
-      expect(find.text('설정 완료'), findsOneWidget);
+      expect(find.text('Done'), findsOneWidget);
     });
   });
 }

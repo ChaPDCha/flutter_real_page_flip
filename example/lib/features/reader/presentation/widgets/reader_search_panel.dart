@@ -7,6 +7,7 @@ import '../../../../shared/theme/reader_typography.dart';
 import '../../../bookshelf/domain/book.dart';
 import '../../application/search_service.dart';
 import '../../application/search_service_provider.dart';
+import '../../../../l10n/translations.g.dart';
 
 class ReaderSearchPanel extends ConsumerStatefulWidget {
   final Book book;
@@ -73,6 +74,7 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
   @override
   Widget build(BuildContext context) {
     final panelTheme = widget.theme;
+    final l10n = context.t;
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
@@ -98,7 +100,7 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                     ),
                     cursorColor: panelTheme.accentColor,
                     decoration: InputDecoration(
-                      hintText: '책 내용 검색...',
+                      hintText: l10n.readerSearch.hint,
                       hintStyle: ReaderTypography.getUiStyle(
                         color: panelTheme.secondaryTextColor.withValues(
                           alpha: 0.4,
@@ -135,7 +137,7 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: Text(
-                    '닫기',
+                    l10n.readerSearch.close,
                     style: ReaderTypography.getUiStyle(
                       color: panelTheme.accentColor,
                       fontSize: 14,
@@ -159,8 +161,8 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                   ? Center(
                       child: Text(
                         _searchController.text.isEmpty
-                            ? '검색어를 입력해 보세요.'
-                            : '검색 결과가 없습니다.',
+                            ? l10n.readerSearch.emptyPrompt
+                            : l10n.readerSearch.noResults,
                         style: ReaderTypography.getUiStyle(
                           color: panelTheme.secondaryTextColor,
                           fontSize: 13,
@@ -191,7 +193,7 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
-                              '제 ${result.chapterIndex + 1}장',
+                              '#${result.chapterIndex + 1}',
                               style: ReaderTypography.getGeometricStyle(
                                 color: panelTheme.accentColor,
                                 fontSize: 11,

@@ -7,6 +7,7 @@ import 'package:real_page_flip_example/features/reader/presentation/reader_contr
 import 'package:real_page_flip_example/features/reader/presentation/reader_state.dart';
 import 'package:real_page_flip_example/features/reader/presentation/widgets/reader_settings_panel.dart';
 import 'package:real_page_flip_example/features/reader/domain/reader_settings.dart';
+import 'package:real_page_flip_example/l10n/translations.g.dart';
 
 // ---------------------------------------------------------------------------
 // Test ReaderController — returns a fixed state and records mutations
@@ -20,6 +21,7 @@ class _TestReaderController extends ReaderController {
   String? lastFontFamily;
   bool? lastHaptic;
   bool? lastSound;
+  String? lastTexturePreset;
 
   _TestReaderController(this._fixedState);
 
@@ -55,6 +57,11 @@ class _TestReaderController extends ReaderController {
   Future<void> toggleSound(bool enabled) async {
     lastSound = enabled;
   }
+
+  @override
+  Future<void> updateHapticTexturePreset(String presetName) async {
+    lastTexturePreset = presetName;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -78,24 +85,26 @@ Future<_TestReaderController> openSettings(WidgetTester tester,
   final controller = _TestReaderController(effectiveState);
 
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        readerControllerProvider(_testBook)
-            .overrideWith(() => controller),
-      ],
-      child: ShadTheme(
-        data: ShadThemeData(),
-        child: MaterialApp(
-          home: Scaffold(
-            body: Consumer(
-              builder: (context, ref, child) => ElevatedButton(
-                onPressed: () => ReaderSettingsPanel.show(
-                  context: context,
-                  ref: ref,
-                  book: _testBook,
-                  controller: controller,
+    TranslationProvider(
+      child: ProviderScope(
+        overrides: [
+          readerControllerProvider(_testBook)
+              .overrideWith(() => controller),
+        ],
+        child: ShadTheme(
+          data: ShadThemeData(),
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, child) => ElevatedButton(
+                  onPressed: () => ReaderSettingsPanel.show(
+                    context: context,
+                    ref: ref,
+                    book: _testBook,
+                    controller: controller,
+                  ),
+                  child: const Text('Open'),
                 ),
-                child: const Text('Open'),
               ),
             ),
           ),
@@ -118,18 +127,18 @@ void main() {
     testWidgets('opens modal with correct title', (tester) async {
       await openSettings(tester);
 
-      expect(find.text('독서 설정'), findsOneWidget);
+      expect(find.text('Reading Settings'), findsOneWidget);
     });
 
     testWidgets('displays all setting labels', (tester) async {
       await openSettings(tester);
 
-      expect(find.text('글자 크기'), findsOneWidget);
-      expect(find.text('줄 간격'), findsOneWidget);
-      expect(find.text('화면 밝기'), findsOneWidget);
-      expect(find.text('글꼴'), findsOneWidget);
-      expect(find.text('햅틱 피드백'), findsOneWidget);
-      expect(find.text('소리 효과'), findsOneWidget);
+      expect(find.text('Font Size'), findsOneWidget);
+      expect(find.text('Line Spacing'), findsOneWidget);
+      expect(find.text('Brightness'), findsOneWidget);
+      expect(find.text('Font'), findsOneWidget);
+      expect(find.text('Haptic Feedback'), findsOneWidget);
+      expect(find.text('Sound Effects'), findsOneWidget);
     });
 
     testWidgets('font size decrement button triggers controller', (
@@ -153,7 +162,7 @@ void main() {
     testWidgets('font family chip tap triggers controller', (tester) async {
       final controller = await openSettings(tester);
 
-      await tester.tap(find.text('바른 명조'));
+      await tester.tap(find.text('Myungjo'));
       expect(controller.lastFontFamily, 'serif');
     });
 
@@ -164,13 +173,36 @@ void main() {
       expect(controller.lastHaptic, isFalse);
     });
 
+    testWidgets('texture preset chips are displayed', (tester) async {
+      await openSettings(tester);
+
+      expect(find.text('Paper Texture'), findsOneWidget);
+      expect(find.text('Smooth'), findsOneWidget);
+      expect(find.text('Standard'), findsOneWidget);
+      expect(find.text('Textured'), findsOneWidget);
+      expect(find.text('Kraft'), findsOneWidget);
+    });
+
+    testWidgets('tapping texture preset chip triggers controller', (
+      tester,
+    ) async {
+      final controller = await openSettings(tester);
+
+      final chip = find.text('Textured');
+      await tester.ensureVisible(chip);
+      await tester.pumpAndSettle();
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      expect(controller.lastTexturePreset, 'textured');
+    });
+
     testWidgets('sound switch is displayed', (tester) async {
       await openSettings(tester);
 
       // Sound switch exists (the label is always visible)
-      expect(find.text('소리 효과'), findsOneWidget);
+      expect(find.text('Sound Effects'), findsOneWidget);
       // Verify the sound setting value from the state
-      expect(find.text('설정 완료'), findsOneWidget);
+      expect(find.text('Done'), findsOneWidget);
     });
 
     testWidgets('brightness slider has correct initial value', (tester) async {
@@ -185,7 +217,7 @@ void main() {
     testWidgets('shows settings complete button', (tester) async {
       await openSettings(tester);
 
-      expect(find.text('설정 완료'), findsOneWidget);
+      expect(find.text('Done'), findsOneWidget);
     });
 
     testWidgets('shows font size current value', (tester) async {

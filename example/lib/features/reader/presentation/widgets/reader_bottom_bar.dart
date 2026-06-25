@@ -4,6 +4,7 @@ import '../../../../shared/theme/reader_theme.dart';
 import '../../../../shared/theme/reader_typography.dart';
 import '../../../bookshelf/domain/book.dart';
 import '../reader_state.dart';
+import '../../../../l10n/translations.g.dart';
 
 class ReaderBottomBar extends StatelessWidget {
   final bool showUi;
@@ -25,6 +26,7 @@ class ReaderBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.t;
     final textStyle = ReaderTypography.getUiStyle(
       color: themeData.textColor,
       fontSize: 13,
@@ -80,7 +82,7 @@ class ReaderBottomBar extends StatelessWidget {
                         ),
                         const SizedBox(width: 16),
                         Text(
-                          _pageCounterLabel(readerState, pdf: true),
+                          _pageCounterLabel(readerState, pdf: true, l10n: l10n),
                           style: pageStyle,
                         ),
                       ],
@@ -92,7 +94,7 @@ class ReaderBottomBar extends StatelessWidget {
                           enabled: readerState.currentChapterIndex > 0,
                           icon: Icons.keyboard_arrow_left_rounded,
                           color: themeData.textColor,
-                          tooltip: '이전 장',
+                          tooltip: l10n.readerBar.prevChapter,
                           onPressed: onPreviousChapter,
                         ),
                         Expanded(
@@ -101,7 +103,7 @@ class ReaderBottomBar extends StatelessWidget {
                               Flexible(
                                 flex: 2,
                                 child: Text(
-                                  _pageCounterLabel(readerState, pdf: false),
+                                  _pageCounterLabel(readerState, pdf: false, l10n: l10n),
                                   style: pageStyle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -142,7 +144,7 @@ class ReaderBottomBar extends StatelessWidget {
                               readerState.chapters.length - 1,
                           icon: Icons.keyboard_arrow_right_rounded,
                           color: themeData.textColor,
-                          tooltip: '다음 장',
+                          tooltip: l10n.readerBar.nextChapter,
                           onPressed: onNextChapter,
                         ),
                       ],
@@ -156,11 +158,11 @@ class ReaderBottomBar extends StatelessWidget {
     );
   }
 
-  static String _pageCounterLabel(ReaderState state, {required bool pdf}) {
+  static String _pageCounterLabel(ReaderState state, {required bool pdf, required Translations l10n}) {
     if (state.pages.isEmpty) return '';
     final counter = '${state.currentPageIndex + 1} / ${state.pages.length}';
     return pdf
-        ? '페이지 $counter'
+        ? '${l10n.readerBar.pageNum} $counter'
         : '${state.currentPageIndex + 1}/${state.pages.length}';
   }
 
@@ -171,7 +173,7 @@ class ReaderBottomBar extends StatelessWidget {
     if (title != null && title.isNotEmpty) {
       return title;
     }
-    return '장 ${state.currentChapterIndex + 1}/${state.chapters.length}';
+    return '#${state.currentChapterIndex + 1}/${state.chapters.length}';
   }
 }
 

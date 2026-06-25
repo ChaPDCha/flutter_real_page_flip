@@ -8,6 +8,7 @@ import 'package:real_page_flip_example/features/bookshelf/domain/book_repository
 import 'package:real_page_flip_example/features/bookshelf/data/book_repository_provider.dart';
 import 'package:real_page_flip_example/features/sync/application/sync_provider.dart';
 import 'package:real_page_flip_example/shared/theme/reader_theme.dart';
+import 'package:real_page_flip_example/l10n/translations.g.dart';
 
 class MockBookRepository extends Mock implements BookRepository {}
 
@@ -24,12 +25,14 @@ void main() {
 
     // Build our app and trigger a frame.
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          bookRepositoryProvider.overrideWithValue(mockRepository),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
-        child: const MyApp(),
+      TranslationProvider(
+        child: ProviderScope(
+          overrides: [
+            bookRepositoryProvider.overrideWithValue(mockRepository),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: const MyApp(),
+        ),
       ),
     );
 
@@ -40,8 +43,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     // Verify that the bookshelf title and empty state text are visible.
-    expect(find.text('Realbook 서재'), findsOneWidget);
-    expect(find.text('서재가 비어 있습니다'), findsOneWidget);
+    expect(find.text('Bookshelf'), findsOneWidget);
+    expect(find.text('Your shelf is empty'), findsOneWidget);
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(scaffold.backgroundColor, ReaderThemeData.charcoal.backgroundColor);

@@ -4,12 +4,14 @@ import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../../shared/theme/reader_theme.dart';
 import '../../../../shared/theme/reader_typography.dart';
+import '../../../../l10n/translations.g.dart';
 import '../../../sync/application/sync_provider.dart';
 import '../../../sync/domain/sync_state.dart';
 
 class BookshelfSettingsPanel {
   static void show({required BuildContext context, required WidgetRef ref}) {
     const theme = ReaderThemeData.charcoal; // Unified to dark mode
+    final l10n = context.t;
 
     WoltModalSheet.show(
       context: context,
@@ -17,7 +19,7 @@ class BookshelfSettingsPanel {
         WoltModalSheetPage(
           backgroundColor: theme.panelColor,
           topBarTitle: Text(
-            '서재 설정',
+            l10n.settingsPanel.title,
             style: ReaderTypography.getUiStyle(
               fontWeight: FontWeight.bold,
               color: theme.textColor,
@@ -35,7 +37,7 @@ class BookshelfSettingsPanel {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Section 1: Cloud Sync
-                    _buildSectionHeader('클라우드 동기화', theme),
+                    _buildSectionHeader(l10n.settingsPanel.cloudSync, theme),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -51,7 +53,7 @@ class BookshelfSettingsPanel {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '서재 동기화 상태',
+                                  l10n.settingsPanel.syncStatus,
                                   style: ReaderTypography.getUiStyle(
                                     color: theme.textColor,
                                     fontSize: 14,
@@ -67,7 +69,7 @@ class BookshelfSettingsPanel {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      _getSyncStatusText(syncState.status),
+                                      _getSyncStatusText(syncState.status, l10n),
                                       style: ReaderTypography.getUiStyle(
                                         color: theme.secondaryTextColor,
                                         fontSize: 12,
@@ -90,7 +92,7 @@ class BookshelfSettingsPanel {
                             foregroundColor: theme.buttonForegroundColor,
                             size: ShadButtonSize.sm,
                             child: Text(
-                              '지금 동기화',
+                              l10n.settingsPanel.syncNow,
                               style: ReaderTypography.getUiStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
@@ -103,7 +105,7 @@ class BookshelfSettingsPanel {
                     const SizedBox(height: 28),
 
                     // Section 2: App Info
-                    _buildSectionHeader('애플리케이션 정보', theme),
+                    _buildSectionHeader(l10n.settingsPanel.appInfo, theme),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -114,11 +116,11 @@ class BookshelfSettingsPanel {
                       ),
                       child: Column(
                         children: [
-                          _buildInfoRow('버전', 'v1.5.2', theme),
+                          _buildInfoRow(l10n.settingsPanel.version, 'v1.7.2', theme),
                           Divider(color: theme.dividerColor, height: 24),
-                          _buildInfoRow('엔진', '3D PageFlip Core v2.5.0', theme),
+                          _buildInfoRow(l10n.settingsPanel.engine, '3D PageFlip Core v2.5.0', theme),
                           Divider(color: theme.dividerColor, height: 24),
-                          _buildInfoRow('상태', '다크 모드 활성화됨', theme),
+                          _buildInfoRow(l10n.settingsPanel.status, l10n.settingsPanel.darkMode, theme),
                         ],
                       ),
                     ),
@@ -136,7 +138,7 @@ class BookshelfSettingsPanel {
               foregroundColor: theme.buttonForegroundColor,
               width: double.infinity,
               child: Text(
-                '설정 완료',
+                l10n.settingsPanel.done,
                 style: ReaderTypography.getUiStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -214,20 +216,19 @@ class BookshelfSettingsPanel {
     );
   }
 
-  static String _getSyncStatusText(SyncStatus status) {
+  static String _getSyncStatusText(SyncStatus status, Translations l10n) {
     switch (status) {
       case SyncStatus.idle:
-        return '대기 중';
+        return l10n.settingsPanel.syncWaiting;
       case SyncStatus.authenticating:
-        return '인증 확인 중...';
+        return l10n.settingsPanel.syncVerifying;
       case SyncStatus.pulling:
-        return '서재 동기화 가져오는 중...';
       case SyncStatus.pushing:
-        return '서재 상태 저장 중...';
+        return l10n.settingsPanel.syncing;
       case SyncStatus.success:
-        return '동기화 완료';
+        return l10n.settingsPanel.syncCompleted;
       case SyncStatus.error:
-        return '동기화 중 오류 발생';
+        return l10n.settingsPanel.syncError;
     }
   }
 }

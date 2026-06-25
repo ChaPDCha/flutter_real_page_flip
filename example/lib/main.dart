@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:shadcn_ui/shadcn_ui.dart' hide AppLocaleUtils;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -16,6 +17,8 @@ import 'shared/theme/app_theme_controller.dart';
 import 'shared/theme/reader_theme.dart';
 import 'shared/firebase/firebase_options.dart';
 import 'shared/firebase/firebase_service.dart';
+import 'core/locale_provider.dart';
+import 'l10n/translations.g.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,10 +83,18 @@ void main() async {
     }
   }
 
+  // Restore saved locale before app starts
+  final savedLocale = prefs.getString('app_locale');
+  if (savedLocale != null && savedLocale.isNotEmpty) {
+    LocaleSettings.setLocaleRawSync(savedLocale);
+  }
+
   runApp(
     ProviderScope(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: const MyApp(),
+      child: TranslationProvider(
+        child: const MyApp(),
+      ),
     ),
   );
 }
@@ -96,11 +107,19 @@ class MyApp extends ConsumerWidget {
     final themeType = ref.watch(appThemeControllerProvider);
     final themeData = ReaderThemeData.get(themeType);
     final shadTheme = themeData.toShadTheme();
-
     final materialTheme = themeData.toMaterialTheme();
 
+    final locale = ref.watch(localeProvider);
+
     return ShadApp(
-      title: 'Realbook Reader',
+      title: context.t.app.title,
+      locale: locale,
+      supportedLocales: AppLocaleUtils.supportedLocales,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       debugShowCheckedModeBanner: false,
       navigatorObservers: [routeObserver],
       theme: shadTheme,

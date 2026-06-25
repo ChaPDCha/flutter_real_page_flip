@@ -6,6 +6,7 @@ import 'package:real_page_flip_example/features/reader/presentation/reader_state
 import 'package:real_page_flip_example/features/reader/presentation/widgets/reader_app_bar.dart';
 import 'package:real_page_flip_example/features/reader/presentation/widgets/reader_bottom_bar.dart';
 import 'package:real_page_flip_example/shared/theme/reader_theme.dart';
+import 'package:real_page_flip_example/l10n/translations.g.dart';
 
 Book _longTitleBook({BookFormat format = BookFormat.epub}) {
   final ext = switch (format) {
@@ -28,6 +29,14 @@ List<EpubChapter> _chaptersWithLongTitle() {
   ];
 }
 
+Widget _wrapWithProviders(Widget child) {
+  return TranslationProvider(
+    child: MaterialApp(
+      home: child,
+    ),
+  );
+}
+
 void main() {
   group('reader chrome overflow', () {
     testWidgets('ReaderAppBar truncates long title on narrow width', (
@@ -41,8 +50,8 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: MediaQuery(
+        _wrapWithProviders(
+          MediaQuery(
             data: const MediaQueryData(size: Size(320, 640)),
             child: Scaffold(
               body: Stack(
@@ -83,8 +92,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: MediaQuery(
+          _wrapWithProviders(
+            MediaQuery(
               data: const MediaQueryData(size: Size(320, 640)),
               child: Scaffold(
                 body: Stack(
@@ -124,8 +133,8 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: MediaQuery(
+        _wrapWithProviders(
+          MediaQuery(
             data: const MediaQueryData(size: Size(280, 640)),
             child: Scaffold(
               body: Stack(
@@ -161,8 +170,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: MediaQuery(
+          _wrapWithProviders(
+            MediaQuery(
               data: const MediaQueryData(size: Size(280, 640)),
               child: Scaffold(
                 body: Stack(
@@ -184,7 +193,7 @@ void main() {
         await tester.pump();
 
         expect(tester.takeException(), isNull);
-        expect(find.textContaining('페이지'), findsOneWidget);
+        expect(find.textContaining('Page'), findsOneWidget);
       },
     );
   });

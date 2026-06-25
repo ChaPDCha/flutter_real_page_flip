@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../shared/theme/reader_theme.dart';
 import '../../../shared/theme/reader_theme_dialogs.dart';
 import '../../../shared/theme/reader_typography.dart';
+import '../../../l10n/translations.g.dart';
 import '../../ads/presentation/adaptive_banner_ad.dart';
 import 'bookshelf_controller.dart';
 import '../domain/book.dart';
@@ -25,6 +26,7 @@ class BookshelfScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bookshelfState = ref.watch(bookshelfControllerProvider);
     const themeData = ReaderThemeData.charcoal; // Unified to dark mode
+    final l10n = context.t;
 
     return Scaffold(
       backgroundColor: themeData.backgroundColor,
@@ -40,7 +42,7 @@ class BookshelfScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Realbook 서재',
+                      l10n.bookshelf.title,
                       style: ReaderTypography.getUiStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -60,7 +62,7 @@ class BookshelfScreen extends ConsumerWidget {
                             context: context,
                             ref: ref,
                           ),
-                          tooltip: '서재 설정',
+                          tooltip: l10n.bookshelf.settings,
                         ),
                         const SizedBox(width: 8),
                         IconButton(
@@ -70,7 +72,7 @@ class BookshelfScreen extends ConsumerWidget {
                             size: 24,
                           ),
                           onPressed: () => _pickAndImportEpub(context, ref),
-                          tooltip: '책 추가 (EPUB, TXT, PDF)',
+                          tooltip: l10n.bookshelf.addBook,
                         ),
                       ],
                     ),
@@ -113,7 +115,7 @@ class BookshelfScreen extends ConsumerWidget {
               ),
               error: (err, stack) => SliverFillRemaining(
                 hasScrollBody: false,
-                child: _buildErrorState(err, themeData, ref),
+                child: _buildErrorState(err, themeData, ref, context),
               ),
             ),
           ],
@@ -177,7 +179,9 @@ class BookshelfScreen extends ConsumerWidget {
     Object err,
     ReaderThemeData themeData,
     WidgetRef ref,
+    BuildContext context,
   ) {
+    final l10n = context.t;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -191,7 +195,7 @@ class BookshelfScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '오류가 발생했습니다:\n$err',
+              '${l10n.bookshelf.error}\n$err',
               textAlign: TextAlign.center,
               style: ReaderTypography.getUiStyle(color: themeData.textColor),
             ),
@@ -200,7 +204,7 @@ class BookshelfScreen extends ConsumerWidget {
               onPressed: () => ref.refresh(bookshelfControllerProvider),
               backgroundColor: themeData.accentColor,
               child: Text(
-                '다시 시도',
+                l10n.bookshelf.retry,
                 style: ReaderTypography.getUiStyle(
                   color: themeData.buttonForegroundColor,
                   fontWeight: FontWeight.bold,
@@ -218,6 +222,7 @@ class BookshelfScreen extends ConsumerWidget {
     WidgetRef ref,
     ReaderThemeData themeData,
   ) {
+    final l10n = context.t;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 64.0),
@@ -231,7 +236,7 @@ class BookshelfScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              '서재가 비어 있습니다',
+              l10n.bookshelf.emptyTitle,
               style: ReaderTypography.getUiStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -240,7 +245,7 @@ class BookshelfScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '오른쪽 상단의 + 버튼을 누르거나 아래 버튼을 눌러 소장하고 계신\n전자책 파일(EPUB, TXT, PDF)을 서재에 추가해 보세요.',
+              l10n.bookshelf.emptyDescription,
               textAlign: TextAlign.center,
               style: ReaderTypography.getUiStyle(
                 fontSize: 13,
@@ -263,7 +268,7 @@ class BookshelfScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '책 파일 가져오기',
+                    l10n.bookshelf.importButton,
                     style: ReaderTypography.getUiStyle(
                       fontWeight: FontWeight.bold,
                       color: themeData.buttonForegroundColor,
@@ -441,6 +446,7 @@ class BookshelfScreen extends ConsumerWidget {
   Future<void> _pickAndImportEpub(BuildContext context, WidgetRef ref) async {
     if (_filePickerInProgress) return;
     _filePickerInProgress = true;
+    final l10n = context.t;
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -456,8 +462,8 @@ class BookshelfScreen extends ConsumerWidget {
       if (context.mounted) {
         ShadToaster.of(context).show(
           ShadToast.destructive(
-            title: const Text('가져오기 실패'),
-            description: Text('책 가져오기에 실패했습니다: ${e.message ?? e.code}'),
+            title: Text(l10n.bookshelf.importFailed.title),
+            description: Text('${l10n.bookshelf.importFailed.body} ${e.message ?? e.code}'),
           ),
         );
       }
@@ -465,8 +471,8 @@ class BookshelfScreen extends ConsumerWidget {
       if (context.mounted) {
         ShadToaster.of(context).show(
           ShadToast.destructive(
-            title: const Text('가져오기 실패'),
-            description: Text('책 가져오기에 실패했습니다: $e'),
+            title: Text(l10n.bookshelf.importFailed.title),
+            description: Text('${l10n.bookshelf.importFailed.body} $e'),
           ),
         );
       }
@@ -481,6 +487,7 @@ class BookshelfScreen extends ConsumerWidget {
     Book book,
     ReaderThemeData themeData,
   ) {
+    final l10n = context.t;
     WoltModalSheet.show(
       context: context,
       pageListBuilder: (modalContext) => [
@@ -503,7 +510,7 @@ class BookshelfScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  '저자: ${book.author}',
+                  '${l10n.bookshelf.book.author} ${book.author}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: ReaderTypography.getUiStyle(
@@ -525,7 +532,7 @@ class BookshelfScreen extends ConsumerWidget {
                   backgroundColor: themeData.accentColor,
                   foregroundColor: themeData.buttonForegroundColor,
                   child: Text(
-                    '책 읽기',
+                    l10n.bookshelf.book.read,
                     style: ReaderTypography.getUiStyle(
                       fontWeight: FontWeight.bold,
                       color: themeData.buttonForegroundColor,
@@ -541,14 +548,14 @@ class BookshelfScreen extends ConsumerWidget {
                       builder: (dialogContext) => AlertDialog.adaptive(
                         backgroundColor: themeData.panelColor,
                         title: Text(
-                          '책 삭제',
+                          l10n.bookshelf.deleteDialog.title,
                           style: ReaderTypography.getUiStyle(
                             color: themeData.textColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         content: Text(
-                          '"${book.title}" 책을 서재에서 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+                          '"${book.title}"\n${l10n.bookshelf.deleteDialog.message}',
                           style: ReaderTypography.getUiStyle(
                             color: themeData.secondaryTextColor,
                           ),
@@ -558,7 +565,7 @@ class BookshelfScreen extends ConsumerWidget {
                             onPressed: () =>
                                 Navigator.of(dialogContext).pop(false),
                             child: Text(
-                              '취소',
+                              l10n.bookshelf.deleteDialog.cancel,
                               style: ReaderTypography.getUiStyle(
                                 color: themeData.secondaryTextColor,
                               ),
@@ -568,7 +575,7 @@ class BookshelfScreen extends ConsumerWidget {
                             onPressed: () =>
                                 Navigator.of(dialogContext).pop(true),
                             child: Text(
-                              '삭제',
+                              l10n.bookshelf.deleteDialog.delete,
                               style: ReaderTypography.getUiStyle(
                                 color: ReaderThemeData.errorColor,
                                 fontWeight: FontWeight.bold,
@@ -586,7 +593,7 @@ class BookshelfScreen extends ConsumerWidget {
                     }
                   },
                   child: Text(
-                    '서재에서 삭제',
+                    l10n.bookshelf.deleteDialog.removeFromShelf,
                     style: ReaderTypography.getUiStyle(
                       color: themeData.textColor,
                       fontWeight: FontWeight.bold,
@@ -597,7 +604,7 @@ class BookshelfScreen extends ConsumerWidget {
                 ShadButton.ghost(
                   onPressed: () => Navigator.of(modalContext).pop(),
                   child: Text(
-                    '닫기',
+                    l10n.bookshelf.close,
                     style: ReaderTypography.getUiStyle(
                       color: themeData.textColor,
                     ),

@@ -6,6 +6,7 @@ import '../../../../shared/theme/reader_theme.dart';
 import '../../../../shared/theme/reader_typography.dart';
 import '../../../bookshelf/domain/book.dart';
 import '../reader_controller.dart';
+import '../../../../l10n/translations.g.dart';
 
 class ReaderSettingsPanel {
   static void show({
@@ -15,6 +16,7 @@ class ReaderSettingsPanel {
     required ReaderController controller,
   }) {
     const theme = ReaderThemeData.charcoal; // Unified to premium dark mode
+    final l10n = context.t;
 
     WoltModalSheet.show(
       context: context,
@@ -22,7 +24,7 @@ class ReaderSettingsPanel {
         WoltModalSheetPage(
           backgroundColor: theme.panelColor,
           topBarTitle: Text(
-            '독서 설정',
+            l10n.readerSettings.title,
             style: ReaderTypography.getUiStyle(
               fontWeight: FontWeight.bold,
               color: theme.textColor,
@@ -40,7 +42,7 @@ class ReaderSettingsPanel {
                   children: [
                     // Font Size
                     _SettingRow(
-                      label: '글자 크기',
+                      label: l10n.readerSettings.fontSize,
                       theme: theme,
                       child: _SizeControl(
                         value: currentState.settings.fontSize,
@@ -54,7 +56,7 @@ class ReaderSettingsPanel {
 
                     // Line Spacing
                     _SettingRow(
-                      label: '줄 간격',
+                      label: l10n.readerSettings.lineSpacing,
                       theme: theme,
                       child: _SizeControl(
                         value: currentState.settings.lineHeight,
@@ -69,7 +71,7 @@ class ReaderSettingsPanel {
 
                     // Brightness
                     _SettingRow(
-                      label: '화면 밝기',
+                      label: l10n.readerSettings.brightness,
                       theme: theme,
                       child: SizedBox(
                         width: 160,
@@ -120,13 +122,13 @@ class ReaderSettingsPanel {
 
                     // Font Family
                     _SettingRow(
-                      label: '글꼴',
+                      label: l10n.readerSettings.font,
                       theme: theme,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _FontOption(
-                            label: '기본 고딕',
+                            label: l10n.readerSettings.fontOptions.gothic,
                             isSelected:
                                 currentState.settings.fontFamily == null,
                             onTap: () => controller.updateFontFamily(null),
@@ -134,7 +136,7 @@ class ReaderSettingsPanel {
                           ),
                           const SizedBox(width: 8),
                           _FontOption(
-                            label: '바른 명조',
+                            label: l10n.readerSettings.fontOptions.myungjo,
                             isSelected:
                                 currentState.settings.fontFamily == 'serif',
                             onTap: () => controller.updateFontFamily(
@@ -151,7 +153,7 @@ class ReaderSettingsPanel {
 
                     // Haptics
                     _SettingRow(
-                      label: '햅틱 피드백',
+                      label: l10n.readerSettings.haptics,
                       theme: theme,
                       child: ShadSwitch(
                         value: currentState.settings.enableHaptics,
@@ -160,11 +162,62 @@ class ReaderSettingsPanel {
                         },
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+
+                    // Paper Texture Preset
+                    _SettingRow(
+                      label: l10n.readerSettings.texture,
+                      theme: theme,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _TextureChip(
+                            label: l10n.readerSettings.textureOptions.smooth,
+                            isSelected: currentState
+                                    .settings.hapticTexturePresetName ==
+                                'smooth',
+                            onTap: () =>
+                                controller.updateHapticTexturePreset('smooth'),
+                            theme: theme,
+                          ),
+                          const SizedBox(width: 6),
+                          _TextureChip(
+                            label: l10n.readerSettings.textureOptions.standard,
+                            isSelected: currentState
+                                    .settings.hapticTexturePresetName ==
+                                'standard',
+                            onTap: () => controller
+                                .updateHapticTexturePreset('standard'),
+                            theme: theme,
+                          ),
+                          const SizedBox(width: 6),
+                          _TextureChip(
+                            label: l10n.readerSettings.textureOptions.textured,
+                            isSelected: currentState
+                                    .settings.hapticTexturePresetName ==
+                                'textured',
+                            onTap: () => controller
+                                .updateHapticTexturePreset('textured'),
+                            theme: theme,
+                          ),
+                          const SizedBox(width: 6),
+                          _TextureChip(
+                            label: l10n.readerSettings.textureOptions.kraft,
+                            isSelected: currentState
+                                    .settings.hapticTexturePresetName ==
+                                'kraft',
+                            onTap: () => controller
+                                .updateHapticTexturePreset('kraft'),
+                            theme: theme,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
                     // Sound
                     _SettingRow(
-                      label: '소리 효과',
+                      label: l10n.readerSettings.sound,
                       theme: theme,
                       child: ShadSwitch(
                         value: currentState.settings.enableSound,
@@ -187,7 +240,7 @@ class ReaderSettingsPanel {
               foregroundColor: theme.buttonForegroundColor,
               width: double.infinity,
               child: Text(
-                '설정 완료',
+                l10n.readerSettings.done,
                 style: ReaderTypography.getUiStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -279,6 +332,49 @@ class _SizeControl extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         ),
       ],
+    );
+  }
+}
+
+/// A small selectable chip for paper texture preset.
+class _TextureChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final ReaderThemeData theme;
+
+  const _TextureChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.accentColor.withValues(alpha: 0.12)
+              : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? theme.accentColor : theme.dividerColor,
+            width: isSelected ? 1.2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: ReaderTypography.getUiStyle(
+            color: isSelected ? theme.accentColor : theme.textColor,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 11,
+          ),
+        ),
+      ),
     );
   }
 }
