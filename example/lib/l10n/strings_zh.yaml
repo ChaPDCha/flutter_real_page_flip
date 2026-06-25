@@ -1,0 +1,82 @@
+app:
+  title: "Realbook Reader"
+
+bookshelf:
+  title: "书架"
+  settings: "书架设置"
+  addBook: "添加书籍 (EPUB, TXT, PDF)"
+  emptyTitle: "您的书架是空的"
+  emptyDescription: "点击右上角的 + 按钮，或使用下面的按钮\n添加 EPUB、TXT 或 PDF 文件。"
+  importButton: "导入书籍"
+  error: "发生错误："
+  retry: "重试"
+  close: "关闭"
+
+  book:
+    author: "作者："
+    read: "阅读"
+
+  deleteDialog:
+    title: "删除书籍"
+    message: "从书架中删除吗？\n此操作无法撤销。"
+    cancel: "取消"
+    delete: "删除"
+    removeFromShelf: "从书架中移除"
+
+  importFailed:
+    title: "导入失败"
+    body: "导入书籍失败："
+
+settingsPanel:
+  title: "书架设置"
+  cloudSync: "云同步"
+  syncStatus: "同步状态"
+  syncNow: "立即同步"
+  appInfo: "应用程序信息"
+  version: "版本"
+  engine: "引擎"
+  status: "状态"
+  darkMode: "深色模式已启用"
+  done: "完成"
+  syncWaiting: "等待中"
+  syncVerifying: "验证中..."
+  syncing: "同步中..."
+  syncCompleted: "同步完成"
+  syncError: "同步错误"
+
+readerSettings:
+  title: "阅读设置"
+  fontSize: "字体大小"
+  lineSpacing: "行间距"
+  brightness: "亮度"
+  font: "字体"
+  haptics: "触觉反馈"
+  texture: "纸张纹理"
+  sound: "音效"
+  done: "完成"
+
+  fontOptions:
+    gothic: "哥特体"
+    myungjo: "明朝体"
+
+  textureOptions:
+    smooth: "光滑"
+    standard: "标准"
+    textured: "粗糙"
+    kraft: "牛皮纸"
+
+reader:
+  loading: "加载中..."
+  loadingBook: "正在加载书籍..."
+  search: "搜索"
+
+readerBar:
+  prevChapter: "上一章"
+  nextChapter: "下一章"
+  pageNum: "页"
+
+readerSearch:
+  hint: "搜索书籍内容..."
+  close: "关闭"
+  emptyPrompt: "输入搜索词开始搜索。"
+  noResults: "未找到搜索结果。"

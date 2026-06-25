@@ -1,0 +1,82 @@
+app:
+  title: "Realbook Reader"
+
+bookshelf:
+  title: "Estante"
+  settings: "Configurações da Estante"
+  addBook: "Adicionar Livro (EPUB, TXT, PDF)"
+  emptyTitle: "Sua estante está vazia"
+  emptyDescription: "Toque no botão + no canto superior direito ou use\no botão abaixo para adicionar arquivos EPUB, TXT ou PDF."
+  importButton: "Importar Livros"
+  error: "Ocorreu um erro:"
+  retry: "Tentar Novamente"
+  close: "Fechar"
+
+  book:
+    author: "Autor:"
+    read: "Ler"
+
+  deleteDialog:
+    title: "Excluir Livro"
+    message: "Excluir da sua estante?\nEsta ação não pode ser desfeita."
+    cancel: "Cancelar"
+    delete: "Excluir"
+    removeFromShelf: "Remover da Estante"
+
+  importFailed:
+    title: "Falha na Importação"
+    body: "Falha ao importar o livro:"
+
+settingsPanel:
+  title: "Configurações da Estante"
+  cloudSync: "Sincronização na Nuvem"
+  syncStatus: "Status da Sincronização"
+  syncNow: "Sincronizar Agora"
+  appInfo: "Informações do Aplicativo"
+  version: "Versão"
+  engine: "Mecanismo"
+  status: "Status"
+  darkMode: "Modo Escuro Ativado"
+  done: "Concluído"
+  syncWaiting: "Aguardando"
+  syncVerifying: "Verificando..."
+  syncing: "Sincronizando..."
+  syncCompleted: "Sincronização Concluída"
+  syncError: "Erro de Sincronização"
+
+readerSettings:
+  title: "Configurações de Leitura"
+  fontSize: "Tamanho da Fonte"
+  lineSpacing: "Espaçamento entre Linhas"
+  brightness: "Brilho"
+  font: "Fonte"
+  haptics: "Feedback Háptico"
+  texture: "Textura do Papel"
+  sound: "Efeitos Sonoros"
+  done: "Concluído"
+
+  fontOptions:
+    gothic: "Gótica"
+    myungjo: "Myungjo"
+
+  textureOptions:
+    smooth: "Suave"
+    standard: "Padrão"
+    textured: "Texturizada"
+    kraft: "Kraft"
+
+reader:
+  loading: "Carregando..."
+  loadingBook: "Carregando livro..."
+  search: "Pesquisar"
+
+readerBar:
+  prevChapter: "Capítulo Anterior"
+  nextChapter: "Próximo Capítulo"
+  pageNum: "Página"
+
+readerSearch:
+  hint: "Pesquisar no livro..."
+  close: "Fechar"
+  emptyPrompt: "Digite um termo de pesquisa."
+  noResults: "Nenhum resultado encontrado."

@@ -1,0 +1,82 @@
+app:
+  title: "Realbook Reader"
+
+bookshelf:
+  title: "Bibliothèque"
+  settings: "Paramètres de la Bibliothèque"
+  addBook: "Ajouter un Livre (EPUB, TXT, PDF)"
+  emptyTitle: "Votre bibliothèque est vide"
+  emptyDescription: "Appuyez sur le bouton + en haut à droite ou utilisez\nle bouton ci-dessous pour ajouter des fichiers EPUB, TXT ou PDF."
+  importButton: "Importer des Livres"
+  error: "Une erreur est survenue :"
+  retry: "Réessayer"
+  close: "Fermer"
+
+  book:
+    author: "Auteur :"
+    read: "Lire"
+
+  deleteDialog:
+    title: "Supprimer le Livre"
+    message: "Supprimer de votre bibliothèque ?\nCette action est irréversible."
+    cancel: "Annuler"
+    delete: "Supprimer"
+    removeFromShelf: "Retirer de la Bibliothèque"
+
+  importFailed:
+    title: "Échec de l'Importation"
+    body: "Échec de l'importation du livre :"
+
+settingsPanel:
+  title: "Paramètres de la Bibliothèque"
+  cloudSync: "Synchronisation Cloud"
+  syncStatus: "État de la Synchronisation"
+  syncNow: "Synchroniser Maintenant"
+  appInfo: "Informations de l'Application"
+  version: "Version"
+  engine: "Moteur"
+  status: "État"
+  darkMode: "Mode Sombre Activé"
+  done: "Terminé"
+  syncWaiting: "En attente"
+  syncVerifying: "Vérification..."
+  syncing: "Synchronisation..."
+  syncCompleted: "Synchronisation Terminée"
+  syncError: "Erreur de Synchronisation"
+
+readerSettings:
+  title: "Paramètres de Lecture"
+  fontSize: "Taille de la Police"
+  lineSpacing: "Interligne"
+  brightness: "Luminosité"
+  font: "Police"
+  haptics: "Retour Haptique"
+  texture: "Texture du Papier"
+  sound: "Effets Sonores"
+  done: "Terminé"
+
+  fontOptions:
+    gothic: "Gothique"
+    myungjo: "Myungjo"
+
+  textureOptions:
+    smooth: "Lisse"
+    standard: "Standard"
+    textured: "Texturé"
+    kraft: "Kraft"
+
+reader:
+  loading: "Chargement..."
+  loadingBook: "Chargement du livre..."
+  search: "Rechercher"
+
+readerBar:
+  prevChapter: "Chapitre Précédent"
+  nextChapter: "Chapitre Suivant"
+  pageNum: "Page"
+
+readerSearch:
+  hint: "Rechercher dans le livre..."
+  close: "Fermer"
+  emptyPrompt: "Saisissez un terme de recherche."
+  noResults: "Aucun résultat trouvé."
