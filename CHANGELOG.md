@@ -3,6 +3,12 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.9.0] - 2026-06-26
+### ✨ 기능
+- 외부 `vibration` 라이브러리를 제거하고 고성능 플랫폼 채널 기반 `AdvancedHapticEngine` 신규 구축
+- Android (Core Haptics Composition APIs - Click/Tick/Thud) 및 iOS (CoreHaptics - CHHapticEngine) 맞춤형 네이티브 진동 연동
+- 드래그 속도에 비례하는 동적 주기 스로틀링(Dynamic Throttling) 및 마찰/강성에 따른 반응성 최적화
+
 ## [1.8.1] - 2026-06-25
 ### 🐛 수정
 - 2단보기 페이지플립 settle 단계(progress 0.85-0.95)에서 목적지 대신 현재 페이지 콘텐츠가 표시되던 버그 수정

@@ -3,6 +3,10 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.26+32] - 2026-06-26
+### ✨ 기능
+- 네이티브 햅틱 엔진(CoreHaptics / Composition)을 적용하여 더욱 세밀하고 고급스러운 페이지 플립 질감(Smooth/Standard/Textured/Kraft) 물리 반응 구현
+
 ## [1.0.25+31] - 2026-06-25
 ### 🐛 수정
 - EPUB 목차(TOC) 페이지가 여러 페이지로 분할되어 표시되던 버그 수정 (epub:type="toc" 감지 후 제외)
