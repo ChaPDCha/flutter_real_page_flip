@@ -23,11 +23,10 @@ enum PaperTexturePreset {
 /// the physics engine's output into motor-specific vibration commands.
 class PaperTextureConfig {
   const PaperTextureConfig({
-    required this.textureThreshold,
-    required this.amplitudeScale,
-    required this.durationMinMs,
-    required this.durationMaxMs,
-    required this.throttleFactor,
+    required this.friction,
+    required this.stiffness,
+    required this.roughness,
+    this.baseSharpness = 0.5,
   });
 
   /// Resolves a preset to its concrete configuration.
@@ -38,53 +37,43 @@ class PaperTextureConfig {
     PaperTexturePreset.kraft => _kraft,
   };
 
-  /// Minimum raw texture value to trigger a texture tick.
-  /// Higher values = harder to trigger (smoother feel).
-  final double textureThreshold;
+  /// 마찰 계수 (0.0 ~ 1.0). 드래그 시 발생하는 미세 진동의 기본 강도와 밀도.
+  final double friction;
 
-  /// Linear multiplier applied to the physics engine's amplitude output.
-  /// 1.0 = raw physics value, <1.0 = subdued, >1.0 = amplified.
-  final double amplitudeScale;
+  /// 종이의 강성 (0.0 ~ 1.0). 종이가 꺾일 때의 저항력 (Release 시 Thud 강도).
+  final double stiffness;
 
-  /// Minimum vibration duration in milliseconds (clamped).
-  final int durationMinMs;
+  /// 거칠기 분산 (0.0 ~ 2.0). 노이즈 출력에 곱해져 진동 주기를 불규칙하게 만듦.
+  final double roughness;
 
-  /// Maximum vibration duration in milliseconds (clamped).
-  final int durationMaxMs;
-
-  /// Relative throttle speed. 1.0 = standard rate.
-  /// <1.0 = faster ticks (denser texture), >1.0 = slower ticks (sparser).
-  final double throttleFactor;
+  /// 기본 날카로움 (0.0 ~ 1.0).
+  final double baseSharpness;
 
   static const _smooth = PaperTextureConfig(
-    textureThreshold: 0.75,
-    amplitudeScale: 0.6,
-    durationMinMs: 8,
-    durationMaxMs: 18,
-    throttleFactor: 1.5,
+    friction: 0.1,
+    stiffness: 0.2,
+    roughness: 0.1,
+    baseSharpness: 0.8, // 얇고 바스락거림
   );
 
   static const _standard = PaperTextureConfig(
-    textureThreshold: 0.65,
-    amplitudeScale: 1,
-    durationMinMs: 10,
-    durationMaxMs: 25,
-    throttleFactor: 1,
+    friction: 0.2,
+    stiffness: 0.4,
+    roughness: 0.3,
+    baseSharpness: 0.5,
   );
 
   static const _textured = PaperTextureConfig(
-    textureThreshold: 0.50,
-    amplitudeScale: 1.4,
-    durationMinMs: 12,
-    durationMaxMs: 35,
-    throttleFactor: 0.8,
+    friction: 0.5,
+    stiffness: 0.6,
+    roughness: 0.8,
+    baseSharpness: 0.6,
   );
 
   static const _kraft = PaperTextureConfig(
-    textureThreshold: 0.40,
-    amplitudeScale: 1.8,
-    durationMinMs: 15,
-    durationMaxMs: 40,
-    throttleFactor: 0.6,
+    friction: 0.7,
+    stiffness: 0.9,
+    roughness: 1.2,
+    baseSharpness: 0.4, // 둔탁하고 두꺼운 느낌
   );
 }
