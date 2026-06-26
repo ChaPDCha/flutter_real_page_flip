@@ -1,26 +1,40 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
+import 'package:real_page_flip/src/models/advanced_haptic_engine.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 import 'package:real_page_flip/src/physics/paper_physics.dart';
 import 'package:real_page_flip/src/physics/stick_slip_controller.dart';
-import 'package:real_page_flip/src/models/advanced_haptic_engine.dart';
 
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   DefaultPageFlipEffectHandler({
     this.performanceProfile = DevicePerformanceProfile.high,
     this.hapticTexturePreset = PaperTexturePreset.standard,
-  }) : _textureConfig = PaperTextureConfig.fromPreset(hapticTexturePreset) {
+    double viewportWidth = 400,
+  })  : _textureConfig = PaperTextureConfig.fromPreset(hapticTexturePreset),
+        _viewportWidth = viewportWidth {
     _initAudio();
   }
 
   final DevicePerformanceProfile performanceProfile;
   final PaperTexturePreset hapticTexturePreset;
   final PaperTextureConfig _textureConfig;
+
+  /// The current viewport width used to normalize haptic velocity calculations.
+  /// Must be updated when the widget layout changes (default 400 for backward compat).
+  double _viewportWidth;
+
+  /// Updates the viewport width so haptic physics match the actual screen size.
+  /// Call this from the widget build when the layout is available.
+  @override
+  set viewportWidth(double width) {
+    if (width > 0 && width.isFinite) {
+      _viewportWidth = width;
+    }
+  }
 
   static const int _audioPoolSize = 3;
   final List<AudioPlayer> _audioPool = List.generate(
@@ -51,7 +65,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
           );
           await player.setReleaseMode(ReleaseMode.stop);
           atLeastOneSuccess = true;
-        } on Object {}
+        } on Object {
+          // Ignore asset load exceptions for secondary formats (mp3 fallback)
+        }
       }
     }
     _audioReady = atLeastOneSuccess;
@@ -68,15 +84,20 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }) {
     switch (event) {
       case PageFlipEvent.startHaptic:
-        AdvancedHapticEngine.playSystemMedium();
+        unawaited(AdvancedHapticEngine.playSystemMedium());
         break;
       case PageFlipEvent.stopHaptic:
         if (pageIndex != null) {
           _physicsEngines[pageIndex]?.reset();
+          // Retain only the current page engine and keep a small window (±2)
+          // so rapid sequential flips reuse existing engines without reallocation.
+          _physicsEngines.removeWhere(
+            (key, _) => (key - pageIndex).abs() > 2,
+          );
         }
         break;
       case PageFlipEvent.impulseHaptic:
-        AdvancedHapticEngine.playThud(intensity: 0.8);
+        unawaited(AdvancedHapticEngine.playThud(intensity: 0.8));
         break;
       case PageFlipEvent.continuousHaptic:
       case PageFlipEvent.texturedHaptic:
@@ -88,11 +109,11 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
             resistance: resistance ?? 0.5,
           );
         } else {
-          AdvancedHapticEngine.playSystemMedium();
+          unawaited(AdvancedHapticEngine.playSystemMedium());
         }
         break;
       case PageFlipEvent.sound:
-        AdvancedHapticEngine.playSystemLight();
+        unawaited(AdvancedHapticEngine.playSystemLight());
         _playSound(volume ?? 1.0);
         break;
     }
@@ -111,46 +132,66 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
     final frame = engine.calculate(
       dx: velocityIntensity.toDouble() * 0.1,
-      foldAngle: texture, 
-      screenWidth: 400,
+      foldAngle: texture,
+      screenWidth: _viewportWidth,
     );
 
     final stickSlip = frame.stickSlipEvent;
 
     if (stickSlip != null) {
       if (stickSlip.type == StickSlipEventType.slipRelease) {
-        AdvancedHapticEngine.playThud(intensity: (stickSlip.intensity * _textureConfig.stiffness * 1.5).clamp(0.0, 1.0));
+        unawaited(
+          AdvancedHapticEngine.playThud(
+            intensity: (stickSlip.intensity * _textureConfig.stiffness * 1.5)
+                .clamp(0.0, 1.0),
+          ),
+        );
         return;
       } else if (stickSlip.type == StickSlipEventType.microSlip) {
-        AdvancedHapticEngine.playTransient(
-          intensity: (stickSlip.intensity * _textureConfig.friction).clamp(0.0, 1.0),
-          sharpness: (_textureConfig.baseSharpness * (1.0 + _textureConfig.roughness * 0.5)).clamp(0.0, 1.0),
+        unawaited(
+          AdvancedHapticEngine.playTransient(
+            intensity:
+                (stickSlip.intensity * _textureConfig.friction).clamp(0.0, 1.0),
+            sharpness: (_textureConfig.baseSharpness *
+                    (1.0 + _textureConfig.roughness * 0.5))
+                .clamp(0.0, 1.0),
+          ),
         );
         return;
       }
     }
 
     final normalizedSpeed = (velocityIntensity / 255.0).clamp(0.1, 1.0);
-    final baseThrottleMs = performanceProfile == DevicePerformanceProfile.low ? 150 : 40;
-    final throttleMs = (baseThrottleMs / (normalizedSpeed * (1.0 + _textureConfig.roughness))).round().clamp(10, 200);
+    final baseThrottleMs =
+        performanceProfile == DevicePerformanceProfile.low ? 150 : 40;
+    final throttleMs =
+        (baseThrottleMs / (normalizedSpeed * (1.0 + _textureConfig.roughness)))
+            .round()
+            .clamp(10, 200);
 
     final now = DateTime.now();
     if (now.difference(_lastTextureTick).inMilliseconds > throttleMs) {
       _lastTextureTick = now;
-      
-      final dynamicIntensity = (_textureConfig.friction * normalizedSpeed + _textureConfig.stiffness * resistance * 0.5).clamp(0.0, 1.0);
-      final dynamicSharpness = (_textureConfig.baseSharpness * (1.0 + _textureConfig.roughness * frame.rawTexture)).clamp(0.0, 1.0);
-      
-      AdvancedHapticEngine.playTransient(
-        intensity: dynamicIntensity,
-        sharpness: dynamicSharpness,
+
+      final dynamicIntensity = (_textureConfig.friction * normalizedSpeed +
+              _textureConfig.stiffness * resistance * 0.5)
+          .clamp(0.0, 1.0);
+      final dynamicSharpness = (_textureConfig.baseSharpness *
+              (1.0 + _textureConfig.roughness * frame.rawTexture))
+          .clamp(0.0, 1.0);
+
+      unawaited(
+        AdvancedHapticEngine.playTransient(
+          intensity: dynamicIntensity,
+          sharpness: dynamicSharpness,
+        ),
       );
     }
   }
 
   void _playSound(double volume) {
     if (!_audioReady) return;
-    
+
     // Limit max volume and scale dynamically based on gesture speed (velocity/volume)
     final cappedVolume = (volume * 0.4).clamp(0.05, 0.35);
 
@@ -166,11 +207,10 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
   @override
   void dispose() {
+    _audioReady = false;
     for (final player in _audioPool) {
       player.dispose();
     }
     _physicsEngines.clear();
   }
 }
-
-

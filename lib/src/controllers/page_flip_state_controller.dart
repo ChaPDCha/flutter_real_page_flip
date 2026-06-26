@@ -133,6 +133,15 @@ class PageFlipStateController {
   double _smoothedSpeed = 0;
   // 연속 햅틱 타이밍 (프레임 스킵 방지)
   int _hapticFrameCounter = 0;
+  /// True while the 1-frame visual transition is pending after a successful flip.
+  /// Blocks new drag/tap gestures during this window to prevent re-entrant state.
+  bool _isPendingFinalize = false;
+
+  /// Whether a pending finalize transition is in progress.
+  /// External callers (e.g. [PageFlipWidget.goToPage]) must check this before
+  /// initiating programmatic navigation to avoid re-entrant state corruption.
+  bool get isPendingFinalize => _isPendingFinalize;
+  bool _isDisposed = false;
 
   /// The current (leftmost visible) page index.
   int get currentIndex => _currentIndex;
@@ -212,7 +221,7 @@ class PageFlipStateController {
     int totalPages, {
     double accumulatedTotalDx = 0,
   }) {
-    if (animationController.isAnimating) return;
+    if (animationController.isAnimating || _isPendingFinalize) return;
 
     onFlipStart?.call();
     _touchPosition = details.localPosition;
@@ -239,7 +248,7 @@ class PageFlipStateController {
 
   /// Handles a drag update, updating progress and triggering textured haptics.
   void onDragUpdate(DragUpdateDetails details, int totalPages) {
-    if (animationController.isAnimating) return;
+    if (animationController.isAnimating || _isPendingFinalize) return;
 
     _touchPosition = details.localPosition;
     final delta = details.primaryDelta ?? details.delta.dx;
@@ -276,16 +285,20 @@ class PageFlipStateController {
           _smoothedSpeed = (_smoothedSpeed * 0.5) + (currentSpeed * 0.5);
 
           if (_smoothedSpeed > 0.3) {
-            // [1] Simplex-like Noise for Paper Fiber Texture
+            // [1] Continuous Pseudo-noise for Paper Fiber Texture
             // 실제 종이 섬유의 불규칙한 저항감 시뮬레이션
             // _noisePhase를 드래그 거리에 따라 진행시켜 일관된 텍스쳐 생성
+            // NOTE: multi-sine sum → square instead of .abs() to avoid
+            // derivative discontinuities (cusps) at zero crossings, which
+            // produce audible "clicks" in haptic output.
             _noisePhase += _smoothedSpeed * _kNoisePhaseStep;
             final noise1 = math.sin(_noisePhase * 2.7);
             final noise2 = math.sin(_noisePhase * 7.3 + 1.4);
             final noise3 = math.sin(_noisePhase * 13.1 + 2.9);
             // Fractal noise: 다중 주파수 합성으로 자연스러운 질감
-            final textureNoise =
-                ((noise1 * 0.5) + (noise2 * 0.3) + (noise3 * 0.2)).abs();
+            final rawSum =
+                (noise1 * 0.5) + (noise2 * 0.3) + (noise3 * 0.2);
+            final textureNoise = (rawSum * rawSum).clamp(0.0, 1.0);
 
             // [2] Non-linear Resistance Model
             // 페이지 시작/끝 근처에서 더 강한 저항 (종이가 붙어있는 느낌)
@@ -384,7 +397,7 @@ class PageFlipStateController {
 
   /// Triggers a programmatic page flip (e.g. from edge tap or controller).
   void triggerTapFlip({required bool isNext, required int totalPages}) {
-    if (_isDragging || animationController.isAnimating) return;
+    if (_isDragging || animationController.isAnimating || _isPendingFinalize) return;
 
     if ((isNext && _currentIndex >= totalPages - 1) ||
         (!isNext && _currentIndex <= 0)) {
@@ -419,42 +432,67 @@ class PageFlipStateController {
 
   void _finalizePageChange(bool success, int totalPages) {
     if (success) {
-      if (_isForward) {
-        _currentIndex++;
-      } else {
-        _currentIndex--;
-      }
-
-      // Save velocity for haptic calculation before resetting state
+      // Save velocity for haptic calculation before resetting state.
       final releaseVelocity = _lastReleaseVelocity;
 
-      // Reset ALL drag state atomically BEFORE any listener or callback fires.
-      // _isDragging must be false and animationController.value = 0 before
-      // onPageFinalized/onUpdate so the ValueListenableBuilder never observes
-      // isDragging=true with progress=0, and the non-drag view is built with
-      // consistent state on the next frame.
-      _dragProgress = 0.0;
-      _isDragging = false;
-      animationController.value = 0.0;
-      _hasPlayedSound = false;
-      _lastReleaseVelocity = 0.0;
+      // Prevent new drag or tap flips during the 1-frame transition window.
+      _isPendingFinalize = true;
 
+      // Non-visual effects fire immediately (haptics don't need frame sync).
       endPointerCapture();
       onEffectTrigger(PageFlipEvent.stopHaptic);
 
-      // Trigger impulse haptic on successful flip
+      // Trigger impulse haptic on successful flip.
       final impulseIntensity = releaseVelocity > 0
           ? (releaseVelocity / 4).clamp(15.0, 120.0).toInt()
           : 60;
       onEffectTrigger(PageFlipEvent.impulseHaptic, intensity: impulseIntensity);
 
-      // Now notify: the page index is updated, drag state is clean,
-      // so the next build will render the new page cleanly in idle mode.
-      onPageFinalized(_currentIndex);
-      onUpdate();
-      onFlipEnd?.call();
+      // Defer the visual state transition to the next frame.
+      //
+      // The current frame continues displaying the completed flip animation
+      // (progress ≈ 1.0, PageFlipPainter early-returns at >= 0.999, the
+      // revealed page is fully visible behind the invisible flap). Keeping
+      // the OLD currentIndex and isDragging=true for one extra frame gives
+      // Flutter an additional rendering pass so the new page's live widget
+      // — already mounted Offstage for snapshot capture — completes its
+      // first on-screen paint before becoming the visible currentPage.
+      // Without this deferral the snapshot→live-widget swap and the
+      // drag→static layout swap occur on the same frame, producing a
+      // 1-2 frame visual pop ("flicker") from sub-pixel rendering
+      // differences between raster snapshots and live widget paint.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_isDisposed) return;
+        _isPendingFinalize = false;
+
+        if (_isForward) {
+          _currentIndex++;
+        } else {
+          _currentIndex--;
+        }
+
+        // Reset ALL drag state atomically so the ValueListenableBuilder
+        // never observes isDragging=true with progress=0, and the non-drag
+        // view is built with consistent state on the next frame.
+        _dragProgress = 0.0;
+        _isDragging = false;
+        animationController.value = 0.0;
+        _hasPlayedSound = false;
+        _lastReleaseVelocity = 0.0;
+
+        onPageFinalized(_currentIndex);
+        onUpdate();
+        onFlipEnd?.call();
+      });
+      // Ensure a frame is scheduled so the post-frame callback above actually
+      // runs. addPostFrameCallback alone does NOT schedule a frame — without
+      // this, the callback would only fire when the next frame happens to be
+      // requested by something else (e.g. animation, setState). In tests,
+      // pumpAndSettle would stop before processing the deferred callback.
+      WidgetsBinding.instance.scheduleFrame();
     } else {
-      // Cancelled flip: snap back
+      // Cancelled flip: snap back — no deferral needed since the visible
+      // page doesn't change (no snapshot→live-widget transition).
       _lastReleaseVelocity = 0.0;
       _dragProgress = 0.0;
       animationController.value = 0.0;
@@ -469,6 +507,8 @@ class PageFlipStateController {
 
   /// Disposes the animation controller, notifiers, and releases resources.
   void dispose() {
+    _isDisposed = true;
+    _isPendingFinalize = false;
     animationController.removeListener(_onAnimationTick);
     animationController.dispose();
     progressNotifier.dispose();

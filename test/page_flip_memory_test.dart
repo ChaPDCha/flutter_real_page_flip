@@ -22,6 +22,9 @@ class _NoOpEffectHandler implements PageFlipEffectHandler {
   }) {}
 
   @override
+  set viewportWidth(double width) {}
+
+  @override
   void dispose() {}
 }
 

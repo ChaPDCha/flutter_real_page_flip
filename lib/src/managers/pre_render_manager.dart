@@ -58,7 +58,7 @@ class PreRenderManager {
     final toDispose = <ui.Image>{};
 
     pageSnapshots.removeWhere((index, image) {
-      if (!targetIndices.contains(index) && index != currentIndex) {
+      if (!targetIndices.contains(index)) {
         toDispose.add(image);
         return true;
       }
@@ -302,14 +302,15 @@ class PreRenderManager {
 
         if (captureAsSpread) {
           final oldImage = spreadSnapshots[index];
-          spreadSnapshots[index] = image;
+          spreadSnapshots[index] = image.clone();
           if (oldImage != null) toDispose.add(oldImage);
         }
         if (!captureAsSpread || index != currentIndex) {
           final oldImage = pageSnapshots[index];
-          pageSnapshots[index] = image;
+          pageSnapshots[index] = image.clone();
           if (oldImage != null) toDispose.add(oldImage);
         }
+        image.dispose();
         if (toDispose.isNotEmpty) {
           _disposeImagesOnce(toDispose);
           toDispose.clear();

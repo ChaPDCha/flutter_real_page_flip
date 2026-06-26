@@ -1,12 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 
 class AdvancedHapticEngine {
-  static const MethodChannel _channel = MethodChannel('com.chapdcha.real_page_flip/haptics');
+  static const MethodChannel _channel =
+      MethodChannel('com.chapdcha.real_page_flip/haptics');
 
   /// 매우 짧고 날카로운 단일 이벤트 (드래그 시 텍스처 표현용)
   /// [intensity]: 0.0 ~ 1.0
   /// [sharpness]: 0.0 ~ 1.0
-  static Future<void> playTransient({required double intensity, required double sharpness}) async {
+  static Future<void> playTransient({
+    required double intensity,
+    required double sharpness,
+  }) async {
     try {
       await _channel.invokeMethod('playTransient', {
         'intensity': intensity.clamp(0.0, 1.0),
@@ -35,7 +41,7 @@ class AdvancedHapticEngine {
       await _channel.invokeMethod('playSystemMedium');
     } on PlatformException {
       // Fallback
-      HapticFeedback.mediumImpact();
+      unawaited(HapticFeedback.mediumImpact());
     }
   }
 
@@ -43,7 +49,7 @@ class AdvancedHapticEngine {
     try {
       await _channel.invokeMethod('playSystemLight');
     } on PlatformException {
-      HapticFeedback.lightImpact();
+      unawaited(HapticFeedback.lightImpact());
     }
   }
 }

@@ -70,33 +70,44 @@ class StickSlipController {
   double _lastVelocity = 0;
   double _stickEnergy = 0;
   DateTime _lastMoveTime;
+  double _accumulatedStationaryTime = 0;
 
   /// Updates the controller with the current velocity and returns any
   /// stick-slip event. Call on every drag frame.
   StickSlipEvent update(double velocity) {
     final now = _now();
-    final dt = now.difference(_lastMoveTime).inMilliseconds;
+    final dt = now.difference(_lastMoveTime).inMilliseconds.toDouble();
 
     if (!_initialized) {
       _initialized = true;
       _lastVelocity = velocity;
       _lastMoveTime = now;
       _wasStationary = velocity < _slipVelocityThreshold;
+      _accumulatedStationaryTime =
+          _wasStationary ? _stationaryThresholdMs.toDouble() : 0;
       return StickSlipEvent.none;
     }
 
     if (velocity < _slipVelocityThreshold) {
-      if (dt > _stationaryThresholdMs) {
-        _wasStationary = true;
+      if (_wasStationary) {
+        // If already stationary, accumulate energy smoothly on every frame.
         _stickEnergy = (_stickEnergy + dt * 0.001).clamp(0.0, 1.0);
-        _lastMoveTime = now;
+      } else {
+        // Accumulate time until the threshold is crossed.
+        _accumulatedStationaryTime += dt;
+        if (_accumulatedStationaryTime > _stationaryThresholdMs) {
+          _wasStationary = true;
+          _stickEnergy = (_accumulatedStationaryTime * 0.001).clamp(0.0, 1.0);
+        }
       }
       _lastVelocity = velocity;
+      _lastMoveTime = now;
       return StickSlipEvent.none;
     }
 
     if (_wasStationary && velocity > _slipVelocityThreshold) {
       _wasStationary = false;
+      _accumulatedStationaryTime = 0;
       final releaseEnergy = _stickEnergy;
       _stickEnergy = 0.0;
       _lastVelocity = velocity;
@@ -104,6 +115,9 @@ class StickSlipController {
       return StickSlipEvent.slipRelease(intensity: releaseEnergy);
     }
 
+    _wasStationary = false;
+    _accumulatedStationaryTime = 0;
+    _stickEnergy = 0.0;
     final accel = (velocity - _lastVelocity).abs();
     _lastVelocity = velocity;
     _lastMoveTime = now;
@@ -121,6 +135,7 @@ class StickSlipController {
     _wasStationary = true;
     _lastVelocity = 0.0;
     _stickEnergy = 0.0;
+    _accumulatedStationaryTime = 0;
     _lastMoveTime = _now();
   }
 }

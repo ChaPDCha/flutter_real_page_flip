@@ -18,6 +18,11 @@ abstract class PageFlipEffectHandler {
     double? resistance,
   });
 
+  /// Updates the viewport width so haptic physics normalize correctly.
+  /// Called during widget layout when the available width changes.
+  /// Default no-op for custom handlers that don't need width normalization.
+  set viewportWidth(double width) {}
+
   /// Dispose any resources (audio players, etc.) used by the handler.
   void dispose();
 }

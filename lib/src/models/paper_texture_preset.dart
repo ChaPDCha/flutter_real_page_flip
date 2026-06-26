@@ -30,12 +30,13 @@ class PaperTextureConfig {
   });
 
   /// Resolves a preset to its concrete configuration.
-  factory PaperTextureConfig.fromPreset(PaperTexturePreset preset) => switch (preset) {
-    PaperTexturePreset.smooth => _smooth,
-    PaperTexturePreset.standard => _standard,
-    PaperTexturePreset.textured => _textured,
-    PaperTexturePreset.kraft => _kraft,
-  };
+  factory PaperTextureConfig.fromPreset(PaperTexturePreset preset) =>
+      switch (preset) {
+        PaperTexturePreset.smooth => _smooth,
+        PaperTexturePreset.standard => _standard,
+        PaperTexturePreset.textured => _textured,
+        PaperTexturePreset.kraft => _kraft,
+      };
 
   /// 마찰 계수 (0.0 ~ 1.0). 드래그 시 발생하는 미세 진동의 기본 강도와 밀도.
   final double friction;

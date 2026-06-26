@@ -46,8 +46,20 @@ class PageFlipGestureArbitration {
 
 /// A custom HorizontalDragGestureRecognizer that allows for more natural thumb arcs
 /// by having a configurable sensitivity and allowing a certain amount of vertical movement.
+///
+/// Note: The current widget tree uses [PageFlipGestureLayer] (Listener-based) for
+/// gesture handling. This recognizer is retained for compatibility and testing.
+@Deprecated(
+  'Use PageFlipGestureLayer instead. '
+  'This recognizer is not wired into the widget tree and is kept only for '
+  'testing compatibility.',
+)
 class PageFlipGestureRecognizer extends HorizontalDragGestureRecognizer {
   /// Creates a [PageFlipGestureRecognizer] with the given sensitivity.
+  @Deprecated(
+    'Use PageFlipGestureLayer instead. '
+    'This recognizer is not wired into the widget tree.',
+  )
   PageFlipGestureRecognizer({
     super.debugOwner,
 

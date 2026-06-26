@@ -272,8 +272,7 @@ class PageFlipPainter extends CustomPainter {
         // Determine which image/rect to use: settle content for Phase 3,
         // regular flap content for Phase 1 (early drag).
         final invertProgress = !isForward;
-        final normalizedProgress =
-            invertProgress ? (1.0 - progress) : progress;
+        final normalizedProgress = invertProgress ? (1.0 - progress) : progress;
         final isSettlePhase = normalizedProgress >= flapContentRevealStart;
         final useSettle = isSettlePhase &&
             flapFrontSettleImage != null &&
@@ -395,7 +394,11 @@ class PageFlipPainter extends CustomPainter {
     const double edgeFadeWidth = 8;
     final edgeFadeRect = g.flapRightOfFold
         ? Rect.fromLTWH(
-            g.freeEdgeX - edgeFadeWidth, 0, edgeFadeWidth, size.height,)
+            g.freeEdgeX - edgeFadeWidth,
+            0,
+            edgeFadeWidth,
+            size.height,
+          )
         : Rect.fromLTWH(g.flapLeft, 0, edgeFadeWidth, size.height);
     final edgeFadeBegin =
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
@@ -575,5 +578,6 @@ class PageFlipPainter extends CustomPainter {
       oldDelegate.flapFrontDestRect != flapFrontDestRect ||
       oldDelegate.flapBackImage != flapBackImage ||
       oldDelegate.flapBackSrcRect != flapBackSrcRect ||
-      oldDelegate.flapBackStrength != flapBackStrength;
+      oldDelegate.flapBackStrength != flapBackStrength ||
+      oldDelegate.performanceProfile != performanceProfile;
 }

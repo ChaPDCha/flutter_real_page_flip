@@ -447,18 +447,14 @@ class PageFlipLayerView extends StatelessWidget {
     if (isDoubleSpread) {
       final spreadImage = spreadSnapshots[index];
       if (spreadImage != null) {
-        return _wrapWithConstraints(
-          RepaintBoundary(child: _buildSnapshotImage(spreadImage)),
-        );
+        return _wrapWithConstraints(_buildSnapshotImage(spreadImage));
       }
     }
 
     // Single-page (or spread fallback): per-page snapshot
     final snapshot = pageSnapshots[index];
     if (snapshot != null) {
-      return _wrapWithConstraints(
-        RepaintBoundary(child: _buildSnapshotImage(snapshot)),
-      );
+      return _wrapWithConstraints(_buildSnapshotImage(snapshot));
     }
 
     // Live page fallback while snapshot is being captured (1-2 frame window).

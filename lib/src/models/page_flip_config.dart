@@ -23,8 +23,9 @@ extension PageFlipSpreadModeCompat on PageFlipSpreadMode {
   bool get isDoubleSpread => this == PageFlipSpreadMode.doubleSpread;
 
   /// Converts the historical boolean API to [PageFlipSpreadMode].
-  static PageFlipSpreadMode fromIsDoubleSpread(
-          {required bool isDoubleSpread,}) =>
+  static PageFlipSpreadMode fromIsDoubleSpread({
+    required bool isDoubleSpread,
+  }) =>
       isDoubleSpread
           ? PageFlipSpreadMode.doubleSpread
           : PageFlipSpreadMode.single;

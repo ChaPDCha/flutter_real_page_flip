@@ -16,6 +16,9 @@ class _TestEffectHandler implements PageFlipEffectHandler {
   }) {}
 
   @override
+  set viewportWidth(double width) {}
+
+  @override
   void dispose() {}
 }
 

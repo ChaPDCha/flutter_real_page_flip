@@ -56,7 +56,8 @@ class PageFlipWidget extends StatefulWidget {
     this.onHandleEffect,
   })  : spreadMode = spreadMode ??
             PageFlipSpreadModeCompat.fromIsDoubleSpread(
-                isDoubleSpread: isDoubleSpread,),
+              isDoubleSpread: isDoubleSpread,
+            ),
         assert(
           initialIndex < itemCount,
           'initialIndex cannot be greater than itemCount',
@@ -210,10 +211,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         widget.config.effectHandler != oldWidget.config.effectHandler;
     final profileChanged =
         widget.config.performanceProfile != oldWidget.config.performanceProfile;
-    final texturePresetChanged =
-        widget.config.hapticTexturePreset != oldWidget.config.hapticTexturePreset;
+    final texturePresetChanged = widget.config.hapticTexturePreset !=
+        oldWidget.config.hapticTexturePreset;
     if (effectHandlerChanged ||
-        (widget.config.effectHandler == null && (profileChanged || texturePresetChanged))) {
+        (widget.config.effectHandler == null &&
+            (profileChanged || texturePresetChanged))) {
       _effectHandler.dispose();
       _effectHandler = widget.config.effectHandler ??
           DefaultPageFlipEffectHandler(
@@ -332,9 +334,17 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       return;
     }
 
-    // Use toggles from config
-    final isHaptic = effect.name.contains('Haptic') ||
-        effect == PageFlipEvent.impulseHaptic; // Simple classification
+    // Classify effect type by explicit enum check (not string name) for
+    // refactor-safety — a renamed enum member silently breaks string matching.
+    final isHaptic = switch (effect) {
+      PageFlipEvent.startHaptic ||
+      PageFlipEvent.stopHaptic ||
+      PageFlipEvent.continuousHaptic ||
+      PageFlipEvent.texturedHaptic ||
+      PageFlipEvent.impulseHaptic =>
+        true,
+      _ => false,
+    };
     if (isHaptic && !widget.config.enableHaptics) return;
     if (effect == PageFlipEvent.sound && !widget.config.enableSound) return;
 
@@ -355,8 +365,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   /// Navigates to the next page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
   void nextPage() {
+    _onFlipStart();
     if (widget.config.skipTapAnimation) {
       goToPage(_controller.currentIndex + 1);
+      _onFlipEnd();
     } else {
       _controller.triggerTapFlip(isNext: true, totalPages: _totalPages);
     }
@@ -364,25 +376,35 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   /// Navigates to the previous page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
   void previousPage() {
+    _onFlipStart();
     if (widget.config.skipTapAnimation) {
       goToPage(_controller.currentIndex - 1);
+      _onFlipEnd();
     } else {
       _controller.triggerTapFlip(isNext: false, totalPages: _totalPages);
     }
   }
 
   /// Jumps directly to the given page index without animation.
+  ///
+  /// Unlike [nextPage] / [previousPage], this is a low-level direct jump that
+  /// does NOT fire [onFlipStart] / [onFlipEnd] callbacks. It is intended for
+  /// programmatic navigation where gesture lifecycle callbacks are not desired.
+  /// The [onPageChanged] callback still fires so consumers can update UI state.
   Future<void> goToPage(int index) async {
     if (index < 0 || index >= _totalPages) return;
-    _onFlipStart();
+    if (index == _controller.currentIndex) return;
+    // Prevent re-entrance during active drag, animation, or pending finalize.
+    if (_controller.isDragging ||
+        _controller.animationController.isAnimating ||
+        _controller.isPendingFinalize) {
+      return;
+    }
 
-    // Immediate jump for now, as drag logic is complex to simulate
     setState(() {
       _controller.setIndex(index, _totalPages);
     });
-
     _onPageFinalized(index);
-    _onFlipEnd();
   }
 
   @override
@@ -399,6 +421,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           final flipDragExtent =
               widget.spreadMode.isDoubleSpread ? maxW / 2 : maxW;
           _controller.updateCachedWidth(flipDragExtent);
+          _effectHandler.viewportWidth = flipDragExtent;
           final maxH = constraints.maxHeight.isFinite
               ? constraints.maxHeight
               : MediaQuery.sizeOf(context).height;
