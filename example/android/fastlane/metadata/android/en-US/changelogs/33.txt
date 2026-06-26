@@ -1,0 +1,4 @@
+• Fixed haptic feedback inconsistency across different screen sizes (viewport-based normalization)
+• Fixed memory growth during extended reading sessions
+• Improved page flip performance with reduced GPU compositing overhead
+• Enhanced programmatic navigation stability

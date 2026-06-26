@@ -3,6 +3,15 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.27+33] - 2026-06-26
+### 🐛 수정
+- 햅틱 피드백이 화면 크기에 따라 일관되지 않게 진동하던 문제 수정 (실제 기기 폭 기반 정규화)
+- 장시간 사용 시 메모리 사용량이 증가하던 문제 수정 (physics 엔진 자동 정리)
+- goToPage 프로그래매틱 네비게이션 안정성 개선
+
+### ⚡ 성능
+- 페이지플립 애니메이션 중 GPU compositing layer 오버헤드 감소
+
 ## [1.0.26+32] - 2026-06-26
 ### ✨ 기능
 - 네이티브 햅틱 엔진(CoreHaptics / Composition)을 적용하여 더욱 세밀하고 고급스러운 페이지 플립 질감(Smooth/Standard/Textured/Kraft) 물리 반응 구현

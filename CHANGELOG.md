@@ -3,6 +3,22 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.9.1] - 2026-06-26
+### 🐛 수정
+- 햅틱 물리 계산이 항상 400px로 하드코딩되어 기기 크기에 따라 진동 강도가 달라지던 버그 수정 (실제 뷰포트 폭 사용)
+- 페이지를 많이 넘길수록 메모리가 누적되던 PaperPhysicsEngine 맵 무한 성장 버그 수정
+- goToPage()가 드래그/애니메이션 중 호출되면 내부 상태 불일치가 발생하던 문제 수정 (guard 추가)
+- 햅틱 텍스처 노이즈의 .abs()로 인한 불연속 도함수로 진동 출력에 "딸깍" 느낌이 발생하던 문제 수정
+
+### ⚡ 성능
+- 페이지플립 레이어 스냅샷 렌더링에서 불필요한 RepaintBoundary 제거로 GPU compositing layer 오버헤드 감소
+
+### ♻️ 리팩토링
+- onHandleEffect의 문자열 기반 enum 매칭(name.contains('Haptic'))을 안전한 switch 문으로 변경
+- PageFlipGestureRecognizer에 @Deprecated 마킹 (PageFlipGestureLayer로 대체됨)
+- PageFlipEffectHandler 인터페이스에 viewportWidth setter 추가
+- shouldRepaint에 누락된 performanceProfile 필드 검사 추가
+
 ## [1.9.0] - 2026-06-26
 ### ✨ 기능
 - 외부 `vibration` 라이브러리를 제거하고 고성능 플랫폼 채널 기반 `AdvancedHapticEngine` 신규 구축
