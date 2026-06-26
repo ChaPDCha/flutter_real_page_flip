@@ -3,7 +3,7 @@ description: >
   A high-fidelity 3D-like page flip engine for Flutter. Features physics-based
   paper fold effects with realistic shadows, sound, and haptic feedback for
   ultra-smooth performance.
-version: 1.8.1
+version: 1.9.0
 repository: https://github.com/ChaPDCha/flutter_real_page_flip.git
 homepage: https://github.com/ChaPDCha/flutter_real_page_flip
 issue_tracker: https://github.com/ChaPDCha/flutter_real_page_flip/issues
@@ -21,7 +21,6 @@ dependencies:
   flutter:
     sdk: flutter
   audioplayers: ^6.5.1
-  vibration: ^3.1.5
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +28,14 @@ dev_dependencies:
   flutter_lints: ^2.0.0
 
 flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.chapdcha.real_page_flip
+        pluginClass: RealPageFlipPlugin
+      ios:
+        pluginClass: RealPageFlipPlugin
+
   assets:
     - assets/sounds/page_flip.mp3
     - assets/sounds/page_flip.opus
