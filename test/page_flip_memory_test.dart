@@ -36,8 +36,7 @@ void main() {
   }
 
   setUpAll(() {
-    mockChannel('vibration');
-    mockChannel('flutter.baseflow.com/vibration');
+    mockChannel('com.chapdcha.real_page_flip/haptics');
   });
 
   testWidgets('PageFlipWidget Memory Test: Manual WeakReference tracking',

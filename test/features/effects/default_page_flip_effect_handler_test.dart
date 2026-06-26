@@ -37,27 +37,15 @@ void main() {
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      MethodChannel('flutter_vibration'),
-      (MethodCall methodCall) async {
-        switch (methodCall.method) {
-          case 'hasVibrator':
-            return false;
-          case 'hasAmplitudeControl':
-            return false;
-          case 'cancel':
-            return null;
-          case 'vibrate':
-            return null;
-        }
-        return null;
-      },
+      MethodChannel('com.chapdcha.real_page_flip/haptics'),
+      (MethodCall methodCall) async => null,
     );
   });
 
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      MethodChannel('flutter_vibration'),
+      MethodChannel('com.chapdcha.real_page_flip/haptics'),
       null,
     );
   });

@@ -27,17 +27,7 @@ void main() {
     );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('flutter_plugin_vibration'),
-      (methodCall) async {
-        if (methodCall.method == 'hasVibrator') return true;
-        if (methodCall.method == 'hasAmplitudeControl') return true;
-        return null;
-      },
-    );
-    // Vibration.cancel() uses the 'vibration' channel
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      const MethodChannel('vibration'),
+      const MethodChannel('com.chapdcha.real_page_flip/haptics'),
       (methodCall) async => null,
     );
   }
@@ -61,12 +51,7 @@ void main() {
     );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('flutter_plugin_vibration'),
-      null,
-    );
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      const MethodChannel('vibration'),
+      const MethodChannel('com.chapdcha.real_page_flip/haptics'),
       null,
     );
   }
@@ -232,45 +217,7 @@ void main() {
       await Future.delayed(Duration.zero);
     });
 
-    test('vibration branch when hasVibrator returns true', () async {
-      // Override vibration mock: hasVibrator=true, cancel silently handled
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-        const MethodChannel('flutter_plugin_vibration'),
-        (methodCall) async {
-          if (methodCall.method == 'hasVibrator') return true;
-          if (methodCall.method == 'hasAmplitudeControl') return true;
-          return null;
-        },
-      );
 
-      // Re-setup audio mocks so _initAudio succeeds
-      setupAudioMocks((methodCall) async => null);
-
-      final handler = DefaultPageFlipEffectHandler();
-      await Future.delayed(const Duration(milliseconds: 10));
-
-      expect(
-        () => handler.onHandleEffect(
-          PageFlipEvent.continuousHaptic,
-          pageIndex: 1,
-          texture: 0.7,
-          intensity: 80,
-          resistance: 0.6,
-        ),
-        returnsNormally,
-      );
-      await Future.delayed(Duration.zero);
-
-      // Restore vibration mock so tearDown can clear it without throwing
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-        const MethodChannel('flutter_plugin_vibration'),
-        (methodCall) async => null,
-      );
-      handler.dispose();
-      await Future.delayed(Duration.zero);
-    });
 
     test('Opus audio init sets audioReady', () async {
       final handler = DefaultPageFlipEffectHandler();
