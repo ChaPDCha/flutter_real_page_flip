@@ -23,6 +23,7 @@ class ReaderSettingsPanel {
       pageListBuilder: (modalContext) => [
         WoltModalSheetPage(
           backgroundColor: theme.panelColor,
+          isScrollControlled: true,
           topBarTitle: Text(
             l10n.readerSettings.title,
             style: ReaderTypography.getUiStyle(
@@ -37,10 +38,11 @@ class ReaderSettingsPanel {
 
               return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Font Size
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Font Size
                     _SettingRow(
                       label: l10n.readerSettings.fontSize,
                       theme: theme,
@@ -229,8 +231,9 @@ class ReaderSettingsPanel {
                     const SizedBox(height: 32),
                   ],
                 ),
-              );
-            },
+              ),
+            );
+          },
           ),
           stickyActionBar: Padding(
             padding: const EdgeInsets.all(16.0),
