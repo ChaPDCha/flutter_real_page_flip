@@ -13,9 +13,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   DefaultPageFlipEffectHandler({
     this.performanceProfile = DevicePerformanceProfile.high,
     this.hapticTexturePreset = PaperTexturePreset.standard,
-    double viewportWidth = 400,
-  })  : _textureConfig = PaperTextureConfig.fromPreset(hapticTexturePreset),
-        _viewportWidth = viewportWidth {
+  }) : _textureConfig = PaperTextureConfig.fromPreset(hapticTexturePreset) {
     _initAudio();
   }
 
@@ -23,18 +21,8 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   final PaperTexturePreset hapticTexturePreset;
   final PaperTextureConfig _textureConfig;
 
-  /// The current viewport width used to normalize haptic velocity calculations.
-  /// Must be updated when the widget layout changes (default 400 for backward compat).
-  double _viewportWidth;
-
-  /// Updates the viewport width so haptic physics match the actual screen size.
-  /// Call this from the widget build when the layout is available.
   @override
-  set viewportWidth(double width) {
-    if (width > 0 && width.isFinite) {
-      _viewportWidth = width;
-    }
-  }
+  set viewportWidth(double width) {}
 
   static const int _audioPoolSize = 3;
   final List<AudioPlayer> _audioPool = List.generate(
@@ -133,7 +121,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     final frame = engine.calculate(
       dx: velocityIntensity.toDouble() * 0.1,
       foldAngle: texture,
-      screenWidth: _viewportWidth,
+      screenWidth: 400,
     );
 
     final stickSlip = frame.stickSlipEvent;

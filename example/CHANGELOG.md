@@ -3,6 +3,10 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.28+34] - 2026-06-27
+### 🐛 수정
+- 햅틱 피드백이 완전히 출력되지 않던 긴급 버그 수정 (screenWidth 정규화 상수 오류)
+
 ## [1.0.27+33] - 2026-06-26
 ### 🐛 수정
 - 햅틱 피드백이 화면 크기에 따라 일관되지 않게 진동하던 문제 수정 (실제 기기 폭 기반 정규화)
