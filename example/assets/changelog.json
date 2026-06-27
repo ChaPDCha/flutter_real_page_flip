@@ -5,16 +5,12 @@
   "date": "2026-06-27",
   "ko": {
     "changes": [
-      "설정 패널 스위치가 Android 네비게이션 바에 가려지던 문제 수정",
-      "린트 경고 전면 해결 (zero warnings)",
-      "CHANGELOG.md에서 Play Store changelog 자동 생성 도구 추가"
+      "설정 패널 스위치가 Android 네비게이션 바에 가려지던 문제 수정"
     ]
   },
   "en": {
     "changes": [
-      "Fixed settings panel switches hidden behind Android navigation bar",
-      "Resolved all lint warnings (zero warnings)",
-      "Added auto-generate tool for Play Store changelogs from CHANGELOG.md"
+      "Fixed settings panel switches hidden behind Android navigation bar"
     ]
   }
 }

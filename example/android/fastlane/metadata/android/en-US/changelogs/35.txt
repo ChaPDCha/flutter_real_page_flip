@@ -1,3 +1,1 @@
 • Fixed settings panel switches hidden behind Android navigation bar
-• Resolved all lint warnings (zero warnings)
-• Added auto-generate tool for Play Store changelogs from CHANGELOG.md
