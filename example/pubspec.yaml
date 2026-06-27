@@ -34,7 +34,9 @@ dependencies:
     sdk: flutter
   intl: ^0.20.2
   real_page_flip:
-    path: ../
+    git:
+      url: https://github.com/ChaPDCha/flutter_real_page_flip.git
+      ref: main
   cupertino_icons: ^1.0.8
   drift: ^2.16.0
   sqlite3_flutter_libs: ^0.5.20

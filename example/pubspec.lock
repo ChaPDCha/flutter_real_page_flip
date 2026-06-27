@@ -1217,9 +1217,11 @@ packages:
   real_page_flip:
     dependency: "direct main"
     description:
-      path: ".."
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: "9d9977c0b1800fa444eabd0c6a8821e1b5d2cfcd"
+      url: "https://github.com/ChaPDCha/flutter_real_page_flip.git"
+    source: git
     version: "1.9.2"
   realtime_client:
     dependency: transitive
