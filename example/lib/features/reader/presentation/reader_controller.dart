@@ -29,6 +29,7 @@ class ReaderController extends _$ReaderController {
   static const _progressKeyPrefix = 'reader_progress_';
   int _paginationGeneration = 0;
   bool _disposed = false;
+  bool _isRecalculatingPages = false;
 
   @override
   ReaderState build(Book book) {
@@ -72,6 +73,7 @@ class ReaderController extends _$ReaderController {
             ? progress.chapterIndex
             : 0;
 
+        if (_disposed) return;
         state = state.copyWith(
           epubBook: epubBook,
           chapters: chapters,
@@ -92,6 +94,7 @@ class ReaderController extends _$ReaderController {
             ? progress.chapterIndex
             : 0;
 
+        if (_disposed) return;
         state = state.copyWith(
           chapters: chapters,
           currentChapterIndex: chapterIndex,
@@ -122,6 +125,7 @@ class ReaderController extends _$ReaderController {
             ? progress.pageIndex
             : 0;
 
+        if (_disposed) return;
         state = state.copyWith(
           chapters: [mockChapter],
           currentChapterIndex: 0,
@@ -141,12 +145,12 @@ class ReaderController extends _$ReaderController {
     }
   }
 
-  void setViewportSize(double width, double height) {
+  Future<void> setViewportSize(double width, double height) async {
     if (state.viewportWidth == width && state.viewportHeight == height) {
       return;
     }
     state = state.copyWith(viewportWidth: width, viewportHeight: height);
-    _recalculatePages();
+    await _recalculatePages();
   }
 
   Future<void> _recalculatePages() async {
@@ -202,7 +206,11 @@ class ReaderController extends _$ReaderController {
 
     state = state.copyWith(pages: pages, currentPageIndex: pageIndex);
 
-    _saveProgress();
+    try {
+      await _saveProgress();
+    } catch (e) {
+      debugPrint('Failed to save reading progress: $e');
+    }
   }
 
   Future<void> updateFontSize(double delta) async {
@@ -212,7 +220,7 @@ class ReaderController extends _$ReaderController {
     state = state.copyWith(
       settings: state.settings.copyWith(fontSize: newSize),
     );
-    _recalculatePages();
+    await _recalculatePages();
     unawaited(FirebaseService.logFontSizeChanged(newSize));
     await _saveSettings();
   }
@@ -224,7 +232,7 @@ class ReaderController extends _$ReaderController {
     state = state.copyWith(
       settings: state.settings.copyWith(lineHeight: newHeight),
     );
-    _recalculatePages();
+    await _recalculatePages();
     unawaited(FirebaseService.logLineHeightChanged(newHeight));
     await _saveSettings();
   }
@@ -246,7 +254,7 @@ class ReaderController extends _$ReaderController {
     state = state.copyWith(
       settings: state.settings.copyWith(fontFamily: fontFamily),
     );
-    _recalculatePages();
+    await _recalculatePages();
     if (fontFamily != null) {
       unawaited(FirebaseService.logFontFamilyChanged(fontFamily));
     }
@@ -283,7 +291,7 @@ class ReaderController extends _$ReaderController {
     _saveProgress();
   }
 
-  void jumpToChapterWithQuery(int chapterIndex, String query) {
+  Future<void> jumpToChapterWithQuery(int chapterIndex, String query) async {
     if (chapterIndex < 0 || chapterIndex >= state.chapters.length) return;
 
     state = state.copyWith(
@@ -292,7 +300,7 @@ class ReaderController extends _$ReaderController {
       pages: const [],
     );
 
-    _recalculatePages();
+    await _recalculatePages();
 
     // Find the exact page index containing the matching search term
     for (int i = 0; i < state.pages.length; i++) {
@@ -304,17 +312,23 @@ class ReaderController extends _$ReaderController {
     _saveProgress();
   }
 
-  void nextPage() {
+  Future<void> nextPage() async {
     final step = (state.isDoublePage && !state.isPdfLandscape) ? 2 : 1;
     if (state.currentPageIndex + step < state.pages.length) {
       goToPageIndex(state.currentPageIndex + step);
+    } else if (state.currentPageIndex < state.pages.length - 1) {
+      // Show the last partial spread in double-page mode when odd page count
+      goToPageIndex(state.currentPageIndex + 1);
     } else if (state.currentChapterIndex < state.chapters.length - 1) {
+      if (_isRecalculatingPages) return;
+      _isRecalculatingPages = true;
       state = state.copyWith(
         currentChapterIndex: state.currentChapterIndex + 1,
         currentPageIndex: 0,
         pages: const [],
       );
-      _recalculatePages();
+      await _recalculatePages();
+      _isRecalculatingPages = false;
     }
     unawaited(FirebaseService.logPageTurned(book.id, isForward: true));
   }
@@ -429,7 +443,7 @@ class ReaderController extends _$ReaderController {
     required String colorHex,
     String? note,
   }) async {
-    await ref
+    final insertedId = await ref
         .read(appDatabaseProvider)
         .insertHighlight(
           HighlightsCompanion(
@@ -443,20 +457,28 @@ class ReaderController extends _$ReaderController {
           ),
         );
 
-    // Refresh highlights in state
-    final highlights = await ref
-        .read(appDatabaseProvider)
-        .getHighlightsForBook(book.id);
-    state = state.copyWith(highlights: highlights);
+    final now = DateTime.now();
+    final newHighlight = Highlight(
+      id: insertedId,
+      bookId: book.id,
+      chapterIndex: chapterIndex,
+      startOffset: startOffset,
+      endOffset: endOffset,
+      selectedText: text,
+      highlightColor: colorHex,
+      note: note,
+      createdAt: now,
+      updatedAt: now,
+      isDeleted: false,
+    );
+    state = state.copyWith(highlights: [...state.highlights, newHighlight]);
   }
 
   Future<void> removeHighlight(int id) async {
     await ref.read(appDatabaseProvider).deleteHighlight(id);
 
-    // Refresh highlights in state
-    final highlights = await ref
-        .read(appDatabaseProvider)
-        .getHighlightsForBook(book.id);
-    state = state.copyWith(highlights: highlights);
+    state = state.copyWith(
+      highlights: state.highlights.where((h) => h.id != id).toList(),
+    );
   }
 }

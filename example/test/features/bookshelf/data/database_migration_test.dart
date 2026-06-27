@@ -95,6 +95,32 @@ void main() {
       );
     ''');
 
+      rawDb.execute('''
+      CREATE TABLE highlights (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id TEXT NOT NULL,
+        chapter_index INTEGER NOT NULL,
+        start_offset INTEGER NOT NULL,
+        end_offset INTEGER NOT NULL,
+        selected_text TEXT NOT NULL,
+        highlight_color TEXT NOT NULL,
+        note TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        is_deleted INTEGER NOT NULL DEFAULT 0
+      );
+    ''');
+
+      rawDb.execute('''
+      CREATE TABLE reading_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id TEXT NOT NULL,
+        chapter_index INTEGER NOT NULL,
+        duration_seconds INTEGER NOT NULL,
+        timestamp INTEGER NOT NULL
+      );
+    ''');
+
       // Seed test data in raw Schema Version 1
       rawDb.execute('''
       INSERT INTO books (id, title, author, file_path, format, added_at)

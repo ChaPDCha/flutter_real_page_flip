@@ -224,4 +224,232 @@ void main() {
       verify(() => mockClient.signInAnonymously()).called(1);
     },
   );
+
+  test(
+    'SyncController allows re-sync after error and succeeds on second attempt',
+    () async {
+      final controller = container.read(syncControllerProvider.notifier);
+
+      // First sync fails with network error
+      when(() => mockClient.signInAnonymously()).thenThrow(
+        Exception('Network error'),
+      );
+      await controller.sync();
+
+      var state = container.read(syncControllerProvider);
+      expect(state.status, SyncStatus.error);
+      expect(state.errorMessage, contains('Network error'));
+
+      // Reset mock for second attempt
+      when(() => mockClient.signInAnonymously()).thenAnswer(
+        (_) async => 'mock-user-123',
+      );
+
+      // Second sync succeeds — proves _isSyncing flag was reset after error
+      await controller.sync();
+
+      state = container.read(syncControllerProvider);
+      expect(state.status, SyncStatus.success);
+      expect(state.lastSyncedAt, isNotNull);
+    },
+  );
+
+  test(
+    'SyncController reports different error messages at auth, pull, and push stages',
+    () async {
+      final controller = container.read(syncControllerProvider.notifier);
+
+      // ---- Auth stage error ----
+      when(() => mockClient.signInAnonymously()).thenThrow(
+        Exception('Auth failed'),
+      );
+      await controller.sync();
+
+      expect(
+        container.read(syncControllerProvider).errorMessage,
+        contains('Auth failed'),
+      );
+
+      // Reset auth for pull, fail at pull stage
+      when(() => mockClient.signInAnonymously()).thenAnswer(
+        (_) async => 'mock-user-123',
+      );
+      when(() => mockClient.pullBooks(any())).thenThrow(
+        Exception('Pull timeout'),
+      );
+      await controller.sync();
+
+      expect(
+        container.read(syncControllerProvider).errorMessage,
+        contains('Pull timeout'),
+      );
+
+      // Reset pull for push, fail at push stage
+      when(() => mockClient.pullBooks(any())).thenAnswer((_) async => []);
+      when(() => mockClient.pushBooks(any())).thenThrow(
+        Exception('Push rejected'),
+      );
+      await controller.sync();
+
+      expect(
+        container.read(syncControllerProvider).errorMessage,
+        contains('Push rejected'),
+      );
+    },
+  );
+
+  test(
+    'SyncController transitions through authenticating, pulling, pushing, and success states',
+    () async {
+      final controller = container.read(syncControllerProvider.notifier);
+      final authCompleter = Completer<String>();
+      final pullCompleter = Completer<List<Map<String, dynamic>>>();
+
+      when(
+        () => mockClient.signInAnonymously(),
+      ).thenAnswer((_) => authCompleter.future);
+      when(
+        () => mockClient.pullBooks(any()),
+      ).thenAnswer((_) => pullCompleter.future);
+      when(
+        () => mockClient.pullHighlights(any()),
+      ).thenAnswer((_) => pullCompleter.future);
+      when(
+        () => mockClient.pullBookmarks(any()),
+      ).thenAnswer((_) => pullCompleter.future);
+
+      // Start sync — pauses at signInAnonymously
+      controller.sync();
+      await Future<void>.delayed(Duration.zero);
+
+      // State should be authenticating while sign-in is in flight
+      expect(
+        container.read(syncControllerProvider).status,
+        SyncStatus.authenticating,
+      );
+
+      // Complete auth -> sync moves to pulling phase
+      authCompleter.complete('mock-user-123');
+      await Future<void>.delayed(Duration.zero);
+
+      // State should be pulling while pull futures are pending
+      expect(
+        container.read(syncControllerProvider).status,
+        SyncStatus.pulling,
+      );
+
+      // Complete pulls -> sync moves to push phase, then completes
+      pullCompleter.complete([]);
+      await Future<void>.delayed(Duration.zero);
+
+      // Final state should be success
+      expect(
+        container.read(syncControllerProvider).status,
+        SyncStatus.success,
+      );
+    },
+  );
+
+  test(
+    'SyncController does not crash when container is disposed during sync',
+    () async {
+      final authCompleter = Completer<String>();
+      when(
+        () => mockClient.signInAnonymously(),
+      ).thenAnswer((_) => authCompleter.future);
+
+      final localContainer = ProviderContainer(overrides: [
+        cloudSyncClientProvider.overrideWithValue(mockClient),
+        syncRepositoryProvider.overrideWithValue(mockRepo),
+        sharedPreferencesProvider.overrideWithValue(testPrefs),
+      ]);
+
+      final controller = localContainer.read(syncControllerProvider.notifier);
+
+      // Start sync (paused at signInAnonymously)
+      final syncFuture = controller.sync();
+      await Future<void>.delayed(Duration.zero);
+
+      // Dispose the container — must not throw
+      localContainer.dispose();
+
+      // Complete the auth — sync resumes with disposed state
+      authCompleter.complete('mock-user-123');
+
+      // The sync future may complete with error (Riverpod throws on disposed
+      // setter) or may complete normally — either is acceptable. The key
+      // assertion is that dispose() itself does not crash.
+      try {
+        await syncFuture;
+        // OK: Riverpod silently handled state write on disposed container
+      } catch (_) {
+        // OK: Riverpod threw on disposed state setter — expected behavior
+      }
+    },
+  );
+
+  test(
+    'SyncController binds user_id to books, highlights, and bookmarks payloads',
+    () async {
+      final controller = container.read(syncControllerProvider.notifier);
+
+      final bookDeltas = [
+        <String, dynamic>{'id': 'book-1', 'title': 'Test Book'},
+      ];
+      final highlightDeltas = [
+        <String, dynamic>{'id': 1, 'selected_text': 'Test Highlight'},
+      ];
+      final bookmarkDeltas = [
+        <String, dynamic>{'id': 1, 'label': 'Test Bookmark'},
+      ];
+
+      when(() => mockRepo.getLocalBooksDelta(any())).thenAnswer(
+        (_) async => bookDeltas,
+      );
+      when(() => mockRepo.getLocalHighlightsDelta(any())).thenAnswer(
+        (_) async => highlightDeltas,
+      );
+      when(() => mockRepo.getLocalBookmarksDelta(any())).thenAnswer(
+        (_) async => bookmarkDeltas,
+      );
+
+      await controller.sync();
+
+      verify(
+        () => mockClient.pushBooks(
+          any(
+            that: isA<List<Map<String, dynamic>>>().having(
+              (list) => list.first['user_id'],
+              'secured user_id',
+              'mock-user-123',
+            ),
+          ),
+        ),
+      ).called(1);
+
+      verify(
+        () => mockClient.pushHighlights(
+          any(
+            that: isA<List<Map<String, dynamic>>>().having(
+              (list) => list.first['user_id'],
+              'secured user_id',
+              'mock-user-123',
+            ),
+          ),
+        ),
+      ).called(1);
+
+      verify(
+        () => mockClient.pushBookmarks(
+          any(
+            that: isA<List<Map<String, dynamic>>>().having(
+              (list) => list.first['user_id'],
+              'secured user_id',
+              'mock-user-123',
+            ),
+          ),
+        ),
+      ).called(1);
+    },
+  );
 }

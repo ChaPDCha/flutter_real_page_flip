@@ -11,8 +11,8 @@ import 'sync_controller.dart';
 
 /// Provider for SharedPreferences. Must be overridden in main() upon initialization.
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError(
-    'sharedPreferencesProvider must be overridden in ProviderScope',
+  throw StateError(
+    'SharedPreferences not initialized. Override in main.dart ProviderScope.',
   );
 });
 

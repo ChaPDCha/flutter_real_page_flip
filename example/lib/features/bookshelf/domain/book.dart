@@ -25,6 +25,6 @@ extension BookFormatExtension on Book {
     if (ext == 'epub') return BookFormat.epub;
     if (ext == 'txt') return BookFormat.txt;
     if (ext == 'pdf') return BookFormat.pdf;
-    return BookFormat.epub; // Fallback
+    throw UnsupportedError('Unsupported book format: "$ext". Supported formats: epub, pdf, txt.');
   }
 }

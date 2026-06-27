@@ -127,7 +127,7 @@ class BookshelfController extends _$BookshelfController {
       );
 
       await ref.read(bookRepositoryProvider).addBook(book);
-      ref.read(searchServiceProvider).indexBook(book);
+      await ref.read(searchServiceProvider).indexBook(book);
       state = AsyncValue.data(await _loadBooks());
     } catch (e, st) {
       state = AsyncValue.error(e, st);

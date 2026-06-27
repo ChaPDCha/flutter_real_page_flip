@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:drift/drift.dart';
+import 'package:epubx/epubx.dart';
 import 'package:flutter/foundation.dart';
 import '../../bookshelf/domain/book.dart';
 import '../../bookshelf/data/database.dart';
@@ -49,14 +51,12 @@ class SearchService {
     }
     if (parsed.isEmpty) return;
 
-    // Delete existing indices to prevent duplicates on re-import
-    await _db.customStatement(
-      'DELETE FROM book_contents_fts WHERE bookId = ?',
-      [book.id],
-    );
-
-    // Batch insert using custom SQL in a single fast transaction
+    // Delete existing indices and batch insert in a single transaction
     await _db.transaction(() async {
+      await _db.customStatement(
+        'DELETE FROM book_contents_fts WHERE bookId = ?',
+        [book.id],
+      );
       for (final item in parsed) {
         if (item.content.trim().isNotEmpty) {
           await _db.customStatement(
@@ -139,15 +139,22 @@ Future<List<ParsedChapterContent>> _parseBookInIsolate(
         chaptersText.add(ParsedChapterContent(i, cleanText));
       }
     } else if (format == 'epub') {
+      // Read bytes directly and call EpubReader synchronously
+      // since we are already running inside a compute() isolate.
+      // Avoids epubService.loadBook() which calls compute() internally (nested compute).
+      final file = File(filePath);
+      final bytes = await file.readAsBytes();
+      final epubBook = await EpubReader.readBook(bytes);
       final epubService = EpubService();
-      final epubBook = await epubService.loadBook(filePath);
       final chapters = epubService.flattenChapters(epubBook);
       for (int i = 0; i < chapters.length; i++) {
         final cleanText = epubService.getChapterText(chapters[i]);
         chaptersText.add(ParsedChapterContent(i, cleanText));
       }
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('Book indexing isolate error: $e');
+  }
 
   return chaptersText;
 }

@@ -23,7 +23,9 @@ class EpubPagingCalculator {
     required double lineHeight,
     required TextStyle baseStyle,
   }) {
-    return '${text.hashCode}|'
+    // Use text prefix + length as a collision-resistant key instead of .hashCode
+    final textPrefix = text.length > 200 ? text.substring(0, 200) : text;
+    return '${text.length}:$textPrefix|'
         '${viewportWidth.toStringAsFixed(1)}|'
         '${viewportHeight.toStringAsFixed(1)}|'
         '$fontSize|$lineHeight|'

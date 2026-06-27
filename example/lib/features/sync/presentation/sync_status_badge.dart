@@ -29,10 +29,12 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge>
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final themeData = ReaderThemeData.get(
-          ref.read(appThemeControllerProvider),
-        );
-        _updateBadge(ref.read(syncControllerProvider), themeData);
+        setState(() {
+          final themeData = ReaderThemeData.get(
+            ref.read(appThemeControllerProvider),
+          );
+          _updateBadge(ref.read(syncControllerProvider), themeData);
+        });
       }
     });
   }
@@ -98,7 +100,9 @@ class _SyncStatusBadgeState extends ConsumerState<SyncStatusBadge>
     );
 
     ref.listen(syncControllerProvider, (_, next) {
-      _updateBadge(next, themeData);
+      setState(() {
+        _updateBadge(next, themeData);
+      });
     });
 
     return AnimatedOpacity(

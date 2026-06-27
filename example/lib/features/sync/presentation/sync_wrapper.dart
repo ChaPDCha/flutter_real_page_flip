@@ -22,6 +22,14 @@ class SyncWrapper extends ConsumerStatefulWidget {
 class _SyncWrapperState extends ConsumerState<SyncWrapper>
     with WidgetsBindingObserver, RouteAware {
   Timer? _autoSyncTimer;
+  Timer? _syncDebounce;
+
+  void _debouncedSync() {
+    _syncDebounce?.cancel();
+    _syncDebounce = Timer(const Duration(seconds: 2), () {
+      ref.read(syncControllerProvider.notifier).sync();
+    });
+  }
 
   @override
   void initState() {
@@ -46,7 +54,8 @@ class _SyncWrapperState extends ConsumerState<SyncWrapper>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Register this wrapper to listen to push/pop route changes
+    // Unsubscribe first to prevent duplicate subscriptions
+    routeObserver.unsubscribe(this);
     final route = ModalRoute.of(context);
     if (route != null) {
       routeObserver.subscribe(this, route);
@@ -54,25 +63,26 @@ class _SyncWrapperState extends ConsumerState<SyncWrapper>
   }
 
   @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    routeObserver.unsubscribe(this);
-    _autoSyncTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // 3. Foreground resumption sync hook
     if (state == AppLifecycleState.resumed) {
-      ref.read(syncControllerProvider.notifier).sync();
+      _debouncedSync();
     }
   }
 
   @override
   void didPopNext() {
     // 4. Trigger sync instantly when a pushed screen (e.g. Reader) pops back to this screen
-    ref.read(syncControllerProvider.notifier).sync();
+    _debouncedSync();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    routeObserver.unsubscribe(this);
+    _autoSyncTimer?.cancel();
+    _syncDebounce?.cancel();
+    super.dispose();
   }
 
   @override

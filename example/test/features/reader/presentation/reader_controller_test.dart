@@ -219,7 +219,7 @@ void main() {
       expect(state.pages, isEmpty);
 
       // Set standard viewport size
-      controller.setViewportSize(375.0, 667.0);
+      await controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
       state = container.read(readerControllerProvider(testBook));
 
@@ -244,7 +244,7 @@ void main() {
         final controller = container.read(
           readerControllerProvider(testBook).notifier,
         );
-        controller.setViewportSize(
+        await controller.setViewportSize(
           375.0,
           300.0,
         ); // Small height to ensure multiple pages
@@ -255,7 +255,7 @@ void main() {
         expect(state.currentPageIndex, equals(0));
 
         // Go to next page
-        controller.nextPage();
+        await controller.nextPage();
         state = container.read(readerControllerProvider(testBook));
         expect(state.currentPageIndex, equals(1));
 
@@ -273,7 +273,7 @@ void main() {
       final controller = container.read(
         readerControllerProvider(testBook).notifier,
       );
-      controller.setViewportSize(375.0, 667.0);
+      await controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
       var state = container.read(readerControllerProvider(testBook));
@@ -282,8 +282,7 @@ void main() {
       expect(state.pages.length, equals(1)); // Short content fits in 1 page
 
       // Next page should move to chapter 1 (index 1), page 0
-      controller.nextPage();
-      await waitForPagination(container);
+      await controller.nextPage();
       state = container.read(readerControllerProvider(testBook));
 
       expect(state.currentChapterIndex, equals(1));
@@ -291,7 +290,7 @@ void main() {
       expect(state.pages.first, contains('This is chapter two content'));
 
       // If we call nextPage again at the end of last chapter, it should do nothing
-      controller.nextPage();
+      await controller.nextPage();
       state = container.read(readerControllerProvider(testBook));
       expect(state.currentChapterIndex, equals(1));
       expect(state.currentPageIndex, equals(0));
@@ -304,12 +303,11 @@ void main() {
       final controller = container.read(
         readerControllerProvider(testBook).notifier,
       );
-      controller.setViewportSize(375.0, 667.0);
+      await controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
       // Start at chapter 1, page 0
-      controller.nextPage();
-      await waitForPagination(container);
+      await controller.nextPage();
       var state = container.read(readerControllerProvider(testBook));
       expect(state.currentChapterIndex, equals(1));
 
@@ -335,7 +333,7 @@ void main() {
       final controller = container.read(
         readerControllerProvider(testBook).notifier,
       );
-      controller.setViewportSize(375.0, 667.0);
+      await controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
       var state = container.read(readerControllerProvider(testBook));
@@ -372,12 +370,11 @@ void main() {
       final controller = container.read(
         readerControllerProvider(testBook).notifier,
       );
-      controller.setViewportSize(375.0, 667.0);
+      await controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
       // Move to chapter 1
-      controller.nextPage();
-      await waitForPagination(container);
+      await controller.nextPage();
       var state = container.read(readerControllerProvider(testBook));
       expect(state.currentChapterIndex, equals(1));
 
@@ -415,7 +412,7 @@ void main() {
       final controller = container.read(
         readerControllerProvider(testBook).notifier,
       );
-      controller.setViewportSize(375.0, 667.0);
+      await controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
       var state = container.read(readerControllerProvider(testBook));
@@ -491,8 +488,7 @@ void main() {
       final controller = container.read(
         readerControllerProvider(testBook).notifier,
       );
-      controller.setViewportSize(375.0, 300.0);
-      await waitForPagination(container);
+      await controller.setViewportSize(375.0, 300.0);
 
       var state = container.read(readerControllerProvider(testBook));
       expect(state.pages.length, greaterThan(1));
@@ -531,11 +527,11 @@ void main() {
       final controller = container.read(
         readerControllerProvider(testBook).notifier,
       );
-      controller.setViewportSize(375.0, 667.0);
+      await controller.setViewportSize(375.0, 667.0);
       await waitForPagination(container);
 
       // Jump to chapter 1 (index 1)
-      controller.jumpToChapterWithQuery(1, 'UniqueSearchTerm');
+      await controller.jumpToChapterWithQuery(1, 'UniqueSearchTerm');
       await waitForPagination(container);
 
       final state = container.read(readerControllerProvider(testBook));
@@ -610,6 +606,68 @@ void main() {
 
       state = container.read(readerControllerProvider(testBook));
       expect(state.highlights, isEmpty);
+    });
+
+    test('Settings: updateHapticTexturePreset persists', () async {
+      final container = createContainer();
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+      await controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
+
+      await controller.updateHapticTexturePreset('textured');
+      var state = container.read(readerControllerProvider(testBook));
+      expect(state.settings.hapticTexturePresetName, equals('textured'));
+
+      final jsonStr = prefs.getString('reader_settings');
+      expect(jsonStr, isNotNull);
+      final Map<String, dynamic> savedMap = json.decode(jsonStr!);
+      expect(savedMap['hapticTexturePresetName'], equals('textured'));
+    });
+
+    test('Settings: toggleHaptics(true) persists to SharedPreferences', () async {
+      // First disable haptics so we can re-enable
+      final container = createContainer();
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+      await controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
+
+      await controller.toggleHaptics(false);
+      await controller.toggleHaptics(true);
+      var state = container.read(readerControllerProvider(testBook));
+      expect(state.settings.enableHaptics, isTrue);
+
+      final jsonStr = prefs.getString('reader_settings');
+      expect(jsonStr, isNotNull);
+      final Map<String, dynamic> savedMap = json.decode(jsonStr!);
+      expect(savedMap['enableHaptics'], isTrue);
+    });
+
+    test('Settings: toggleSound(false) persists to SharedPreferences', () async {
+      final container = createContainer();
+      await waitForInitialization(container);
+
+      final controller = container.read(
+        readerControllerProvider(testBook).notifier,
+      );
+      await controller.setViewportSize(375.0, 667.0);
+      await waitForPagination(container);
+
+      await controller.toggleSound(false);
+      var state = container.read(readerControllerProvider(testBook));
+      expect(state.settings.enableSound, isFalse);
+
+      final jsonStr = prefs.getString('reader_settings');
+      expect(jsonStr, isNotNull);
+      final Map<String, dynamic> savedMap = json.decode(jsonStr!);
+      expect(savedMap['enableSound'], isFalse);
     });
   });
 }

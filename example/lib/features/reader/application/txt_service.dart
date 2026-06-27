@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:epubx/epubx.dart';
 
 class TxtService {
@@ -25,7 +26,8 @@ class TxtService {
     // Try UTF-8 first — most Korean TXT files are UTF-8 encoded
     try {
       return utf8.decode(bytes);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('TXT file UTF-8 decode failed, falling back to latin1: $e');
       // latin1 never throws: every byte 0x00-0xFF maps to U+0000-U+00FF
       return latin1.decode(bytes);
     }

@@ -86,25 +86,45 @@ class DriftSyncRepository implements SyncRepository {
 
   @override
   Future<void> mergeRemoteBooks(List<Map<String, dynamic>> remoteBooks) async {
-    for (final raw in remoteBooks) {
-      final id = raw['id'] as String;
-      final remoteUpdatedAt = DateTime.parse(raw['updated_at'] as String);
+    await _db.transaction(() async {
+      for (final raw in remoteBooks) {
+        final id = raw['id'] as String;
+        final remoteUpdatedAt = DateTime.parse(raw['updated_at'] as String);
 
-      final localRows = await (_db.select(
-        _db.books,
-      )..where((tbl) => tbl.id.equals(id))).get();
-      if (localRows.isEmpty) {
-        await _db
-            .into(_db.books)
-            .insert(
-              BooksCompanion.insert(
-                id: id,
-                title: raw['title'] as String,
-                author: raw['author'] as String,
-                filePath: raw['file_path'] as String,
+        final localRows = await (_db.select(
+          _db.books,
+        )..where((tbl) => tbl.id.equals(id))).get();
+        if (localRows.isEmpty) {
+          await _db
+              .into(_db.books)
+              .insertOnConflictUpdate(
+                BooksCompanion.insert(
+                  id: id,
+                  title: raw['title'] as String,
+                  author: raw['author'] as String,
+                  filePath: raw['file_path'] as String,
+                  coverPath: Value(raw['cover_path'] as String?),
+                  format: raw['format'] as String,
+                  addedAt: Value(DateTime.parse(raw['added_at'] as String)),
+                  lastReadChapterIndex: Value(
+                    raw['last_read_chapter_index'] as int,
+                  ),
+                  lastReadPageIndex: Value(raw['last_read_page_index'] as int),
+                  updatedAt: Value(remoteUpdatedAt),
+                  isDeleted: Value(raw['is_deleted'] as bool),
+                ),
+              );
+        } else {
+          final local = localRows.first;
+          if (local.updatedAt == null ||
+              remoteUpdatedAt.isAfter(local.updatedAt!)) {
+            await (_db.update(
+              _db.books,
+            )..where((tbl) => tbl.id.equals(id))).write(
+              BooksCompanion(
+                title: Value(raw['title'] as String),
+                author: Value(raw['author'] as String),
                 coverPath: Value(raw['cover_path'] as String?),
-                format: raw['format'] as String,
-                addedAt: Value(DateTime.parse(raw['added_at'] as String)),
                 lastReadChapterIndex: Value(
                   raw['last_read_chapter_index'] as int,
                 ),
@@ -113,134 +133,120 @@ class DriftSyncRepository implements SyncRepository {
                 isDeleted: Value(raw['is_deleted'] as bool),
               ),
             );
-      } else {
-        final local = localRows.first;
-        if (local.updatedAt == null ||
-            remoteUpdatedAt.isAfter(local.updatedAt!)) {
-          await (_db.update(
-            _db.books,
-          )..where((tbl) => tbl.id.equals(id))).write(
-            BooksCompanion(
-              title: Value(raw['title'] as String),
-              author: Value(raw['author'] as String),
-              coverPath: Value(raw['cover_path'] as String?),
-              lastReadChapterIndex: Value(
-                raw['last_read_chapter_index'] as int,
-              ),
-              lastReadPageIndex: Value(raw['last_read_page_index'] as int),
-              updatedAt: Value(remoteUpdatedAt),
-              isDeleted: Value(raw['is_deleted'] as bool),
-            ),
-          );
+          }
         }
       }
-    }
+    });
   }
 
   @override
   Future<void> mergeRemoteHighlights(
     List<Map<String, dynamic>> remoteHighlights,
   ) async {
-    for (final raw in remoteHighlights) {
-      final bookId = raw['book_id'] as String;
-      final chapterIndex = raw['chapter_index'] as int;
-      final startOffset = raw['start_offset'] as int;
-      final remoteUpdatedAt = DateTime.parse(raw['updated_at'] as String);
+    await _db.transaction(() async {
+      for (final raw in remoteHighlights) {
+        final bookId = raw['book_id'] as String;
+        final chapterIndex = raw['chapter_index'] as int;
+        final startOffset = raw['start_offset'] as int;
+        final remoteUpdatedAt = DateTime.parse(raw['updated_at'] as String);
 
-      final query = _db.select(_db.highlights)
-        ..where(
-          (tbl) =>
-              tbl.bookId.equals(bookId) &
-              tbl.chapterIndex.equals(chapterIndex) &
-              tbl.startOffset.equals(startOffset),
-        );
-      final localRows = await query.get();
+        final query = _db.select(_db.highlights)
+          ..where(
+            (tbl) =>
+                tbl.bookId.equals(bookId) &
+                tbl.chapterIndex.equals(chapterIndex) &
+                tbl.startOffset.equals(startOffset),
+          );
+        final localRows = await query.get();
 
-      if (localRows.isEmpty) {
-        await _db
-            .into(_db.highlights)
-            .insert(
-              HighlightsCompanion.insert(
-                bookId: bookId,
-                chapterIndex: chapterIndex,
-                startOffset: startOffset,
-                endOffset: raw['end_offset'] as int,
-                selectedText: raw['selected_text'] as String,
-                highlightColor: raw['highlight_color'] as String,
+        if (localRows.isEmpty) {
+          await _db
+              .into(_db.highlights)
+              .insert(
+                HighlightsCompanion.insert(
+                  bookId: bookId,
+                  chapterIndex: chapterIndex,
+                  startOffset: startOffset,
+                  endOffset: raw['end_offset'] as int,
+                  selectedText: raw['selected_text'] as String,
+                  highlightColor: raw['highlight_color'] as String,
+                  note: Value(raw['note'] as String?),
+                  createdAt: Value(DateTime.parse(raw['created_at'] as String)),
+                  updatedAt: Value(remoteUpdatedAt),
+                  isDeleted: Value(raw['is_deleted'] as bool),
+                ),
+              );
+        } else {
+          final local = localRows.first;
+          if (remoteUpdatedAt.isAfter(local.updatedAt)) {
+            await (_db.update(
+              _db.highlights,
+            )..where((tbl) => tbl.id.equals(local.id))).write(
+              HighlightsCompanion(
+                endOffset: Value(raw['end_offset'] as int),
+                selectedText: Value(raw['selected_text'] as String),
+                highlightColor: Value(raw['highlight_color'] as String),
                 note: Value(raw['note'] as String?),
-                createdAt: Value(DateTime.parse(raw['created_at'] as String)),
                 updatedAt: Value(remoteUpdatedAt),
                 isDeleted: Value(raw['is_deleted'] as bool),
               ),
             );
-      } else {
-        final local = localRows.first;
-        if (remoteUpdatedAt.isAfter(local.updatedAt)) {
-          await (_db.update(
-            _db.highlights,
-          )..where((tbl) => tbl.id.equals(local.id))).write(
-            HighlightsCompanion(
-              endOffset: Value(raw['end_offset'] as int),
-              selectedText: Value(raw['selected_text'] as String),
-              highlightColor: Value(raw['highlight_color'] as String),
-              note: Value(raw['note'] as String?),
-              updatedAt: Value(remoteUpdatedAt),
-              isDeleted: Value(raw['is_deleted'] as bool),
-            ),
-          );
+          }
         }
       }
-    }
+    });
   }
 
   @override
   Future<void> mergeRemoteBookmarks(
     List<Map<String, dynamic>> remoteBookmarks,
   ) async {
-    for (final raw in remoteBookmarks) {
-      final bookId = raw['book_id'] as String;
-      final chapterIndex = raw['chapter_index'] as int;
-      final pageIndex = raw['page_index'] as int;
-      final remoteUpdatedAt = DateTime.parse(raw['updated_at'] as String);
+    await _db.transaction(() async {
+      for (final raw in remoteBookmarks) {
+        final bookId = raw['book_id'] as String;
+        final chapterIndex = raw['chapter_index'] as int;
+        final pageIndex = raw['page_index'] as int;
+        final remoteUpdatedAt = DateTime.parse(raw['updated_at'] as String);
 
-      final query = _db.select(_db.bookmarks)
-        ..where(
-          (tbl) =>
-              tbl.bookId.equals(bookId) &
-              tbl.chapterIndex.equals(chapterIndex) &
-              tbl.pageIndex.equals(pageIndex),
-        );
-      final localRows = await query.get();
+        final query = _db.select(_db.bookmarks)
+          ..where(
+            (tbl) =>
+                tbl.bookId.equals(bookId) &
+                tbl.chapterIndex.equals(chapterIndex) &
+                tbl.pageIndex.equals(pageIndex),
+          );
+        final localRows = await query.get();
 
-      if (localRows.isEmpty) {
-        await _db
-            .into(_db.bookmarks)
-            .insert(
-              BookmarksCompanion.insert(
-                bookId: bookId,
-                chapterIndex: chapterIndex,
-                pageIndex: pageIndex,
-                label: raw['label'] as String,
-                createdAt: Value(DateTime.parse(raw['created_at'] as String)),
+        if (localRows.isEmpty) {
+          await _db
+              .into(_db.bookmarks)
+              .insert(
+                BookmarksCompanion.insert(
+                  bookId: bookId,
+                  chapterIndex: chapterIndex,
+                  pageIndex: pageIndex,
+                  label: raw['label'] as String,
+                  createdAt: Value(DateTime.parse(raw['created_at'] as String)),
+                  updatedAt: Value(remoteUpdatedAt),
+                  isDeleted: Value(raw['is_deleted'] as bool),
+                ),
+              );
+        } else {
+          final local = localRows.first;
+          if (local.updatedAt == null ||
+              remoteUpdatedAt.isAfter(local.updatedAt!)) {
+            await (_db.update(
+              _db.bookmarks,
+            )..where((tbl) => tbl.id.equals(local.id))).write(
+              BookmarksCompanion(
+                label: Value(raw['label'] as String),
                 updatedAt: Value(remoteUpdatedAt),
                 isDeleted: Value(raw['is_deleted'] as bool),
               ),
             );
-      } else {
-        final local = localRows.first;
-        if (local.updatedAt == null ||
-            remoteUpdatedAt.isAfter(local.updatedAt!)) {
-          await (_db.update(
-            _db.bookmarks,
-          )..where((tbl) => tbl.id.equals(local.id))).write(
-            BookmarksCompanion(
-              label: Value(raw['label'] as String),
-              updatedAt: Value(remoteUpdatedAt),
-              isDeleted: Value(raw['is_deleted'] as bool),
-            ),
-          );
+          }
         }
       }
-    }
+    });
   }
 }
