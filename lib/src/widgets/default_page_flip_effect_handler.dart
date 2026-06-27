@@ -185,11 +185,15 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
     final player = _audioPool[_audioPoolIndex];
     _audioPoolIndex = (_audioPoolIndex + 1) % _audioPoolSize;
+
+    // audioplayers 6.x: resume() only works from paused state; after stop()
+    // the player is in stopped state so play() must be used instead.
     player.stop().then((_) {
-      player.setVolume(cappedVolume);
-      player.resume();
+      return player.setVolume(cappedVolume);
+    }).then((_) {
+      return player.play();
     }).catchError((_) {
-      // Ignore audio playback errors (e.g. invalid state) to prevent unhandled exceptions.
+      // Ignore audio playback errors to prevent unhandled exceptions.
     });
   }
 

@@ -21,7 +21,12 @@ class AdvancedHapticEngine {
         'sharpness': sharpness.clamp(0.0, 1.0),
       });
     } on PlatformException {
-      // Ignored
+      // Fallback: use system haptic based on intensity
+      if (intensity > 0.6) {
+        unawaited(HapticFeedback.mediumImpact());
+      } else {
+        unawaited(HapticFeedback.lightImpact());
+      }
     }
   }
 
@@ -33,7 +38,8 @@ class AdvancedHapticEngine {
         'intensity': intensity.clamp(0.0, 1.0),
       });
     } on PlatformException {
-      // Ignored
+      // Fallback: use heavy impact for thud-like effect
+      unawaited(HapticFeedback.heavyImpact());
     }
   }
 

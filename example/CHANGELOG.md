@@ -3,6 +3,11 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.31+37] - 2026-06-27
+### 🐛 수정
+- 페이지 플립 소리가 재생되지 않던 버그 수정 (audioplayers resume/play 상태 처리) | Fixed page flip sound not playing due to incorrect audio state handling
+- 햅틱 피드백이 MethodChannel 실패 시에도 기본 진동이 울리도록 폴백 추가 | Added HapticFeedback fallback when native haptic channel fails
+
 ## [1.0.30+36] - 2026-06-27
 ### ✨ 기능
 - 앱 업데이트 로그를 Cloudflare Worker API에서 실시간으로 받아오도록 개선 | Release notes now fetched live from remote API instead of bundled-only

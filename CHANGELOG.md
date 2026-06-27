@@ -187,6 +187,11 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 - Professional teaser video, GPU optimization guides, Opus audio assets.
 - Example app with unique content and stress tests.
 
+## [1.9.2] - 2026-06-27
+### 🐛 수정
+- `_playSound`에서 `resume()` 대신 `play()`를 사용하도록 수정 (audioplayers 6.x: `stop()` 후 `resume()`은 no-op)
+- `AdvancedHapticEngine.playTransient()` 및 `playThud()`에 `HapticFeedback` 폴백 추가 (MethodChannel 실패 시 기본 진동 보장)
+
 ## [1.1.0] - 2026-05-01
 ### Added
 - Physics-based paper friction interaction logic.

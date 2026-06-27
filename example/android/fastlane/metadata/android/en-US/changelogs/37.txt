@@ -1,0 +1,2 @@
+• Fixed page flip sound not playing due to audio state handling
+• Fixed haptic feedback reliability with system-level fallbacks

@@ -21,6 +21,14 @@ interface ChangelogEntry {
 // START_CHANGELOGS
 const changelogs: ChangelogEntry[] = [
     {
+      version: "1.0.31+37",
+      versionCode: 37,
+      versionName: "1.0.31",
+      date: "2026-06-27",
+      ko: { changes: ["페이지 플립 소리가 재생되지 않던 오디오 상태 처리 버그 수정", "햅틱 피드백 신뢰성 개선 (시스템 수준 폴백 추가)"] },
+      en: { changes: ["Fixed page flip sound not playing due to audio state handling", "Fixed haptic feedback reliability with system-level fallbacks"] },
+    },
+    {
       version: "1.0.30+36",
       versionCode: 36,
       versionName: "1.0.30",
