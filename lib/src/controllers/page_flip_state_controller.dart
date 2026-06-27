@@ -510,6 +510,7 @@ class PageFlipStateController {
 
   /// Disposes the animation controller, notifiers, and releases resources.
   void dispose() {
+    if (_isDisposed) return;
     _isDisposed = true;
     _isPendingFinalize = false;
     animationController.removeListener(_onAnimationTick);
