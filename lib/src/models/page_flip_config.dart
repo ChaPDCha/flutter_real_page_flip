@@ -219,6 +219,68 @@ class PageFlipConfig {
   /// Semantics hint for right edge tap.
   final String? edgeTapNextHint;
 
+  /// Creates a copy of this [PageFlipConfig] with the given fields replaced.
+  PageFlipConfig copyWith({
+    Duration? duration,
+    double? cutoffForward,
+    double? cutoffPrevious,
+    Color? backgroundColor,
+    bool? isRightSwipe,
+    bool? enableSwipe,
+    double? sensitivity,
+    double? edgeTapWidthRatio,
+    bool? skipTapAnimation,
+    String Function(int index, int total)? semanticBuilder,
+    String? edgeTapPreviousLabel,
+    String? edgeTapNextLabel,
+    String? edgeTapPreviousHint,
+    String? edgeTapNextHint,
+    bool? enableHaptics,
+    bool? enableSound,
+    PageFlipEffectHandler? effectHandler,
+    double? paperOpacity,
+    double? thinPaperStrength,
+    double? endRevealStrength,
+    double? flapContentFadeOutEnd,
+    double? flapContentRevealStart,
+    double? flapContentRevealEnd,
+    double? flapBackStrength,
+    DevicePerformanceProfile? performanceProfile,
+    PaperTexturePreset? hapticTexturePreset,
+    bool clearSemanticBuilder = false,
+    bool clearBackgroundColor = false,
+    bool clearEffectHandler = false,
+  }) {
+    return PageFlipConfig(
+      duration: duration ?? this.duration,
+      cutoffForward: cutoffForward ?? this.cutoffForward,
+      cutoffPrevious: cutoffPrevious ?? this.cutoffPrevious,
+      backgroundColor: clearBackgroundColor ? null : (backgroundColor ?? this.backgroundColor),
+      isRightSwipe: isRightSwipe ?? this.isRightSwipe,
+      enableSwipe: enableSwipe ?? this.enableSwipe,
+      sensitivity: sensitivity ?? this.sensitivity,
+      edgeTapWidthRatio: edgeTapWidthRatio ?? this.edgeTapWidthRatio,
+      skipTapAnimation: skipTapAnimation ?? this.skipTapAnimation,
+      semanticBuilder: clearSemanticBuilder ? null : (semanticBuilder ?? this.semanticBuilder),
+      edgeTapPreviousLabel: edgeTapPreviousLabel ?? this.edgeTapPreviousLabel,
+      edgeTapNextLabel: edgeTapNextLabel ?? this.edgeTapNextLabel,
+      edgeTapPreviousHint: edgeTapPreviousHint ?? this.edgeTapPreviousHint,
+      edgeTapNextHint: edgeTapNextHint ?? this.edgeTapNextHint,
+      enableHaptics: enableHaptics ?? this.enableHaptics,
+      enableSound: enableSound ?? this.enableSound,
+      effectHandler: clearEffectHandler ? null : (effectHandler ?? this.effectHandler),
+      paperOpacity: paperOpacity ?? this.paperOpacity,
+      thinPaperStrength: thinPaperStrength ?? this.thinPaperStrength,
+      endRevealStrength: endRevealStrength ?? this.endRevealStrength,
+      flapContentFadeOutEnd: flapContentFadeOutEnd ?? this.flapContentFadeOutEnd,
+      flapContentRevealStart: flapContentRevealStart ?? this.flapContentRevealStart,
+      flapContentRevealEnd: flapContentRevealEnd ?? this.flapContentRevealEnd,
+      flapBackStrength: flapBackStrength ?? this.flapBackStrength,
+      performanceProfile: performanceProfile ?? this.performanceProfile,
+      hapticTexturePreset: hapticTexturePreset ?? this.hapticTexturePreset,
+    );
+  }
+
   /// Default configuration.
   static const PageFlipConfig defaultSettings = PageFlipConfig();
 
@@ -236,6 +298,7 @@ class PageFlipConfig {
           sensitivity == other.sensitivity &&
           edgeTapWidthRatio == other.edgeTapWidthRatio &&
           skipTapAnimation == other.skipTapAnimation &&
+          semanticBuilder == other.semanticBuilder &&
           enableHaptics == other.enableHaptics &&
           enableSound == other.enableSound &&
           hapticTexturePreset == other.hapticTexturePreset &&
