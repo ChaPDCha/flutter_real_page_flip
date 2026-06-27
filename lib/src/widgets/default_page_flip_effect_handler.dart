@@ -31,6 +31,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   );
   int _audioPoolIndex = 0;
   bool _audioReady = false;
+  Source? _audioSource;
 
   DateTime _lastTextureTick = DateTime.fromMillisecondsSinceEpoch(0);
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
@@ -45,6 +46,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
           AssetSource('packages/real_page_flip/assets/sounds/page_flip.opus'),
         );
         await player.setReleaseMode(ReleaseMode.stop);
+        _audioSource ??= AssetSource(
+          'packages/real_page_flip/assets/sounds/page_flip.opus',
+        );
         atLeastOneSuccess = true;
       } on Object {
         try {
@@ -52,6 +56,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
             AssetSource('packages/real_page_flip/assets/sounds/page_flip.mp3'),
           );
           await player.setReleaseMode(ReleaseMode.stop);
+          _audioSource ??= AssetSource(
+            'packages/real_page_flip/assets/sounds/page_flip.mp3',
+          );
           atLeastOneSuccess = true;
         } on Object {
           // Ignore asset load exceptions for secondary formats (mp3 fallback)
@@ -178,7 +185,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }
 
   void _playSound(double volume) {
-    if (!_audioReady) return;
+    if (!_audioReady || _audioSource == null) return;
 
     // Limit max volume and scale dynamically based on gesture speed (velocity/volume)
     final cappedVolume = (volume * 0.4).clamp(0.05, 0.35);
@@ -186,13 +193,13 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     final player = _audioPool[_audioPoolIndex];
     _audioPoolIndex = (_audioPoolIndex + 1) % _audioPoolSize;
 
-    // audioplayers 6.x: resume() only works from paused state; after stop()
-    // the player is in stopped state so play() must be used instead.
-    player.stop().then((_) {
-      return player.setVolume(cappedVolume);
-    }).then((_) {
-      return player.play();
-    }).catchError((_) {
+    // play() with explicit Source is more reliable than resume() after stop()
+    // because it always re-initialises the source on the platform side,
+    // regardless of the player's current state.
+    player.play(
+      _audioSource!,
+      volume: cappedVolume,
+    ).catchError((_) {
       // Ignore audio playback errors to prevent unhandled exceptions.
     });
   }
