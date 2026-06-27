@@ -27,10 +27,11 @@ platform :android do
   end
 
   desc "Upload Play Store metadata only (screenshots, descriptions, etc.)"
-  lane :metadata do
+  lane :metadata do |options|
     upload_to_play_store(
       package_name: 'app.realbook.reader',
-      track: 'internal',
+      track: options[:track] || 'internal',
+      version_code: options[:version_code],
       metadata_path: File.expand_path('metadata/android', __dir__),
       json_key: File.expand_path('play-service-account.json', __dir__),
       skip_upload_aab: true,
@@ -38,6 +39,27 @@ platform :android do
       skip_upload_changelogs: false,
       skip_upload_images: false,
       skip_upload_screenshots: true,
+    )
+  end
+
+  desc "Update changelogs for an existing release"
+  lane :changelog do |options|
+    track = options[:track] || 'alpha'
+    vc = options[:version_code]
+    UI.user_error!(":version_code is required") unless vc
+
+    upload_to_play_store(
+      package_name: 'app.realbook.reader',
+      track: track,
+      version_code: vc,
+      metadata_path: File.expand_path('metadata/android', __dir__),
+      json_key: File.expand_path('play-service-account.json', __dir__),
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_changelogs: false,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_metadata: true,
     )
   end
 end
