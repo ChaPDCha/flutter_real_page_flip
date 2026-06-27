@@ -74,5 +74,73 @@ void main() {
       final allSame = resultA == resultB && resultA == resultC;
       expect(allSame, isFalse);
     });
+
+    test('persistence=0 uses only first octave amplitude', () {
+      final noise = PaperTextureNoise(seed: 7);
+      final single = noise.paperTexture(position: 0.5, octaves: 1);
+      final multi = noise.paperTexture(
+        position: 0.5,
+        octaves: 8,
+        persistence: 0,
+      );
+      // With persistence=0, subsequent octaves have zero amplitude
+      expect(multi, equals(single));
+    });
+
+    test('very high lacunarity still produces valid output', () {
+      final noise = PaperTextureNoise();
+      final value = noise.paperTexture(
+        position: 0.5,
+        lacunarity: 100.0,
+      );
+      expect(value, greaterThanOrEqualTo(0));
+      expect(value, lessThanOrEqualTo(1));
+    });
+
+    test('very large position does not overflow', () {
+      final noise = PaperTextureNoise();
+      final value = noise.paperTexture(position: 1e6);
+      expect(value, greaterThanOrEqualTo(0));
+      expect(value, lessThanOrEqualTo(1));
+    });
+
+    test('position=0 produces valid output', () {
+      final noise = PaperTextureNoise();
+      final value = noise.paperTexture(position: 0);
+      expect(value, greaterThanOrEqualTo(0));
+      expect(value, lessThanOrEqualTo(1));
+    });
+
+    test('multiple octave values produce valid output', () {
+      final noise = PaperTextureNoise();
+      for (final oct in [1, 2, 3, 4, 5, 8]) {
+        final value = noise.paperTexture(position: 0.7, octaves: oct);
+        expect(value, greaterThanOrEqualTo(0), reason: 'octaves=$oct');
+        expect(value, lessThanOrEqualTo(1), reason: 'octaves=$oct');
+      }
+    });
+
+    test('high persistence (0.99) produces smoothly varying noise in range', () {
+      final noise = PaperTextureNoise();
+      for (int i = 0; i < 200; i++) {
+        final value = noise.paperTexture(
+          position: i * 0.05,
+          persistence: 0.99,
+        );
+        expect(value, greaterThanOrEqualTo(0));
+        expect(value, lessThanOrEqualTo(1));
+      }
+    });
+
+    test('default seed is deterministic', () {
+      final a = PaperTextureNoise();
+      final b = PaperTextureNoise();
+      for (int i = 0; i < 10; i++) {
+        expect(
+          a.paperTexture(position: i * 0.5),
+          equals(b.paperTexture(position: i * 0.5)),
+        );
+      }
+    });
   });
 }

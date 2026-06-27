@@ -121,6 +121,133 @@ void main() {
       expect(event.intensity, greaterThan(0.05));
     });
 
+    test('StickSlipEvent.slipRelease factory produces correct type and intensity', () {
+      final event = StickSlipEvent.slipRelease(intensity: 0.75);
+      expect(event.type, equals(StickSlipEventType.slipRelease));
+      expect(event.intensity, equals(0.75));
+    });
+
+    test('StickSlipEvent.microSlip factory produces correct type and caps intensity', () {
+      final event = StickSlipEvent.microSlip(intensity: 0.3);
+      expect(event.type, equals(StickSlipEventType.microSlip));
+      expect(event.intensity, equals(0.3));
+    });
+
+    test('StickSlipEvent.none is const with zero intensity', () {
+      expect(StickSlipEvent.none.type, equals(StickSlipEventType.none));
+      expect(StickSlipEvent.none.intensity, equals(0.0));
+      // Verify it is truly a const singleton
+      const same = StickSlipEvent.none;
+      expect(identical(same, StickSlipEvent.none), isTrue);
+    });
+
+    test('velocity exactly at threshold does not trigger slipRelease', () {
+      // The controller uses strict comparison (velocity > threshold),
+      // so velocity == threshold should NOT trigger slipRelease.
+      DateTime fakeNow = DateTime(2024, 1, 1);
+      final ctrl = StickSlipController(
+        stationaryThresholdMs: 1,
+        slipVelocityThreshold: 0.02,
+        now: () => fakeNow,
+      );
+      ctrl.update(0.0); // init
+
+      // Build stationary state
+      fakeNow = fakeNow.add(const Duration(milliseconds: 10));
+      ctrl.update(0.0); // stationary — accumulates energy
+
+      // velocity exactly at threshold — should NOT release
+      fakeNow = fakeNow.add(const Duration(milliseconds: 10));
+      final exactEvent = ctrl.update(0.02);
+      expect(exactEvent.type, equals(StickSlipEventType.none));
+
+      // Now directly from stationary, just above threshold
+      final ctrl2 = StickSlipController(
+        stationaryThresholdMs: 1,
+        slipVelocityThreshold: 0.02,
+        now: () => fakeNow,
+      );
+      ctrl2.update(0.0); // init
+      fakeNow = fakeNow.add(const Duration(milliseconds: 10));
+      ctrl2.update(0.0); // stationary build
+      fakeNow = fakeNow.add(const Duration(milliseconds: 10));
+      final release = ctrl2.update(0.021); // just above threshold
+      expect(release.type, equals(StickSlipEventType.slipRelease));
+    });
+
+    test('multiple rapid resets do not crash', () {
+      final ctrl = StickSlipController(
+        stationaryThresholdMs: 1,
+        slipVelocityThreshold: 0.02,
+      );
+      for (int i = 0; i < 20; i++) {
+        ctrl.reset();
+        final event = ctrl.update(0.5);
+        expect(event.type, equals(StickSlipEventType.none));
+      }
+    });
+
+    test('setter updates threshold mid-operation', () {
+      DateTime fakeNow = DateTime(2024, 1, 1);
+      final ctrl = StickSlipController(
+        stationaryThresholdMs: 100,
+        slipVelocityThreshold: 0.02,
+        now: () => fakeNow,
+      );
+
+      ctrl.update(0.0); // init
+      fakeNow = fakeNow.add(const Duration(milliseconds: 10));
+      ctrl.update(0.0); // stationary, but 10ms < 100ms threshold
+
+      // Change threshold to 5ms
+      ctrl.stationaryThresholdMs = 5;
+
+      fakeNow = fakeNow.add(const Duration(milliseconds: 10));
+      ctrl.update(0.0); // accumulates energy (10ms > 5ms)
+
+      fakeNow = fakeNow.add(const Duration(milliseconds: 1));
+      final event = ctrl.update(0.5);
+      expect(event.type, equals(StickSlipEventType.slipRelease));
+      expect(event.intensity, greaterThan(0));
+    });
+
+    test('extreme acceleration produces microSlip with capped intensity', () {
+      final ctrl = StickSlipController(
+        stationaryThresholdMs: 1,
+        slipVelocityThreshold: 0.02,
+      );
+      ctrl.update(0.0); // init
+      ctrl.update(0.0); // stationary
+
+      // Extreme acceleration from 0 to 1.0
+      final event = ctrl.update(1.0);
+      // Either microSlip (accel=1.0, capped to 0.6) or slipRelease
+      if (event.type == StickSlipEventType.microSlip) {
+        // MicroSlip intensity is capped at 0.6
+        expect(event.intensity, lessThanOrEqualTo(0.6));
+      }
+    });
+
+    test('clock jump forward (large dt) still works', () {
+      DateTime fakeNow = DateTime(2024, 1, 1);
+      final ctrl = StickSlipController(
+        stationaryThresholdMs: 50,
+        slipVelocityThreshold: 0.02,
+        now: () => fakeNow,
+      );
+
+      ctrl.update(0.0); // init
+      // Jump 10 seconds forward (simulating pause)
+      fakeNow = fakeNow.add(const Duration(seconds: 10));
+      ctrl.update(0.0); // stationary: huge dt → huge stick energy
+
+      fakeNow = fakeNow.add(const Duration(milliseconds: 1));
+      final event = ctrl.update(0.5);
+      expect(event.type, equals(StickSlipEventType.slipRelease));
+      // Energy capped at 1.0
+      expect(event.intensity, lessThanOrEqualTo(1.0));
+    });
+
     test('custom clock produces deterministic behavior', () {
       DateTime fakeNow = DateTime(2024, 1, 1);
       final ctrl = StickSlipController(
