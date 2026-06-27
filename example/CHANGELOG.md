@@ -3,6 +3,10 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.32+38] - 2026-06-27
+### ♻️ 리팩토링
+- 페이지플립엔진 의존성을 로컬 경로(path)에서 GitHub 저장소(git)로 전환 | Switched page-flip engine dependency from local path to GitHub repository
+
 ## [1.0.31+37] - 2026-06-27
 ### 🐛 수정
 - 페이지 플립 소리가 재생되지 않던 버그 수정 (audioplayers resume/play 상태 처리) | Fixed page flip sound not playing due to incorrect audio state handling

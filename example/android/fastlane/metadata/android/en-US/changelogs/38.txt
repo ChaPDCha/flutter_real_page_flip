@@ -1,0 +1,1 @@
+• Switched page-flip engine from local path to GitHub dependency for cleaner updates

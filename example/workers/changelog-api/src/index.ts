@@ -21,6 +21,14 @@ interface ChangelogEntry {
 // START_CHANGELOGS
 const changelogs: ChangelogEntry[] = [
     {
+      version: "1.0.32+38",
+      versionCode: 38,
+      versionName: "1.0.32",
+      date: "2026-06-27",
+      ko: { changes: ["페이지플립엔진 의존성을 로컬 경로에서 GitHub 저장소로 전환"] },
+      en: { changes: ["Switched page-flip engine dependency from local path to GitHub repository"] },
+    },
+    {
       version: "1.0.31+37",
       versionCode: 37,
       versionName: "1.0.31",
