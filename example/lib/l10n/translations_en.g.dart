@@ -181,9 +181,6 @@ class Translations$readerSettings$en {
 	/// en: 'Haptic Feedback'
 	String get haptics => 'Haptic Feedback';
 
-	/// en: 'Two-Page Spread'
-	String get doublePage => 'Two-Page Spread';
-
 	/// en: 'Paper Texture'
 	String get texture => 'Paper Texture';
 
@@ -392,7 +389,6 @@ extension on Translations {
 			'readerSettings.brightness' => 'Brightness',
 			'readerSettings.font' => 'Font',
 			'readerSettings.haptics' => 'Haptic Feedback',
-			'readerSettings.doublePage' => 'Two-Page Spread',
 			'readerSettings.texture' => 'Paper Texture',
 			'readerSettings.sound' => 'Sound Effects',
 			'readerSettings.done' => 'Done',

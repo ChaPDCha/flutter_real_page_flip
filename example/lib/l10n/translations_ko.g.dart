@@ -116,7 +116,6 @@ class _Translations$readerSettings$ko extends Translations$readerSettings$en {
 	@override String get brightness => '화면 밝기';
 	@override String get font => '글꼴';
 	@override String get haptics => '햅틱 피드백';
-	@override String get doublePage => '2단 보기';
 	@override String get texture => '종이 질감';
 	@override String get sound => '소리 효과';
 	@override String get done => '설정 완료';
@@ -269,7 +268,6 @@ extension on TranslationsKo {
 			'readerSettings.brightness' => '화면 밝기',
 			'readerSettings.font' => '글꼴',
 			'readerSettings.haptics' => '햅틱 피드백',
-			'readerSettings.doublePage' => '2단 보기',
 			'readerSettings.texture' => '종이 질감',
 			'readerSettings.sound' => '소리 효과',
 			'readerSettings.done' => '설정 완료',
