@@ -3,6 +3,11 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.33+39] - 2026-06-27
+### 🐛 수정
+- 페이지 플립 사운드가 불규칙하게 재생되던 문제 수정 (setSource() 경합 제거, stop+seek+resume 패턴으로 전환) | Fixed intermittent page flip sound by avoiding setSource() on every flip
+- 햅틱 진동이 Android VIBRATE 권한 누락으로 작동하지 않던 문제 수정 | Fixed haptic vibration not working due to missing VIBRATE permission
+
 ## [1.0.32+38] - 2026-06-27
 ### ♻️ 리팩토링
 - 페이지플립엔진 의존성을 로컬 경로(path)에서 GitHub 저장소(git)로 전환 | Switched page-flip engine dependency from local path to GitHub repository

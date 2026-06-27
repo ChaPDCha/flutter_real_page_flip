@@ -38,7 +38,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         if (!isVibratorAvailable) {
-            result.success(null)
+            result.error("VIBRATOR_UNAVAILABLE", "Device has no vibrator", null)
             return
         }
 

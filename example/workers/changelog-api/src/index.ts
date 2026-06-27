@@ -21,6 +21,14 @@ interface ChangelogEntry {
 // START_CHANGELOGS
 const changelogs: ChangelogEntry[] = [
     {
+      version: "1.0.33+39",
+      versionCode: 39,
+      versionName: "1.0.33",
+      date: "2026-06-27",
+      ko: { changes: ["페이지 플립 사운드 재생 안정성 개선", "Android VIBRATE 권한 누락으로 햅틱이 작동하지 않던 문제 수정"] },
+      en: { changes: ["Fixed intermittent page flip sound playback", "Fixed haptic vibration not working due to missing Android VIBRATE permission"] },
+    },
+    {
       version: "1.0.32+38",
       versionCode: 38,
       versionName: "1.0.32",

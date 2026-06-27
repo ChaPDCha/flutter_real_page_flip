@@ -187,6 +187,12 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 - Professional teaser video, GPU optimization guides, Opus audio assets.
 - Example app with unique content and stress tests.
 
+## [1.9.3] - 2026-06-27
+### 🐛 수정
+- 사운드 재생을 `stop()+seek()+resume()` 패턴으로 변경하여 간헐적 재생 실패 해결 (play()의 setSource() asset I/O 제거)
+- Android `VIBRATE` 퍼미션 누락으로 햅틱이 전혀 작동하지 않던 버그 수정 (AndroidManifest에 권한 추가)
+- 네이티브 플러그인 vibrator 미사용 시 error 반환하도록 수정 (Dart fallback 활성화)
+
 ## [1.9.2] - 2026-06-27
 ### 🐛 수정
 - `_playSound`에서 `resume()` 대신 `play()`를 사용하도록 수정 (audioplayers 6.x: `stop()` 후 `resume()`은 no-op)

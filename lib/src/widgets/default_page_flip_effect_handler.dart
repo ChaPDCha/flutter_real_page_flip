@@ -184,6 +184,17 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     }
   }
 
+  Future<void> _playOnPlayer(AudioPlayer player, double volume) async {
+    try {
+      await player.stop();
+      await player.setVolume(volume);
+      await player.seek(Duration.zero);
+      await player.resume();
+    } on Object {
+      // Ignore audio playback errors to prevent unhandled exceptions.
+    }
+  }
+
   void _playSound(double volume) {
     if (!_audioReady || _audioSource == null) return;
 
@@ -193,15 +204,10 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     final player = _audioPool[_audioPoolIndex];
     _audioPoolIndex = (_audioPoolIndex + 1) % _audioPoolSize;
 
-    // play() with explicit Source is more reliable than resume() after stop()
-    // because it always re-initialises the source on the platform side,
-    // regardless of the player's current state.
-    player.play(
-      _audioSource!,
-      volume: cappedVolume,
-    ).catchError((_) {
-      // Ignore audio playback errors to prevent unhandled exceptions.
-    });
+    // stop() + seek() + resume() avoids setSource() on every flip.
+    // setSource() involves asset I/O and causes race conditions when the
+    // pool cycles back to a player whose previous play() hasn't finished.
+    unawaited(_playOnPlayer(player, cappedVolume));
   }
 
   @override
