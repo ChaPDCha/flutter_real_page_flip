@@ -13,6 +13,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'features/bookshelf/presentation/bookshelf_screen.dart';
 import 'features/sync/application/sync_provider.dart';
 import 'features/sync/presentation/sync_wrapper.dart';
+import 'shared/changelog/changelog_service.dart';
 import 'shared/theme/app_theme_controller.dart';
 import 'shared/theme/reader_theme.dart';
 import 'shared/firebase/firebase_options.dart';
@@ -126,7 +127,7 @@ class MyApp extends ConsumerWidget {
       darkTheme: shadTheme,
       themeMode: themeData.isDark ? ThemeMode.dark : ThemeMode.light,
       materialThemeBuilder: (context, theme) => materialTheme,
-      home: const SyncWrapper(child: BookshelfScreen()),
+      home: const ChangelogGate(child: SyncWrapper(child: BookshelfScreen())),
     );
   }
 }

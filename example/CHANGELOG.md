@@ -5,7 +5,7 @@ These versions use the `X.Y.Z+N` format matching Android versionCode for Play St
 
 ## [1.0.28+34] - 2026-06-27
 ### 🐛 수정
-- 햅틱 피드백이 완전히 출력되지 않던 긴급 버그 수정 (screenWidth 정규화 상수 오류)
+- 햅틱 피드백이 완전히 출력되지 않던 긴급 버그 수정 (screenWidth 정규화 상수 오류) | Fixed haptic feedback not firing due to screen width normalization regression
 
 ## [1.0.27+33] - 2026-06-26
 ### 🐛 수정

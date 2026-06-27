@@ -1,1 +1,1 @@
-• Fixed haptic feedback not firing on devices (screen width normalization regression)
+• Fixed haptic feedback not firing due to screen width normalization regression
