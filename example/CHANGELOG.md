@@ -3,6 +3,14 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.29+35] - 2026-06-27
+### 🐛 수정
+- 설정 패널 스위치가 Android 네비게이션 바에 가려지던 문제 수정 | Fixed settings panel switches hidden behind Android navigation bar
+
+### 🔧 빌드/배포
+- 린트 경고 전면 해결 (zero warnings) | Resolved all lint warnings (zero warnings)
+- CHANGELOG.md에서 Play Store changelog 자동 생성 도구 추가 | Added auto-generate tool for Play Store changelogs from CHANGELOG.md
+
 ## [1.0.28+34] - 2026-06-27
 ### 🐛 수정
 - 햅틱 피드백이 완전히 출력되지 않던 긴급 버그 수정 (screenWidth 정규화 상수 오류) | Fixed haptic feedback not firing due to screen width normalization regression
