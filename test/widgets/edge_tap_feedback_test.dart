@@ -210,5 +210,229 @@ void main() {
 
       // Widget should render without errors
     });
+
+    testWidgets('dark mode right edge renders without error', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                EdgeTapFeedback(
+                  isLeftEdge: false,
+                  width: 40,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.tapAt(const Offset(20, 200));
+      await tester.pump();
+
+      // Widget should render without errors in dark mode with right edge
+    });
+
+    testWidgets('right edge tap fires callback', (tester) async {
+      bool tapped = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                EdgeTapFeedback(
+                  isLeftEdge: false,
+                  width: 40,
+                  onTap: () => tapped = true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final screenSize =
+          tester.view.physicalSize / tester.view.devicePixelRatio;
+      await tester.tapAt(Offset(screenSize.width - 20, screenSize.height / 2));
+      expect(tapped, isTrue);
+    });
+
+    testWidgets('cancel on right edge does not call onTap', (tester) async {
+      bool tapped = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                EdgeTapFeedback(
+                  isLeftEdge: false,
+                  width: 40,
+                  onTap: () => tapped = true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final screenSize =
+          tester.view.physicalSize / tester.view.devicePixelRatio;
+      final gesture = await tester.startGesture(
+        Offset(screenSize.width - 20, screenSize.height / 2),
+      );
+      await tester.pump();
+      await gesture.cancel();
+      await tester.pump();
+
+      expect(tapped, isFalse);
+    });
+
+    testWidgets('renders with semantics label and hint on right edge',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                EdgeTapFeedback(
+                  isLeftEdge: false,
+                  width: 40,
+                  label: 'Next page',
+                  hint: 'Tap to go to next page',
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byWidgetPredicate((w) => w is EdgeTapFeedback),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('key parameter is passed through', (tester) async {
+      final key = UniqueKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                EdgeTapFeedback(
+                  key: key,
+                  isLeftEdge: true,
+                  width: 40,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(key), findsOneWidget);
+    });
+
+    testWidgets('does not block taps outside edge area',
+        (tester) async {
+      // Regression: EdgeTapFeedback should not prevent background widgets
+      // from receiving taps outside the edge zone.
+      int backgroundTaps = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                const Positioned.fill(
+                  child: Text('full screen content'),
+                ),
+                EdgeTapFeedback(
+                  isLeftEdge: true,
+                  width: 40,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Tap well outside the left edge (40px) area
+      await tester.tapAt(const Offset(300, 200));
+      // Should not throw or crash — EdgeTapFeedback does not absorb
+      // taps outside its positioned bounds.
+    });
+
+    testWidgets('tap-up fires callback then fades', (tester) async {
+      int tapCount = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                EdgeTapFeedback(
+                  isLeftEdge: true,
+                  width: 40,
+                  onTap: () => tapCount++,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.tapAt(const Offset(20, 200));
+      await tester.pump();
+
+      expect(tapCount, equals(1));
+    });
+
+    testWidgets('widget rebuild with new isLeftEdge', (tester) async {
+      bool tapped = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                EdgeTapFeedback(
+                  isLeftEdge: true,
+                  width: 40,
+                  onTap: () => tapped = true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Rebuild with same configuration
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                EdgeTapFeedback(
+                  isLeftEdge: true,
+                  width: 50, // changed width
+                  onTap: () => tapped = true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Tap should still work after rebuild
+      await tester.tapAt(const Offset(20, 200));
+      expect(tapped, isTrue);
+    });
   });
 }

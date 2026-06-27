@@ -154,5 +154,154 @@ void main() {
 
       expect(controller.currentIndex, 1);
     });
+
+    testWidgets('second pointer is rejected during active flip drag',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: PageFlipGestureLayer(
+              controller: controller,
+              sensitivity: 0.5,
+              totalPages: 3,
+            ),
+          ),
+        ),
+      );
+
+      final pointer1 = await tester.startGesture(
+        const Offset(350, 300),
+        pointer: 1,
+      );
+      await pointer1.moveBy(const Offset(-50, 0));
+
+      // Second pointer down — should be silently ignored
+      final pointer2 = await tester.startGesture(
+        const Offset(100, 200),
+        pointer: 2,
+      );
+      await pointer2.moveBy(const Offset(-50, 0));
+
+      // First pointer still active
+      await pointer1.moveBy(const Offset(-150, 0));
+      await pointer1.up();
+      await tester.pumpAndSettle();
+
+      expect(controller.currentIndex, 1);
+    });
+
+    testWidgets('pre-drag second pointer is rejected when first drags later',
+        (tester) async {
+      // Regression: second pointer taps before first starts a flip
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: PageFlipGestureLayer(
+              controller: controller,
+              sensitivity: 0.5,
+              totalPages: 3,
+            ),
+          ),
+        ),
+      );
+
+      final pointer1 = await tester.startGesture(
+        const Offset(350, 300),
+        pointer: 1,
+      );
+      // Pointer 2 comes down before pointer 1 moves
+      final pointer2 = await tester.startGesture(
+        const Offset(100, 300),
+        pointer: 2,
+      );
+      await pointer2.up(); // pointer 2 leaves
+
+      // Now pointer 1 drags
+      await pointer1.moveBy(const Offset(-200, 0));
+      await pointer1.up();
+      await tester.pumpAndSettle();
+
+      expect(controller.currentIndex, 1);
+    });
+
+    testWidgets('high sensitivity flip completes with small delta',
+        (tester) async {
+      controller.updateCachedWidth(400);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: PageFlipGestureLayer(
+              controller: controller,
+              sensitivity: 1.0, // most sensitive
+              totalPages: 3,
+            ),
+          ),
+        ),
+      );
+
+      final gesture = await tester.startGesture(const Offset(350, 300));
+      await gesture.moveBy(const Offset(-100, 0));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(controller.currentIndex, 1);
+    });
+
+    testWidgets('low sensitivity requires larger drag to trigger flip',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: PageFlipGestureLayer(
+              controller: controller,
+              sensitivity: 0.01, // least sensitive
+              totalPages: 3,
+            ),
+          ),
+        ),
+      );
+
+      // Very small delta should not trigger flip
+      final gesture = await tester.startGesture(const Offset(350, 300));
+      await gesture.moveBy(const Offset(-20, 0));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(controller.currentIndex, 0);
+    });
+
+    testWidgets('axis-aligned delta with no vertical movement',
+        (tester) async {
+      // Pure horizontal drag
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: PageFlipGestureLayer(
+              controller: controller,
+              sensitivity: 0.5,
+              totalPages: 3,
+            ),
+          ),
+        ),
+      );
+
+      final gesture = await tester.startGesture(const Offset(350, 300));
+      await gesture.moveBy(const Offset(-200, 0)); // purely horizontal
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(controller.currentIndex, 1);
+    });
   });
 }

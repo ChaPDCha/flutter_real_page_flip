@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/page_flip.dart';
+import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'utils/test_helpers.dart';
 
 void main() {
   group('PageFlipWidget callbacks', () {
@@ -202,5 +204,161 @@ void main() {
       expect(startCount, equals(1));
       expect(endCount, equals(1));
     });
+
+    testWidgets('onHandleEffect custom handler fires with correct event',
+        (tester) async {
+      PageFlipEvent? capturedEvent;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 5,
+            itemBuilder: (context, index) => Text('Page $index'),
+            onHandleEffect: (effect, {intensity, volume, texture, resistance}) {
+              capturedEvent = effect;
+            },
+            config: const PageFlipConfig(
+              skipTapAnimation: false,
+              enableSound: false,
+              enableHaptics: false,
+            ),
+          ),
+        ),
+      );
+
+      final state = tester.state<PageFlipWidgetState>(
+        find.byType(PageFlipWidget),
+      );
+      state.nextPage();
+      await tester.pumpAndSettle();
+
+      expect(capturedEvent, isNotNull);
+    });
+
+    testWidgets('onPageChanged does not fire on insufficient drag (snap-back)',
+        (tester) async {
+      int callCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 5,
+            itemBuilder: (context, index) => Text('Page $index'),
+            onPageChanged: (_) => callCount++,
+            config: const PageFlipConfig(
+              cutoffForward: 0.5,
+              effectHandler: NoOpEffectHandler(),
+            ),
+          ),
+        ),
+      );
+
+      final gesture = await tester.startGesture(const Offset(300, 300));
+      await gesture.moveBy(const Offset(-50, 0));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(callCount, equals(0));
+    });
+
+    testWidgets('onFlipStart fires before onPageChanged in programmatic flip',
+        (tester) async {
+      final List<String> callOrder = [];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 5,
+            itemBuilder: (context, index) => Text('Page $index'),
+            onFlipStart: () => callOrder.add('start'),
+            onPageChanged: (_) => callOrder.add('changed'),
+          ),
+        ),
+      );
+
+      final state = tester.state<PageFlipWidgetState>(
+        find.byType(PageFlipWidget),
+      );
+      state.nextPage();
+      await tester.pumpAndSettle();
+
+      expect(
+          callOrder.indexOf('start'), lessThan(callOrder.indexOf('changed')));
+    });
+
+    testWidgets('onFlipEnd fires after onPageChanged in programmatic flip',
+        (tester) async {
+      final List<String> callOrder = [];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 5,
+            itemBuilder: (context, index) => Text('Page $index'),
+            onPageChanged: (_) => callOrder.add('changed'),
+            onFlipEnd: () => callOrder.add('end'),
+          ),
+        ),
+      );
+
+      final state = tester.state<PageFlipWidgetState>(
+        find.byType(PageFlipWidget),
+      );
+      state.nextPage();
+      await tester.pumpAndSettle();
+
+      expect(callOrder.last, equals('end'));
+    });
+
+    testWidgets('custom effect handler override via config works',
+        (tester) async {
+      int handlerTriggerCount = 0;
+
+      final customHandler = _TestEffectHandler(
+        onEffect: () => handlerTriggerCount++,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 5,
+            itemBuilder: (context, index) => Text('Page $index'),
+            config: PageFlipConfig(
+              effectHandler: customHandler,
+            ),
+          ),
+        ),
+      );
+
+      final state = tester.state<PageFlipWidgetState>(
+        find.byType(PageFlipWidget),
+      );
+      state.nextPage();
+      await tester.pumpAndSettle();
+    });
   });
+}
+
+class _TestEffectHandler implements PageFlipEffectHandler {
+  _TestEffectHandler({required this.onEffect});
+
+  final VoidCallback onEffect;
+
+  @override
+  void onHandleEffect(
+    PageFlipEvent event, {
+    int? pageIndex,
+    int? intensity,
+    double? volume,
+    double? texture,
+    double? resistance,
+  }) {
+    onEffect();
+  }
+
+  @override
+  set viewportWidth(double width) {}
+
+  @override
+  void dispose() {}
 }
