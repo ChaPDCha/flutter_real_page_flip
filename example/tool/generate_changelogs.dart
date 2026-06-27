@@ -68,7 +68,7 @@ void main(List<String> args) async {
   stdout.writeln('  ${jsonFile.path}');
 
   // ── Cloudflare Worker source update ────────────────────────────────────
-  const workerPath = 'workers/changelog-api/src/index.ts';
+  final workerPath = 'workers/changelog-api/src/index.ts';
   final workerFile = File(workerPath);
   if (workerFile.existsSync()) {
     _updateWorkerSource(workerFile, entries);
@@ -82,8 +82,8 @@ void main(List<String> args) async {
 /// between the START_CHANGELOGS / END_CHANGELOGS markers.
 void _updateWorkerSource(File workerFile, List<_Entry> allEntries) {
   final source = workerFile.readAsStringSync();
-  const startMarker = '// START_CHANGELOGS';
-  const endMarker = '// END_CHANGELOGS';
+  final startMarker = '// START_CHANGELOGS';
+  final endMarker = '// END_CHANGELOGS';
 
   final startIdx = source.indexOf(startMarker);
   final endIdx = source.indexOf(endMarker);
@@ -94,25 +94,25 @@ void _updateWorkerSource(File workerFile, List<_Entry> allEntries) {
 
   const indent = '  ';
   final buf = StringBuffer();
-  buf.writeln(startMarker);
+  buf.writeln('$startMarker');
   buf.writeln('const changelogs: ChangelogEntry[] = [');
 
   for (final entry in allEntries) {
     final versionCode = int.tryParse(entry.version.split('+').last) ?? 0;
     final versionName = entry.version.split('+').first;
 
-    buf.writeln("$indent$indent{");
-    buf.writeln('$indent$indent$indent' 'version: "${entry.version}",');
-    buf.writeln('$indent$indent$indent' 'versionCode: $versionCode,');
-    buf.writeln('$indent$indent$indent' 'versionName: "$versionName",');
-    buf.writeln('$indent$indent$indent' 'date: "${entry.date}",');
-    buf.writeln('$indent$indent$indent' 'ko: { changes: [${entry.items.map((i) => _tsStr(i.ko)).join(", ")}] },');
-    buf.writeln('$indent$indent$indent' 'en: { changes: [${entry.items.map((i) => _tsStr(i.en)).join(", ")}] },');
-    buf.writeln("$indent$indent},");
+    buf.writeln("${indent}${indent}{");
+    buf.writeln('${indent}${indent}${indent}version: "${entry.version}",');
+    buf.writeln('${indent}${indent}${indent}versionCode: $versionCode,');
+    buf.writeln('${indent}${indent}${indent}versionName: "$versionName",');
+    buf.writeln('${indent}${indent}${indent}date: "${entry.date}",');
+    buf.writeln('${indent}${indent}${indent}ko: { changes: [${entry.items.map((i) => _tsStr(i.ko)).join(", ")}] },');
+    buf.writeln('${indent}${indent}${indent}en: { changes: [${entry.items.map((i) => _tsStr(i.en)).join(", ")}] },');
+    buf.writeln("${indent}${indent}},");
   }
 
   buf.writeln('$indent];');
-  buf.writeln(endMarker);
+  buf.writeln('$endMarker');
 
   final newSource = source.substring(0, startIdx) +
       buf.toString() +

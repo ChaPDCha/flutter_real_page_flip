@@ -345,11 +345,11 @@ class PageFlipLayerView extends StatelessWidget {
         ClipPath(
           clipper: bottomClipper,
           child: (() {
-            var child = bottomLayerContent;
+            Widget child = bottomLayerContent;
             // Apply fade-in to the destination page on the bottom layer.
             // Single backward mode uses the bottom layer for the CURRENT page (origin), not destination.
             if (isDoubleSpread || isForward) {
-              var opacity = 1.0;
+              double opacity = 1.0;
               if (floatProgress < flapContentRevealStart) {
                 opacity = 0.0;
               } else if (floatProgress >= flapContentRevealEnd) {
