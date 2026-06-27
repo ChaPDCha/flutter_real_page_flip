@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 class AdvancedHapticEngine {
+  AdvancedHapticEngine._();
+
   static const MethodChannel _channel =
       MethodChannel('com.chapdcha.real_page_flip/haptics');
 

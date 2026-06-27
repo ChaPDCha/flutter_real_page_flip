@@ -19,7 +19,7 @@ enum PaperTexturePreset {
 
 /// Concrete haptic parameters derived from a [PaperTexturePreset].
 ///
-/// These values are consumed by [DefaultPageFlipEffectHandler] to modulate
+/// These values are consumed by `DefaultPageFlipEffectHandler` to modulate
 /// the physics engine's output into motor-specific vibration commands.
 class PaperTextureConfig {
   const PaperTextureConfig({
@@ -61,7 +61,6 @@ class PaperTextureConfig {
     friction: 0.2,
     stiffness: 0.4,
     roughness: 0.3,
-    baseSharpness: 0.5,
   );
 
   static const _textured = PaperTextureConfig(

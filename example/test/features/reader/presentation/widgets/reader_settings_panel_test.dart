@@ -79,6 +79,7 @@ final _testBook = Book(
 final _testState = ReaderState(book: _testBook);
 
 /// Opens the ReaderSettingsPanel modal and returns the test controller.
+// ignore: library_private_types_in_public_api
 Future<_TestReaderController> openSettings(WidgetTester tester,
     {ReaderState? state}) async {
   final effectiveState = state ?? _testState;
@@ -223,7 +224,7 @@ void main() {
     testWidgets('shows font size current value', (tester) async {
       final state = ReaderState(
         book: _testBook,
-        settings: ReaderSettings(fontSize: 20.0),
+        settings: const ReaderSettings(fontSize: 20.0),
       );
       await openSettings(tester, state: state);
 
@@ -233,7 +234,7 @@ void main() {
     testWidgets('shows line spacing current value', (tester) async {
       final state = ReaderState(
         book: _testBook,
-        settings: ReaderSettings(lineHeight: 2.0),
+        settings: const ReaderSettings(lineHeight: 2.0),
       );
       await openSettings(tester, state: state);
 

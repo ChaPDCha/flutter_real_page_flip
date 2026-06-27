@@ -40,6 +40,7 @@ class _FakeFilterBuilder extends Fake
 // Fake SupabaseQueryBuilder — records last call, returns configurable filter
 // ---------------------------------------------------------------------------
 
+// ignore: must_be_immutable
 class _FakeSupabaseQueryBuilder extends Fake
     implements SupabaseQueryBuilder {
   PostgrestFilterBuilder<PostgrestList> Function()? onUpsert;
@@ -66,6 +67,7 @@ class _FakeSupabaseQueryBuilder extends Fake
 // ---------------------------------------------------------------------------
 
 class _FakeSupabaseClient extends Fake implements SupabaseClient {
+  @override
   final GoTrueClient auth;
   final _FakeSupabaseQueryBuilder queryBuilder;
 

@@ -23,7 +23,6 @@ class ReaderSettingsPanel {
       pageListBuilder: (modalContext) => [
         WoltModalSheetPage(
           backgroundColor: theme.panelColor,
-          isScrollControlled: true,
           topBarTitle: Text(
             l10n.readerSettings.title,
             style: ReaderTypography.getUiStyle(

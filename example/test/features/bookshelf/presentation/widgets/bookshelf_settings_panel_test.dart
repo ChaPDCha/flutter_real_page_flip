@@ -32,6 +32,7 @@ class _TestSyncController extends SyncController {
 // ---------------------------------------------------------------------------
 
 /// Opens the modal and returns the test controller for assertions.
+// ignore: library_private_types_in_public_api
 Future<_TestSyncController> openModal(
   WidgetTester tester,
   SyncState syncState,

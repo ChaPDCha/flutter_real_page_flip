@@ -138,7 +138,7 @@ class PageFlipStateController {
   bool _isPendingFinalize = false;
 
   /// Whether a pending finalize transition is in progress.
-  /// External callers (e.g. [PageFlipWidget.goToPage]) must check this before
+  /// External callers (e.g. `PageFlipWidget.goToPage()`) must check this before
   /// initiating programmatic navigation to avoid re-entrant state corruption.
   bool get isPendingFinalize => _isPendingFinalize;
   bool _isDisposed = false;

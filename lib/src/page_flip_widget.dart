@@ -387,10 +387,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   /// Jumps directly to the given page index without animation.
   ///
-  /// Unlike [nextPage] / [previousPage], this is a low-level direct jump that
-  /// does NOT fire [onFlipStart] / [onFlipEnd] callbacks. It is intended for
+  /// Unlike `nextPage()` / `previousPage()`, this is a low-level direct jump that
+  /// does NOT fire `onFlipStart` / `onFlipEnd` callbacks. It is intended for
   /// programmatic navigation where gesture lifecycle callbacks are not desired.
-  /// The [onPageChanged] callback still fires so consumers can update UI state.
+  /// The `onPageChanged` callback still fires so consumers can update UI state.
   Future<void> goToPage(int index) async {
     if (index < 0 || index >= _totalPages) return;
     if (index == _controller.currentIndex) return;
