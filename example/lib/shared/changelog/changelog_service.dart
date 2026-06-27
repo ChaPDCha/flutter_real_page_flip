@@ -25,6 +25,7 @@ class ChangelogService {
   }) async {
     final data = await _fetchChangelog(prefs);
     if (data == null) return;
+    if (!context.mounted) return;
 
     final currentVersion = data['version'] as String;
     final versionName = data['versionName'] as String? ?? currentVersion;
@@ -86,7 +87,7 @@ class ChangelogService {
         } finally {
           client.close();
         }
-      } else if (cached != null) {
+      } else {
         return json.decode(cached) as Map<String, dynamic>;
       }
     } catch (_) {
