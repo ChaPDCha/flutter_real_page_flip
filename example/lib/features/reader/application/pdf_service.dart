@@ -68,8 +68,9 @@ class PdfService {
         }
       }
       // Also evict page images for the evicted document
-      _instance._pageImageCache
-          .removeWhere((key, _) => key.startsWith('$oldestKey#'));
+      _instance._pageImageCache.removeWhere(
+        (key, _) => key.startsWith('$oldestKey#'),
+      );
     }
 
     final document = await PdfDocument.openFile(filePath);
@@ -88,7 +89,9 @@ class PdfService {
       }
     }
     // Remove all cached page images for this file
-    _instance._pageImageCache.removeWhere((key, _) => key.startsWith('$filePath#'));
+    _instance._pageImageCache.removeWhere(
+      (key, _) => key.startsWith('$filePath#'),
+    );
   }
 
   /// Retrieves the page count of a PDF file.

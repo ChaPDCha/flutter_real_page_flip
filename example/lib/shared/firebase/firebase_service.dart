@@ -59,10 +59,7 @@ class FirebaseService {
     }
 
     // Sentry
-    Sentry.captureException(
-      error,
-      stackTrace: stack,
-    );
+    Sentry.captureException(error, stackTrace: stack);
   }
 
   // ---------------------------------------------------------------------------

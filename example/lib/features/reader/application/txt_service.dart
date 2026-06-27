@@ -19,7 +19,10 @@ class TxtService {
     final bytes = await file.readAsBytes();
 
     // Detect UTF-8 BOM (EF BB BF)
-    if (bytes.length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
+    if (bytes.length >= 3 &&
+        bytes[0] == 0xEF &&
+        bytes[1] == 0xBB &&
+        bytes[2] == 0xBF) {
       return utf8.decode(bytes.sublist(3));
     }
 

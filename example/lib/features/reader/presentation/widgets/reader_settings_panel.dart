@@ -42,197 +42,210 @@ class ReaderSettingsPanel {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Font Size
-                    _SettingRow(
-                      label: l10n.readerSettings.fontSize,
-                      theme: theme,
-                      child: _SizeControl(
-                        value: currentState.settings.fontSize,
-                        formatValue: (v) => '${v.toInt()}',
-                        onDecrement: () => controller.updateFontSize(-1.0),
-                        onIncrement: () => controller.updateFontSize(1.0),
+                      _SettingRow(
+                        label: l10n.readerSettings.fontSize,
                         theme: theme,
+                        child: _SizeControl(
+                          value: currentState.settings.fontSize,
+                          formatValue: (v) => '${v.toInt()}',
+                          onDecrement: () => controller.updateFontSize(-1.0),
+                          onIncrement: () => controller.updateFontSize(1.0),
+                          theme: theme,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Line Spacing
-                    _SettingRow(
-                      label: l10n.readerSettings.lineSpacing,
-                      theme: theme,
-                      child: _SizeControl(
-                        value: currentState.settings.lineHeight,
-                        formatValue: (v) => v.toStringAsFixed(1),
-                        onDecrement: () => controller.updateLineHeight(-0.1),
-                        onIncrement: () => controller.updateLineHeight(0.1),
+                      // Line Spacing
+                      _SettingRow(
+                        label: l10n.readerSettings.lineSpacing,
                         theme: theme,
-                        step: 0.1,
+                        child: _SizeControl(
+                          value: currentState.settings.lineHeight,
+                          formatValue: (v) => v.toStringAsFixed(1),
+                          onDecrement: () => controller.updateLineHeight(-0.1),
+                          onIncrement: () => controller.updateLineHeight(0.1),
+                          theme: theme,
+                          step: 0.1,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Brightness
-                    _SettingRow(
-                      label: l10n.readerSettings.brightness,
-                      theme: theme,
-                      child: SizedBox(
-                        width: 160,
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.brightness_low,
-                              color: theme.secondaryTextColor,
-                              size: 15,
-                            ),
-                            Expanded(
-                              child: SliderTheme(
-                                data: SliderThemeData(
-                                  trackHeight: 2,
-                                  thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 6,
+                      // Brightness
+                      _SettingRow(
+                        label: l10n.readerSettings.brightness,
+                        theme: theme,
+                        child: SizedBox(
+                          width: 160,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.brightness_low,
+                                color: theme.secondaryTextColor,
+                                size: 15,
+                              ),
+                              Expanded(
+                                child: SliderTheme(
+                                  data: SliderThemeData(
+                                    trackHeight: 2,
+                                    thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 6,
+                                    ),
+                                    overlayShape: const RoundSliderOverlayShape(
+                                      overlayRadius: 12,
+                                    ),
+                                    activeTrackColor: theme.accentColor,
+                                    inactiveTrackColor: theme.dividerColor,
+                                    thumbColor: theme.accentColor,
+                                    overlayColor: theme.accentColor.withValues(
+                                      alpha: 0.12,
+                                    ),
                                   ),
-                                  overlayShape: const RoundSliderOverlayShape(
-                                    overlayRadius: 12,
+                                  child: Slider(
+                                    value: currentState.settings.brightness,
+                                    min: 0.3,
+                                    max: 1.0,
+                                    divisions: 14,
+                                    onChanged: (val) =>
+                                        controller.updateBrightness(val),
                                   ),
-                                  activeTrackColor: theme.accentColor,
-                                  inactiveTrackColor: theme.dividerColor,
-                                  thumbColor: theme.accentColor,
-                                  overlayColor: theme.accentColor.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                ),
-                                child: Slider(
-                                  value: currentState.settings.brightness,
-                                  min: 0.3,
-                                  max: 1.0,
-                                  divisions: 14,
-                                  onChanged: (val) =>
-                                      controller.updateBrightness(val),
                                 ),
                               ),
+                              Icon(
+                                Icons.brightness_high,
+                                color: theme.secondaryTextColor,
+                                size: 15,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Font Family
+                      _SettingRow(
+                        label: l10n.readerSettings.font,
+                        theme: theme,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _FontOption(
+                              label: l10n.readerSettings.fontOptions.gothic,
+                              isSelected:
+                                  currentState.settings.fontFamily == null,
+                              onTap: () => controller.updateFontFamily(null),
+                              theme: theme,
                             ),
-                            Icon(
-                              Icons.brightness_high,
-                              color: theme.secondaryTextColor,
-                              size: 15,
+                            const SizedBox(width: 8),
+                            _FontOption(
+                              label: l10n.readerSettings.fontOptions.myungjo,
+                              isSelected:
+                                  currentState.settings.fontFamily == 'serif',
+                              onTap: () => controller.updateFontFamily(
+                                currentState.settings.fontFamily == 'serif'
+                                    ? null
+                                    : 'serif',
+                              ),
+                              theme: theme,
                             ),
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Font Family
-                    _SettingRow(
-                      label: l10n.readerSettings.font,
-                      theme: theme,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _FontOption(
-                            label: l10n.readerSettings.fontOptions.gothic,
-                            isSelected:
-                                currentState.settings.fontFamily == null,
-                            onTap: () => controller.updateFontFamily(null),
-                            theme: theme,
-                          ),
-                          const SizedBox(width: 8),
-                          _FontOption(
-                            label: l10n.readerSettings.fontOptions.myungjo,
-                            isSelected:
-                                currentState.settings.fontFamily == 'serif',
-                            onTap: () => controller.updateFontFamily(
-                              currentState.settings.fontFamily == 'serif'
-                                  ? null
-                                  : 'serif',
-                            ),
-                            theme: theme,
-                          ),
-                        ],
+                      // Haptics
+                      _SettingRow(
+                        label: l10n.readerSettings.haptics,
+                        theme: theme,
+                        child: ShadSwitch(
+                          value: currentState.settings.enableHaptics,
+                          onChanged: (val) async {
+                            await controller.toggleHaptics(val);
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
-                    // Haptics
-                    _SettingRow(
-                      label: l10n.readerSettings.haptics,
-                      theme: theme,
-                      child: ShadSwitch(
-                        value: currentState.settings.enableHaptics,
-                        onChanged: (val) async {
-                          await controller.toggleHaptics(val);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Paper Texture Preset
-                    _SettingRow(
-                      label: l10n.readerSettings.texture,
-                      theme: theme,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _TextureChip(
-                            label: l10n.readerSettings.textureOptions.smooth,
-                            isSelected: currentState
-                                    .settings.hapticTexturePresetName ==
+                      // Paper Texture Preset
+                      _SettingRow(
+                        label: l10n.readerSettings.texture,
+                        theme: theme,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _TextureChip(
+                              label: l10n.readerSettings.textureOptions.smooth,
+                              isSelected:
+                                  currentState
+                                      .settings
+                                      .hapticTexturePresetName ==
+                                  'smooth',
+                              onTap: () => controller.updateHapticTexturePreset(
                                 'smooth',
-                            onTap: () =>
-                                controller.updateHapticTexturePreset('smooth'),
-                            theme: theme,
-                          ),
-                          const SizedBox(width: 6),
-                          _TextureChip(
-                            label: l10n.readerSettings.textureOptions.standard,
-                            isSelected: currentState
-                                    .settings.hapticTexturePresetName ==
+                              ),
+                              theme: theme,
+                            ),
+                            const SizedBox(width: 6),
+                            _TextureChip(
+                              label:
+                                  l10n.readerSettings.textureOptions.standard,
+                              isSelected:
+                                  currentState
+                                      .settings
+                                      .hapticTexturePresetName ==
+                                  'standard',
+                              onTap: () => controller.updateHapticTexturePreset(
                                 'standard',
-                            onTap: () => controller
-                                .updateHapticTexturePreset('standard'),
-                            theme: theme,
-                          ),
-                          const SizedBox(width: 6),
-                          _TextureChip(
-                            label: l10n.readerSettings.textureOptions.textured,
-                            isSelected: currentState
-                                    .settings.hapticTexturePresetName ==
+                              ),
+                              theme: theme,
+                            ),
+                            const SizedBox(width: 6),
+                            _TextureChip(
+                              label:
+                                  l10n.readerSettings.textureOptions.textured,
+                              isSelected:
+                                  currentState
+                                      .settings
+                                      .hapticTexturePresetName ==
+                                  'textured',
+                              onTap: () => controller.updateHapticTexturePreset(
                                 'textured',
-                            onTap: () => controller
-                                .updateHapticTexturePreset('textured'),
-                            theme: theme,
-                          ),
-                          const SizedBox(width: 6),
-                          _TextureChip(
-                            label: l10n.readerSettings.textureOptions.kraft,
-                            isSelected: currentState
-                                    .settings.hapticTexturePresetName ==
-                                'kraft',
-                            onTap: () => controller
-                                .updateHapticTexturePreset('kraft'),
-                            theme: theme,
-                          ),
-                        ],
+                              ),
+                              theme: theme,
+                            ),
+                            const SizedBox(width: 6),
+                            _TextureChip(
+                              label: l10n.readerSettings.textureOptions.kraft,
+                              isSelected:
+                                  currentState
+                                      .settings
+                                      .hapticTexturePresetName ==
+                                  'kraft',
+                              onTap: () =>
+                                  controller.updateHapticTexturePreset('kraft'),
+                              theme: theme,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                    // Sound
-                    _SettingRow(
-                      label: l10n.readerSettings.sound,
-                      theme: theme,
-                      child: ShadSwitch(
-                        value: currentState.settings.enableSound,
-                        onChanged: (val) async {
-                          await controller.toggleSound(val);
-                        },
+                      // Sound
+                      _SettingRow(
+                        label: l10n.readerSettings.sound,
+                        theme: theme,
+                        child: ShadSwitch(
+                          value: currentState.settings.enableSound,
+                          onChanged: (val) async {
+                            await controller.toggleSound(val);
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
           ),
           stickyActionBar: Padding(
             padding: const EdgeInsets.all(16.0),

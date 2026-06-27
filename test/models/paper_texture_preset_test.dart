@@ -80,8 +80,7 @@ void main() {
       });
 
       test('fromPreset(kraft) returns high intensity config', () {
-        final config =
-            PaperTextureConfig.fromPreset(PaperTexturePreset.kraft);
+        final config = PaperTextureConfig.fromPreset(PaperTexturePreset.kraft);
 
         expect(config.friction, 0.7);
         expect(config.stiffness, 0.9);

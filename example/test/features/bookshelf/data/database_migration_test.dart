@@ -25,39 +25,38 @@ void main() {
     }
   });
 
-  test(
-    'Fresh database onCreate creates all tables and FTS5 index',
-    () async {
-      final dbFile = File(p.join(tempDir.path, 'fresh.db'));
-      final db = AppDatabase(NativeDatabase(dbFile));
+  test('Fresh database onCreate creates all tables and FTS5 index', () async {
+    final dbFile = File(p.join(tempDir.path, 'fresh.db'));
+    final db = AppDatabase(NativeDatabase(dbFile));
 
-      // Verify all 4 business tables exist via SELECT
-      final booksList = await db.select(db.books).get();
-      expect(booksList, isEmpty);
+    // Verify all 4 business tables exist via SELECT
+    final booksList = await db.select(db.books).get();
+    expect(booksList, isEmpty);
 
-      final highlightsList = await db.select(db.highlights).get();
-      expect(highlightsList, isEmpty);
+    final highlightsList = await db.select(db.highlights).get();
+    expect(highlightsList, isEmpty);
 
-      final bookmarksList = await db.select(db.bookmarks).get();
-      expect(bookmarksList, isEmpty);
+    final bookmarksList = await db.select(db.bookmarks).get();
+    expect(bookmarksList, isEmpty);
 
-      final readingLogsList = await db.select(db.readingLogs).get();
-      expect(readingLogsList, isEmpty);
+    final readingLogsList = await db.select(db.readingLogs).get();
+    expect(readingLogsList, isEmpty);
 
-      // Verify FTS5 virtual table exists and accepts inserts
-      await db.customStatement(
-        'INSERT INTO book_contents_fts (bookId, chapterIndex, content) VALUES (?, ?, ?)',
-        ['book-1', 0, 'fresh db test content'],
-      );
-      final rows = await db.customSelect(
-        'SELECT content FROM book_contents_fts WHERE book_contents_fts MATCH ?',
-        variables: [Variable.withString('fresh')],
-      ).get();
-      expect(rows.length, 1);
+    // Verify FTS5 virtual table exists and accepts inserts
+    await db.customStatement(
+      'INSERT INTO book_contents_fts (bookId, chapterIndex, content) VALUES (?, ?, ?)',
+      ['book-1', 0, 'fresh db test content'],
+    );
+    final rows = await db
+        .customSelect(
+          'SELECT content FROM book_contents_fts WHERE book_contents_fts MATCH ?',
+          variables: [Variable.withString('fresh')],
+        )
+        .get();
+    expect(rows.length, 1);
 
-      await db.close();
-    },
-  );
+    await db.close();
+  });
 
   test(
     'Drift Schema V1 to V2 Migration preserves data and adds sync columns',
@@ -157,10 +156,12 @@ void main() {
         'INSERT INTO book_contents_fts (bookId, chapterIndex, content) VALUES (?, ?, ?)',
         ['book-1', 0, 'fts5 migrated content'],
       );
-      final ftsRows = await db.customSelect(
-        'SELECT content FROM book_contents_fts WHERE book_contents_fts MATCH ?',
-        variables: [Variable.withString('migrated')],
-      ).get();
+      final ftsRows = await db
+          .customSelect(
+            'SELECT content FROM book_contents_fts WHERE book_contents_fts MATCH ?',
+            variables: [Variable.withString('migrated')],
+          )
+          .get();
       expect(ftsRows.length, 1);
 
       await db.close();

@@ -8,11 +8,7 @@ import 'package:real_page_flip_example/shared/theme/reader_theme.dart';
 import 'package:real_page_flip_example/l10n/translations.g.dart';
 
 Widget _wrapWithProviders(Widget child) {
-  return TranslationProvider(
-    child: MaterialApp(
-      home: child,
-    ),
-  );
+  return TranslationProvider(child: MaterialApp(home: child));
 }
 
 void main() {
@@ -82,8 +78,7 @@ void main() {
               ReaderBottomBar(
                 showUi: showUi,
                 book: book ?? testBook,
-                readerState:
-                    state ?? defaultState(),
+                readerState: state ?? defaultState(),
                 themeData: ReaderThemeData.cream,
                 onPreviousChapter: onPreviousChapter ?? () {},
                 onNextChapter: onNextChapter ?? () {},
@@ -113,11 +108,7 @@ void main() {
       await tester.pumpWidget(
         buildBottomBar(
           book: pdfBook,
-          state: defaultState(
-            book: pdfBook,
-            pageIndex: 9,
-            pageCount: 200,
-          ),
+          state: defaultState(book: pdfBook, pageIndex: 9, pageCount: 200),
         ),
       );
       await tester.pump();
@@ -140,9 +131,7 @@ void main() {
 
     testWidgets('previous chapter disabled at first chapter', (tester) async {
       await tester.pumpWidget(
-        buildBottomBar(
-          state: defaultState(chapterIndex: 0),
-        ),
+        buildBottomBar(state: defaultState(chapterIndex: 0)),
       );
       await tester.pump();
 
@@ -166,9 +155,7 @@ void main() {
 
     testWidgets('next chapter disabled at last chapter', (tester) async {
       await tester.pumpWidget(
-        buildBottomBar(
-          state: defaultState(chapterIndex: 2),
-        ),
+        buildBottomBar(state: defaultState(chapterIndex: 2)),
       );
       await tester.pump();
 
@@ -185,9 +172,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(
-        findIconButtonByIcon(Icons.keyboard_arrow_left_rounded),
-      );
+      await tester.tap(findIconButtonByIcon(Icons.keyboard_arrow_left_rounded));
       expect(tapped, isTrue);
     });
 
@@ -229,11 +214,7 @@ void main() {
 
     testWidgets('chapter label fallback when no chapters', (tester) async {
       await tester.pumpWidget(
-        buildBottomBar(
-          state: defaultState(
-            chaptersList: [],
-          ),
-        ),
+        buildBottomBar(state: defaultState(chaptersList: [])),
       );
       await tester.pump();
 
@@ -263,10 +244,7 @@ void main() {
       await tester.pumpWidget(buildBottomBar());
       await tester.pump();
 
-      expect(
-        find.byIcon(Icons.keyboard_arrow_left_rounded),
-        findsOneWidget,
-      );
+      expect(find.byIcon(Icons.keyboard_arrow_left_rounded), findsOneWidget);
     });
 
     testWidgets('next chapter icon is keyboard_arrow_right_rounded', (
@@ -275,10 +253,7 @@ void main() {
       await tester.pumpWidget(buildBottomBar());
       await tester.pump();
 
-      expect(
-        find.byIcon(Icons.keyboard_arrow_right_rounded),
-        findsOneWidget,
-      );
+      expect(find.byIcon(Icons.keyboard_arrow_right_rounded), findsOneWidget);
     });
 
     testWidgets('BackdropFilter is present', (tester) async {

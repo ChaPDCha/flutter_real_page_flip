@@ -7,11 +7,7 @@ import 'package:real_page_flip_example/shared/theme/reader_theme.dart';
 import 'package:real_page_flip_example/l10n/translations.g.dart';
 
 Widget _wrapWithProviders(Widget child) {
-  return TranslationProvider(
-    child: MaterialApp(
-      home: child,
-    ),
-  );
+  return TranslationProvider(child: MaterialApp(home: child));
 }
 
 void main() {

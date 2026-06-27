@@ -217,8 +217,6 @@ void main() {
       await Future.delayed(Duration.zero);
     });
 
-
-
     test('Opus audio init sets audioReady', () async {
       final handler = DefaultPageFlipEffectHandler();
       await Future.delayed(const Duration(milliseconds: 10));

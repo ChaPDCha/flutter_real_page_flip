@@ -156,7 +156,8 @@ final _testChapter = EpubChapter()
 /// A second chapter used for chapter-boundary navigation tests.
 final _testChapter2 = EpubChapter()
   ..Title = 'Chapter 2'
-  ..HtmlContent = '<p>Chapter two content page 1.</p>'
+  ..HtmlContent =
+      '<p>Chapter two content page 1.</p>'
       '<p>Chapter two content page 2.</p>';
 
 final _loadingState = ReaderState(book: _testBook, isLoading: true);
@@ -164,7 +165,11 @@ final _loadingState = ReaderState(book: _testBook, isLoading: true);
 final _loadedState = ReaderState(
   book: _testBook,
   chapters: [_testChapter],
-  pages: const ['Page one content.', 'Page two content.', 'Page three content.'],
+  pages: const [
+    'Page one content.',
+    'Page two content.',
+    'Page three content.',
+  ],
   isLoading: false,
 );
 
@@ -217,7 +222,11 @@ final _chNavPrevState = ReaderState(
 final _chNavNextState = ReaderState(
   book: _testBook,
   chapters: [_testChapter, _testChapter2],
-  pages: const ['Page one content.', 'Page two content.', 'Page three content.'],
+  pages: const [
+    'Page one content.',
+    'Page two content.',
+    'Page three content.',
+  ],
   isLoading: false,
   currentChapterIndex: 0,
   currentPageIndex: 2,
@@ -231,10 +240,8 @@ final _chNavNextState = ReaderState(
 ///
 /// Returns a record containing the test controller and test TTS service so
 /// callers can verify interactions.
-Future<({
-  _TestReaderController controller,
-  _TestTtsService ttsService,
-})> _buildApp({
+Future<({_TestReaderController controller, _TestTtsService ttsService})>
+_buildApp({
   required WidgetTester tester,
   required ReaderState state,
   Book? book,
@@ -248,10 +255,12 @@ Future<({
     TranslationProvider(
       child: ProviderScope(
         overrides: [
-          readerControllerProvider(effectiveBook)
-              .overrideWith(() => controller),
-          appThemeControllerProvider
-              .overrideWith(() => _TestAppThemeController()),
+          readerControllerProvider(
+            effectiveBook,
+          ).overrideWith(() => controller),
+          appThemeControllerProvider.overrideWith(
+            () => _TestAppThemeController(),
+          ),
           supertonicTtsProvider.overrideWithValue(ttsService),
         ],
         child: ShadTheme(
@@ -509,10 +518,12 @@ void main() {
         TranslationProvider(
           child: ProviderScope(
             overrides: [
-              readerControllerProvider(_testBook)
-                  .overrideWith(() => _TestReaderController(_loadedState)),
-              appThemeControllerProvider
-                  .overrideWith(() => _TestAppThemeController()),
+              readerControllerProvider(
+                _testBook,
+              ).overrideWith(() => _TestReaderController(_loadedState)),
+              appThemeControllerProvider.overrideWith(
+                () => _TestAppThemeController(),
+              ),
               supertonicTtsProvider.overrideWithValue(result.ttsService),
             ],
             child: const SizedBox.shrink(),
@@ -533,7 +544,9 @@ void main() {
   // -----------------------------------------------------------------------
 
   group('Navigation', () {
-    testWidgets('left edge at chapter start calls previousPage', (tester) async {
+    testWidgets('left edge at chapter start calls previousPage', (
+      tester,
+    ) async {
       final result = await _buildApp(tester: tester, state: _chNavPrevState);
 
       final size = tester.view.physicalSize / tester.view.devicePixelRatio;
@@ -635,7 +648,9 @@ void main() {
   // -----------------------------------------------------------------------
 
   group('Error / Load Failure', () {
-    testWidgets('shows loading text when pages empty after load', (tester) async {
+    testWidgets('shows loading text when pages empty after load', (
+      tester,
+    ) async {
       final failedState = ReaderState(
         book: _testBook,
         chapters: const [],
@@ -648,7 +663,9 @@ void main() {
       expect(find.textContaining('Loading'), findsWidgets);
     });
 
-    testWidgets('does not crash when pages and chapters are empty', (tester) async {
+    testWidgets('does not crash when pages and chapters are empty', (
+      tester,
+    ) async {
       final failedState = ReaderState(
         book: _testBook,
         chapters: const [],
@@ -759,17 +776,15 @@ void main() {
         TranslationProvider(
           child: ProviderScope(
             overrides: [
-              readerControllerProvider(_testBook)
-                  .overrideWith(() => controller),
-              appThemeControllerProvider
-                  .overrideWith(() => creamController),
+              readerControllerProvider(
+                _testBook,
+              ).overrideWith(() => controller),
+              appThemeControllerProvider.overrideWith(() => creamController),
               supertonicTtsProvider.overrideWithValue(ttsService),
             ],
             child: ShadTheme(
               data: ReaderThemeData.charcoal.toShadTheme(),
-              child: MaterialApp(
-                home: BookReaderScreen(book: _testBook),
-              ),
+              child: MaterialApp(home: BookReaderScreen(book: _testBook)),
             ),
           ),
         ),
@@ -814,7 +829,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('back button does not throw when observer attached', (tester) async {
+    testWidgets('back button does not throw when observer attached', (
+      tester,
+    ) async {
       final observer = _TestNavigatorObserver();
       await _buildApp(
         tester: tester,

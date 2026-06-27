@@ -341,8 +341,7 @@ void main() {
       expect(find.byKey(key), findsOneWidget);
     });
 
-    testWidgets('does not block taps outside edge area',
-        (tester) async {
+    testWidgets('does not block taps outside edge area', (tester) async {
       // Regression: EdgeTapFeedback should not prevent background widgets
       // from receiving taps outside the edge zone.
       int backgroundTaps = 0;

@@ -25,7 +25,8 @@ void main() {
       expect(PageFlipSpreadMode.values, hasLength(2));
       expect(
         PageFlipSpreadMode.values,
-        containsAll([PageFlipSpreadMode.single, PageFlipSpreadMode.doubleSpread]),
+        containsAll(
+            [PageFlipSpreadMode.single, PageFlipSpreadMode.doubleSpread]),
       );
     });
 
@@ -104,7 +105,8 @@ void main() {
       expect(find.text('Spread 0'), findsOneWidget);
     });
 
-    testWidgets('isDoubleSpread: true maps to doubleSpread mode', (tester) async {
+    testWidgets('isDoubleSpread: true maps to doubleSpread mode',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(

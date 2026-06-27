@@ -79,9 +79,21 @@ void main() {
 
       test('adds multiple books and retrieves all', () async {
         await createRepository();
-        final book1 = createBook(id: 'book-1', title: 'Book One', filePath: '/path/book1.epub');
-        final book2 = createBook(id: 'book-2', title: 'Book Two', filePath: '/path/book2.epub');
-        final book3 = createBook(id: 'book-3', title: 'Book Three', filePath: '/path/book3.epub');
+        final book1 = createBook(
+          id: 'book-1',
+          title: 'Book One',
+          filePath: '/path/book1.epub',
+        );
+        final book2 = createBook(
+          id: 'book-2',
+          title: 'Book Two',
+          filePath: '/path/book2.epub',
+        );
+        final book3 = createBook(
+          id: 'book-3',
+          title: 'Book Three',
+          filePath: '/path/book3.epub',
+        );
 
         await repository.addBook(book1);
         await repository.addBook(book2);
@@ -89,7 +101,10 @@ void main() {
 
         final books = await repository.getBooks();
         expect(books.length, 3);
-        expect(books.map((b) => b.id), containsAll(['book-1', 'book-2', 'book-3']));
+        expect(
+          books.map((b) => b.id),
+          containsAll(['book-1', 'book-2', 'book-3']),
+        );
       });
 
       test('updates existing book with same ID (upsert behavior)', () async {
@@ -105,17 +120,18 @@ void main() {
         expect(books.first.title, 'Updated Title');
       });
 
-      test('book with cover image path stores and retrieves correctly', () async {
-        await createRepository();
-        final book = createBook(
-          coverImagePath: '/path/to/cover.png',
-        );
+      test(
+        'book with cover image path stores and retrieves correctly',
+        () async {
+          await createRepository();
+          final book = createBook(coverImagePath: '/path/to/cover.png');
 
-        await repository.addBook(book);
+          await repository.addBook(book);
 
-        final books = await repository.getBooks();
-        expect(books.first.coverImagePath, '/path/to/cover.png');
-      });
+          final books = await repository.getBooks();
+          expect(books.first.coverImagePath, '/path/to/cover.png');
+        },
+      );
 
       test('book with null cover image path is stored correctly', () async {
         await createRepository();
@@ -130,7 +146,10 @@ void main() {
       test('stores book with different file extensions', () async {
         await createRepository();
 
-        final epubBook = createBook(id: 'epub-book', filePath: '/path/book.epub');
+        final epubBook = createBook(
+          id: 'epub-book',
+          filePath: '/path/book.epub',
+        );
         final txtBook = createBook(id: 'txt-book', filePath: '/path/book.txt');
 
         await repository.addBook(epubBook);
@@ -168,8 +187,16 @@ void main() {
 
       test('removes specific book without affecting others', () async {
         await createRepository();
-        final book1 = createBook(id: 'book-1', title: 'Book One', filePath: '/path/one.epub');
-        final book2 = createBook(id: 'book-2', title: 'Book Two', filePath: '/path/two.epub');
+        final book1 = createBook(
+          id: 'book-1',
+          title: 'Book One',
+          filePath: '/path/one.epub',
+        );
+        final book2 = createBook(
+          id: 'book-2',
+          title: 'Book Two',
+          filePath: '/path/two.epub',
+        );
         await repository.addBook(book1);
         await repository.addBook(book2);
 
@@ -185,9 +212,15 @@ void main() {
       test('returns books in insertion order', () async {
         await createRepository();
 
-        await repository.addBook(createBook(id: 'a', title: 'Alpha', filePath: '/path/a.epub'));
-        await repository.addBook(createBook(id: 'b', title: 'Beta', filePath: '/path/b.epub'));
-        await repository.addBook(createBook(id: 'c', title: 'Gamma', filePath: '/path/c.epub'));
+        await repository.addBook(
+          createBook(id: 'a', title: 'Alpha', filePath: '/path/a.epub'),
+        );
+        await repository.addBook(
+          createBook(id: 'b', title: 'Beta', filePath: '/path/b.epub'),
+        );
+        await repository.addBook(
+          createBook(id: 'c', title: 'Gamma', filePath: '/path/c.epub'),
+        );
 
         final books = await repository.getBooks();
         expect(books.length, 3);

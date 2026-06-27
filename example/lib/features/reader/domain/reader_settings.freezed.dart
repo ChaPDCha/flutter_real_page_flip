@@ -252,7 +252,10 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
                 other.brightness == brightness) &&
             (identical(other.fontFamily, fontFamily) ||
                 other.fontFamily == fontFamily) &&
-            (identical(other.hapticTexturePresetName, hapticTexturePresetName) ||
+            (identical(
+                  other.hapticTexturePresetName,
+                  hapticTexturePresetName,
+                ) ||
                 other.hapticTexturePresetName == hapticTexturePresetName));
   }
 

@@ -85,8 +85,7 @@ void main() {
         final content = generateDemoContent();
 
         // Count chapter markers
-        final chapterCount =
-            '제'.allMatches(content).length;
+        final chapterCount = '제'.allMatches(content).length;
         expect(chapterCount, greaterThanOrEqualTo(10));
       });
 

@@ -232,7 +232,8 @@ void main() {
   // Error recovery: toImage throws, catch block, retry exhaustion
   // ============================================================
   group('error recovery', () {
-    testWidgets('toImage throws, manager catches error, no crash', (tester) async {
+    testWidgets('toImage throws, manager catches error, no crash',
+        (tester) async {
       final mgr = PreRenderManager();
       addTearDown(mgr.dispose);
       mgr.prepareKeys(2, 3);

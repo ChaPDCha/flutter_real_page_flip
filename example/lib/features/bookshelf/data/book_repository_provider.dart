@@ -39,6 +39,10 @@ Future<void> _migrateFromSharedPreferences(DriftBookRepository newRepo) async {
       }
     }
   } catch (e, st) {
-    FirebaseService.recordError(e, st, reason: 'SharedPreferences → Drift migration');
+    FirebaseService.recordError(
+      e,
+      st,
+      reason: 'SharedPreferences → Drift migration',
+    );
   }
 }

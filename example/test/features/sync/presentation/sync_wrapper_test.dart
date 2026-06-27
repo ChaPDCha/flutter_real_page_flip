@@ -45,9 +45,7 @@ Widget buildWrapper({
       appThemeControllerProvider.overrideWith(() => AppThemeController()),
     ],
     child: MaterialApp(
-      home: Scaffold(
-        body: SyncWrapper(child: child),
-      ),
+      home: Scaffold(body: SyncWrapper(child: child)),
     ),
   );
 }
@@ -64,10 +62,9 @@ void main() {
 
   group('SyncWrapper', () {
     testWidgets('renders the child widget', (tester) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildWrapper(spyController: spyController, prefs: prefs),
+      );
       await tester.pump();
 
       expect(find.text('Wrapped Child Content'), findsOneWidget);
@@ -78,10 +75,9 @@ void main() {
     });
 
     testWidgets('contains a SyncStatusBadge overlay', (tester) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildWrapper(spyController: spyController, prefs: prefs),
+      );
       await tester.pump();
 
       expect(find.byType(SyncStatusBadge), findsOneWidget);
@@ -92,10 +88,9 @@ void main() {
     });
 
     testWidgets('uses correct background color from theme', (tester) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildWrapper(spyController: spyController, prefs: prefs),
+      );
       await tester.pump();
 
       // The SyncWrapper applies the theme background color to its Scaffold
@@ -113,10 +108,9 @@ void main() {
     testWidgets('child is wrapped in a Stack with badge overlay', (
       tester,
     ) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildWrapper(spyController: spyController, prefs: prefs),
+      );
       await tester.pump();
 
       // The inner Stack (last in tree) is the wrapper's explicit Stack
@@ -132,10 +126,9 @@ void main() {
     testWidgets('defers sync call for 2 seconds after mounting', (
       tester,
     ) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildWrapper(spyController: spyController, prefs: prefs),
+      );
 
       // Post-frame callback is scheduled but Future.delayed hasn't fired yet
       await tester.pump();
@@ -157,10 +150,9 @@ void main() {
     });
 
     testWidgets('fires periodic sync every 5 minutes', (tester) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildWrapper(spyController: spyController, prefs: prefs),
+      );
 
       // Let the 2-second deferred sync fire first
       await tester.pump();
@@ -186,10 +178,9 @@ void main() {
     testWidgets('triggers sync when app resumes from background', (
       tester,
     ) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildWrapper(spyController: spyController, prefs: prefs),
+      );
 
       // Let deferred sync fire
       await tester.pump();
@@ -209,12 +200,12 @@ void main() {
       await tester.pump();
     });
 
-    testWidgets('triggers sync when app transitions from inactive to resumed',
-        (tester) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+    testWidgets('triggers sync when app transitions from inactive to resumed', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildWrapper(spyController: spyController, prefs: prefs),
+      );
 
       // Let deferred sync fire
       await tester.pump();
@@ -240,60 +231,64 @@ void main() {
       await tester.pump();
     });
 
-    testWidgets('does not trigger sync on lifecycle states other than resumed',
-        (tester) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+    testWidgets(
+      'does not trigger sync on lifecycle states other than resumed',
+      (tester) async {
+        await tester.pumpWidget(
+          buildWrapper(spyController: spyController, prefs: prefs),
+        );
 
-      // Let deferred sync fire
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 2));
-      await tester.pump(const Duration(milliseconds: 50));
-      final initialCalls = spyController.syncCallCount;
+        // Let deferred sync fire
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pump(const Duration(milliseconds: 50));
+        final initialCalls = spyController.syncCallCount;
 
-      // Lifecycle changes that should NOT trigger sync
-      // ignore: invalid_use_of_protected_member
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-      await tester.pump();
-      expect(
-        spyController.syncCallCount,
-        initialCalls,
-        reason: 'paused should not trigger sync',
-      );
+        // Lifecycle changes that should NOT trigger sync
+        // ignore: invalid_use_of_protected_member
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await tester.pump();
+        expect(
+          spyController.syncCallCount,
+          initialCalls,
+          reason: 'paused should not trigger sync',
+        );
 
-      // ignore: invalid_use_of_protected_member
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      await tester.pump();
-      expect(
-        spyController.syncCallCount,
-        initialCalls,
-        reason: 'inactive should not trigger sync',
-      );
+        // ignore: invalid_use_of_protected_member
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.inactive,
+        );
+        await tester.pump();
+        expect(
+          spyController.syncCallCount,
+          initialCalls,
+          reason: 'inactive should not trigger sync',
+        );
 
-      // ignore: invalid_use_of_protected_member
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.detached);
-      await tester.pump();
-      expect(
-        spyController.syncCallCount,
-        initialCalls,
-        reason: 'detached should not trigger sync',
-      );
+        // ignore: invalid_use_of_protected_member
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.detached,
+        );
+        await tester.pump();
+        expect(
+          spyController.syncCallCount,
+          initialCalls,
+          reason: 'detached should not trigger sync',
+        );
 
-      // Periodic 5-min timer is still active; advance past initial tick to
-      // avoid "pending timer" assertion at test end.
-      await tester.pump(const Duration(minutes: 5));
-      await tester.pump(const Duration(milliseconds: 50));
-    });
+        // Periodic 5-min timer is still active; advance past initial tick to
+        // avoid "pending timer" assertion at test end.
+        await tester.pump(const Duration(minutes: 5));
+        await tester.pump(const Duration(milliseconds: 50));
+      },
+    );
 
     testWidgets('cancels periodic timer and lifecycle observer on dispose', (
       tester,
     ) async {
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildWrapper(spyController: spyController, prefs: prefs),
+      );
 
       // Let deferred sync fire
       await tester.pump();
@@ -309,9 +304,7 @@ void main() {
             syncControllerProvider.overrideWith(() => spyController),
             appThemeControllerProvider.overrideWith(() => AppThemeController()),
           ],
-          child: const MaterialApp(
-            home: Scaffold(body: SizedBox.shrink()),
-          ),
+          child: const MaterialApp(home: Scaffold(body: SizedBox.shrink())),
         ),
       );
       await tester.pump();
@@ -329,11 +322,13 @@ void main() {
 
     testWidgets('renders custom child widget', (tester) async {
       const customChild = Text('Custom Child');
-      await tester.pumpWidget(buildWrapper(
-        spyController: spyController,
-        prefs: prefs,
-        child: customChild,
-      ));
+      await tester.pumpWidget(
+        buildWrapper(
+          spyController: spyController,
+          prefs: prefs,
+          child: customChild,
+        ),
+      );
       await tester.pump();
 
       expect(find.text('Custom Child'), findsOneWidget);

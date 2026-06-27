@@ -81,8 +81,9 @@ void main() {
           context: context,
           theme: ReaderThemeData.cream,
           builder: (dialogContext) {
-            scaffoldBackground =
-                Theme.of(dialogContext).scaffoldBackgroundColor;
+            scaffoldBackground = Theme.of(
+              dialogContext,
+            ).scaffoldBackgroundColor;
             return const Text('Cream Theme');
           },
         ),
@@ -91,10 +92,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(
-        scaffoldBackground,
-        ReaderThemeData.cream.backgroundColor,
-      );
+      expect(scaffoldBackground, ReaderThemeData.cream.backgroundColor);
     });
 
     testWidgets('color scheme is correctly applied', (tester) async {
@@ -115,10 +113,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(
-        onSurfaceColor,
-        ReaderThemeData.charcoal.textColor,
-      );
+      expect(onSurfaceColor, ReaderThemeData.charcoal.textColor);
     });
 
     testWidgets('dialog can be dismissed by tapping barrier', (tester) async {
@@ -141,29 +136,28 @@ void main() {
       expect(find.text('Dismissible'), findsNothing);
     });
 
-    testWidgets(
-      'barrierDismissible false prevents dismissal via barrier',
-      (tester) async {
-        await pumpDialogLauncher(
-          tester: tester,
-          onPressed: (context) => showThemedDialog(
-            context: context,
-            theme: ReaderThemeData.charcoal,
-            builder: (_) => const Text('Not Dismissible'),
-            barrierDismissible: false,
-          ),
-        );
+    testWidgets('barrierDismissible false prevents dismissal via barrier', (
+      tester,
+    ) async {
+      await pumpDialogLauncher(
+        tester: tester,
+        onPressed: (context) => showThemedDialog(
+          context: context,
+          theme: ReaderThemeData.charcoal,
+          builder: (_) => const Text('Not Dismissible'),
+          barrierDismissible: false,
+        ),
+      );
 
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
-        expect(find.text('Not Dismissible'), findsOneWidget);
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      expect(find.text('Not Dismissible'), findsOneWidget);
 
-        // Try tapping outside
-        await tester.tapAt(const Offset(0, 0));
-        await tester.pumpAndSettle();
-        expect(find.text('Not Dismissible'), findsOneWidget);
-      },
-    );
+      // Try tapping outside
+      await tester.tapAt(const Offset(0, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('Not Dismissible'), findsOneWidget);
+    });
 
     testWidgets('button inside dialog is tappable', (tester) async {
       var wasTapped = false;
@@ -220,8 +214,7 @@ void main() {
           context: context,
           theme: ReaderThemeData.charcoal,
           builder: (dialogContext) {
-            surfaceColor =
-                Theme.of(dialogContext).colorScheme.surface;
+            surfaceColor = Theme.of(dialogContext).colorScheme.surface;
             return const Text('Adaptive Theme');
           },
         ),
@@ -230,10 +223,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(
-        surfaceColor,
-        ReaderThemeData.charcoal.panelColor,
-      );
+      expect(surfaceColor, ReaderThemeData.charcoal.panelColor);
     });
 
     testWidgets('applies cream theme to adaptive dialog', (tester) async {
@@ -254,10 +244,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(
-        onSurface,
-        ReaderThemeData.cream.textColor,
-      );
+      expect(onSurface, ReaderThemeData.cream.textColor);
     });
 
     testWidgets('adaptive dialog can be dismissed by barrier', (tester) async {
@@ -279,28 +266,27 @@ void main() {
       expect(find.text('Adaptive Dismiss'), findsNothing);
     });
 
-    testWidgets(
-      'adaptive dialog barrierDismissible false prevents dismiss',
-      (tester) async {
-        await pumpDialogLauncher(
-          tester: tester,
-          onPressed: (context) => showThemedAdaptiveDialog(
-            context: context,
-            theme: ReaderThemeData.charcoal,
-            builder: (_) => const Text('Adaptive Stays'),
-            barrierDismissible: false,
-          ),
-        );
+    testWidgets('adaptive dialog barrierDismissible false prevents dismiss', (
+      tester,
+    ) async {
+      await pumpDialogLauncher(
+        tester: tester,
+        onPressed: (context) => showThemedAdaptiveDialog(
+          context: context,
+          theme: ReaderThemeData.charcoal,
+          builder: (_) => const Text('Adaptive Stays'),
+          barrierDismissible: false,
+        ),
+      );
 
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
-        expect(find.text('Adaptive Stays'), findsOneWidget);
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      expect(find.text('Adaptive Stays'), findsOneWidget);
 
-        await tester.tapAt(const Offset(0, 0));
-        await tester.pumpAndSettle();
-        expect(find.text('Adaptive Stays'), findsOneWidget);
-      },
-    );
+      await tester.tapAt(const Offset(0, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('Adaptive Stays'), findsOneWidget);
+    });
   });
 
   group('theme wrapping accuracy', () {
@@ -313,8 +299,7 @@ void main() {
           context: context,
           theme: ReaderThemeData.charcoal,
           builder: (dialogContext) {
-            bodyColor =
-                Theme.of(dialogContext).textTheme.bodyMedium?.color;
+            bodyColor = Theme.of(dialogContext).textTheme.bodyMedium?.color;
             return const Text('Color Check');
           },
         ),

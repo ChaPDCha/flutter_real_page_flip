@@ -15,7 +15,8 @@ class ChangelogService {
   static const _cacheTtlHours = 24;
 
   /// Remote API base — uses workers.dev (production) or localhost (debug).
-  static const _apiBase = 'https://realbook-changelog-api.sharebible.workers.dev';
+  static const _apiBase =
+      'https://realbook-changelog-api.sharebible.workers.dev';
 
   /// Checks if the changelog version differs from the stored version
   /// and shows the dialog if so.
@@ -31,8 +32,7 @@ class ChangelogService {
     final versionName = data['versionName'] as String? ?? currentVersion;
 
     final locale = Localizations.localeOf(context).languageCode;
-    final localizedData =
-        (data[locale] ?? data['en']) as Map<String, dynamic>;
+    final localizedData = (data[locale] ?? data['en']) as Map<String, dynamic>;
     final changes = (localizedData['changes'] as List<dynamic>).cast<String>();
 
     if (changes.isEmpty) return;
@@ -46,8 +46,9 @@ class ChangelogService {
     await showDialog(
       context: context,
       builder: (_) => _WhatsNewDialog(
-        title:
-            locale == 'ko' ? 'v$versionName 새로운 기능' : "What's New in v$versionName",
+        title: locale == 'ko'
+            ? 'v$versionName 새로운 기능'
+            : "What's New in v$versionName",
         changes: changes,
       ),
     );
@@ -55,7 +56,8 @@ class ChangelogService {
 
   /// Fetches the latest changelog entry — remote API first, bundled fallback.
   static Future<Map<String, dynamic>?> _fetchChangelog(
-      SharedPreferences prefs) async {
+    SharedPreferences prefs,
+  ) async {
     // Try remote API
     try {
       final cached = prefs.getString(_kCacheKey);
@@ -67,11 +69,12 @@ class ChangelogService {
         final client = HttpClient();
         try {
           final request = await client.getUrl(
-              Uri.parse('$_apiBase/api/changelog'));
+            Uri.parse('$_apiBase/api/changelog'),
+          );
           request.headers.set('Accept', 'application/json');
-          final response = await request
-              .close()
-              .timeout(const Duration(seconds: 5));
+          final response = await request.close().timeout(
+            const Duration(seconds: 5),
+          );
 
           if (response.statusCode == 200) {
             final body = await response.transform(utf8.decoder).join();
@@ -80,7 +83,9 @@ class ChangelogService {
               final latest = list.first as Map<String, dynamic>;
               await prefs.setString(_kCacheKey, json.encode(latest));
               await prefs.setInt(
-                  _kCacheTimeKey, DateTime.now().millisecondsSinceEpoch);
+                _kCacheTimeKey,
+                DateTime.now().millisecondsSinceEpoch,
+              );
               return latest;
             }
           }
@@ -108,10 +113,7 @@ class _WhatsNewDialog extends StatelessWidget {
   final String title;
   final List<String> changes;
 
-  const _WhatsNewDialog({
-    required this.title,
-    required this.changes,
-  });
+  const _WhatsNewDialog({required this.title, required this.changes});
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +139,9 @@ class _WhatsNewDialog extends StatelessWidget {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
-            Localizations.localeOf(context).languageCode == 'ko' ? '확인' : 'Done',
+            Localizations.localeOf(context).languageCode == 'ko'
+                ? '확인'
+                : 'Done',
           ),
         ),
       ],

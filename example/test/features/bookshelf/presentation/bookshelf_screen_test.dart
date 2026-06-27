@@ -88,11 +88,7 @@ Book _createBook({
 List<Book> _createBooks({int count = 3}) {
   return List.generate(
     count,
-    (i) => _createBook(
-      id: 'book_$i',
-      title: 'Book $i',
-      author: 'Author $i',
-    ),
+    (i) => _createBook(id: 'book_$i', title: 'Book $i', author: 'Author $i'),
   );
 }
 
@@ -155,12 +151,11 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('Loading state', () {
-    testWidgets('renders loading state with scaffold and scroll view',
-        (tester) async {
+    testWidgets('renders loading state with scaffold and scroll view', (
+      tester,
+    ) async {
       final completer = Completer<List<Book>>();
-      when(() => mockRepository.getBooks()).thenAnswer(
-        (_) => completer.future,
-      );
+      when(() => mockRepository.getBooks()).thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(await _buildApp(mockRepository));
       await tester.pump();
@@ -191,10 +186,7 @@ void main() {
 
       expect(find.text('Bookshelf'), findsOneWidget);
       expect(find.text('Your shelf is empty'), findsOneWidget);
-      expect(
-        find.textContaining('Tap the + button'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Tap the + button'), findsOneWidget);
     });
 
     testWidgets('shows import button in empty state', (tester) async {
@@ -249,8 +241,9 @@ void main() {
       }
     });
 
-    testWidgets('shows default cover when coverImagePath is null',
-        (tester) async {
+    testWidgets('shows default cover when coverImagePath is null', (
+      tester,
+    ) async {
       final book = _createBook(
         id: '1',
         title: 'Test Title',
@@ -268,8 +261,9 @@ void main() {
       expect(find.byIcon(Icons.menu_book_outlined), findsOneWidget);
     });
 
-    testWidgets('renders Image.file when coverImagePath is provided',
-        (tester) async {
+    testWidgets('renders Image.file when coverImagePath is provided', (
+      tester,
+    ) async {
       final book = _createBook(
         id: '1',
         title: 'Book Cover',
@@ -288,11 +282,7 @@ void main() {
 
     testWidgets('truncates long title with ellipsis', (tester) async {
       final longTitle = 'A' * 200;
-      final book = _createBook(
-        id: '1',
-        title: longTitle,
-        author: 'Author',
-      );
+      final book = _createBook(id: '1', title: longTitle, author: 'Author');
       when(() => mockRepository.getBooks()).thenAnswer((_) async => [book]);
 
       await tester.pumpWidget(await _buildApp(mockRepository));
@@ -302,9 +292,7 @@ void main() {
       // Check the first instance for ellipsis properties -- both are built
       // with the same maxLines/overflow from the card (the cover uses
       // maxLines: 4, the card text uses maxLines: 1).
-      final titleWidget = tester.widget<Text>(
-        find.text(longTitle).first,
-      );
+      final titleWidget = tester.widget<Text>(find.text(longTitle).first);
       expect(titleWidget.overflow, equals(TextOverflow.ellipsis));
     });
   });
@@ -314,11 +302,12 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('Error state', () {
-    testWidgets('shows error icon and message when loading fails',
-        (tester) async {
-      when(() => mockRepository.getBooks()).thenAnswer(
-        (_) async => throw Exception('Network error'),
-      );
+    testWidgets('shows error icon and message when loading fails', (
+      tester,
+    ) async {
+      when(
+        () => mockRepository.getBooks(),
+      ).thenAnswer((_) async => throw Exception('Network error'));
 
       await tester.pumpWidget(await _buildApp(mockRepository));
       await tester.pump();
@@ -328,9 +317,9 @@ void main() {
     });
 
     testWidgets('shows retry button in error state', (tester) async {
-      when(() => mockRepository.getBooks()).thenAnswer(
-        (_) async => throw Exception('fail'),
-      );
+      when(
+        () => mockRepository.getBooks(),
+      ).thenAnswer((_) async => throw Exception('fail'));
 
       await tester.pumpWidget(await _buildApp(mockRepository));
       await tester.pump();
@@ -339,9 +328,9 @@ void main() {
     });
 
     testWidgets('tapping retry refreshes the provider', (tester) async {
-      when(() => mockRepository.getBooks()).thenAnswer(
-        (_) async => throw Exception('fail'),
-      );
+      when(
+        () => mockRepository.getBooks(),
+      ).thenAnswer((_) async => throw Exception('fail'));
 
       await tester.pumpWidget(await _buildApp(mockRepository));
       await tester.pump();
@@ -406,8 +395,7 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('Navigation', () {
-    testWidgets('tapping a book navigates to BookReaderScreen',
-        (tester) async {
+    testWidgets('tapping a book navigates to BookReaderScreen', (tester) async {
       final observer = _TestNavigatorObserver();
       final book = _createBook(
         id: '1',
@@ -500,8 +488,9 @@ void main() {
       expect(find.text('Read'), findsOneWidget);
     });
 
-    testWidgets('actions sheet has Read and Remove from Shelf buttons',
-        (tester) async {
+    testWidgets('actions sheet has Read and Remove from Shelf buttons', (
+      tester,
+    ) async {
       final book = _createBook(
         id: '1',
         title: 'Action Book',
@@ -536,11 +525,7 @@ void main() {
     });
 
     testWidgets('actions sheet has Close button', (tester) async {
-      final book = _createBook(
-        id: '1',
-        title: 'Close Book',
-        author: 'Author',
-      );
+      final book = _createBook(id: '1', title: 'Close Book', author: 'Author');
       when(() => mockRepository.getBooks()).thenAnswer((_) async => [book]);
 
       SharedPreferences.setMockInitialValues({});
@@ -617,10 +602,7 @@ void main() {
       SharedPreferences.setMockInitialValues({'demo_book_created': true});
 
       await tester.pumpWidget(
-        await _buildApp(
-          mockRepository,
-          syncController: syncController,
-        ),
+        await _buildApp(mockRepository, syncController: syncController),
       );
       await tester.pump();
 
@@ -631,8 +613,9 @@ void main() {
       expect(find.text('Shelf Settings'), findsOneWidget);
     });
 
-    testWidgets('settings modal shows sync status and app info',
-        (tester) async {
+    testWidgets('settings modal shows sync status and app info', (
+      tester,
+    ) async {
       final syncController = _TestSyncController(
         const SyncState(status: SyncStatus.success),
       );
@@ -641,10 +624,7 @@ void main() {
       SharedPreferences.setMockInitialValues({'demo_book_created': true});
 
       await tester.pumpWidget(
-        await _buildApp(
-          mockRepository,
-          syncController: syncController,
-        ),
+        await _buildApp(mockRepository, syncController: syncController),
       );
       await tester.pump();
 
@@ -684,8 +664,9 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('Delete book flow', () {
-    testWidgets('tapping Remove from Shelf shows confirmation dialog',
-        (tester) async {
+    testWidgets('tapping Remove from Shelf shows confirmation dialog', (
+      tester,
+    ) async {
       final book = _createBook(
         id: '1',
         title: 'Delete Dialog',
@@ -725,8 +706,7 @@ void main() {
       expect(find.text('Delete'), findsOneWidget);
     });
 
-    testWidgets('tapping Delete dismisses confirmation dialog',
-        (tester) async {
+    testWidgets('tapping Delete dismisses confirmation dialog', (tester) async {
       final book = _createBook(
         id: 'del1',
         title: 'Confirm Delete',
@@ -774,8 +754,9 @@ void main() {
       expect(find.text('Close'), findsNothing);
     });
 
-    testWidgets('tapping Cancel dismisses dialog without removing',
-        (tester) async {
+    testWidgets('tapping Cancel dismisses dialog without removing', (
+      tester,
+    ) async {
       final book = _createBook(
         id: '2',
         title: 'Cancel Delete',
@@ -876,12 +857,11 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('Loading skeleton', () {
-    testWidgets('renders loading grid structure without book content',
-        (tester) async {
+    testWidgets('renders loading grid structure without book content', (
+      tester,
+    ) async {
       final completer = Completer<List<Book>>();
-      when(() => mockRepository.getBooks()).thenAnswer(
-        (_) => completer.future,
-      );
+      when(() => mockRepository.getBooks()).thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(await _buildApp(mockRepository));
       // Multiple pumps to allow sliver child builder to populate
@@ -904,8 +884,9 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('i18n', () {
-    testWidgets('renders English locale correctly via explicit locale',
-        (tester) async {
+    testWidgets('renders English locale correctly via explicit locale', (
+      tester,
+    ) async {
       // Explicitly set English locale to verify TranslationProvider wiring.
       LocaleSettings.setLocaleSync(AppLocale.en);
 
@@ -942,12 +923,11 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('Navigation guard', () {
-    testWidgets('no book content tappable during loading state',
-        (tester) async {
+    testWidgets('no book content tappable during loading state', (
+      tester,
+    ) async {
       final completer = Completer<List<Book>>();
-      when(() => mockRepository.getBooks()).thenAnswer(
-        (_) => completer.future,
-      );
+      when(() => mockRepository.getBooks()).thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(await _buildApp(mockRepository));
       await tester.pump();

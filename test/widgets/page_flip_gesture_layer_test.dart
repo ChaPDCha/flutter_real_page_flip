@@ -279,8 +279,7 @@ void main() {
       expect(controller.currentIndex, 0);
     });
 
-    testWidgets('axis-aligned delta with no vertical movement',
-        (tester) async {
+    testWidgets('axis-aligned delta with no vertical movement', (tester) async {
       // Pure horizontal drag
       await tester.pumpWidget(
         MaterialApp(

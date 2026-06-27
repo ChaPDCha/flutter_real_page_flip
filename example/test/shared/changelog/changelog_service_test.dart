@@ -116,8 +116,7 @@ void _setupMockHttpError(String message) {
 
   HttpOverrides.global = _MockHttpOverrides(() => mockClient);
 
-  when(() => mockClient.getUrl(any()))
-      .thenThrow(HttpException(message));
+  when(() => mockClient.getUrl(any())).thenThrow(HttpException(message));
 }
 
 void _cleanupMockHttp() {
@@ -144,8 +143,9 @@ void main() {
   // =========================================================================
 
   group('showIfNew', () {
-    testWidgets('shows dialog with correct title and changes for new version',
-        (tester) async {
+    testWidgets('shows dialog with correct title and changes for new version', (
+      tester,
+    ) async {
       await pumpShowIfNewButton(
         tester: tester,
         prefsValues: <String, Object>{
@@ -179,8 +179,9 @@ void main() {
       expect(prefs.getString(_kLastSeenKey), equals('2.0.0+40'));
     });
 
-    testWidgets('does not show dialog when version already seen',
-        (tester) async {
+    testWidgets('does not show dialog when version already seen', (
+      tester,
+    ) async {
       await pumpShowIfNewButton(
         tester: tester,
         prefsValues: <String, Object>{
@@ -198,8 +199,7 @@ void main() {
       expect(find.text('English change'), findsNothing);
     });
 
-    testWidgets('does not show dialog when changes are empty',
-        (tester) async {
+    testWidgets('does not show dialog when changes are empty', (tester) async {
       final emptyEntry = <String, dynamic>{
         'version': '3.0.0+50',
         'versionName': '3.0.0',
@@ -255,12 +255,15 @@ void main() {
       expect(find.text('확인'), findsOneWidget);
     });
 
-    testWidgets('falls back to English when locale not available',
-        (tester) async {
+    testWidgets('falls back to English when locale not available', (
+      tester,
+    ) async {
       final entry = <String, dynamic>{
         'version': '4.0.0+60',
         'versionName': '4.0.0',
-        'en': <String, dynamic>{'changes': <String>['Fallback change']},
+        'en': <String, dynamic>{
+          'changes': <String>['Fallback change'],
+        },
         // No 'fr' key
       };
 
@@ -335,67 +338,72 @@ void main() {
   // =========================================================================
 
   group('cache behavior', () {
-    testWidgets('uses fresh cache from SharedPreferences without network call',
-        (tester) async {
-      // Set up mock HTTP that would fail the test if called
-      final mockClient = _MockHttpClient();
-      HttpOverrides.global = _MockHttpOverrides(() => mockClient);
+    testWidgets(
+      'uses fresh cache from SharedPreferences without network call',
+      (tester) async {
+        // Set up mock HTTP that would fail the test if called
+        final mockClient = _MockHttpClient();
+        HttpOverrides.global = _MockHttpOverrides(() => mockClient);
 
-      await pumpShowIfNewButton(
-        tester: tester,
-        prefsValues: <String, Object>{
-          _kCacheKey: json.encode(_sampleChangelogEntry),
-          _kCacheTimeKey: _hoursAgoTimestamp(1), // 1 hour old — still fresh
-        },
-      );
+        await pumpShowIfNewButton(
+          tester: tester,
+          prefsValues: <String, Object>{
+            _kCacheKey: json.encode(_sampleChangelogEntry),
+            _kCacheTimeKey: _hoursAgoTimestamp(1), // 1 hour old — still fresh
+          },
+        );
 
-      await tester.tap(find.text('Check'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.tap(find.text('Check'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text("What's New in v2.0.0"), findsOneWidget);
-      expect(find.text('English change'), findsOneWidget);
+        expect(find.text("What's New in v2.0.0"), findsOneWidget);
+        expect(find.text('English change'), findsOneWidget);
 
-      // getUrl should NEVER be called because cache was fresh
-      verifyNever(() => mockClient.getUrl(any()));
+        // getUrl should NEVER be called because cache was fresh
+        verifyNever(() => mockClient.getUrl(any()));
 
-      _cleanupMockHttp();
-    });
+        _cleanupMockHttp();
+      },
+    );
 
     testWidgets(
-        'fetches from network when cache is stale and updates SharedPreferences',
-        (tester) async {
-      final updatedEntry = <String, dynamic>{
-        'version': '5.0.0+70',
-        'versionName': '5.0.0',
-        'en': <String, dynamic>{'changes': <String>['Fetched from network']},
-      };
-      _setupMockHttp(200, json.encode([updatedEntry]));
+      'fetches from network when cache is stale and updates SharedPreferences',
+      (tester) async {
+        final updatedEntry = <String, dynamic>{
+          'version': '5.0.0+70',
+          'versionName': '5.0.0',
+          'en': <String, dynamic>{
+            'changes': <String>['Fetched from network'],
+          },
+        };
+        _setupMockHttp(200, json.encode([updatedEntry]));
 
-      final prefs = await pumpShowIfNewButton(
-        tester: tester,
-        prefsValues: <String, Object>{
-          _kCacheKey: json.encode(_sampleChangelogEntry),
-          _kCacheTimeKey: _hoursAgoTimestamp(48), // 48 hours = stale
-        },
-      );
+        final prefs = await pumpShowIfNewButton(
+          tester: tester,
+          prefsValues: <String, Object>{
+            _kCacheKey: json.encode(_sampleChangelogEntry),
+            _kCacheTimeKey: _hoursAgoTimestamp(48), // 48 hours = stale
+          },
+        );
 
-      await tester.tap(find.text('Check'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.tap(find.text('Check'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      // Dialog shows NETWORK data, not the stale cached data
-      expect(find.text("What's New in v5.0.0"), findsOneWidget);
-      expect(find.text('Fetched from network'), findsOneWidget);
+        // Dialog shows NETWORK data, not the stale cached data
+        expect(find.text("What's New in v5.0.0"), findsOneWidget);
+        expect(find.text('Fetched from network'), findsOneWidget);
 
-      // Cache was updated in SharedPreferences
-      final cachedJson = prefs.getString(_kCacheKey);
-      expect(cachedJson, isNotNull);
-      final cached = json.decode(cachedJson!) as Map<String, dynamic>;
-      expect(cached['version'], equals('5.0.0+70'));
+        // Cache was updated in SharedPreferences
+        final cachedJson = prefs.getString(_kCacheKey);
+        expect(cachedJson, isNotNull);
+        final cached = json.decode(cachedJson!) as Map<String, dynamic>;
+        expect(cached['version'], equals('5.0.0+70'));
 
-      _cleanupMockHttp();
-    });
+        _cleanupMockHttp();
+      },
+    );
 
     testWidgets('fetches from network when no cache exists', (tester) async {
       _setupMockHttp(200, json.encode(_sampleChangelogList));
@@ -420,8 +428,9 @@ void main() {
       _cleanupMockHttp();
     });
 
-    testWidgets('non-200 status code falls through to bundled fallback',
-        (tester) async {
+    testWidgets('non-200 status code falls through to bundled fallback', (
+      tester,
+    ) async {
       _setupMockHttp(404, 'Not Found');
 
       await pumpShowIfNewButton(
@@ -457,8 +466,9 @@ void main() {
       _cleanupMockHttp();
     });
 
-    testWidgets('returns null when cache stale, network fails, and no bundle',
-        (tester) async {
+    testWidgets('returns null when cache stale, network fails, and no bundle', (
+      tester,
+    ) async {
       _setupMockHttp(500, 'Server Error');
 
       await pumpShowIfNewButton(
@@ -524,8 +534,9 @@ void main() {
       expect(find.text('Complex Child'), findsOneWidget);
     });
 
-    testWidgets('does not throw when mounted after post-frame callback',
-        (tester) async {
+    testWidgets('does not throw when mounted after post-frame callback', (
+      tester,
+    ) async {
       // This verifies the gate's safety checks (mounted, _checked, etc.)
       await tester.pumpWidget(
         const MaterialApp(

@@ -122,7 +122,8 @@ void main() {
 
       await controller.goToPage(3);
       await tester.pumpAndSettle();
-      expect(callbackCount, 0, reason: 'goToPage current index should be no-op');
+      expect(callbackCount, 0,
+          reason: 'goToPage current index should be no-op');
     });
 
     testWidgets('goToPage from 0 to last page then back', (tester) async {

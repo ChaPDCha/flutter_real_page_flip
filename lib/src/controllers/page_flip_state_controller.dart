@@ -133,6 +133,7 @@ class PageFlipStateController {
   double _smoothedSpeed = 0;
   // 연속 햅틱 타이밍 (프레임 스킵 방지)
   int _hapticFrameCounter = 0;
+
   /// True while the 1-frame visual transition is pending after a successful flip.
   /// Blocks new drag/tap gestures during this window to prevent re-entrant state.
   bool _isPendingFinalize = false;
@@ -296,8 +297,7 @@ class PageFlipStateController {
             final noise2 = math.sin(_noisePhase * 7.3 + 1.4);
             final noise3 = math.sin(_noisePhase * 13.1 + 2.9);
             // Fractal noise: 다중 주파수 합성으로 자연스러운 질감
-            final rawSum =
-                (noise1 * 0.5) + (noise2 * 0.3) + (noise3 * 0.2);
+            final rawSum = (noise1 * 0.5) + (noise2 * 0.3) + (noise3 * 0.2);
             final textureNoise = (rawSum * rawSum).clamp(0.0, 1.0);
 
             // [2] Non-linear Resistance Model
@@ -400,7 +400,8 @@ class PageFlipStateController {
   /// Triggers a programmatic page flip (e.g. from edge tap or controller).
   void triggerTapFlip({required bool isNext, required int totalPages}) {
     if (_isDisposed) return;
-    if (_isDragging || animationController.isAnimating || _isPendingFinalize) return;
+    if (_isDragging || animationController.isAnimating || _isPendingFinalize)
+      return;
 
     if ((isNext && _currentIndex >= totalPages - 1) ||
         (!isNext && _currentIndex <= 0)) {

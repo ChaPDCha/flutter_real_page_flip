@@ -42,11 +42,7 @@ Widget buildBadge({
       syncControllerProvider.overrideWith(() => syncController),
       appThemeControllerProvider.overrideWith(() => AppThemeController()),
     ],
-    child: const MaterialApp(
-      home: Scaffold(
-        body: SyncStatusBadge(),
-      ),
-    ),
+    child: const MaterialApp(home: Scaffold(body: SyncStatusBadge())),
   );
 }
 
@@ -62,10 +58,9 @@ void main() {
 
   group('SyncStatusBadge', () {
     testWidgets('renders without error when idle', (tester) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
       expect(find.byType(SyncStatusBadge), findsOneWidget);
@@ -74,10 +69,9 @@ void main() {
     testWidgets('shows syncing dot when status is authenticating', (
       tester,
     ) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
       syncController.setStateTo(SyncStatus.authenticating);
@@ -98,10 +92,9 @@ void main() {
     });
 
     testWidgets('shows syncing dot when status is pulling', (tester) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
       syncController.setStateTo(SyncStatus.pulling);
@@ -121,10 +114,9 @@ void main() {
     });
 
     testWidgets('shows syncing dot when status is pushing', (tester) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
       syncController.setStateTo(SyncStatus.pushing);
@@ -144,10 +136,9 @@ void main() {
     });
 
     testWidgets('shows green dot on success state', (tester) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
       syncController.setStateTo(SyncStatus.success);
@@ -171,14 +162,15 @@ void main() {
     });
 
     testWidgets('shows red dot on error state', (tester) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
-      syncController.setStateTo(SyncStatus.error,
-          errorMessage: 'Connection failed');
+      syncController.setStateTo(
+        SyncStatus.error,
+        errorMessage: 'Connection failed',
+      );
       await tester.pump();
 
       final containers = find.byWidgetPredicate(
@@ -199,10 +191,9 @@ void main() {
     });
 
     testWidgets('dot is not visible when idle', (tester) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
       // In idle state, the dot Container should not appear
@@ -216,10 +207,9 @@ void main() {
     });
 
     testWidgets('hides dot after 2 seconds in success state', (tester) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
       syncController.setStateTo(SyncStatus.success);
@@ -253,14 +243,15 @@ void main() {
     });
 
     testWidgets('hides dot after 3 seconds in error state', (tester) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
-      syncController.setStateTo(SyncStatus.error,
-          errorMessage: 'Temporary error');
+      syncController.setStateTo(
+        SyncStatus.error,
+        errorMessage: 'Temporary error',
+      );
       await tester.pump();
 
       // Dot should be visible
@@ -293,10 +284,9 @@ void main() {
     testWidgets('does not auto-hide if status changed before fade', (
       tester,
     ) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
       // Set to success, then immediately to syncing before fade completes
@@ -318,14 +308,12 @@ void main() {
     });
 
     testWidgets('transitions from error to success state', (tester) async {
-      await tester.pumpWidget(buildBadge(
-        syncController: syncController,
-        prefs: prefs,
-      ));
+      await tester.pumpWidget(
+        buildBadge(syncController: syncController, prefs: prefs),
+      );
       await tester.pump();
 
-      syncController.setStateTo(SyncStatus.error,
-          errorMessage: 'First error');
+      syncController.setStateTo(SyncStatus.error, errorMessage: 'First error');
       await tester.pump();
 
       syncController.setStateTo(SyncStatus.success);

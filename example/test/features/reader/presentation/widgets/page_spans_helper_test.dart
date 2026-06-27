@@ -486,7 +486,8 @@ void main() {
           expect(
             span.style!.backgroundColor,
             Colors.amber.withValues(alpha: 0.3),
-            reason: 'All segments should have TTS amber when TTS covers full text',
+            reason:
+                'All segments should have TTS amber when TTS covers full text',
           );
         }
       });

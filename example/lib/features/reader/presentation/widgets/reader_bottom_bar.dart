@@ -103,7 +103,11 @@ class ReaderBottomBar extends StatelessWidget {
                               Flexible(
                                 flex: 2,
                                 child: Text(
-                                  _pageCounterLabel(readerState, pdf: false, l10n: l10n),
+                                  _pageCounterLabel(
+                                    readerState,
+                                    pdf: false,
+                                    l10n: l10n,
+                                  ),
                                   style: pageStyle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -158,7 +162,11 @@ class ReaderBottomBar extends StatelessWidget {
     );
   }
 
-  static String _pageCounterLabel(ReaderState state, {required bool pdf, required Translations l10n}) {
+  static String _pageCounterLabel(
+    ReaderState state, {
+    required bool pdf,
+    required Translations l10n,
+  }) {
     if (state.pages.isEmpty) return '';
     final counter = '${state.currentPageIndex + 1} / ${state.pages.length}';
     return pdf

@@ -50,10 +50,12 @@ void main() {
 
         await service.indexBook(book);
 
-        final rows = await db.customSelect(
-          'SELECT COUNT(*) AS cnt FROM book_contents_fts WHERE bookId = ?',
-          variables: [Variable.withString('pdf-book')],
-        ).get();
+        final rows = await db
+            .customSelect(
+              'SELECT COUNT(*) AS cnt FROM book_contents_fts WHERE bookId = ?',
+              variables: [Variable.withString('pdf-book')],
+            )
+            .get();
         expect(rows.first.read<int>('cnt'), 0);
       });
 
@@ -69,10 +71,12 @@ void main() {
         // Must not throw despite missing file
         await service.indexBook(book);
 
-        final rows = await db.customSelect(
-          'SELECT COUNT(*) AS cnt FROM book_contents_fts WHERE bookId = ?',
-          variables: [Variable.withString('missing-book')],
-        ).get();
+        final rows = await db
+            .customSelect(
+              'SELECT COUNT(*) AS cnt FROM book_contents_fts WHERE bookId = ?',
+              variables: [Variable.withString('missing-book')],
+            )
+            .get();
         expect(rows.first.read<int>('cnt'), 0);
       });
 
@@ -102,8 +106,10 @@ void main() {
         expect(results.first.snippet, contains('quick'));
 
         // Search for content from chapter 2
-        final chapter2Results =
-            await service.searchBook(book.id, 'Another chapter');
+        final chapter2Results = await service.searchBook(
+          book.id,
+          'Another chapter',
+        );
         expect(chapter2Results, isNotEmpty);
       });
 
@@ -121,10 +127,7 @@ void main() {
         );
 
         await service.indexBook(book);
-        expect(
-          await service.searchBook(book.id, 'alpha'),
-          isNotEmpty,
-        );
+        expect(await service.searchBook(book.id, 'alpha'), isNotEmpty);
 
         // Second — re-write file with different content and re-index
         await txtFile.writeAsString('Part Two\nbeta content.\n');
@@ -190,7 +193,11 @@ void main() {
         await db.customStatement(
           'INSERT INTO book_contents_fts (bookId, chapterIndex, content) '
           'VALUES (?, ?, ?)',
-          ['search-book', 1, 'Another day another dollar. Keep moving forward.'],
+          [
+            'search-book',
+            1,
+            'Another day another dollar. Keep moving forward.',
+          ],
         );
       });
 
@@ -211,12 +218,16 @@ void main() {
       });
 
       test('is case-insensitive', () async {
-        final resultsUpperCase =
-            await service.searchBook('search-book', 'QUICK');
+        final resultsUpperCase = await service.searchBook(
+          'search-book',
+          'QUICK',
+        );
         expect(resultsUpperCase, hasLength(1));
 
-        final resultsMixedCase =
-            await service.searchBook('search-book', 'QuIcK');
+        final resultsMixedCase = await service.searchBook(
+          'search-book',
+          'QuIcK',
+        );
         expect(resultsMixedCase, hasLength(1));
       });
 
@@ -246,8 +257,10 @@ void main() {
       });
 
       test('returns empty list when no match exists', () async {
-        final results =
-            await service.searchBook('search-book', 'zzzzzznonexistent');
+        final results = await service.searchBook(
+          'search-book',
+          'zzzzzznonexistent',
+        );
         expect(results, isEmpty);
       });
 
@@ -292,13 +305,16 @@ void main() {
         expect(results.length, 50);
       });
 
-      test('snippet adds leading ellipsis when match is not at start', () async {
-        final results = await service.searchBook('search-book', 'dog');
-        expect(results, isNotEmpty);
-        // "dog" is the last word — snippet should end without "..." if within
-        // the last 35 chars of the match position
-        expect(results.first.snippet, contains('dog'));
-      });
+      test(
+        'snippet adds leading ellipsis when match is not at start',
+        () async {
+          final results = await service.searchBook('search-book', 'dog');
+          expect(results, isNotEmpty);
+          // "dog" is the last word — snippet should end without "..." if within
+          // the last 35 chars of the match position
+          expect(results.first.snippet, contains('dog'));
+        },
+      );
 
       test('correctly trims newlines from snippet', () async {
         await db.customStatement(

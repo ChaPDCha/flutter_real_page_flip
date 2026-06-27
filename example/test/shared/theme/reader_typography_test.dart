@@ -255,28 +255,37 @@ void main() {
     // ---------------------------------------------------------------------------
 
     group('cross-method consistency', () {
-      test('getBookStyle and getChapterHeaderStyle share letterSpacing sign', () {
-        const color = Colors.black;
-        final book = ReaderTypography.getBookStyle(fontSize: 16.0, color: color);
-        final header = ReaderTypography.getChapterHeaderStyle(
-          baseFontSize: 16.0,
-          color: color,
-        );
+      test(
+        'getBookStyle and getChapterHeaderStyle share letterSpacing sign',
+        () {
+          const color = Colors.black;
+          final book = ReaderTypography.getBookStyle(
+            fontSize: 16.0,
+            color: color,
+          );
+          final header = ReaderTypography.getChapterHeaderStyle(
+            baseFontSize: 16.0,
+            color: color,
+          );
 
-        // Both use negative letter spacing (for Korean typography)
-        expect(book.letterSpacing!, lessThan(0));
-        expect(header.letterSpacing!, lessThan(0));
-      });
+          // Both use negative letter spacing (for Korean typography)
+          expect(book.letterSpacing!, lessThan(0));
+          expect(header.letterSpacing!, lessThan(0));
+        },
+      );
 
-      test('getUiStyle and getGeometricStyle have different default spacing', () {
-        final ui = ReaderTypography.getUiStyle();
-        final geometric = ReaderTypography.getGeometricStyle();
+      test(
+        'getUiStyle and getGeometricStyle have different default spacing',
+        () {
+          final ui = ReaderTypography.getUiStyle();
+          final geometric = ReaderTypography.getGeometricStyle();
 
-        // UI style uses -0.2, geometric uses 0.0
-        expect(ui.letterSpacing, lessThan(geometric.letterSpacing!));
-        expect(ui.letterSpacing, -0.2);
-        expect(geometric.letterSpacing, 0.0);
-      });
+          // UI style uses -0.2, geometric uses 0.0
+          expect(ui.letterSpacing, lessThan(geometric.letterSpacing!));
+          expect(ui.letterSpacing, -0.2);
+          expect(geometric.letterSpacing, 0.0);
+        },
+      );
     });
   });
 }

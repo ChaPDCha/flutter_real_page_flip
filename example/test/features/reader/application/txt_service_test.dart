@@ -124,19 +124,21 @@ This is markdown chapter content.
         expect(chapters[2].HtmlContent, contains('Content for 3.'));
       });
 
-      test('splits long files without markers into virtual 15,000 char blocks',
-          () async {
-        final file = File('${tempDir.path}/long_unmarked_book.txt');
-        final longText = 'A' * 32000;
-        await file.writeAsString(longText);
+      test(
+        'splits long files without markers into virtual 15,000 char blocks',
+        () async {
+          final file = File('${tempDir.path}/long_unmarked_book.txt');
+          final longText = 'A' * 32000;
+          await file.writeAsString(longText);
 
-        final chapters = await service.parseChapters(file.path);
+          final chapters = await service.parseChapters(file.path);
 
-        expect(chapters.length, equals(3));
-        expect(chapters[0].Title, equals('파트 1'));
-        expect(chapters[1].Title, equals('파트 2'));
-        expect(chapters[2].Title, equals('파트 3'));
-      });
+          expect(chapters.length, equals(3));
+          expect(chapters[0].Title, equals('파트 1'));
+          expect(chapters[1].Title, equals('파트 2'));
+          expect(chapters[2].Title, equals('파트 3'));
+        },
+      );
 
       test('short file without markers becomes single chapter', () async {
         final file = File('${tempDir.path}/short_unmarked.txt');

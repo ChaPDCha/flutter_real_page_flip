@@ -21,8 +21,7 @@ void main() {
       expect(find.text('Page 0'), findsOneWidget);
     });
 
-    testWidgets('1000 pages programmatic goToPage works',
-        (tester) async {
+    testWidgets('1000 pages programmatic goToPage works', (tester) async {
       final controller = PageFlipController();
       int currentIndex = 0;
 
@@ -31,8 +30,7 @@ void main() {
           home: PageFlipWidget(
             controller: controller,
             itemCount: 1000,
-            itemBuilder: (context, index) =>
-                Text('Page $index'),
+            itemBuilder: (context, index) => Text('Page $index'),
             onPageChanged: (index) => currentIndex = index,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
           ),
@@ -45,8 +43,7 @@ void main() {
       expect(currentIndex, equals(500));
     });
 
-    testWidgets('1000 pages programmatic nextPage 3 times',
-        (tester) async {
+    testWidgets('1000 pages programmatic nextPage 3 times', (tester) async {
       final controller = PageFlipController();
       int currentIndex = 0;
 
@@ -55,8 +52,7 @@ void main() {
           home: PageFlipWidget(
             controller: controller,
             itemCount: 1000,
-            itemBuilder: (context, index) =>
-                Text('Page $index'),
+            itemBuilder: (context, index) => Text('Page $index'),
             onPageChanged: (index) => currentIndex = index,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
           ),
@@ -86,8 +82,7 @@ void main() {
           home: PageFlipWidget(
             controller: controller,
             itemCount: 1000,
-            itemBuilder: (context, index) =>
-                Text('Page $index'),
+            itemBuilder: (context, index) => Text('Page $index'),
             onPageChanged: (index) => currentIndex = index,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
           ),
@@ -103,8 +98,7 @@ void main() {
       expect(currentIndex, 0);
     });
 
-    testWidgets('1000 pages goToPage out of bounds is no-op',
-        (tester) async {
+    testWidgets('1000 pages goToPage out of bounds is no-op', (tester) async {
       final controller = PageFlipController();
       int currentIndex = 0;
 
@@ -113,8 +107,7 @@ void main() {
           home: PageFlipWidget(
             controller: controller,
             itemCount: 1000,
-            itemBuilder: (context, index) =>
-                Text('Page $index'),
+            itemBuilder: (context, index) => Text('Page $index'),
             onPageChanged: (index) => currentIndex = index,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
           ),
@@ -142,8 +135,7 @@ void main() {
             controller: controller,
             initialIndex: 999,
             itemCount: 1000,
-            itemBuilder: (context, index) =>
-                Text('Page $index'),
+            itemBuilder: (context, index) => Text('Page $index'),
             onPageChanged: (index) {
               currentIndex = index;
               callbackCount++;

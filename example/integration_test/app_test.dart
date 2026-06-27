@@ -97,32 +97,47 @@ void main() {
         await launchApp(tester);
 
         // 1. Verify bookshelf screen renders with a book
-        expect(find.text('Bookshelf'), findsOneWidget,
-            reason: 'Bookshelf title should be visible');
-        expect(find.text('Realbook 데모'), findsOneWidget,
-            reason: 'Demo book should appear on the bookshelf');
+        expect(
+          find.text('Bookshelf'),
+          findsOneWidget,
+          reason: 'Bookshelf title should be visible',
+        );
+        expect(
+          find.text('Realbook 데모'),
+          findsOneWidget,
+          reason: 'Demo book should appear on the bookshelf',
+        );
 
         // 2. Tap the demo book card
         await openDemoBook(tester);
 
         // 3. Verify reader screen opened
         // The persistent back button is always visible in the reader.
-        expect(find.byIcon(Icons.arrow_back_ios_new), findsOneWidget,
-            reason: 'Reader screen should show a back button');
+        expect(
+          find.byIcon(Icons.arrow_back_ios_new),
+          findsOneWidget,
+          reason: 'Reader screen should show a back button',
+        );
 
         // 4. Verify the reader is past the loading state
         // "Loading..." is the generic loading indicator text from
         // the reader screen. If content is rendered, this text is gone.
-        expect(find.text('Loading...'), findsNothing,
-            reason: 'Reader should not be in loading state');
+        expect(
+          find.text('Loading...'),
+          findsNothing,
+          reason: 'Reader should not be in loading state',
+        );
 
         // 5. Verify content is displayed (pages from the demo book)
         // The first chapter title is "제1장: 봄날의 산책", which should
         // be visible after pagination.
         final chapterFinder = find.textContaining('제1장');
         if (chapterFinder.evaluate().isNotEmpty) {
-          expect(chapterFinder, findsOneWidget,
-              reason: 'Reader should display paginated book content');
+          expect(
+            chapterFinder,
+            findsOneWidget,
+            reason: 'Reader should display paginated book content',
+          );
         }
 
         // 6. Return to the bookshelf via the persistent back button
@@ -130,8 +145,11 @@ void main() {
         await tester.pumpAndSettle();
 
         // 7. Verify we are back on the bookshelf
-        expect(find.text('Realbook 데모'), findsOneWidget,
-            reason: 'Should be back on the bookshelf after popping the reader');
+        expect(
+          find.text('Realbook 데모'),
+          findsOneWidget,
+          reason: 'Should be back on the bookshelf after popping the reader',
+        );
       },
       timeout: const Timeout(Duration(minutes: 5)),
     );
@@ -155,12 +173,21 @@ void main() {
         // 3. Verify the settings panel opened
         // The WoltModalSheet shows "Reading Settings" as the title and
         // contains controls for "Font Size" and "Brightness".
-        expect(find.text('Reading Settings'), findsOneWidget,
-            reason: 'Settings panel modal should show its title');
-        expect(find.text('Font Size'), findsOneWidget,
-            reason: 'Settings panel should contain font size control');
-        expect(find.text('Brightness'), findsOneWidget,
-            reason: 'Settings panel should contain brightness control');
+        expect(
+          find.text('Reading Settings'),
+          findsOneWidget,
+          reason: 'Settings panel modal should show its title',
+        );
+        expect(
+          find.text('Font Size'),
+          findsOneWidget,
+          reason: 'Settings panel should contain font size control',
+        );
+        expect(
+          find.text('Brightness'),
+          findsOneWidget,
+          reason: 'Settings panel should contain brightness control',
+        );
 
         // 4. Change a setting: increment the font size
         // The font size row has a "-" and "+" IconButton pair. Tap "+".
@@ -176,8 +203,11 @@ void main() {
         await tester.pumpAndSettle();
 
         // 7. Verify we are back on the bookshelf
-        expect(find.text('Realbook 데모'), findsOneWidget,
-            reason: 'Should return to bookshelf after dismissing settings');
+        expect(
+          find.text('Realbook 데모'),
+          findsOneWidget,
+          reason: 'Should return to bookshelf after dismissing settings',
+        );
       },
       timeout: const Timeout(Duration(minutes: 5)),
     );
@@ -185,77 +215,88 @@ void main() {
     // -----------------------------------------------------------------------
     // Flow 3: Search within a book
     // -----------------------------------------------------------------------
-    testWidgets(
-      'Flow 3: Search within a book',
-      (tester) async {
-        await launchApp(tester);
-        await openDemoBook(tester);
+    testWidgets('Flow 3: Search within a book', (tester) async {
+      await launchApp(tester);
+      await openDemoBook(tester);
 
-        // 1. Show the reader app bar (which contains the search icon)
-        await showReaderUi(tester);
+      // 1. Show the reader app bar (which contains the search icon)
+      await showReaderUi(tester);
 
-        // 2. Tap the search icon in the app bar
-        await tester.tap(find.byIcon(Icons.search_outlined));
+      // 2. Tap the search icon in the app bar
+      await tester.tap(find.byIcon(Icons.search_outlined));
+      await tester.pumpAndSettle();
+
+      // 3. Verify the search panel opened
+      // The search panel contains a TextField with hint text.
+      expect(
+        find.text('Search in book...'),
+        findsOneWidget,
+        reason: 'Search panel hint text should be visible',
+      );
+      expect(
+        find.byType(TextField),
+        findsOneWidget,
+        reason: 'Search panel should contain a text input field',
+      );
+
+      // 4. Enter a search term that exists in the demo book content
+      // The demo book contains Korean text with the word "날씨" (weather)
+      // in the first chapter.
+      await tester.enterText(find.byType(TextField), '날씨');
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Allow the 300 ms debounce + SQLite search query to complete.
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(seconds: 2)),
+      );
+      await tester.pumpAndSettle();
+
+      // 5. Verify search results appear
+      // The search service returns results as ListTile widgets inside a
+      // ListView. If the demo book was indexed, results should be present.
+      final resultListTile = find.byType(ListTile);
+      final hasResults = resultListTile.evaluate().isNotEmpty;
+
+      if (hasResults) {
+        // Tap the first search result to navigate to the matching page
+        await tester.tap(resultListTile.first);
         await tester.pumpAndSettle();
 
-        // 3. Verify the search panel opened
-        // The search panel contains a TextField with hint text.
-        expect(find.text('Search in book...'), findsOneWidget,
-            reason: 'Search panel hint text should be visible');
-        expect(find.byType(TextField), findsOneWidget,
-            reason: 'Search panel should contain a text input field');
-
-        // 4. Enter a search term that exists in the demo book content
-        // The demo book contains Korean text with the word "날씨" (weather)
-        // in the first chapter.
-        await tester.enterText(find.byType(TextField), '날씨');
-        await tester.pump(const Duration(milliseconds: 500));
-
-        // Allow the 300 ms debounce + SQLite search query to complete.
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(seconds: 2)),
+        // Verify the reader is still visible after navigation
+        expect(
+          find.byIcon(Icons.arrow_back_ios_new),
+          findsOneWidget,
+          reason: 'Reader should remain visible after search navigation',
         );
+      } else {
+        // If no results (e.g., indexing not yet complete), verify the "no
+        // results" empty state is shown instead.
+        // The close button is still available in the search panel.
+        expect(
+          find.text('No results found.'),
+          findsOneWidget,
+          reason: 'Search should show no-results state when no matches',
+        );
+      }
+
+      // 6. Close the search panel
+      // The search panel has a "Close" TextButton in its header.
+      final searchClose = find.text('Close');
+      if (searchClose.evaluate().isNotEmpty) {
+        await tester.tap(searchClose);
         await tester.pumpAndSettle();
+      }
 
-        // 5. Verify search results appear
-        // The search service returns results as ListTile widgets inside a
-        // ListView. If the demo book was indexed, results should be present.
-        final resultListTile = find.byType(ListTile);
-        final hasResults = resultListTile.evaluate().isNotEmpty;
+      // 7. Return to the bookshelf
+      await tester.tap(find.byIcon(Icons.arrow_back_ios_new));
+      await tester.pumpAndSettle();
 
-        if (hasResults) {
-          // Tap the first search result to navigate to the matching page
-          await tester.tap(resultListTile.first);
-          await tester.pumpAndSettle();
-
-          // Verify the reader is still visible after navigation
-          expect(find.byIcon(Icons.arrow_back_ios_new), findsOneWidget,
-              reason: 'Reader should remain visible after search navigation');
-        } else {
-          // If no results (e.g., indexing not yet complete), verify the "no
-          // results" empty state is shown instead.
-          // The close button is still available in the search panel.
-          expect(find.text('No results found.'), findsOneWidget,
-              reason: 'Search should show no-results state when no matches');
-        }
-
-        // 6. Close the search panel
-        // The search panel has a "Close" TextButton in its header.
-        final searchClose = find.text('Close');
-        if (searchClose.evaluate().isNotEmpty) {
-          await tester.tap(searchClose);
-          await tester.pumpAndSettle();
-        }
-
-        // 7. Return to the bookshelf
-        await tester.tap(find.byIcon(Icons.arrow_back_ios_new));
-        await tester.pumpAndSettle();
-
-        // 8. Verify we are back on the bookshelf
-        expect(find.text('Realbook 데모'), findsOneWidget,
-            reason: 'Should return to bookshelf after search flow');
-      },
-      timeout: const Timeout(Duration(minutes: 5)),
-    );
+      // 8. Verify we are back on the bookshelf
+      expect(
+        find.text('Realbook 데모'),
+        findsOneWidget,
+        reason: 'Should return to bookshelf after search flow',
+      );
+    }, timeout: const Timeout(Duration(minutes: 5)));
   });
 }

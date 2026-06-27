@@ -121,13 +121,17 @@ void main() {
       expect(event.intensity, greaterThan(0.05));
     });
 
-    test('StickSlipEvent.slipRelease factory produces correct type and intensity', () {
+    test(
+        'StickSlipEvent.slipRelease factory produces correct type and intensity',
+        () {
       final event = StickSlipEvent.slipRelease(intensity: 0.75);
       expect(event.type, equals(StickSlipEventType.slipRelease));
       expect(event.intensity, equals(0.75));
     });
 
-    test('StickSlipEvent.microSlip factory produces correct type and caps intensity', () {
+    test(
+        'StickSlipEvent.microSlip factory produces correct type and caps intensity',
+        () {
       final event = StickSlipEvent.microSlip(intensity: 0.3);
       expect(event.type, equals(StickSlipEventType.microSlip));
       expect(event.intensity, equals(0.3));

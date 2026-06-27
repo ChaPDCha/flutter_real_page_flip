@@ -62,10 +62,7 @@ final _testBook = Book(
 
 final _testState = ReaderState(book: _testBook);
 
-const _selection = TextSelection(
-  baseOffset: 0,
-  extentOffset: 8,
-);
+const _selection = TextSelection(baseOffset: 0, extentOffset: 8);
 
 // ---------------------------------------------------------------------------
 // Widget helper
@@ -79,14 +76,13 @@ Widget buildToolbar({
   int pageStart = 0,
 }) {
   final effectiveBook = book ?? _testBook;
-  final effectiveController =
-      controller ?? _ToolbarTestController(_testState);
+  final effectiveController = controller ?? _ToolbarTestController(_testState);
 
   return ProviderScope(
     overrides: [
-      readerControllerProvider(effectiveBook).overrideWith(
-        () => effectiveController,
-      ),
+      readerControllerProvider(
+        effectiveBook,
+      ).overrideWith(() => effectiveController),
     ],
     child: MaterialApp(
       home: Scaffold(
@@ -124,11 +120,11 @@ void main() {
       ),
     );
     when(() => mockState.hideToolbar()).thenReturn(null);
-    when(() => mockState.contextMenuButtonItems).thenReturn(<ContextMenuButtonItem>[]);
+    when(
+      () => mockState.contextMenuButtonItems,
+    ).thenReturn(<ContextMenuButtonItem>[]);
     when(() => mockState.contextMenuAnchors).thenReturn(
-      const TextSelectionToolbarAnchors(
-        primaryAnchor: Offset(100, 200),
-      ),
+      const TextSelectionToolbarAnchors(primaryAnchor: Offset(100, 200)),
     );
   });
 
@@ -254,16 +250,13 @@ void main() {
       expect(controller.lastNote, isNull);
     });
 
-    testWidgets('platform buttons section renders without error', (tester) async {
+    testWidgets('platform buttons section renders without error', (
+      tester,
+    ) async {
       // Provide non-empty context menu items
-      when(() => mockState.contextMenuButtonItems).thenReturn(
-        const [
-          ContextMenuButtonItem(
-            label: 'Copy',
-            onPressed: null,
-          ),
-        ],
-      );
+      when(() => mockState.contextMenuButtonItems).thenReturn(const [
+        ContextMenuButtonItem(label: 'Copy', onPressed: null),
+      ]);
 
       await tester.pumpWidget(buildToolbar(mockState: mockState));
       await tester.pump();
@@ -272,7 +265,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('renders without error with empty selected text', (tester) async {
+    testWidgets('renders without error with empty selected text', (
+      tester,
+    ) async {
       // Re-stub to use the mock state with empty selection
       final localMock = MockEditableTextState();
       when(() => localMock.textEditingValue).thenReturn(
@@ -282,11 +277,11 @@ void main() {
         ),
       );
       when(() => localMock.hideToolbar()).thenReturn(null);
-      when(() => localMock.contextMenuButtonItems).thenReturn(<ContextMenuButtonItem>[]);
+      when(
+        () => localMock.contextMenuButtonItems,
+      ).thenReturn(<ContextMenuButtonItem>[]);
       when(() => localMock.contextMenuAnchors).thenReturn(
-        const TextSelectionToolbarAnchors(
-          primaryAnchor: Offset(100, 200),
-        ),
+        const TextSelectionToolbarAnchors(primaryAnchor: Offset(100, 200)),
       );
 
       await tester.pumpWidget(buildToolbar(mockState: localMock));

@@ -255,25 +255,32 @@ class PageFlipConfig {
       duration: duration ?? this.duration,
       cutoffForward: cutoffForward ?? this.cutoffForward,
       cutoffPrevious: cutoffPrevious ?? this.cutoffPrevious,
-      backgroundColor: clearBackgroundColor ? null : (backgroundColor ?? this.backgroundColor),
+      backgroundColor: clearBackgroundColor
+          ? null
+          : (backgroundColor ?? this.backgroundColor),
       isRightSwipe: isRightSwipe ?? this.isRightSwipe,
       enableSwipe: enableSwipe ?? this.enableSwipe,
       sensitivity: sensitivity ?? this.sensitivity,
       edgeTapWidthRatio: edgeTapWidthRatio ?? this.edgeTapWidthRatio,
       skipTapAnimation: skipTapAnimation ?? this.skipTapAnimation,
-      semanticBuilder: clearSemanticBuilder ? null : (semanticBuilder ?? this.semanticBuilder),
+      semanticBuilder: clearSemanticBuilder
+          ? null
+          : (semanticBuilder ?? this.semanticBuilder),
       edgeTapPreviousLabel: edgeTapPreviousLabel ?? this.edgeTapPreviousLabel,
       edgeTapNextLabel: edgeTapNextLabel ?? this.edgeTapNextLabel,
       edgeTapPreviousHint: edgeTapPreviousHint ?? this.edgeTapPreviousHint,
       edgeTapNextHint: edgeTapNextHint ?? this.edgeTapNextHint,
       enableHaptics: enableHaptics ?? this.enableHaptics,
       enableSound: enableSound ?? this.enableSound,
-      effectHandler: clearEffectHandler ? null : (effectHandler ?? this.effectHandler),
+      effectHandler:
+          clearEffectHandler ? null : (effectHandler ?? this.effectHandler),
       paperOpacity: paperOpacity ?? this.paperOpacity,
       thinPaperStrength: thinPaperStrength ?? this.thinPaperStrength,
       endRevealStrength: endRevealStrength ?? this.endRevealStrength,
-      flapContentFadeOutEnd: flapContentFadeOutEnd ?? this.flapContentFadeOutEnd,
-      flapContentRevealStart: flapContentRevealStart ?? this.flapContentRevealStart,
+      flapContentFadeOutEnd:
+          flapContentFadeOutEnd ?? this.flapContentFadeOutEnd,
+      flapContentRevealStart:
+          flapContentRevealStart ?? this.flapContentRevealStart,
       flapContentRevealEnd: flapContentRevealEnd ?? this.flapContentRevealEnd,
       flapBackStrength: flapBackStrength ?? this.flapBackStrength,
       performanceProfile: performanceProfile ?? this.performanceProfile,

@@ -69,7 +69,10 @@ class BookshelfSettingsPanel {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      _getSyncStatusText(syncState.status, l10n),
+                                      _getSyncStatusText(
+                                        syncState.status,
+                                        l10n,
+                                      ),
                                       style: ReaderTypography.getUiStyle(
                                         color: theme.secondaryTextColor,
                                         fontSize: 12,
@@ -116,11 +119,23 @@ class BookshelfSettingsPanel {
                       ),
                       child: Column(
                         children: [
-                          _buildInfoRow(l10n.settingsPanel.version, 'v1.7.2', theme),
+                          _buildInfoRow(
+                            l10n.settingsPanel.version,
+                            'v1.7.2',
+                            theme,
+                          ),
                           Divider(color: theme.dividerColor, height: 24),
-                          _buildInfoRow(l10n.settingsPanel.engine, '3D PageFlip Core v2.5.0', theme),
+                          _buildInfoRow(
+                            l10n.settingsPanel.engine,
+                            '3D PageFlip Core v2.5.0',
+                            theme,
+                          ),
                           Divider(color: theme.dividerColor, height: 24),
-                          _buildInfoRow(l10n.settingsPanel.status, l10n.settingsPanel.darkMode, theme),
+                          _buildInfoRow(
+                            l10n.settingsPanel.status,
+                            l10n.settingsPanel.darkMode,
+                            theme,
+                          ),
                         ],
                       ),
                     ),

@@ -203,9 +203,9 @@ void main() {
 
       // signInAnonymously never completes — simulates in-flight sync
       final completer = Completer<String>();
-      when(() => mockClient.signInAnonymously()).thenAnswer(
-        (_) => completer.future,
-      );
+      when(
+        () => mockClient.signInAnonymously(),
+      ).thenAnswer((_) => completer.future);
 
       // Fire first sync (in flight, not completed)
       controller.sync();
@@ -231,9 +231,9 @@ void main() {
       final controller = container.read(syncControllerProvider.notifier);
 
       // First sync fails with network error
-      when(() => mockClient.signInAnonymously()).thenThrow(
-        Exception('Network error'),
-      );
+      when(
+        () => mockClient.signInAnonymously(),
+      ).thenThrow(Exception('Network error'));
       await controller.sync();
 
       var state = container.read(syncControllerProvider);
@@ -241,9 +241,9 @@ void main() {
       expect(state.errorMessage, contains('Network error'));
 
       // Reset mock for second attempt
-      when(() => mockClient.signInAnonymously()).thenAnswer(
-        (_) async => 'mock-user-123',
-      );
+      when(
+        () => mockClient.signInAnonymously(),
+      ).thenAnswer((_) async => 'mock-user-123');
 
       // Second sync succeeds — proves _isSyncing flag was reset after error
       await controller.sync();
@@ -260,9 +260,9 @@ void main() {
       final controller = container.read(syncControllerProvider.notifier);
 
       // ---- Auth stage error ----
-      when(() => mockClient.signInAnonymously()).thenThrow(
-        Exception('Auth failed'),
-      );
+      when(
+        () => mockClient.signInAnonymously(),
+      ).thenThrow(Exception('Auth failed'));
       await controller.sync();
 
       expect(
@@ -271,12 +271,12 @@ void main() {
       );
 
       // Reset auth for pull, fail at pull stage
-      when(() => mockClient.signInAnonymously()).thenAnswer(
-        (_) async => 'mock-user-123',
-      );
-      when(() => mockClient.pullBooks(any())).thenThrow(
-        Exception('Pull timeout'),
-      );
+      when(
+        () => mockClient.signInAnonymously(),
+      ).thenAnswer((_) async => 'mock-user-123');
+      when(
+        () => mockClient.pullBooks(any()),
+      ).thenThrow(Exception('Pull timeout'));
       await controller.sync();
 
       expect(
@@ -286,9 +286,9 @@ void main() {
 
       // Reset pull for push, fail at push stage
       when(() => mockClient.pullBooks(any())).thenAnswer((_) async => []);
-      when(() => mockClient.pushBooks(any())).thenThrow(
-        Exception('Push rejected'),
-      );
+      when(
+        () => mockClient.pushBooks(any()),
+      ).thenThrow(Exception('Push rejected'));
       await controller.sync();
 
       expect(
@@ -333,20 +333,14 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       // State should be pulling while pull futures are pending
-      expect(
-        container.read(syncControllerProvider).status,
-        SyncStatus.pulling,
-      );
+      expect(container.read(syncControllerProvider).status, SyncStatus.pulling);
 
       // Complete pulls -> sync moves to push phase, then completes
       pullCompleter.complete([]);
       await Future<void>.delayed(Duration.zero);
 
       // Final state should be success
-      expect(
-        container.read(syncControllerProvider).status,
-        SyncStatus.success,
-      );
+      expect(container.read(syncControllerProvider).status, SyncStatus.success);
     },
   );
 
@@ -358,11 +352,13 @@ void main() {
         () => mockClient.signInAnonymously(),
       ).thenAnswer((_) => authCompleter.future);
 
-      final localContainer = ProviderContainer(overrides: [
-        cloudSyncClientProvider.overrideWithValue(mockClient),
-        syncRepositoryProvider.overrideWithValue(mockRepo),
-        sharedPreferencesProvider.overrideWithValue(testPrefs),
-      ]);
+      final localContainer = ProviderContainer(
+        overrides: [
+          cloudSyncClientProvider.overrideWithValue(mockClient),
+          syncRepositoryProvider.overrideWithValue(mockRepo),
+          sharedPreferencesProvider.overrideWithValue(testPrefs),
+        ],
+      );
 
       final controller = localContainer.read(syncControllerProvider.notifier);
 
@@ -403,15 +399,15 @@ void main() {
         <String, dynamic>{'id': 1, 'label': 'Test Bookmark'},
       ];
 
-      when(() => mockRepo.getLocalBooksDelta(any())).thenAnswer(
-        (_) async => bookDeltas,
-      );
-      when(() => mockRepo.getLocalHighlightsDelta(any())).thenAnswer(
-        (_) async => highlightDeltas,
-      );
-      when(() => mockRepo.getLocalBookmarksDelta(any())).thenAnswer(
-        (_) async => bookmarkDeltas,
-      );
+      when(
+        () => mockRepo.getLocalBooksDelta(any()),
+      ).thenAnswer((_) async => bookDeltas);
+      when(
+        () => mockRepo.getLocalHighlightsDelta(any()),
+      ).thenAnswer((_) async => highlightDeltas);
+      when(
+        () => mockRepo.getLocalBookmarksDelta(any()),
+      ).thenAnswer((_) async => bookmarkDeltas);
 
       await controller.sync();
 

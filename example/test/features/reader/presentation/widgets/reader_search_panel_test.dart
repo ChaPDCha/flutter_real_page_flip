@@ -27,10 +27,11 @@ void main() {
 
     setUp(() {
       mockSearchService = MockSearchService();
-      when(() => mockSearchService.searchBook(any<String>(), any<String>()))
-          .thenAnswer(
-            (_) => SynchronousFuture<List<SearchResult>>(<SearchResult>[]),
-          );
+      when(
+        () => mockSearchService.searchBook(any<String>(), any<String>()),
+      ).thenAnswer(
+        (_) => SynchronousFuture<List<SearchResult>>(<SearchResult>[]),
+      );
     });
 
     Widget buildPanel({
@@ -92,15 +93,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump();
 
-      verify(
-        () => mockSearchService.searchBook(testBook.id, 'test'),
-      ).called(1);
+      verify(() => mockSearchService.searchBook(testBook.id, 'test')).called(1);
     });
 
     testWidgets('shows loading indicator during search', (tester) async {
       final completer = Completer<List<SearchResult>>();
-      when(() => mockSearchService.searchBook(any<String>(), any<String>()))
-          .thenAnswer((_) => completer.future);
+      when(
+        () => mockSearchService.searchBook(any<String>(), any<String>()),
+      ).thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(buildPanel());
       await tester.pump();
@@ -122,8 +122,9 @@ void main() {
           matchIndex: 0,
         ),
       ];
-      when(() => mockSearchService.searchBook(any<String>(), any<String>()))
-          .thenAnswer((_) => SynchronousFuture<List<SearchResult>>(results));
+      when(
+        () => mockSearchService.searchBook(any<String>(), any<String>()),
+      ).thenAnswer((_) => SynchronousFuture<List<SearchResult>>(results));
 
       await tester.pumpWidget(buildPanel());
       await tester.pump();
@@ -150,14 +151,11 @@ void main() {
       var capturedChapter = -1;
       var capturedQuery = '';
       final results = [
-        SearchResult(
-          chapterIndex: 2,
-          snippet: 'matched text',
-          matchIndex: 0,
-        ),
+        SearchResult(chapterIndex: 2, snippet: 'matched text', matchIndex: 0),
       ];
-      when(() => mockSearchService.searchBook(any<String>(), any<String>()))
-          .thenAnswer((_) => SynchronousFuture<List<SearchResult>>(results));
+      when(
+        () => mockSearchService.searchBook(any<String>(), any<String>()),
+      ).thenAnswer((_) => SynchronousFuture<List<SearchResult>>(results));
 
       await tester.pumpWidget(
         buildPanel(
@@ -181,14 +179,11 @@ void main() {
     testWidgets('shows chapter index in subtitle', (tester) async {
       final results = [
         SearchResult(chapterIndex: 0, snippet: 'result one', matchIndex: 0),
-        SearchResult(
-          chapterIndex: 1,
-          snippet: 'another result',
-          matchIndex: 1,
-        ),
+        SearchResult(chapterIndex: 1, snippet: 'another result', matchIndex: 1),
       ];
-      when(() => mockSearchService.searchBook(any<String>(), any<String>()))
-          .thenAnswer((_) => SynchronousFuture<List<SearchResult>>(results));
+      when(
+        () => mockSearchService.searchBook(any<String>(), any<String>()),
+      ).thenAnswer((_) => SynchronousFuture<List<SearchResult>>(results));
 
       await tester.pumpWidget(buildPanel());
       await tester.pump();
@@ -223,7 +218,9 @@ void main() {
 
       await tester.enterText(find.byType(TextField), 'test');
       await tester.pump(const Duration(milliseconds: 200));
-      verifyNever(() => mockSearchService.searchBook(any<String>(), any<String>()));
+      verifyNever(
+        () => mockSearchService.searchBook(any<String>(), any<String>()),
+      );
 
       await tester.pump(const Duration(milliseconds: 200));
       verify(
@@ -245,8 +242,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump();
 
-      verify(() => mockSearchService.searchBook(any<String>(), 'test'))
-          .called(1);
+      verify(
+        () => mockSearchService.searchBook(any<String>(), 'test'),
+      ).called(1);
     });
 
     testWidgets('empty query does not call search service', (tester) async {
@@ -257,7 +255,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump();
 
-      verifyNever(() => mockSearchService.searchBook(any<String>(), any<String>()));
+      verifyNever(
+        () => mockSearchService.searchBook(any<String>(), any<String>()),
+      );
     });
   });
 }

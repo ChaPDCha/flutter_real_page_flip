@@ -62,8 +62,8 @@ class NoOpEffectHandler implements PageFlipEffectHandler {
 
 /// Sets up mock platform channels for audioplayers (3 channels).
 void setupAudioMocks() {
-  final messenger = TestDefaultBinaryMessengerBinding.instance
-      .defaultBinaryMessenger;
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   for (final channel in [
     'xyz.luan/audioplayers',
     'xyz.luan/audioplayers.global',
@@ -87,8 +87,8 @@ void setupHapticMock() {
 
 /// Clears all platform channel mocks (call in tearDownAll).
 void clearAllChannelMocks() {
-  final messenger = TestDefaultBinaryMessengerBinding.instance
-      .defaultBinaryMessenger;
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   for (final channel in [
     'xyz.luan/audioplayers',
     'xyz.luan/audioplayers.global',

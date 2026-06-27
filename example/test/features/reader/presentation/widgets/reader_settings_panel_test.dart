@@ -80,8 +80,10 @@ final _testState = ReaderState(book: _testBook);
 
 /// Opens the ReaderSettingsPanel modal and returns the test controller.
 // ignore: library_private_types_in_public_api
-Future<_TestReaderController> openSettings(WidgetTester tester,
-    {ReaderState? state}) async {
+Future<_TestReaderController> openSettings(
+  WidgetTester tester, {
+  ReaderState? state,
+}) async {
   final effectiveState = state ?? _testState;
   final controller = _TestReaderController(effectiveState);
 
@@ -89,8 +91,7 @@ Future<_TestReaderController> openSettings(WidgetTester tester,
     TranslationProvider(
       child: ProviderScope(
         overrides: [
-          readerControllerProvider(_testBook)
-              .overrideWith(() => controller),
+          readerControllerProvider(_testBook).overrideWith(() => controller),
         ],
         child: ShadTheme(
           data: ShadThemeData(),

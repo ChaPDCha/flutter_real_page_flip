@@ -15,8 +15,7 @@ void main() {
             controller: controller,
             initialIndex: 0,
             itemCount: 6,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) => currentIndex = index,
             isDoubleSpread: true,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
@@ -45,8 +44,7 @@ void main() {
             controller: controller,
             initialIndex: 2,
             itemCount: 6,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) => currentIndex = index,
             isDoubleSpread: true,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
@@ -72,8 +70,7 @@ void main() {
           home: PageFlipWidget(
             initialIndex: 0,
             itemCount: 6,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) {
               currentIndex = index;
               changedCount++;
@@ -93,8 +90,7 @@ void main() {
       expect(currentIndex, equals(0));
     });
 
-    testWidgets('programmatic nextPage works in double-spread',
-        (tester) async {
+    testWidgets('programmatic nextPage works in double-spread', (tester) async {
       int currentIndex = 0;
 
       await tester.pumpWidget(
@@ -102,8 +98,7 @@ void main() {
           home: PageFlipWidget(
             initialIndex: 0,
             itemCount: 6,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) => currentIndex = index,
             isDoubleSpread: true,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
@@ -129,8 +124,7 @@ void main() {
           home: PageFlipWidget(
             initialIndex: 2,
             itemCount: 6,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) => currentIndex = index,
             isDoubleSpread: true,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
@@ -147,8 +141,7 @@ void main() {
       expect(currentIndex, equals(1), reason: 'previousPage goes back by 1');
     });
 
-    testWidgets('goToPage works in double-spread mode',
-        (tester) async {
+    testWidgets('goToPage works in double-spread mode', (tester) async {
       int currentIndex = 0;
       final controller = PageFlipController();
 
@@ -157,8 +150,7 @@ void main() {
           home: PageFlipWidget(
             controller: controller,
             itemCount: 6,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) => currentIndex = index,
             isDoubleSpread: true,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
@@ -172,8 +164,7 @@ void main() {
       expect(currentIndex, equals(4));
     });
 
-    testWidgets('boundary prevents flipping past last page',
-        (tester) async {
+    testWidgets('boundary prevents flipping past last page', (tester) async {
       int changedCount = 0;
 
       await tester.pumpWidget(
@@ -181,8 +172,7 @@ void main() {
           home: PageFlipWidget(
             initialIndex: 5, // last page of 6
             itemCount: 6,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (_) => changedCount++,
             isDoubleSpread: true,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
@@ -208,8 +198,7 @@ void main() {
           home: PageFlipWidget(
             initialIndex: 0,
             itemCount: 6,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (_) => changedCount++,
             isDoubleSpread: true,
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
@@ -234,8 +223,7 @@ void main() {
           home: PageFlipWidget(
             itemCount: 4,
             spreadMode: PageFlipSpreadMode.doubleSpread,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
           ),
         ),
@@ -252,8 +240,7 @@ void main() {
           home: PageFlipWidget(
             itemCount: 4,
             spreadMode: PageFlipSpreadMode.single,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
           ),
         ),
@@ -269,8 +256,7 @@ void main() {
           home: PageFlipWidget(
             itemCount: 5,
             isDoubleSpread: true,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             config: const PageFlipConfig(effectHandler: NoOpEffectHandler()),
           ),
         ),
@@ -289,8 +275,7 @@ void main() {
           home: PageFlipWidget(
             itemCount: 6,
             isDoubleSpread: true,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) {
               callCount++;
               lastIndex = index;

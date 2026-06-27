@@ -24,69 +24,69 @@ void _installFirebaseMocks() {
 
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/firebase_core'),
-    (MethodCall call) async {
-      if (call.method == 'Firebase#initializeCore') {
-        return <dynamic>[];
-      }
-      if (call.method == 'Firebase#initializeApp') {
-        return <String, dynamic>{
-          'name': (call.arguments as Map?)?.containsKey('appName') == true
-              ? (call.arguments as Map)['appName']
-              : 'default',
-          'options': <String, String>{
-            'apiKey': 'test-api-key',
-            'appId': 'test-app-id',
-            'messagingSenderId': 'test-sender-id',
-            'projectId': 'test-project',
-            'storageBucket': 'test.appspot.com',
-          },
-          'pluginConstants': <String, Map<String, dynamic>>{},
-          'isAutomaticDataCollectionEnabled': false,
-        };
-      }
-      return null;
-    },
-  );
+        const MethodChannel('plugins.flutter.io/firebase_core'),
+        (MethodCall call) async {
+          if (call.method == 'Firebase#initializeCore') {
+            return <dynamic>[];
+          }
+          if (call.method == 'Firebase#initializeApp') {
+            return <String, dynamic>{
+              'name': (call.arguments as Map?)?.containsKey('appName') == true
+                  ? (call.arguments as Map)['appName']
+                  : 'default',
+              'options': <String, String>{
+                'apiKey': 'test-api-key',
+                'appId': 'test-app-id',
+                'messagingSenderId': 'test-sender-id',
+                'projectId': 'test-project',
+                'storageBucket': 'test.appspot.com',
+              },
+              'pluginConstants': <String, Map<String, dynamic>>{},
+              'isAutomaticDataCollectionEnabled': false,
+            };
+          }
+          return null;
+        },
+      );
 
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/firebase_analytics'),
-    (MethodCall call) async {
-      _analyticsCalls.add(call);
-      return null;
-    },
-  );
+        const MethodChannel('plugins.flutter.io/firebase_analytics'),
+        (MethodCall call) async {
+          _analyticsCalls.add(call);
+          return null;
+        },
+      );
 
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/firebase_crashlytics'),
-    (MethodCall call) async {
-      _crashlyticsCalls.add(call);
-      return null;
-    },
-  );
+        const MethodChannel('plugins.flutter.io/firebase_crashlytics'),
+        (MethodCall call) async {
+          _crashlyticsCalls.add(call);
+          return null;
+        },
+      );
 
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/firebase_remote_config'),
-    (MethodCall call) async {
-      _remoteConfigCalls.add(call);
-      if (call.method == 'RemoteConfig#fetchAndActivate') {
-        return true;
-      }
-      if (call.method == 'RemoteConfig#getBoolean') {
-        return (call.arguments as String?) == 'ads_enabled';
-      }
-      if (call.method == 'RemoteConfig#getLong') {
-        return 50;
-      }
-      if (call.method == 'RemoteConfig#getDouble') {
-        return 16.0;
-      }
-      return null;
-    },
-  );
+        const MethodChannel('plugins.flutter.io/firebase_remote_config'),
+        (MethodCall call) async {
+          _remoteConfigCalls.add(call);
+          if (call.method == 'RemoteConfig#fetchAndActivate') {
+            return true;
+          }
+          if (call.method == 'RemoteConfig#getBoolean') {
+            return (call.arguments as String?) == 'ads_enabled';
+          }
+          if (call.method == 'RemoteConfig#getLong') {
+            return 50;
+          }
+          if (call.method == 'RemoteConfig#getDouble') {
+            return 16.0;
+          }
+          return null;
+        },
+      );
 }
 
 void _uninstallFirebaseMocks() {
@@ -152,10 +152,7 @@ void main() {
     });
 
     test('initRemoteConfig completes without error', () async {
-      await expectLater(
-        FirebaseService.initRemoteConfig(),
-        completes,
-      );
+      await expectLater(FirebaseService.initRemoteConfig(), completes);
     });
 
     test('setCurrentScreen completes without error', () async {
@@ -279,10 +276,7 @@ void main() {
     });
 
     test('initRemoteConfig sets defaults and calls fetchAndActivate', () async {
-      await expectLater(
-        FirebaseService.initRemoteConfig(),
-        completes,
-      );
+      await expectLater(FirebaseService.initRemoteConfig(), completes);
     });
 
     test('book lifecycle events do not throw', () async {
@@ -357,10 +351,7 @@ void main() {
   // ---------------------------------------------------------------------------
   group('Edge cases', () {
     test('logEvent handles empty parameters', () async {
-      await expectLater(
-        FirebaseService.logEvent(name: 'no_params'),
-        completes,
-      );
+      await expectLater(FirebaseService.logEvent(name: 'no_params'), completes);
     });
 
     test('logEvent handles null parameters', () async {
@@ -371,10 +362,7 @@ void main() {
     });
 
     test('setCurrentScreen handles empty screen name', () async {
-      await expectLater(
-        FirebaseService.setCurrentScreen(''),
-        completes,
-      );
+      await expectLater(FirebaseService.setCurrentScreen(''), completes);
     });
 
     test('setUserProperty handles empty values', () async {

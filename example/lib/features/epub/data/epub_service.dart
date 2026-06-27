@@ -103,8 +103,7 @@ class EpubService {
   bool _isTocChapter(EpubChapter chapter) {
     final html = chapter.HtmlContent;
     if (html == null || html.isEmpty) return false;
-    return html.contains('epub:type="toc"') ||
-        html.contains("epub:type='toc'");
+    return html.contains('epub:type="toc"') || html.contains("epub:type='toc'");
   }
 
   /// True when a nested block-level element already contributes non-empty text.

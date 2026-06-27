@@ -116,11 +116,7 @@ class AppDatabase extends _$AppDatabase {
           'CREATE VIRTUAL TABLE IF NOT EXISTS book_contents_fts USING fts5(bookId, chapterIndex, content, tokenize="unicode61");',
         );
       } catch (e, st) {
-        FirebaseService.recordError(
-          e,
-          st,
-          reason: 'DB migration v$from→v$to',
-        );
+        FirebaseService.recordError(e, st, reason: 'DB migration v$from→v$to');
         rethrow;
       }
     },

@@ -120,7 +120,8 @@ void main() {
       }
     });
 
-    test('high persistence (0.99) produces smoothly varying noise in range', () {
+    test('high persistence (0.99) produces smoothly varying noise in range',
+        () {
       final noise = PaperTextureNoise();
       for (int i = 0; i < 200; i++) {
         final value = noise.paperTexture(

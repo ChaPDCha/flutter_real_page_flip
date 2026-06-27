@@ -367,7 +367,8 @@ void main() {
       expect(controller.progressFromHorizontalDelta(-200), closeTo(0.5, 0.001));
     });
 
-    test('onDragStart with zero accumulatedTotalDx does not set isDragging', () {
+    test('onDragStart with zero accumulatedTotalDx does not set isDragging',
+        () {
       controller.updateCachedWidth(400);
       controller.onDragStart(
         DragStartDetails(localPosition: Offset.zero),
@@ -407,7 +408,9 @@ void main() {
       expect(controller.touchPosition, isNot(const Offset(100, 100)));
     });
 
-    test('onDragEnd with velocity > 300 triggers fast flip regardless of progress', () {
+    test(
+        'onDragEnd with velocity > 300 triggers fast flip regardless of progress',
+        () {
       controller.updateCachedWidth(400);
       controller.setIndex(0, 5);
       controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
@@ -441,7 +444,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
         onFlipEnd: () => flipEnded = true,
       );
       local.onDragEnd(DragEndDetails(primaryVelocity: 0), 5);
@@ -457,7 +465,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
         onFlipEnd: () => flipEnded = true,
       );
       local.dispose();
@@ -472,7 +485,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
       );
       local.dispose();
       // Should not throw
@@ -487,7 +505,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
         onFlipEnd: () => flipEnded = true,
       );
       local.onDragCancel(5);
@@ -509,7 +532,8 @@ void main() {
           returnsNormally);
     });
 
-    test('triggerTapFlip when animationController.isAnimating returns early', () {
+    test('triggerTapFlip when animationController.isAnimating returns early',
+        () {
       controller.setIndex(0, 5);
       controller.updateCachedWidth(400);
       controller.triggerTapFlip(isNext: true, totalPages: 5);
@@ -538,7 +562,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
       );
       local.dispose();
       expect(() => local.dispose(), returnsNormally);
@@ -551,7 +580,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
       );
       local.updateCachedWidth(400);
       local.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
@@ -597,7 +631,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
         onFlipStart: null,
       );
       local.updateCachedWidth(400);
@@ -619,7 +658,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
         onFlipEnd: null,
       );
       expect(() => local.onDragEnd(DragEndDetails(primaryVelocity: 0), 5),
@@ -635,7 +679,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
       );
       local.setIndex(0, 5);
       local.updateCachedWidth(400);

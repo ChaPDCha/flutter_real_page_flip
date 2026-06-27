@@ -90,16 +90,10 @@ Widget buildPageContent({
 
   return TranslationProvider(
     child: ProviderScope(
-      overrides: [
-        supertonicTtsProvider.overrideWithValue(effectiveTts),
-      ],
+      overrides: [supertonicTtsProvider.overrideWithValue(effectiveTts)],
       child: MaterialApp(
         home: Scaffold(
-          body: ReflowablePageContent(
-            state: state,
-            theme: theme,
-            index: index,
-          ),
+          body: ReflowablePageContent(state: state, theme: theme, index: index),
         ),
       ),
     ),
@@ -233,7 +227,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('renders with multiple highlights on same page', (tester) async {
+    testWidgets('renders with multiple highlights on same page', (
+      tester,
+    ) async {
       final now = DateTime(2024, 1, 1);
       final highlights = [
         Highlight(

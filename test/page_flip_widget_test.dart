@@ -91,7 +91,8 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('itemCount=1 renders single page without crash', (tester) async {
+    testWidgets('itemCount=1 renders single page without crash',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
@@ -139,8 +140,7 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             itemCount: 3,
-            itemBuilder: (context, index) =>
-                Container(key: Key('page_$index')),
+            itemBuilder: (context, index) => Container(key: Key('page_$index')),
           ),
         ),
       );
@@ -197,8 +197,7 @@ void main() {
       expect(endCount, equals(2));
     });
 
-    testWidgets('goToPage ignores out-of-bounds index',
-        (tester) async {
+    testWidgets('goToPage ignores out-of-bounds index', (tester) async {
       final controller = PageFlipController();
       int currentIndex = 0;
 
@@ -223,8 +222,7 @@ void main() {
       expect(currentIndex, equals(0));
     });
 
-    testWidgets('nextPage at last page is no-op',
-        (tester) async {
+    testWidgets('nextPage at last page is no-op', (tester) async {
       final controller = PageFlipController();
       int callbackCount = 0;
 
@@ -471,8 +469,7 @@ void main() {
       expect(changedPage, 2);
     });
 
-    testWidgets('rapid previousPage calls do not go below 0',
-        (tester) async {
+    testWidgets('rapid previousPage calls do not go below 0', (tester) async {
       int? changedPage;
       final controller = PageFlipController();
 
@@ -534,8 +531,7 @@ void main() {
   });
 
   group('PageFlipWidget error handling', () {
-    testWidgets('itemBuilder throw is caught as FlutterError',
-        (tester) async {
+    testWidgets('itemBuilder throw is caught as FlutterError', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
@@ -553,5 +549,4 @@ void main() {
       expect(error, isNotNull);
     });
   });
-
 }

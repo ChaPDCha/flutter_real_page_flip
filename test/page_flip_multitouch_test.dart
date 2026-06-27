@@ -14,7 +14,12 @@ void main() {
         onUpdate: () {},
         onPageFinalized: (_) {},
         onEffectTrigger: (_,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+            {intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume}) {},
       );
       controller.setIndex(0, 5);
       controller.updateCachedWidth(400);

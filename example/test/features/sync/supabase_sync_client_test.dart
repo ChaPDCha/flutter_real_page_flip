@@ -24,8 +24,7 @@ class _FakeFilterBuilder extends Fake
   _FakeFilterBuilder([this.data = const []]);
 
   @override
-  PostgrestFilterBuilder<PostgrestList> gt(String column, Object value) =>
-      this;
+  PostgrestFilterBuilder<PostgrestList> gt(String column, Object value) => this;
 
   @override
   Future<S> then<S>(
@@ -41,24 +40,24 @@ class _FakeFilterBuilder extends Fake
 // ---------------------------------------------------------------------------
 
 // ignore: must_be_immutable
-class _FakeSupabaseQueryBuilder extends Fake
-    implements SupabaseQueryBuilder {
+class _FakeSupabaseQueryBuilder extends Fake implements SupabaseQueryBuilder {
   PostgrestFilterBuilder<PostgrestList> Function()? onUpsert;
   PostgrestFilterBuilder<PostgrestList> Function()? onSelect;
   String? lastTable;
 
   @override
-  PostgrestFilterBuilder<PostgrestList> upsert(Object values,
-      {String? onConflict, bool ignoreDuplicates = false,
-      bool defaultToNull = true}) {
-    return onUpsert?.call() ??
-        _FakeFilterBuilder();
+  PostgrestFilterBuilder<PostgrestList> upsert(
+    Object values, {
+    String? onConflict,
+    bool ignoreDuplicates = false,
+    bool defaultToNull = true,
+  }) {
+    return onUpsert?.call() ?? _FakeFilterBuilder();
   }
 
   @override
   PostgrestFilterBuilder<PostgrestList> select([String columns = '*']) {
-    return onSelect?.call() ??
-        _FakeFilterBuilder();
+    return onSelect?.call() ?? _FakeFilterBuilder();
   }
 }
 
@@ -121,9 +120,9 @@ void main() {
 
       when(() => mockUser.id).thenReturn('test-user-123');
       when(() => mockAuthResponse.user).thenReturn(mockUser);
-      when(() => mockGoTrue.signInAnonymously()).thenAnswer(
-        (_) async => mockAuthResponse,
-      );
+      when(
+        () => mockGoTrue.signInAnonymously(),
+      ).thenAnswer((_) async => mockAuthResponse);
 
       expect(await syncClient.signInAnonymously(), 'test-user-123');
     });
@@ -131,16 +130,17 @@ void main() {
     test('throws when user is null', () async {
       final mockAuthResponse = _MockAuthResponse();
       when(() => mockAuthResponse.user).thenReturn(null);
-      when(() => mockGoTrue.signInAnonymously()).thenAnswer(
-        (_) async => mockAuthResponse,
-      );
+      when(
+        () => mockGoTrue.signInAnonymously(),
+      ).thenAnswer((_) async => mockAuthResponse);
 
       await expectLater(syncClient.signInAnonymously(), throwsException);
     });
 
     test('rethrows on network failure', () async {
-      when(() => mockGoTrue.signInAnonymously())
-          .thenThrow(Exception('Network error'));
+      when(
+        () => mockGoTrue.signInAnonymously(),
+      ).thenThrow(Exception('Network error'));
 
       await expectLater(syncClient.signInAnonymously(), throwsException);
     });
@@ -174,10 +174,7 @@ void main() {
     test('rethrows on upsert failure', () async {
       fakeQueryBuilder.onUpsert = () => throw Exception('Upsert failed');
 
-      await expectLater(
-        syncClient.pushBooks([_sampleBook]),
-        throwsException,
-      );
+      await expectLater(syncClient.pushBooks([_sampleBook]), throwsException);
     });
   });
 
@@ -204,13 +201,10 @@ void main() {
     });
 
     test('rethrows on pull failure', () async {
-      fakeQueryBuilder.onSelect =
-          () => throw Exception('Supabase connection lost');
+      fakeQueryBuilder.onSelect = () =>
+          throw Exception('Supabase connection lost');
 
-      await expectLater(
-        syncClient.pullBooks(DateTime.now()),
-        throwsException,
-      );
+      await expectLater(syncClient.pullBooks(DateTime.now()), throwsException);
     });
   });
 
@@ -239,8 +233,7 @@ void main() {
     });
 
     test('rethrows on upsert failure', () async {
-      fakeQueryBuilder.onUpsert =
-          () => throw Exception('Upsert failed');
+      fakeQueryBuilder.onUpsert = () => throw Exception('Upsert failed');
 
       await expectLater(
         syncClient.pushHighlights([_sampleHighlight]),
@@ -255,8 +248,7 @@ void main() {
 
   group('pullHighlights', () {
     test('returns pulled highlights data', () async {
-      fakeQueryBuilder.onSelect =
-          () => _FakeFilterBuilder([_sampleHighlight]);
+      fakeQueryBuilder.onSelect = () => _FakeFilterBuilder([_sampleHighlight]);
 
       final result = await syncClient.pullHighlights(DateTime.now());
       expect(result.length, 1);
@@ -272,8 +264,8 @@ void main() {
     });
 
     test('rethrows on pull failure', () async {
-      fakeQueryBuilder.onSelect =
-          () => throw Exception('Supabase connection lost');
+      fakeQueryBuilder.onSelect = () =>
+          throw Exception('Supabase connection lost');
 
       await expectLater(
         syncClient.pullHighlights(DateTime.now()),
@@ -307,8 +299,7 @@ void main() {
     });
 
     test('rethrows on upsert failure', () async {
-      fakeQueryBuilder.onUpsert =
-          () => throw Exception('Upsert failed');
+      fakeQueryBuilder.onUpsert = () => throw Exception('Upsert failed');
 
       await expectLater(
         syncClient.pushBookmarks([_sampleBookmark]),
@@ -323,8 +314,7 @@ void main() {
 
   group('pullBookmarks', () {
     test('returns pulled bookmarks data', () async {
-      fakeQueryBuilder.onSelect =
-          () => _FakeFilterBuilder([_sampleBookmark]);
+      fakeQueryBuilder.onSelect = () => _FakeFilterBuilder([_sampleBookmark]);
 
       final result = await syncClient.pullBookmarks(DateTime.now());
       expect(result.length, 1);
@@ -340,8 +330,8 @@ void main() {
     });
 
     test('rethrows on pull failure', () async {
-      fakeQueryBuilder.onSelect =
-          () => throw Exception('Supabase connection lost');
+      fakeQueryBuilder.onSelect = () =>
+          throw Exception('Supabase connection lost');
 
       await expectLater(
         syncClient.pullBookmarks(DateTime.now()),

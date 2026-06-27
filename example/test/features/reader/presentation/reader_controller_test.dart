@@ -472,46 +472,48 @@ void main() {
       expect(state.settings.fontFamily, isNull);
     });
 
-    test('goToPageIndex navigates to specific page with bounds checking',
-        () async {
-      // Long text ensures multi-page layout
-      await epubFile.writeAsBytes(
-        createMultiChapterEpubBytes(
-          chapter1Content: 'Page content. ' * 80,
-          chapter2Content: 'Second chapter. ' * 20,
-        ),
-      );
+    test(
+      'goToPageIndex navigates to specific page with bounds checking',
+      () async {
+        // Long text ensures multi-page layout
+        await epubFile.writeAsBytes(
+          createMultiChapterEpubBytes(
+            chapter1Content: 'Page content. ' * 80,
+            chapter2Content: 'Second chapter. ' * 20,
+          ),
+        );
 
-      final container = createContainer();
-      await waitForInitialization(container);
+        final container = createContainer();
+        await waitForInitialization(container);
 
-      final controller = container.read(
-        readerControllerProvider(testBook).notifier,
-      );
-      await controller.setViewportSize(375.0, 300.0);
+        final controller = container.read(
+          readerControllerProvider(testBook).notifier,
+        );
+        await controller.setViewportSize(375.0, 300.0);
 
-      var state = container.read(readerControllerProvider(testBook));
-      expect(state.pages.length, greaterThan(1));
+        var state = container.read(readerControllerProvider(testBook));
+        expect(state.pages.length, greaterThan(1));
 
-      // Go to last page
-      final lastIndex = state.pages.length - 1;
-      controller.goToPageIndex(lastIndex);
-      state = container.read(readerControllerProvider(testBook));
-      expect(state.currentPageIndex, equals(lastIndex));
+        // Go to last page
+        final lastIndex = state.pages.length - 1;
+        controller.goToPageIndex(lastIndex);
+        state = container.read(readerControllerProvider(testBook));
+        expect(state.currentPageIndex, equals(lastIndex));
 
-      // Negative index should be ignored
-      controller.goToPageIndex(-1);
-      expect(state.currentPageIndex, equals(lastIndex));
+        // Negative index should be ignored
+        controller.goToPageIndex(-1);
+        expect(state.currentPageIndex, equals(lastIndex));
 
-      // Over-large index should be ignored
-      controller.goToPageIndex(9999);
-      expect(state.currentPageIndex, equals(lastIndex));
+        // Over-large index should be ignored
+        controller.goToPageIndex(9999);
+        expect(state.currentPageIndex, equals(lastIndex));
 
-      // Go back to first page
-      controller.goToPageIndex(0);
-      state = container.read(readerControllerProvider(testBook));
-      expect(state.currentPageIndex, equals(0));
-    });
+        // Go back to first page
+        controller.goToPageIndex(0);
+        state = container.read(readerControllerProvider(testBook));
+        expect(state.currentPageIndex, equals(0));
+      },
+    );
 
     test('jumpToChapterWithQuery navigates to target chapter', () async {
       await epubFile.writeAsBytes(
@@ -567,8 +569,10 @@ void main() {
 
       final state = container.read(readerControllerProvider(testBook));
       expect(state.highlights.length, equals(1));
-      expect(state.highlights.first.selectedText,
-          equals('test highlight text'));
+      expect(
+        state.highlights.first.selectedText,
+        equals('test highlight text'),
+      );
       expect(state.highlights.first.highlightColor, equals('#FFFF00'));
     });
 
@@ -628,46 +632,52 @@ void main() {
       expect(savedMap['hapticTexturePresetName'], equals('textured'));
     });
 
-    test('Settings: toggleHaptics(true) persists to SharedPreferences', () async {
-      // First disable haptics so we can re-enable
-      final container = createContainer();
-      await waitForInitialization(container);
+    test(
+      'Settings: toggleHaptics(true) persists to SharedPreferences',
+      () async {
+        // First disable haptics so we can re-enable
+        final container = createContainer();
+        await waitForInitialization(container);
 
-      final controller = container.read(
-        readerControllerProvider(testBook).notifier,
-      );
-      await controller.setViewportSize(375.0, 667.0);
-      await waitForPagination(container);
+        final controller = container.read(
+          readerControllerProvider(testBook).notifier,
+        );
+        await controller.setViewportSize(375.0, 667.0);
+        await waitForPagination(container);
 
-      await controller.toggleHaptics(false);
-      await controller.toggleHaptics(true);
-      var state = container.read(readerControllerProvider(testBook));
-      expect(state.settings.enableHaptics, isTrue);
+        await controller.toggleHaptics(false);
+        await controller.toggleHaptics(true);
+        var state = container.read(readerControllerProvider(testBook));
+        expect(state.settings.enableHaptics, isTrue);
 
-      final jsonStr = prefs.getString('reader_settings');
-      expect(jsonStr, isNotNull);
-      final Map<String, dynamic> savedMap = json.decode(jsonStr!);
-      expect(savedMap['enableHaptics'], isTrue);
-    });
+        final jsonStr = prefs.getString('reader_settings');
+        expect(jsonStr, isNotNull);
+        final Map<String, dynamic> savedMap = json.decode(jsonStr!);
+        expect(savedMap['enableHaptics'], isTrue);
+      },
+    );
 
-    test('Settings: toggleSound(false) persists to SharedPreferences', () async {
-      final container = createContainer();
-      await waitForInitialization(container);
+    test(
+      'Settings: toggleSound(false) persists to SharedPreferences',
+      () async {
+        final container = createContainer();
+        await waitForInitialization(container);
 
-      final controller = container.read(
-        readerControllerProvider(testBook).notifier,
-      );
-      await controller.setViewportSize(375.0, 667.0);
-      await waitForPagination(container);
+        final controller = container.read(
+          readerControllerProvider(testBook).notifier,
+        );
+        await controller.setViewportSize(375.0, 667.0);
+        await waitForPagination(container);
 
-      await controller.toggleSound(false);
-      var state = container.read(readerControllerProvider(testBook));
-      expect(state.settings.enableSound, isFalse);
+        await controller.toggleSound(false);
+        var state = container.read(readerControllerProvider(testBook));
+        expect(state.settings.enableSound, isFalse);
 
-      final jsonStr = prefs.getString('reader_settings');
-      expect(jsonStr, isNotNull);
-      final Map<String, dynamic> savedMap = json.decode(jsonStr!);
-      expect(savedMap['enableSound'], isFalse);
-    });
+        final jsonStr = prefs.getString('reader_settings');
+        expect(jsonStr, isNotNull);
+        final Map<String, dynamic> savedMap = json.decode(jsonStr!);
+        expect(savedMap['enableSound'], isFalse);
+      },
+    );
   });
 }

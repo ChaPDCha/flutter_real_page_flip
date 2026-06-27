@@ -200,7 +200,9 @@ void main() {
       // First call populates cache
       final first = service.getChapterText(chapter);
       // Replace chapter content to verify cache is used
-      when(() => chapter.HtmlContent).thenReturn('<html><body><p>Changed.</p></body></html>');
+      when(
+        () => chapter.HtmlContent,
+      ).thenReturn('<html><body><p>Changed.</p></body></html>');
 
       // Second call should return cached value (unchanged)
       final second = service.getChapterText(chapter);

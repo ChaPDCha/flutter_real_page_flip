@@ -42,19 +42,15 @@ Future<_TestSyncController> openModal(
   await tester.pumpWidget(
     TranslationProvider(
       child: ProviderScope(
-        overrides: [
-          syncControllerProvider.overrideWith(() => controller),
-        ],
+        overrides: [syncControllerProvider.overrideWith(() => controller)],
         child: ShadTheme(
           data: ShadThemeData(),
           child: MaterialApp(
             home: Scaffold(
               body: Consumer(
                 builder: (context, ref, child) => ElevatedButton(
-                  onPressed: () => BookshelfSettingsPanel.show(
-                    context: context,
-                    ref: ref,
-                  ),
+                  onPressed: () =>
+                      BookshelfSettingsPanel.show(context: context, ref: ref),
                   child: const Text('Open'),
                 ),
               ),

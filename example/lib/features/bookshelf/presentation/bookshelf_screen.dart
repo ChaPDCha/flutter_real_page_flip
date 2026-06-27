@@ -463,7 +463,9 @@ class BookshelfScreen extends ConsumerWidget {
         ShadToaster.of(context).show(
           ShadToast.destructive(
             title: Text(l10n.bookshelf.importFailed.title),
-            description: Text('${l10n.bookshelf.importFailed.body} ${e.message ?? e.code}'),
+            description: Text(
+              '${l10n.bookshelf.importFailed.body} ${e.message ?? e.code}',
+            ),
           ),
         );
       }

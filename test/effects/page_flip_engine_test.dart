@@ -178,7 +178,8 @@ void main() {
       expect(atEndReveal, closeTo(1, 0.001));
     });
 
-    test('backward: progress is inverted so content reveals at end of backward flip',
+    test(
+        'backward: progress is inverted so content reveals at end of backward flip',
         () {
       // At backward progress=0, p=1.0 → reveal phase → 1.0.
       expect(
@@ -273,11 +274,11 @@ void main() {
       );
       // Backward and forward should produce the same result at p=0.5
       expect(
-        flapOpacityModulator(0.5, thinPaperStrength: 0.15, endRevealStrength: 0,
-            isForward: false),
+        flapOpacityModulator(0.5,
+            thinPaperStrength: 0.15, endRevealStrength: 0, isForward: false),
         closeTo(
-          flapOpacityModulator(
-              0.5, thinPaperStrength: 0.15, endRevealStrength: 0),
+          flapOpacityModulator(0.5,
+              thinPaperStrength: 0.15, endRevealStrength: 0),
           0.001,
         ),
       );

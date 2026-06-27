@@ -29,7 +29,10 @@ List<TextSpan> buildPageSpans({
   // segment can look up its highlight in O(1) instead of O(n) per segment.
   final highlightByStart = <int, Highlight>{};
   for (final hl in pageHighlights) {
-    final adjStart = (hl.startOffset - pageStartOffset).clamp(0, pageText.length);
+    final adjStart = (hl.startOffset - pageStartOffset).clamp(
+      0,
+      pageText.length,
+    );
     highlightByStart[adjStart] = hl;
   }
 
@@ -72,8 +75,10 @@ List<TextSpan> buildPageSpans({
     if (currentUserHl == null) {
       final found = highlightByStart[start];
       if (found != null) {
-        final adjEnd = (found.endOffset - pageStartOffset)
-            .clamp(0, pageText.length);
+        final adjEnd = (found.endOffset - pageStartOffset).clamp(
+          0,
+          pageText.length,
+        );
         if (end <= adjEnd) {
           currentUserHl = found;
           currentUserHlEnd = adjEnd;

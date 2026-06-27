@@ -96,7 +96,8 @@ void main() {
         );
       });
 
-      test('texturedHaptic with texture above threshold does not throw', () async {
+      test('texturedHaptic with texture above threshold does not throw',
+          () async {
         final handler = DefaultPageFlipEffectHandler();
         await Future<void>.delayed(Duration.zero);
         await handler.onHandleEffect(
@@ -108,7 +109,8 @@ void main() {
         );
       });
 
-      test('texturedHaptic with texture below threshold does not throw', () async {
+      test('texturedHaptic with texture below threshold does not throw',
+          () async {
         final handler = DefaultPageFlipEffectHandler();
         await Future<void>.delayed(Duration.zero);
         await handler.onHandleEffect(

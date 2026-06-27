@@ -51,8 +51,9 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness:
-            themeData.isDark ? Brightness.light : Brightness.dark,
+        statusBarIconBrightness: themeData.isDark
+            ? Brightness.light
+            : Brightness.dark,
       ),
     );
   }
@@ -196,10 +197,9 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                                       readerControllerProvider(widget.book),
                                     );
                                     _pageFlipController.goToPage(
-                                      isDouble &&
-                                              !readerState.isPdfLandscape
+                                      isDouble && !readerState.isPdfLandscape
                                           ? (newState.currentPageIndex / 2)
-                                              .floor()
+                                                .floor()
                                           : newState.currentPageIndex,
                                     );
                                   }
@@ -221,76 +221,88 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                                   top: topPadding,
                                   bottom: bottomPadding,
                                 ),
-                                child: Consumer(builder: (context, ref, child) {
-                                  // FIX 2C: Only rebuild PageFlipWidget when page index changes
-                                  ref.watch(readerControllerProvider(widget.book)
-                                      .select((s) => s.currentPageIndex));
-                                  final pageState = ref.read(
-                                      readerControllerProvider(widget.book));
-                                  final isDbl = pageState.isDoublePage;
-                                  return PageFlipWidget(
-                                    controller: _pageFlipController,
-                                    config: _buildPageFlipConfig(
-                                        pageState, themeData),
-                                    itemCount: isDbl
-                                        ? (pageState.isPdfLandscape
-                                              ? pageState.pages.length
-                                              : (pageState.pages.length / 2)
-                                                  .ceil())
-                                        : pageState.pages.length,
-                                    initialIndex: isDbl
-                                        ? (pageState.isPdfLandscape
-                                              ? pageState.currentPageIndex
-                                                  .clamp(
-                                                    0,
-                                                    (pageState.pages.length -
-                                                            1)
-                                                        .clamp(0, 99999),
-                                                  )
-                                              : (pageState.currentPageIndex / 2)
-                                                  .floor()
-                                                  .clamp(
-                                                    0,
-                                                    ((pageState.pages.length /
-                                                                    2)
-                                                                .ceil() -
-                                                            1)
-                                                        .clamp(0, 99999),
-                                                  ))
-                                        : (pageState.currentPageIndex <
-                                                  pageState.pages.length
-                                              ? pageState.currentPageIndex
-                                              : 0),
-                                    spreadMode: isDbl
-                                        ? PageFlipSpreadMode.doubleSpread
-                                        : PageFlipSpreadMode.single,
-                                    // Stable method reference — inline closures reset spread snapshots every build.
-                                    itemBuilder: _buildFlipSpreadPage,
-                                    onFlipStart: () {
-                                      _isFlipping = true;
-                                    },
-                                    onFlipEnd: () {
-                                      _isFlipping = false;
-                                    },
-                                    onPageChanged: (index) {
-                                      _isFlipping = false;
-                                      // Defer reader state update to post-frame so the
-                                      // PageFlipWidget fully transitions to non-drag mode
-                                      // before Riverpod triggers a rebuild of this screen.
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                            if (!mounted) return;
-                                            if (isDbl &&
-                                                !pageState.isPdfLandscape) {
-                                              controller.goToPageIndex(
-                                                  index * 2);
-                                            } else {
-                                              controller.goToPageIndex(index);
-                                            }
-                                          });
-                                    },
-                                  );
-                                }),
+                                child: Consumer(
+                                  builder: (context, ref, child) {
+                                    // FIX 2C: Only rebuild PageFlipWidget when page index changes
+                                    ref.watch(
+                                      readerControllerProvider(
+                                        widget.book,
+                                      ).select((s) => s.currentPageIndex),
+                                    );
+                                    final pageState = ref.read(
+                                      readerControllerProvider(widget.book),
+                                    );
+                                    final isDbl = pageState.isDoublePage;
+                                    return PageFlipWidget(
+                                      controller: _pageFlipController,
+                                      config: _buildPageFlipConfig(
+                                        pageState,
+                                        themeData,
+                                      ),
+                                      itemCount: isDbl
+                                          ? (pageState.isPdfLandscape
+                                                ? pageState.pages.length
+                                                : (pageState.pages.length / 2)
+                                                      .ceil())
+                                          : pageState.pages.length,
+                                      initialIndex: isDbl
+                                          ? (pageState.isPdfLandscape
+                                                ? pageState.currentPageIndex
+                                                      .clamp(
+                                                        0,
+                                                        (pageState
+                                                                    .pages
+                                                                    .length -
+                                                                1)
+                                                            .clamp(0, 99999),
+                                                      )
+                                                : (pageState.currentPageIndex /
+                                                          2)
+                                                      .floor()
+                                                      .clamp(
+                                                        0,
+                                                        ((pageState.pages.length /
+                                                                        2)
+                                                                    .ceil() -
+                                                                1)
+                                                            .clamp(0, 99999),
+                                                      ))
+                                          : (pageState.currentPageIndex <
+                                                    pageState.pages.length
+                                                ? pageState.currentPageIndex
+                                                : 0),
+                                      spreadMode: isDbl
+                                          ? PageFlipSpreadMode.doubleSpread
+                                          : PageFlipSpreadMode.single,
+                                      // Stable method reference — inline closures reset spread snapshots every build.
+                                      itemBuilder: _buildFlipSpreadPage,
+                                      onFlipStart: () {
+                                        _isFlipping = true;
+                                      },
+                                      onFlipEnd: () {
+                                        _isFlipping = false;
+                                      },
+                                      onPageChanged: (index) {
+                                        _isFlipping = false;
+                                        // Defer reader state update to post-frame so the
+                                        // PageFlipWidget fully transitions to non-drag mode
+                                        // before Riverpod triggers a rebuild of this screen.
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                              if (!mounted) return;
+                                              if (isDbl &&
+                                                  !pageState.isPdfLandscape) {
+                                                controller.goToPageIndex(
+                                                  index * 2,
+                                                );
+                                              } else {
+                                                controller.goToPageIndex(index);
+                                              }
+                                            });
+                                      },
+                                    );
+                                  },
+                                ),
                               ),
                             );
                           },
@@ -632,7 +644,10 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
 
   /// FIX 2D: Extract PageFlipConfig creation to avoid creating new objects on every build.
   /// Only invoked when the Consumer wrapping PageFlipWidget rebuilds.
-  PageFlipConfig _buildPageFlipConfig(dynamic state, ReaderThemeData themeData) {
+  PageFlipConfig _buildPageFlipConfig(
+    dynamic state,
+    ReaderThemeData themeData,
+  ) {
     return PageFlipConfig(
       enableHaptics: state.settings.enableHaptics,
       enableSound: state.settings.enableSound,

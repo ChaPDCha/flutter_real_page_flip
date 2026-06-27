@@ -30,11 +30,7 @@ List<EpubChapter> _chaptersWithLongTitle() {
 }
 
 Widget _wrapWithProviders(Widget child) {
-  return TranslationProvider(
-    child: MaterialApp(
-      home: child,
-    ),
-  );
+  return TranslationProvider(child: MaterialApp(home: child));
 }
 
 void main() {

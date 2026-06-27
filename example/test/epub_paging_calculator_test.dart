@@ -301,7 +301,8 @@ void main() {
         final text = 'Page $i content. ' * 20;
         EpubPagingCalculator.splitIntoPages(
           text: text,
-          viewportWidth: defaultWidth + i, // each is unique width → unique cache key
+          viewportWidth:
+              defaultWidth + i, // each is unique width → unique cache key
           viewportHeight: defaultHeight,
           fontSize: 16.0,
           lineHeight: 1.2,

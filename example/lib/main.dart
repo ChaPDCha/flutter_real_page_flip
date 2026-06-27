@@ -100,9 +100,7 @@ void main() async {
   runApp(
     ProviderScope(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: TranslationProvider(
-        child: const MyApp(),
-      ),
+      child: TranslationProvider(child: const MyApp()),
     ),
   );
 }

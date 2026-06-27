@@ -51,7 +51,9 @@ void main(List<String> args) async {
         .toList();
     if (lines.isEmpty) continue;
 
-    final dir = Directory('android/fastlane/metadata/android/$locale/changelogs');
+    final dir = Directory(
+      'android/fastlane/metadata/android/$locale/changelogs',
+    );
     await dir.create(recursive: true);
     final file = File('${dir.path}/$versionCode.txt');
     file.writeAsStringSync('${lines.map((l) => '• $l').join('\n')}\n');
@@ -102,19 +104,38 @@ void _updateWorkerSource(File workerFile, List<_Entry> allEntries) {
     final versionName = entry.version.split('+').first;
 
     buf.writeln("$indent$indent{");
-    buf.writeln('$indent$indent$indent' 'version: "${entry.version}",');
-    buf.writeln('$indent$indent$indent' 'versionCode: $versionCode,');
-    buf.writeln('$indent$indent$indent' 'versionName: "$versionName",');
-    buf.writeln('$indent$indent$indent' 'date: "${entry.date}",');
-    buf.writeln('$indent$indent$indent' 'ko: { changes: [${entry.items.map((i) => _tsStr(i.ko)).join(", ")}] },');
-    buf.writeln('$indent$indent$indent' 'en: { changes: [${entry.items.map((i) => _tsStr(i.en)).join(", ")}] },');
+    buf.writeln(
+      '$indent$indent$indent'
+      'version: "${entry.version}",',
+    );
+    buf.writeln(
+      '$indent$indent$indent'
+      'versionCode: $versionCode,',
+    );
+    buf.writeln(
+      '$indent$indent$indent'
+      'versionName: "$versionName",',
+    );
+    buf.writeln(
+      '$indent$indent$indent'
+      'date: "${entry.date}",',
+    );
+    buf.writeln(
+      '$indent$indent$indent'
+      'ko: { changes: [${entry.items.map((i) => _tsStr(i.ko)).join(", ")}] },',
+    );
+    buf.writeln(
+      '$indent$indent$indent'
+      'en: { changes: [${entry.items.map((i) => _tsStr(i.en)).join(", ")}] },',
+    );
     buf.writeln("$indent$indent},");
   }
 
   buf.writeln('$indent];');
   buf.writeln(endMarker);
 
-  final newSource = source.substring(0, startIdx) +
+  final newSource =
+      source.substring(0, startIdx) +
       buf.toString() +
       source.substring(endIdx + endMarker.length);
 
@@ -168,12 +189,18 @@ List<_Entry> _parseChangelog(String content) {
     final line = rawLine.trim();
 
     // Version header: ## [1.0.28+34] - 2026-06-27
-    final vMatch = RegExp(r'^##\s+\[([\d.+\-]+)\]\s*-\s*(\d{4}-\d{2}-\d{2})\s*$')
-        .firstMatch(line);
+    final vMatch = RegExp(
+      r'^##\s+\[([\d.+\-]+)\]\s*-\s*(\d{4}-\d{2}-\d{2})\s*$',
+    ).firstMatch(line);
     if (vMatch != null) {
       if (currentVersion != null) {
-        entries.add(_Entry(
-            version: currentVersion, date: currentDate!, items: List.from(items)));
+        entries.add(
+          _Entry(
+            version: currentVersion,
+            date: currentDate!,
+            items: List.from(items),
+          ),
+        );
         items.clear();
       }
       currentVersion = vMatch.group(1)!;
@@ -197,8 +224,13 @@ List<_Entry> _parseChangelog(String content) {
   }
 
   if (currentVersion != null) {
-    entries.add(_Entry(
-        version: currentVersion, date: currentDate!, items: List.from(items)));
+    entries.add(
+      _Entry(
+        version: currentVersion,
+        date: currentDate!,
+        items: List.from(items),
+      ),
+    );
   }
 
   return entries;

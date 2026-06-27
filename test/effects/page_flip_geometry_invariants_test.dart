@@ -68,7 +68,8 @@ void main() {
           isForward: true,
         );
         expect(geoDSFwd.foldX, greaterThanOrEqualTo(geoDSFwd.spineX),
-            reason: 'DS fwd progress=$p foldX=${geoDSFwd.foldX} spineX=${geoDSFwd.spineX}');
+            reason:
+                'DS fwd progress=$p foldX=${geoDSFwd.foldX} spineX=${geoDSFwd.spineX}');
         expect(geoDSFwd.foldX, lessThanOrEqualTo(size.width));
       }
     });
@@ -169,10 +170,8 @@ void main() {
 
         // In double-spread, forward's flapRightOfFold should be opposite
         // of backward's at symmetric progress
-        expect(fwd.flapRightOfFold, isFalse,
-            reason: 'DS fwd at p=$p');
-        expect(bwd.flapRightOfFold, isTrue,
-            reason: 'DS bwd at 1-p=${1-p}');
+        expect(fwd.flapRightOfFold, isFalse, reason: 'DS fwd at p=$p');
+        expect(bwd.flapRightOfFold, isTrue, reason: 'DS bwd at 1-p=${1 - p}');
       }
     });
 
@@ -229,8 +228,7 @@ void main() {
         expect(geo.shadowIntensity, greaterThanOrEqualTo(0));
         expect(geo.shadowIntensity, lessThanOrEqualTo(1));
         expect(geo.curvatureAmount, greaterThanOrEqualTo(0));
-        expect(
-            geo.transform.storage.every((v) => v.isFinite), isTrue);
+        expect(geo.transform.storage.every((v) => v.isFinite), isTrue);
       }
     });
 
