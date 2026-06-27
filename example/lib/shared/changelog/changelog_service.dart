@@ -1,11 +1,21 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Displays a "What's New" dialog when the app version changes.
+///
+/// Fetches changelog from the remote Cloudflare Worker API first.
+/// Falls back to the bundled assets/changelog.json if the network is unavailable.
 class ChangelogService {
   static const _kKey = 'last_seen_changelog_version';
+  static const _kCacheKey = 'cached_remote_changelog';
+  static const _kCacheTimeKey = 'cached_remote_changelog_at';
+  static const _cacheTtlHours = 24;
+
+  /// Remote API base — uses workers.dev (production) or localhost (debug).
+  static const _apiBase = 'https://realbook-changelog-api.musicbox26.workers.dev';
 
   /// Checks if the changelog version differs from the stored version
   /// and shows the dialog if so.
@@ -13,8 +23,9 @@ class ChangelogService {
     required BuildContext context,
     required SharedPreferences prefs,
   }) async {
-    final jsonStr = await rootBundle.loadString('assets/changelog.json');
-    final data = json.decode(jsonStr) as Map<String, dynamic>;
+    final data = await _fetchChangelog(prefs);
+    if (data == null) return;
+
     final currentVersion = data['version'] as String;
     final versionName = data['versionName'] as String? ?? currentVersion;
 
@@ -39,6 +50,56 @@ class ChangelogService {
         changes: changes,
       ),
     );
+  }
+
+  /// Fetches the latest changelog entry — remote API first, bundled fallback.
+  static Future<Map<String, dynamic>?> _fetchChangelog(
+      SharedPreferences prefs) async {
+    // Try remote API
+    try {
+      final cached = prefs.getString(_kCacheKey);
+      final cachedAt = prefs.getInt(_kCacheKey) ?? 0;
+      final age = DateTime.now().millisecondsSinceEpoch - cachedAt;
+      final isFresh = cached != null && age < _cacheTtlHours * 3600000;
+
+      if (!isFresh) {
+        final client = HttpClient();
+        try {
+          final request = await client.getUrl(
+              Uri.parse('$_apiBase/api/changelog'));
+          request.headers.set('Accept', 'application/json');
+          final response = await request
+              .close()
+              .timeout(const Duration(seconds: 5));
+
+          if (response.statusCode == 200) {
+            final body = await response.transform(utf8.decoder).join();
+            final list = json.decode(body) as List<dynamic>;
+            if (list.isNotEmpty) {
+              final latest = list.first as Map<String, dynamic>;
+              await prefs.setString(_kCacheKey, json.encode(latest));
+              await prefs.setInt(
+                  _kCacheTimeKey, DateTime.now().millisecondsSinceEpoch);
+              return latest;
+            }
+          }
+        } finally {
+          client.close();
+        }
+      } else if (cached != null) {
+        return json.decode(cached) as Map<String, dynamic>;
+      }
+    } catch (_) {
+      // Network error — fall through to bundled fallback
+    }
+
+    // Fallback: bundled JSON
+    try {
+      final jsonStr = await rootBundle.loadString('assets/changelog.json');
+      return json.decode(jsonStr) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
   }
 }
 

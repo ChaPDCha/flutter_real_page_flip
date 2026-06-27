@@ -1,4 +1,5 @@
-/// Generates Play Store changelogs and in-app changelog JSON from CHANGELOG.md.
+/// Generates Play Store changelogs, in-app changelog JSON, and Worker API source
+/// from CHANGELOG.md.
 ///
 /// Usage: dart run tool/generate_changelogs.dart [version]
 ///
@@ -8,7 +9,8 @@
 ///
 /// Outputs:
 ///   - android/fastlane/metadata/android/{lang}/changelogs/{versionCode}.txt
-///   - assets/changelog.json  (in-app what's new data)
+///   - assets/changelog.json  (in-app what's new data, bundled fallback)
+///   - workers/changelog-api/src/index.ts  (Cloudflare Worker source, remote source)
 // ignore_for_file: avoid_print
 library;
 
@@ -40,7 +42,7 @@ void main(List<String> args) async {
     return;
   }
 
-  // Generate Play Store changelogs
+  // ── Play Store changelogs ───────────────────────────────────────────────
   for (final locale in ['en-US', 'ko-KR']) {
     final lang = locale.split('-').first;
     final lines = entry.items
@@ -56,7 +58,7 @@ void main(List<String> args) async {
     stdout.writeln('  ${file.path}');
   }
 
-  // Generate in-app changelog JSON
+  // ── In-app changelog JSON (bundled fallback) ───────────────────────────
   final jsonDir = Directory('assets');
   await jsonDir.create(recursive: true);
   final jsonFile = File('${jsonDir.path}/changelog.json');
@@ -64,7 +66,63 @@ void main(List<String> args) async {
     const JsonEncoder.withIndent('  ').convert(entry.toJson()),
   );
   stdout.writeln('  ${jsonFile.path}');
+
+  // ── Cloudflare Worker source update ────────────────────────────────────
+  final workerPath = 'workers/changelog-api/src/index.ts';
+  final workerFile = File(workerPath);
+  if (workerFile.existsSync()) {
+    _updateWorkerSource(workerFile, entries);
+    stdout.writeln('  $workerPath (updated)');
+  } else {
+    stdout.writeln('  $workerPath (not found — skipping)');
+  }
 }
+
+/// Updates the Cloudflare Worker source file with all changelog entries
+/// between the START_CHANGELOGS / END_CHANGELOGS markers.
+void _updateWorkerSource(File workerFile, List<_Entry> allEntries) {
+  final source = workerFile.readAsStringSync();
+  final startMarker = '// START_CHANGELOGS';
+  final endMarker = '// END_CHANGELOGS';
+
+  final startIdx = source.indexOf(startMarker);
+  final endIdx = source.indexOf(endMarker);
+  if (startIdx == -1 || endIdx == -1) {
+    stderr.writeln('  ⚠ Cannot find markers in worker source — skipping');
+    return;
+  }
+
+  const indent = '  ';
+  final buf = StringBuffer();
+  buf.writeln('$startMarker');
+  buf.writeln('const changelogs: ChangelogEntry[] = [');
+
+  for (final entry in allEntries) {
+    final versionCode = int.tryParse(entry.version.split('+').last) ?? 0;
+    final versionName = entry.version.split('+').first;
+
+    buf.writeln("${indent}${indent}{");
+    buf.writeln('${indent}${indent}${indent}version: "${entry.version}",');
+    buf.writeln('${indent}${indent}${indent}versionCode: $versionCode,');
+    buf.writeln('${indent}${indent}${indent}versionName: "$versionName",');
+    buf.writeln('${indent}${indent}${indent}date: "${entry.date}",');
+    buf.writeln('${indent}${indent}${indent}ko: { changes: [${entry.items.map((i) => _tsStr(i.ko)).join(", ")}] },');
+    buf.writeln('${indent}${indent}${indent}en: { changes: [${entry.items.map((i) => _tsStr(i.en)).join(", ")}] },');
+    buf.writeln("${indent}${indent}},");
+  }
+
+  buf.writeln('$indent];');
+  buf.writeln('$endMarker');
+
+  final newSource = source.substring(0, startIdx) +
+      buf.toString() +
+      source.substring(endIdx + endMarker.length);
+
+  workerFile.writeAsStringSync(newSource);
+}
+
+String _tsStr(String s) =>
+    '"${s.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\n', '\\n')}"';
 
 class _Entry {
   final String version;
@@ -79,8 +137,12 @@ class _Entry {
       'versionCode': int.tryParse(version.split('+').last) ?? 0,
       'versionName': version.split('+').first,
       'date': date,
-      'ko': {'changes': items.map((i) => i.ko).where((t) => t.isNotEmpty).toList()},
-      'en': {'changes': items.map((i) => i.en).where((t) => t.isNotEmpty).toList()},
+      'ko': {
+        'changes': items.map((i) => i.ko).where((t) => t.isNotEmpty).toList(),
+      },
+      'en': {
+        'changes': items.map((i) => i.en).where((t) => t.isNotEmpty).toList(),
+      },
     };
   }
 }
@@ -110,7 +172,8 @@ List<_Entry> _parseChangelog(String content) {
         .firstMatch(line);
     if (vMatch != null) {
       if (currentVersion != null) {
-        entries.add(_Entry(version: currentVersion, date: currentDate!, items: List.from(items)));
+        entries.add(_Entry(
+            version: currentVersion, date: currentDate!, items: List.from(items)));
         items.clear();
       }
       currentVersion = vMatch.group(1)!;
@@ -134,7 +197,8 @@ List<_Entry> _parseChangelog(String content) {
   }
 
   if (currentVersion != null) {
-    entries.add(_Entry(version: currentVersion, date: currentDate!, items: List.from(items)));
+    entries.add(_Entry(
+        version: currentVersion, date: currentDate!, items: List.from(items)));
   }
 
   return entries;
