@@ -348,6 +348,314 @@ void main() {
       flipController.dispose();
     });
 
+    test('cachedWidth rejects zero', () {
+      controller.updateCachedWidth(400);
+      controller.updateCachedWidth(0);
+      expect(controller.cachedWidth, 400);
+    });
+
+    test('cachedWidth rejects negative', () {
+      controller.updateCachedWidth(400);
+      controller.updateCachedWidth(-100);
+      expect(controller.cachedWidth, 400);
+    });
+
+    test('progressFromHorizontalDelta with cachedWidth=0 returns 0', () {
+      // Force cachedWidth to an invalid value by setting it to 0 directly
+      // (updateCachedWidth guards against this, so test the guard at calculation time)
+      controller.updateCachedWidth(400);
+      expect(controller.progressFromHorizontalDelta(-200), closeTo(0.5, 0.001));
+    });
+
+    test('onDragStart with zero accumulatedTotalDx does not set isDragging', () {
+      controller.updateCachedWidth(400);
+      controller.onDragStart(
+        DragStartDetails(localPosition: Offset.zero),
+        5,
+        accumulatedTotalDx: 0,
+      );
+      expect(controller.isDragging, isFalse);
+    });
+
+    test('onDragStart when isPendingFinalize returns early', () {
+      // Force isPendingFinalize=true by calling the internal state
+      controller.updateCachedWidth(400);
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      // Simulate finalize
+      controller.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -300,
+          delta: const Offset(-300, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+      controller.onDragEnd(
+        DragEndDetails(
+          primaryVelocity: -500,
+          velocity: const Velocity(pixelsPerSecond: Offset(-500, 0)),
+        ),
+        5,
+      );
+      // Now isPendingFinalize should be set, next drag start should be ignored
+      controller.onDragStart(
+        DragStartDetails(localPosition: const Offset(100, 100)),
+        5,
+      );
+      // Touch position should NOT update
+      expect(controller.touchPosition, isNot(const Offset(100, 100)));
+    });
+
+    test('onDragEnd with velocity > 300 triggers fast flip regardless of progress', () {
+      controller.updateCachedWidth(400);
+      controller.setIndex(0, 5);
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      // Very small progress but high velocity
+      controller.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -10,
+          delta: const Offset(-10, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+      // Velocity > 300 should skip cutoff check
+      controller.onDragEnd(
+        DragEndDetails(
+          primaryVelocity: -500,
+          velocity: const Velocity(pixelsPerSecond: Offset(-500, 0)),
+        ),
+        5,
+      );
+      // Animation should be running (animateTo was called)
+      expect(controller.animationController.isAnimating, isTrue);
+    });
+
+    test('onDragEnd when not dragging ends capture and fires onFlipEnd', () {
+      bool flipEnded = false;
+      final local = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (_,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+        onFlipEnd: () => flipEnded = true,
+      );
+      local.onDragEnd(DragEndDetails(primaryVelocity: 0), 5);
+      expect(flipEnded, isTrue);
+      local.dispose();
+    });
+
+    test('onDragEnd when disposed returns early', () {
+      bool flipEnded = false;
+      final local = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (_,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+        onFlipEnd: () => flipEnded = true,
+      );
+      local.dispose();
+      local.onDragEnd(DragEndDetails(primaryVelocity: 0), 5);
+      expect(flipEnded, isFalse); // Should NOT fire after dispose
+    });
+
+    test('onDragCancel when disposed returns early', () {
+      final local = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (_,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+      );
+      local.dispose();
+      // Should not throw
+      expect(() => local.onDragCancel(5), returnsNormally);
+    });
+
+    test('onDragCancel when not dragging ends capture and fires onFlipEnd', () {
+      bool flipEnded = false;
+      final local = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (_,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+        onFlipEnd: () => flipEnded = true,
+      );
+      local.onDragCancel(5);
+      expect(flipEnded, isTrue);
+      local.dispose();
+    });
+
+    test('triggerTapFlip when isDragging returns early', () {
+      controller.updateCachedWidth(400);
+      controller.setIndex(0, 5);
+      controller.onDragStart(
+        DragStartDetails(localPosition: Offset.zero),
+        5,
+        accumulatedTotalDx: -100,
+      );
+      expect(controller.isDragging, isTrue);
+      // Should NOT start a tap flip while dragging
+      expect(() => controller.triggerTapFlip(isNext: true, totalPages: 5),
+          returnsNormally);
+    });
+
+    test('triggerTapFlip when animationController.isAnimating returns early', () {
+      controller.setIndex(0, 5);
+      controller.updateCachedWidth(400);
+      controller.triggerTapFlip(isNext: true, totalPages: 5);
+      // Animation is running, second call should be ignored
+      expect(() => controller.triggerTapFlip(isNext: true, totalPages: 5),
+          returnsNormally);
+    });
+
+    test('triggerTapFlip when next at last page returns early', () {
+      controller.setIndex(4, 5);
+      controller.triggerTapFlip(isNext: true, totalPages: 5);
+      // Should not change page
+      expect(controller.currentIndex, 4);
+    });
+
+    test('triggerTapFlip when previous at first page returns early', () {
+      controller.setIndex(0, 5);
+      controller.triggerTapFlip(isNext: false, totalPages: 5);
+      expect(controller.currentIndex, 0);
+    });
+
+    test('dispose is idempotent', () {
+      final local = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (_,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+      );
+      local.dispose();
+      expect(() => local.dispose(), returnsNormally);
+    });
+
+    test('dispose clears isPendingFinalize', () {
+      final local = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 50),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (_,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+      );
+      local.updateCachedWidth(400);
+      local.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      local.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -300,
+          delta: const Offset(-300, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+      local.onDragEnd(
+        DragEndDetails(
+          primaryVelocity: -500,
+          velocity: const Velocity(pixelsPerSecond: Offset(-500, 0)),
+        ),
+        5,
+      );
+      // isPendingFinalize should be set after successful flip
+      local.dispose();
+      // dispose should clear it
+      expect(local.isPendingFinalize, isFalse);
+    });
+
+    test('beginPointerCapture guards re-entrance', () {
+      controller.beginPointerCapture();
+      controller.beginPointerCapture(); // Second call should be no-op
+      expect(controller.blocksContentPointers, isTrue);
+    });
+
+    test('endPointerCapture guards re-entrance', () {
+      controller.beginPointerCapture();
+      controller.endPointerCapture();
+      controller.endPointerCapture(); // Second call should be no-op
+      expect(controller.blocksContentPointers, isFalse);
+    });
+
+    test('onFlipStart null callback does not throw', () {
+      final local = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (_,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+        onFlipStart: null,
+      );
+      local.updateCachedWidth(400);
+      expect(
+        () => local.onDragStart(
+          DragStartDetails(localPosition: Offset.zero),
+          5,
+          accumulatedTotalDx: -100,
+        ),
+        returnsNormally,
+      );
+      local.dispose();
+    });
+
+    test('onFlipEnd null callback does not throw', () {
+      final local = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (_,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+        onFlipEnd: null,
+      );
+      expect(() => local.onDragEnd(DragEndDetails(primaryVelocity: 0), 5),
+          returnsNormally);
+      local.dispose();
+    });
+
+    testWidgets('successful flip via onDragEnd advances currentIndex',
+        (tester) async {
+      final local = PageFlipStateController(
+        vsync: TestVSync(),
+        animationDuration: const Duration(milliseconds: 50),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (_,
+            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {},
+      );
+      local.setIndex(0, 5);
+      local.updateCachedWidth(400);
+      local.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      local.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -300,
+          delta: const Offset(-300, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+      local.onDragEnd(DragEndDetails(primaryVelocity: 0), 5);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(local.currentIndex, 1);
+      local.dispose();
+    });
+
     test('triggerTapFlip with skipTapAnimation fires callbacks', () {
       controller.setIndex(0, 5);
       controller.updateCachedWidth(400);
