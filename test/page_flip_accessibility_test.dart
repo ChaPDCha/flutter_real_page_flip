@@ -11,8 +11,7 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             itemCount: 5,
-            itemBuilder: (context, index) =>
-                Center(child: Text('Page $index')),
+            itemBuilder: (context, index) => Center(child: Text('Page $index')),
           ),
         ),
       );
@@ -29,10 +28,10 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             itemCount: 5,
-            itemBuilder: (context, index) =>
-                Center(child: Text('Page $index')),
+            itemBuilder: (context, index) => Center(child: Text('Page $index')),
             config: PageFlipConfig(
-              semanticBuilder: (index, total) => 'Chapter ${index + 1} of $total',
+              semanticBuilder: (index, total) =>
+                  'Chapter ${index + 1} of $total',
             ),
           ),
         ),
@@ -49,8 +48,7 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             itemCount: 3,
-            itemBuilder: (context, index) =>
-                Center(child: Text('Page $index')),
+            itemBuilder: (context, index) => Center(child: Text('Page $index')),
           ),
         ),
       );
@@ -69,8 +67,7 @@ void main() {
           home: PageFlipWidget(
             itemCount: 3,
             initialIndex: 2,
-            itemBuilder: (context, index) =>
-                Center(child: Text('Page $index')),
+            itemBuilder: (context, index) => Center(child: Text('Page $index')),
             onPageChanged: (index) => changedIndex = index,
           ),
         ),
@@ -86,8 +83,7 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             itemCount: 5,
-            itemBuilder: (context, index) =>
-                Center(child: Text('Page $index')),
+            itemBuilder: (context, index) => Center(child: Text('Page $index')),
             config: const PageFlipConfig(
               edgeTapPreviousLabel: '이전',
               edgeTapNextLabel: '다음',
@@ -108,8 +104,7 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             itemCount: 5,
-            itemBuilder: (context, index) =>
-                Center(child: Text('Page $index')),
+            itemBuilder: (context, index) => Center(child: Text('Page $index')),
             config: const PageFlipConfig(
               edgeTapPreviousHint: 'Go back one page',
               edgeTapNextHint: 'Go forward one page',
@@ -148,8 +143,7 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             itemCount: 5,
-            itemBuilder: (context, index) =>
-                Center(child: Text('Page $index')),
+            itemBuilder: (context, index) => Center(child: Text('Page $index')),
             config: const PageFlipConfig(
               edgeTapWidthRatio: 0.3,
             ),

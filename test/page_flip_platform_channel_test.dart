@@ -97,7 +97,8 @@ void main() {
       expect(calls[0].method, 'playSystemLight');
     });
 
-    test('playTransient PlatformException falls back to system haptic', () async {
+    test('playTransient PlatformException falls back to system haptic',
+        () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(hapticChannel, (_) async {
         throw PlatformException(code: 'ERROR');

@@ -225,7 +225,8 @@ void main() {
       expect(changedSpread, 1);
     });
 
-    testWidgets('isRightSwipe: leftward swipe goes to next spread', (tester) async {
+    testWidgets('isRightSwipe: leftward swipe goes to next spread',
+        (tester) async {
       int changedSpread = -1;
 
       await tester.pumpWidget(

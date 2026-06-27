@@ -110,8 +110,7 @@ void main() {
         home: Scaffold(
           body: PageFlipWidget(
             itemCount: 10,
-            itemBuilder: (context, index) =>
-                Center(child: Text('Page $index')),
+            itemBuilder: (context, index) => Center(child: Text('Page $index')),
             onPageChanged: (index) => currentIndex = index,
             config: const PageFlipConfig(
               duration: Duration(milliseconds: 50),
@@ -187,8 +186,7 @@ void main() {
         home: Scaffold(
           body: PageFlipWidget(
             itemCount: 10,
-            itemBuilder: (context, index) =>
-                Center(child: Text('Page $index')),
+            itemBuilder: (context, index) => Center(child: Text('Page $index')),
             onPageChanged: (index) => lastIndex = index,
             config: const PageFlipConfig(
               duration: Duration(milliseconds: 50),
