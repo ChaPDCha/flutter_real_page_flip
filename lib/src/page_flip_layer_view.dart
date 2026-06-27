@@ -344,7 +344,25 @@ class PageFlipLayerView extends StatelessWidget {
         // Layer 1: Bottom (revealed page behind the fold)
         ClipPath(
           clipper: bottomClipper,
-          child: bottomLayerContent,
+          child: (() {
+            Widget child = bottomLayerContent;
+            // Apply fade-in to the destination page on the bottom layer.
+            // Single backward mode uses the bottom layer for the CURRENT page (origin), not destination.
+            if (isDoubleSpread || isForward) {
+              double opacity = 1.0;
+              if (floatProgress < flapContentRevealStart) {
+                opacity = 0.0;
+              } else if (floatProgress >= flapContentRevealEnd) {
+                opacity = 1.0;
+              } else {
+                final t = (floatProgress - flapContentRevealStart) /
+                    (flapContentRevealEnd - flapContentRevealStart);
+                opacity = t * t * (3 - 2 * t);
+              }
+              child = Opacity(opacity: opacity, child: child);
+            }
+            return child;
+          })(),
         ),
         // Layer 2: Middle (stationary content clipped to fold)
         _buildMiddleLayer(
