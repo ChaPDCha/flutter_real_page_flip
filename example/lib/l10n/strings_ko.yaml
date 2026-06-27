@@ -51,6 +51,7 @@ readerSettings:
   brightness: "화면 밝기"
   font: "글꼴"
   haptics: "햅틱 피드백"
+  doublePage: "2단 보기"
   texture: "종이 질감"
   sound: "소리 효과"
   done: "설정 완료"

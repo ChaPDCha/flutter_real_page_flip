@@ -28,6 +28,7 @@ mixin _$ReaderSettings {
   double get brightness => throw _privateConstructorUsedError;
   String? get fontFamily => throw _privateConstructorUsedError;
   String get hapticTexturePresetName => throw _privateConstructorUsedError;
+  bool get enableDoublePage => throw _privateConstructorUsedError;
 
   /// Serializes this ReaderSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -54,6 +55,7 @@ abstract class $ReaderSettingsCopyWith<$Res> {
     double brightness,
     String? fontFamily,
     String hapticTexturePresetName,
+    bool enableDoublePage,
   });
 }
 
@@ -79,6 +81,7 @@ class _$ReaderSettingsCopyWithImpl<$Res, $Val extends ReaderSettings>
     Object? brightness = null,
     Object? fontFamily = freezed,
     Object? hapticTexturePresetName = null,
+    Object? enableDoublePage = null,
   }) {
     return _then(
       _value.copyWith(
@@ -110,6 +113,10 @@ class _$ReaderSettingsCopyWithImpl<$Res, $Val extends ReaderSettings>
                 ? _value.hapticTexturePresetName
                 : hapticTexturePresetName // ignore: cast_nullable_to_non_nullable
                       as String,
+            enableDoublePage: null == enableDoublePage
+                ? _value.enableDoublePage
+                : enableDoublePage // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -133,6 +140,7 @@ abstract class _$$ReaderSettingsImplCopyWith<$Res>
     double brightness,
     String? fontFamily,
     String hapticTexturePresetName,
+    bool enableDoublePage,
   });
 }
 
@@ -157,6 +165,7 @@ class __$$ReaderSettingsImplCopyWithImpl<$Res>
     Object? brightness = null,
     Object? fontFamily = freezed,
     Object? hapticTexturePresetName = null,
+    Object? enableDoublePage = null,
   }) {
     return _then(
       _$ReaderSettingsImpl(
@@ -188,6 +197,10 @@ class __$$ReaderSettingsImplCopyWithImpl<$Res>
             ? _value.hapticTexturePresetName
             : hapticTexturePresetName // ignore: cast_nullable_to_non_nullable
                   as String,
+        enableDoublePage: null == enableDoublePage
+            ? _value.enableDoublePage
+            : enableDoublePage // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -204,6 +217,7 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
     this.brightness = 1.0,
     this.fontFamily,
     this.hapticTexturePresetName = 'standard',
+    this.enableDoublePage = false,
   });
 
   factory _$ReaderSettingsImpl.fromJson(Map<String, dynamic> json) =>
@@ -229,10 +243,13 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
   @override
   @JsonKey()
   final String hapticTexturePresetName;
+  @override
+  @JsonKey()
+  final bool enableDoublePage;
 
   @override
   String toString() {
-    return 'ReaderSettings(fontSize: $fontSize, lineHeight: $lineHeight, enableHaptics: $enableHaptics, enableSound: $enableSound, brightness: $brightness, fontFamily: $fontFamily, hapticTexturePresetName: $hapticTexturePresetName)';
+    return 'ReaderSettings(fontSize: $fontSize, lineHeight: $lineHeight, enableHaptics: $enableHaptics, enableSound: $enableSound, brightness: $brightness, fontFamily: $fontFamily, hapticTexturePresetName: $hapticTexturePresetName, enableDoublePage: $enableDoublePage)';
   }
 
   @override
@@ -252,8 +269,13 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
                 other.brightness == brightness) &&
             (identical(other.fontFamily, fontFamily) ||
                 other.fontFamily == fontFamily) &&
-            (identical(other.hapticTexturePresetName, hapticTexturePresetName) ||
-                other.hapticTexturePresetName == hapticTexturePresetName));
+            (identical(
+                  other.hapticTexturePresetName,
+                  hapticTexturePresetName,
+                ) ||
+                other.hapticTexturePresetName == hapticTexturePresetName) &&
+            (identical(other.enableDoublePage, enableDoublePage) ||
+                other.enableDoublePage == enableDoublePage));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -267,6 +289,7 @@ class _$ReaderSettingsImpl implements _ReaderSettings {
     brightness,
     fontFamily,
     hapticTexturePresetName,
+    enableDoublePage,
   );
 
   /// Create a copy of ReaderSettings
@@ -295,6 +318,7 @@ abstract class _ReaderSettings implements ReaderSettings {
     final double brightness,
     final String? fontFamily,
     final String hapticTexturePresetName,
+    final bool enableDoublePage,
   }) = _$ReaderSettingsImpl;
 
   factory _ReaderSettings.fromJson(Map<String, dynamic> json) =
@@ -314,6 +338,8 @@ abstract class _ReaderSettings implements ReaderSettings {
   String? get fontFamily;
   @override
   String get hapticTexturePresetName;
+  @override
+  bool get enableDoublePage;
 
   /// Create a copy of ReaderSettings
   /// with the given fields replaced by the non-null parameter values.

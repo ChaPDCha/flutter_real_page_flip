@@ -16,6 +16,7 @@ _$ReaderSettingsImpl _$$ReaderSettingsImplFromJson(Map<String, dynamic> json) =>
       fontFamily: json['fontFamily'] as String?,
       hapticTexturePresetName:
           json['hapticTexturePresetName'] as String? ?? 'standard',
+      enableDoublePage: json['enableDoublePage'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$ReaderSettingsImplToJson(
@@ -28,4 +29,5 @@ Map<String, dynamic> _$$ReaderSettingsImplToJson(
   'brightness': instance.brightness,
   'fontFamily': instance.fontFamily,
   'hapticTexturePresetName': instance.hapticTexturePresetName,
+  'enableDoublePage': instance.enableDoublePage,
 };
