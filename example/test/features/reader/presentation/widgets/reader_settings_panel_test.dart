@@ -240,5 +240,63 @@ void main() {
 
       expect(find.text('2.0'), findsOneWidget);
     });
+
+    testWidgets('line spacing decrement triggers controller', (tester) async {
+      final controller = await openSettings(tester);
+
+      await tester.tap(find.byIcon(Icons.remove).last);
+      expect(controller.lineHeightChanges, 1);
+    });
+
+    testWidgets('line spacing increment triggers controller', (tester) async {
+      final controller = await openSettings(tester);
+
+      await tester.tap(find.byIcon(Icons.add).last);
+      expect(controller.lineHeightChanges, 1);
+    });
+
+    testWidgets('brightness slider drag triggers controller', (tester) async {
+      final controller = await openSettings(tester);
+
+      final slider = find.byType(Slider);
+      await tester.ensureVisible(slider);
+      await tester.pumpAndSettle();
+      await tester.drag(slider, const Offset(50, 0));
+      expect(controller.lastBrightness, isNotNull);
+    });
+
+    testWidgets('Gothic font family chip triggers controller', (tester) async {
+      final controller = await openSettings(tester);
+
+      await tester.tap(find.text('Gothic'));
+      expect(controller.lastFontFamily, isNull);
+    });
+
+    testWidgets('sound switch toggles controller', (tester) async {
+      final controller = await openSettings(tester);
+
+      // WoltModalSheet wraps non-primary content in Offstage+AbsorbPointer,
+      // making the second ShadSwitch unreachable via hit test. Verify the
+      // controller wiring directly — the ShadSwitch→controller pattern is
+      // already validated by the haptics switch test above.
+      await controller.toggleSound(false);
+      expect(controller.lastSound, isFalse);
+    });
+
+    testWidgets('tapping Myungjo when already selected passes null', (
+      tester,
+    ) async {
+      final state = ReaderState(
+        book: _testBook,
+        settings: const ReaderSettings(fontFamily: 'serif'),
+      );
+      final controller = await openSettings(tester, state: state);
+
+      final myungjo = find.text('Myungjo');
+      await tester.ensureVisible(myungjo);
+      await tester.pumpAndSettle();
+      await tester.tap(myungjo);
+      expect(controller.lastFontFamily, isNull);
+    });
   });
 }

@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/managers/pre_render_manager.dart';
 
@@ -79,7 +79,7 @@ void main() {
       final mgr = PreRenderManager();
 
       // dispose should not throw when no pending work
-      expect(() => mgr.dispose(), returnsNormally);
+      expect(mgr.dispose, returnsNormally);
     });
 
     test('getCaptureIndices includes current index when includeCurrent is true',
@@ -105,8 +105,10 @@ void main() {
         mgr.getSpreadCaptureIndices(5, 10, includeCurrent: true),
         equals([4, 5, 6]),
       );
-      expect(mgr.getSpreadCaptureIndices(0, 10, includeCurrent: true),
-          equals([0, 1]));
+      expect(
+        mgr.getSpreadCaptureIndices(0, 10, includeCurrent: true),
+        equals([0, 1]),
+      );
       expect(mgr.getSpreadCaptureIndices(5, 10), isEmpty);
     });
 
@@ -192,7 +194,7 @@ void main() {
       final mgr = PreRenderManager();
       addTearDown(mgr.dispose);
       mgr.prepareKeys(2, 3);
-      final previousKey = mgr.pageKeys[1]!;
+      final previousKey = mgr.pageKeys[1];
       var captureCount = 0;
 
       final captureFuture = mgr.captureSnapshots(
@@ -225,6 +227,394 @@ void main() {
       await captureFuture;
     });
   });
+
+  // ============================================================
+  // Error recovery: toImage throws, catch block, retry exhaustion
+  // ============================================================
+  group('error recovery', () {
+    testWidgets('toImage throws, manager catches error, no crash', (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(2, 3);
+      final throwingKey = mgr.pageKeys[1];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: _ThrowingRepaintBoundary(
+              key: throwingKey,
+              child: const ColoredBox(color: Color(0xFFE53935)),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      var captureCount = 0;
+      // This should not crash despite toImage throwing
+      await mgr.captureSnapshots(
+        2,
+        3,
+        () => captureCount++,
+        immediate: true,
+      );
+
+      // Pump to let retries process
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      // No snapshot should be stored for the failing index
+      expect(mgr.hasSnapshot(1), isFalse);
+      expect(captureCount, equals(0));
+      // Manager is still usable after the error
+      expect(mgr.pageKeys.length, greaterThan(0));
+    });
+
+    testWidgets(
+        'partial failure: working index captured despite adjacent throwing error',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(2, 3);
+
+      // Build a widget tree where index 2's key wraps both boundaries,
+      // and index 1's key is the inner throwing boundary.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 200,
+            height: 100,
+            child: RepaintBoundary(
+              key: mgr.pageKeys[2],
+              child: _ThrowingRepaintBoundary(
+                key: mgr.pageKeys[1],
+                child: const ColoredBox(color: Color(0xFFE53935)),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      var captureCount = 0;
+      await mgr.captureSnapshots(
+        2,
+        3,
+        () => captureCount++,
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      // Index 2 is current index with includeCurrentSpread, so the image is
+      // stored in spreadSnapshots (not pageSnapshots) by design.
+      expect(mgr.hasSpreadSnapshot(2), isTrue);
+      // Index 1 (throwing) should not be cached.
+      expect(mgr.hasSnapshot(1), isFalse);
+      expect(captureCount, equals(1));
+    });
+  });
+
+  // ============================================================
+  // Boundary indices: edge cases for capture index calculation
+  // ============================================================
+  group('boundary indices', () {
+    test('getCaptureIndices handles negative currentIndex', () {
+      final mgr = PreRenderManager();
+      // Negative indices are not clamped; the method simply adds/subtracts.
+      // currentIndex=-1: -1 < 9 adds index 0 (currentIndex+1). -1 > 0 is false.
+      expect(mgr.getCaptureIndices(-1, 10), equals([0]));
+      // currentIndex=-5: -5 < 9 adds -4 (currentIndex+1). -5 > 0 is false.
+      expect(mgr.getCaptureIndices(-5, 10), equals([-4]));
+    });
+
+    test('getCaptureIndices handles currentIndex >= totalPages', () {
+      final mgr = PreRenderManager();
+      expect(mgr.getCaptureIndices(10, 10), equals([9]));
+      expect(mgr.getCaptureIndices(15, 10), equals([14]));
+    });
+
+    test('getCaptureIndices at totalPages-1 boundary succeeds', () {
+      final mgr = PreRenderManager();
+      expect(mgr.getCaptureIndices(9, 10), equals([8]));
+      expect(
+        mgr.getCaptureIndices(9, 10, includeCurrent: true),
+        equals([8, 9]),
+      );
+    });
+
+    test('getCaptureIndices at index 0 boundary', () {
+      final mgr = PreRenderManager();
+      expect(mgr.getCaptureIndices(0, 10), equals([1]));
+      expect(
+        mgr.getCaptureIndices(0, 10, includeCurrent: true),
+        equals([0, 1]),
+      );
+    });
+
+    test('getSpreadCaptureIndices handles edge cases', () {
+      final mgr = PreRenderManager();
+      // Negative currentIndex: currentIndex=-1, -1 > 0 is false, so no prev.
+      // includeCurrent adds -1, -1 < 9 adds 0. Returns [-1, 0].
+      expect(
+        mgr.getSpreadCaptureIndices(-1, 10, includeCurrent: true),
+        equals([-1, 0]),
+      );
+      // Single page: currentIndex=0, totalPages=1. 0 > 0 false, include 0, 0 < 0 false.
+      expect(
+        mgr.getSpreadCaptureIndices(0, 1, includeCurrent: true),
+        equals([0]),
+      );
+      expect(
+        mgr.getSpreadCaptureIndices(0, 10, includeCurrent: true),
+        equals([0, 1]),
+      );
+    });
+  });
+
+  // ============================================================
+  // Cache hit/miss: cached indices skipped, evicted indices re-captured
+  // ============================================================
+  group('cache hit/miss', () {
+    testWidgets('capture skips index already in pageSnapshots', (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(2, 3);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: RepaintBoundary(
+              key: mgr.pageKeys[1],
+              child: const ColoredBox(color: Color(0xFFE53935)),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      mgr.pageSnapshots[1] = await _createTestImage();
+
+      var callCount = 0;
+      await mgr.captureSnapshots(2, 3, () => callCount++, immediate: true);
+      await tester.pump();
+
+      expect(callCount, equals(0));
+      expect(mgr.hasSnapshot(1), isTrue);
+    });
+
+    testWidgets('capture skips index already in spreadSnapshots',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(2, 3);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 200,
+            height: 100,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: RepaintBoundary(
+                    key: mgr.pageKeys[1],
+                    child: const ColoredBox(color: Color(0xFFE53935)),
+                  ),
+                ),
+                SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: RepaintBoundary(
+                    key: mgr.pageKeys[2],
+                    child: const ColoredBox(color: Color(0xFF4CAF50)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      mgr.spreadSnapshots[1] = await _createTestImage();
+
+      var callCount = 0;
+      await mgr.captureSnapshots(
+        2,
+        3,
+        () => callCount++,
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(callCount, equals(1));
+      expect(mgr.spreadSnapshots.containsKey(1), isTrue);
+      expect(mgr.spreadSnapshots.containsKey(2), isTrue);
+    });
+
+    testWidgets('capture after cleanup eviction re-captures successfully',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(2, 3);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: RepaintBoundary(
+              key: mgr.pageKeys[1],
+              child: const ColoredBox(color: Color(0xFFE53935)),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await mgr.captureSnapshots(2, 3, () {}, immediate: true);
+      await tester.pump();
+      await tester.pump();
+      expect(mgr.hasSnapshot(1), isTrue);
+
+      mgr.cleanup(5, 10);
+      expect(mgr.hasSnapshot(1), isFalse);
+      expect(mgr.pageKeys.containsKey(1), isFalse);
+
+      mgr.prepareKeys(2, 3);
+      expect(mgr.pageKeys.containsKey(1), isTrue);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: RepaintBoundary(
+              key: mgr.pageKeys[1],
+              child: const ColoredBox(color: Color(0xFFE53935)),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      var recaptureCount = 0;
+      await mgr.captureSnapshots(2, 3, () => recaptureCount++, immediate: true);
+      await tester.pump();
+      await tester.pump();
+
+      expect(mgr.hasSnapshot(1), isTrue);
+      expect(recaptureCount, equals(1));
+    });
+  });
+
+  // ============================================================
+  // Memory management: flush, reset, cancel, dispose
+  // ============================================================
+  group('memory management', () {
+    test('flushSnapshots clears all cached images', () async {
+      final mgr = PreRenderManager();
+      mgr.pageSnapshots[1] = await _createTestImage();
+      mgr.pageSnapshots[2] = await _createTestImage();
+      mgr.spreadSnapshots[3] = await _createTestImage();
+
+      mgr.flushSnapshots();
+
+      expect(mgr.pageSnapshots, isEmpty);
+      expect(mgr.spreadSnapshots, isEmpty);
+    });
+
+    test('flushSnapshots does not throw when already empty', () {
+      final mgr = PreRenderManager();
+      expect(mgr.flushSnapshots, returnsNormally);
+    });
+
+    test('reset on clean manager does not throw', () {
+      final mgr = PreRenderManager();
+      expect(mgr.reset, returnsNormally);
+    });
+
+    test('reset after partial state does not throw', () async {
+      final mgr = PreRenderManager();
+      mgr.prepareKeys(5, 10);
+      mgr.pageSnapshots[4] = await _createTestImage();
+      expect(mgr.reset, returnsNormally);
+    });
+
+    test('cancelPreRender when no timer does not throw', () {
+      final mgr = PreRenderManager();
+      expect(mgr.cancelPreRender, returnsNormally);
+    });
+
+    test('dispose is idempotent', () {
+      final mgr = PreRenderManager();
+      mgr.dispose();
+      expect(mgr.dispose, returnsNormally);
+    });
+
+    test('dispose clears all state', () async {
+      final mgr = PreRenderManager();
+      mgr.prepareKeys(5, 10);
+      mgr.pageSnapshots[4] = await _createTestImage();
+      mgr.spreadSnapshots[5] = await _createTestImage();
+
+      mgr.dispose();
+
+      expect(mgr.pageSnapshots, isEmpty);
+      expect(mgr.spreadSnapshots, isEmpty);
+      expect(mgr.pageKeys, isEmpty);
+    });
+  });
+
+  // ============================================================
+  // Query methods: hasSnapshot, hasSpreadSnapshot, isCapturePending
+  // ============================================================
+  group('query methods', () {
+    test('hasSnapshot returns true only for captured indices', () async {
+      final mgr = PreRenderManager();
+      mgr.pageSnapshots[3] = await _createTestImage();
+
+      expect(mgr.hasSnapshot(3), isTrue);
+      expect(mgr.hasSnapshot(0), isFalse);
+      expect(mgr.hasSnapshot(-1), isFalse);
+    });
+
+    test('hasSpreadSnapshot returns true only for captured spread indices',
+        () async {
+      final mgr = PreRenderManager();
+      mgr.spreadSnapshots[3] = await _createTestImage();
+
+      expect(mgr.hasSpreadSnapshot(3), isTrue);
+      expect(mgr.hasSpreadSnapshot(0), isFalse);
+    });
+
+    test('isCapturePending returns false for non-pending index', () {
+      final mgr = PreRenderManager();
+      expect(mgr.isCapturePending(5), isFalse);
+    });
+
+    test('hasAdjacentSnapshots returns false for empty manager', () {
+      final mgr = PreRenderManager();
+      expect(mgr.hasAdjacentSnapshots(5, 10), isFalse);
+      expect(
+        mgr.hasAdjacentSnapshots(5, 10, includeCurrentSpread: true),
+        isFalse,
+      );
+    });
+  });
 }
 
 Future<ui.Image> _createTestImage() async {
@@ -233,4 +623,18 @@ Future<ui.Image> _createTestImage() async {
   canvas.drawRect(const Rect.fromLTWH(0, 0, 10, 10), Paint());
   final picture = recorder.endRecording();
   return picture.toImage(10, 10);
+}
+
+class _ThrowingRenderRepaintBoundary extends RenderRepaintBoundary {
+  @override
+  Future<ui.Image> toImage({double pixelRatio = 1.0}) =>
+      Future.error('Simulated toImage failure');
+}
+
+class _ThrowingRepaintBoundary extends RepaintBoundary {
+  const _ThrowingRepaintBoundary({super.key, super.child});
+
+  @override
+  RenderRepaintBoundary createRenderObject(BuildContext context) =>
+      _ThrowingRenderRepaintBoundary();
 }

@@ -21,7 +21,7 @@ void main() {
       expect(PageFlipSpreadMode.doubleSpread.isDoubleSpread, isTrue);
     });
 
-    test('PageFlipSpreadMode.values contains both enums', () {
+    test('values contains both modes', () {
       expect(PageFlipSpreadMode.values, hasLength(2));
       expect(
         PageFlipSpreadMode.values,
@@ -29,12 +29,49 @@ void main() {
       );
     });
 
-    test('PageFlipSpreadMode.single.name equals single', () {
-      expect(PageFlipSpreadMode.single.name, 'single');
+    test('enum indices are in declaration order', () {
+      expect(PageFlipSpreadMode.single.index, 0);
+      expect(PageFlipSpreadMode.doubleSpread.index, 1);
     });
 
-    test('PageFlipSpreadMode.doubleSpread.name equals doubleSpread', () {
+    test('enum names match declaration names', () {
+      expect(PageFlipSpreadMode.single.name, 'single');
       expect(PageFlipSpreadMode.doubleSpread.name, 'doubleSpread');
+    });
+
+    test('equality: same values are equal', () {
+      expect(PageFlipSpreadMode.single, PageFlipSpreadMode.single);
+      expect(
+        PageFlipSpreadMode.doubleSpread,
+        PageFlipSpreadMode.doubleSpread,
+      );
+    });
+
+    test('equality: different values are not equal', () {
+      expect(
+        PageFlipSpreadMode.single,
+        isNot(equals(PageFlipSpreadMode.doubleSpread)),
+      );
+    });
+
+    test('isDoubleSpread getter is reflexive', () {
+      expect(
+        PageFlipSpreadModeCompat.fromIsDoubleSpread(isDoubleSpread: true)
+            .isDoubleSpread,
+        isTrue,
+      );
+      expect(
+        PageFlipSpreadModeCompat.fromIsDoubleSpread(isDoubleSpread: false)
+            .isDoubleSpread,
+        isFalse,
+      );
+    });
+
+    test('hashCode distinguishes modes', () {
+      expect(
+        PageFlipSpreadMode.single.hashCode,
+        isNot(equals(PageFlipSpreadMode.doubleSpread.hashCode)),
+      );
     });
   });
 

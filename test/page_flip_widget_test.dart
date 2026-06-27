@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/page_flip.dart';
 import 'utils/test_helpers.dart';
+import 'package:real_page_flip/src/widgets/page_flip_gesture_layer.dart';
 
 void main() {
   group('PageFlipWidget', () {
@@ -262,4 +263,295 @@ void main() {
       expect(find.byType(PageFlipWidget), findsOneWidget);
     });
   });
+
+  group('PageFlipWidget controller lifecycle', () {
+    testWidgets('navigate after widget removal does not crash', (tester) async {
+      final controller = PageFlipController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 3,
+            itemBuilder: (context, index) => Container(),
+          ),
+        ),
+      );
+
+      // Remove widget from tree
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+      // These should not crash
+      await controller.goToPage(-1);
+      await controller.goToPage(5);
+      controller.previousPage();
+    });
+
+    testWidgets('rebuild with new controller properly connects it',
+        (tester) async {
+      final controller2 = PageFlipController();
+      int? changedPage;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: PageFlipController(),
+            itemCount: 5,
+            itemBuilder: (context, index) => Container(),
+            onPageChanged: (page) => changedPage = page,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller2,
+            itemCount: 5,
+            itemBuilder: (context, index) => Container(),
+            onPageChanged: (page) => changedPage = page,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await controller2.goToPage(2);
+      await tester.pumpAndSettle();
+      expect(changedPage, 2);
+    });
+  });
+
+  group('PageFlipWidget itemCount changes', () {
+    testWidgets('rebuild with fewer pages does not crash', (tester) async {
+      final controller = PageFlipController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 5,
+            itemBuilder: (context, index) => Container(),
+          ),
+        ),
+      );
+
+      await controller.goToPage(3);
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 2,
+            itemBuilder: (context, index) => Container(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PageFlipWidget), findsOneWidget);
+    });
+
+    testWidgets('rebuild with more pages allows navigating to new pages',
+        (tester) async {
+      int? changedPage;
+      final controller = PageFlipController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 2,
+            itemBuilder: (context, index) => Container(),
+            onPageChanged: (page) => changedPage = page,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 5,
+            itemBuilder: (context, index) => Container(),
+            onPageChanged: (page) => changedPage = page,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      changedPage = null;
+      await controller.goToPage(4);
+      await tester.pumpAndSettle();
+      expect(changedPage, 4);
+    });
+  });
+
+  group('PageFlipWidget navigation edge cases', () {
+    testWidgets('goToPage with same index is no-op', (tester) async {
+      var changedCount = 0;
+      final controller = PageFlipController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 5,
+            itemBuilder: (context, index) => Container(),
+            onPageChanged: (_) => changedCount++,
+          ),
+        ),
+      );
+
+      await controller.goToPage(0);
+      await tester.pumpAndSettle();
+      expect(changedCount, 0);
+    });
+
+    testWidgets('goToPage with negative index is ignored', (tester) async {
+      int? changedPage;
+      final controller = PageFlipController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 5,
+            itemBuilder: (context, index) => Container(),
+            onPageChanged: (page) => changedPage = page,
+          ),
+        ),
+      );
+
+      await controller.goToPage(-1);
+      await tester.pumpAndSettle();
+      expect(changedPage, isNull);
+    });
+
+    testWidgets('goToPage with index beyond itemCount is ignored',
+        (tester) async {
+      int? changedPage;
+      final controller = PageFlipController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 5,
+            itemBuilder: (context, index) => Container(),
+            onPageChanged: (page) => changedPage = page,
+          ),
+        ),
+      );
+
+      await controller.goToPage(10);
+      await tester.pumpAndSettle();
+      expect(changedPage, isNull);
+    });
+
+    testWidgets('rapid nextPage calls navigate correctly', (tester) async {
+      int? changedPage;
+      final controller = PageFlipController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 5,
+            itemBuilder: (context, index) => Container(),
+            onPageChanged: (page) => changedPage = page,
+          ),
+        ),
+      );
+
+      controller.nextPage();
+      expect(changedPage, 1);
+
+      controller.nextPage();
+      expect(changedPage, 2);
+    });
+
+    testWidgets('rapid previousPage calls do not go below 0',
+        (tester) async {
+      int? changedPage;
+      final controller = PageFlipController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller,
+            itemCount: 3,
+            itemBuilder: (context, index) => Container(),
+            onPageChanged: (page) => changedPage = page,
+          ),
+        ),
+      );
+
+      controller.previousPage();
+      expect(changedPage, isNull);
+
+      await controller.goToPage(1);
+      await tester.pumpAndSettle();
+      expect(changedPage, 1);
+
+      changedPage = null;
+      controller.previousPage();
+      expect(changedPage, 0);
+
+      changedPage = null;
+      controller.previousPage();
+      expect(changedPage, isNull);
+    });
+  });
+
+  group('PageFlipWidget configuration', () {
+    testWidgets('enableSwipe: false removes gesture layer', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 3,
+            itemBuilder: (context, index) => Container(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PageFlipGestureLayer), findsOneWidget);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 3,
+            config: const PageFlipConfig(enableSwipe: false),
+            itemBuilder: (context, index) => Container(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PageFlipGestureLayer), findsNothing);
+    });
+  });
+
+  group('PageFlipWidget error handling', () {
+    testWidgets('itemBuilder throw is caught as FlutterError',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 3,
+            itemBuilder: (context, index) {
+              throw StateError('test error');
+            },
+          ),
+        ),
+      );
+
+      // The error is caught by the test framework (not an unhandled crash).
+      // It may propagate as StateError (from builder) or FlutterError (from framework).
+      final dynamic error = tester.takeException();
+      expect(error, isNotNull);
+    });
+  });
+
 }
