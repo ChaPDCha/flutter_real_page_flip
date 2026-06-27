@@ -98,4 +98,41 @@ void main() {
           'Verified: PageFlipWidgetState successfully unmounted after interactions.');
     });
   });
+
+  testWidgets('PageFlipWidget Memory: state lifecycle after disposal',
+        (tester) async {
+      // Suppress audioplayers event channels
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('xyz.luan/audioplayers.global/events'),
+        (methodCall) async => null,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PageFlipWidget(
+              config: const PageFlipConfig(
+                effectHandler: _NoOpEffectHandler(),
+              ),
+              itemCount: 5,
+              itemBuilder: (context, index) => Text('Page $index'),
+            ),
+          ),
+        ),
+      );
+
+      final state = tester.state<PageFlipWidgetState>(
+        find.byType(PageFlipWidget),
+      );
+
+      // Ensure the state was mounted initially
+      expect(state.mounted, isTrue);
+
+      // Dispose the widget
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
+      // Verify the state is no longer mounted (dispose was called)
+      expect(state.mounted, isFalse);
+    });
 }
