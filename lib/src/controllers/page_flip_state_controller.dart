@@ -354,6 +354,7 @@ class PageFlipStateController {
 
   /// Handles the end of a drag, animating the flip to completion or snap-back.
   void onDragEnd(DragEndDetails details, int totalPages) {
+    if (_isDisposed) return;
     if (!_isDragging) {
       endPointerCapture();
       onFlipEnd?.call();
@@ -381,6 +382,7 @@ class PageFlipStateController {
 
   /// Handles cancellation of a drag, snapping the page back.
   void onDragCancel(int totalPages) {
+    if (_isDisposed) return;
     if (!_isDragging) {
       endPointerCapture();
       onFlipEnd?.call();
@@ -397,6 +399,7 @@ class PageFlipStateController {
 
   /// Triggers a programmatic page flip (e.g. from edge tap or controller).
   void triggerTapFlip({required bool isNext, required int totalPages}) {
+    if (_isDisposed) return;
     if (_isDragging || animationController.isAnimating || _isPendingFinalize) return;
 
     if ((isNext && _currentIndex >= totalPages - 1) ||
