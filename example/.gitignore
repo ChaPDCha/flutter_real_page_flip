@@ -53,5 +53,12 @@ deployment_cert.der
 upload_cert.der
 deploy_alpha.py
 
+# Security - credentials (defense-in-depth with glob patterns)
+**/play-service-account*.json
+**/realbook-release.keystore
+**/key.properties
+*.jks
+*.keystore
+
 # Build copies – generated from flutter build
 /example/screenshots/
