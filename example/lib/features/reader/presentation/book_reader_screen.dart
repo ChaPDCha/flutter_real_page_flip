@@ -37,6 +37,26 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
   Offset? _readerTapDownPosition;
   StreamSubscription<PlayerState>? _ttsSubscription;
 
+  bool _viewportScheduled = false; // FIX 2A: debounce addPostFrameCallback
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateSystemUiOverlay();
+  }
+
+  void _updateSystemUiOverlay() {
+    final themeType = ref.read(appThemeControllerProvider);
+    final themeData = ReaderThemeData.get(themeType);
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness:
+            themeData.isDark ? Brightness.light : Brightness.dark,
+      ),
+    );
+  }
+
   bool _isImageOnlyPage(int index, dynamic state) {
     if (index >= state.pages.length) return false;
     final content = state.pages[index] as String;
@@ -88,16 +108,6 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
     final themeData = ReaderThemeData.get(themeType);
     final l10n = context.t;
 
-    // Dynamic system UI styling based on global theme
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: themeData.isDark
-            ? Brightness.light
-            : Brightness.dark,
-      ),
-    );
-
     return Scaffold(
       backgroundColor: themeData.backgroundColor,
       body: Column(
@@ -122,14 +132,18 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                             final height = constraints.maxHeight - vPadding;
 
                             // Update viewport size inside controller to trigger paging recalculations
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (mounted) {
-                                controller.setViewportSize(
-                                  width,
-                                  height - 110.0,
-                                );
-                              }
-                            });
+                            if (!_viewportScheduled) {
+                              _viewportScheduled = true;
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                _viewportScheduled = false;
+                                if (mounted) {
+                                  controller.setViewportSize(
+                                    width,
+                                    height - 110.0,
+                                  );
+                                }
+                              });
+                            }
 
                             if (readerState.pages.isEmpty) {
                               return Center(
@@ -207,80 +221,76 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                                   top: topPadding,
                                   bottom: bottomPadding,
                                 ),
-                                child: PageFlipWidget(
-                                  controller: _pageFlipController,
-                                  config: PageFlipConfig(
-                                    enableHaptics:
-                                        readerState.settings.enableHaptics,
-                                    enableSound:
-                                        readerState.settings.enableSound,
-                                    hapticTexturePreset:
-                                        PaperTexturePreset.values.byName(
-                                      readerState.settings.hapticTexturePresetName,
-                                    ),
-                                    backgroundColor: themeData.backgroundColor,
-                                    sensitivity: 0.6,
-                                    edgeTapWidthRatio: 0.0,
-                                    // Animate tap flips so spine-band reveal is visible (not instant jump).
-                                    skipTapAnimation: false,
-                                  ),
-                                  itemCount: isDouble
-                                      ? (readerState.isPdfLandscape
-                                            ? readerState.pages.length
-                                            : (readerState.pages.length / 2)
+                                child: Consumer(builder: (context, ref, child) {
+                                  // FIX 2C: Only rebuild PageFlipWidget when page index changes
+                                  ref.watch(readerControllerProvider(widget.book)
+                                      .select((s) => s.currentPageIndex));
+                                  final pageState = ref.read(
+                                      readerControllerProvider(widget.book));
+                                  final isDbl = pageState.isDoublePage;
+                                  return PageFlipWidget(
+                                    controller: _pageFlipController,
+                                    config: _buildPageFlipConfig(
+                                        pageState, themeData),
+                                    itemCount: isDbl
+                                        ? (pageState.isPdfLandscape
+                                              ? pageState.pages.length
+                                              : (pageState.pages.length / 2)
                                                   .ceil())
-                                      : readerState.pages.length,
-                                  initialIndex: isDouble
-                                      ? (readerState.isPdfLandscape
-                                            ? readerState.currentPageIndex
+                                        : pageState.pages.length,
+                                    initialIndex: isDbl
+                                        ? (pageState.isPdfLandscape
+                                              ? pageState.currentPageIndex
                                                   .clamp(
                                                     0,
-                                                    (readerState.pages.length -
+                                                    (pageState.pages.length -
                                                             1)
                                                         .clamp(0, 99999),
                                                   )
-                                            : (readerState.currentPageIndex / 2)
+                                              : (pageState.currentPageIndex / 2)
                                                   .floor()
                                                   .clamp(
                                                     0,
-                                                    ((readerState.pages.length /
+                                                    ((pageState.pages.length /
                                                                     2)
                                                                 .ceil() -
                                                             1)
                                                         .clamp(0, 99999),
                                                   ))
-                                      : (readerState.currentPageIndex <
-                                                readerState.pages.length
-                                            ? readerState.currentPageIndex
-                                            : 0),
-                                  spreadMode: isDouble
-                                      ? PageFlipSpreadMode.doubleSpread
-                                      : PageFlipSpreadMode.single,
-                                  // Stable method reference — inline closures reset spread snapshots every build.
-                                  itemBuilder: _buildFlipSpreadPage,
-                                  onFlipStart: () {
-                                    _isFlipping = true;
-                                  },
-                                  onFlipEnd: () {
-                                    _isFlipping = false;
-                                  },
-                                  onPageChanged: (index) {
-                                    _isFlipping = false;
-                                    // Defer reader state update to post-frame so the
-                                    // PageFlipWidget fully transitions to non-drag mode
-                                    // before Riverpod triggers a rebuild of this screen.
-                                    WidgetsBinding.instance
-                                        .addPostFrameCallback((_) {
-                                          if (!mounted) return;
-                                          if (isDouble &&
-                                              !readerState.isPdfLandscape) {
-                                            controller.goToPageIndex(index * 2);
-                                          } else {
-                                            controller.goToPageIndex(index);
-                                          }
-                                        });
-                                  },
-                                ),
+                                        : (pageState.currentPageIndex <
+                                                  pageState.pages.length
+                                              ? pageState.currentPageIndex
+                                              : 0),
+                                    spreadMode: isDbl
+                                        ? PageFlipSpreadMode.doubleSpread
+                                        : PageFlipSpreadMode.single,
+                                    // Stable method reference — inline closures reset spread snapshots every build.
+                                    itemBuilder: _buildFlipSpreadPage,
+                                    onFlipStart: () {
+                                      _isFlipping = true;
+                                    },
+                                    onFlipEnd: () {
+                                      _isFlipping = false;
+                                    },
+                                    onPageChanged: (index) {
+                                      _isFlipping = false;
+                                      // Defer reader state update to post-frame so the
+                                      // PageFlipWidget fully transitions to non-drag mode
+                                      // before Riverpod triggers a rebuild of this screen.
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                            if (!mounted) return;
+                                            if (isDbl &&
+                                                !pageState.isPdfLandscape) {
+                                              controller.goToPageIndex(
+                                                  index * 2);
+                                            } else {
+                                              controller.goToPageIndex(index);
+                                            }
+                                          });
+                                    },
+                                  );
+                                }),
                               ),
                             );
                           },
@@ -617,6 +627,22 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
         theme: themeData,
         index: spreadIndex,
       ),
+    );
+  }
+
+  /// FIX 2D: Extract PageFlipConfig creation to avoid creating new objects on every build.
+  /// Only invoked when the Consumer wrapping PageFlipWidget rebuilds.
+  PageFlipConfig _buildPageFlipConfig(dynamic state, ReaderThemeData themeData) {
+    return PageFlipConfig(
+      enableHaptics: state.settings.enableHaptics,
+      enableSound: state.settings.enableSound,
+      hapticTexturePreset: PaperTexturePreset.values.byName(
+        state.settings.hapticTexturePresetName,
+      ),
+      backgroundColor: themeData.backgroundColor,
+      sensitivity: 0.6,
+      edgeTapWidthRatio: 0.0,
+      skipTapAnimation: false,
     );
   }
 

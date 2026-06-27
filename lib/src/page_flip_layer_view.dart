@@ -73,6 +73,9 @@ class PageFlipLayerView extends StatelessWidget {
 
     /// Performance profile to control rendering quality.
     this.performanceProfile = DevicePerformanceProfile.high,
+
+    /// Animation controller for driving fade transitions.
+    this.flipAnimation,
     super.key,
   });
 
@@ -138,6 +141,10 @@ class PageFlipLayerView extends StatelessWidget {
 
   /// Performance profile to control rendering quality.
   final DevicePerformanceProfile performanceProfile;
+
+  /// Animation controller from parent for driving fade transitions.
+  /// Used by [FadeTransition] instead of [Opacity] for better compositing.
+  final Animation<double>? flipAnimation;
 
   /// Wraps a widget with SizedBox if constrainedSize is provided.
   /// Prevents infinite height propagation from Stack(fit: StackFit.expand).
@@ -359,7 +366,14 @@ class PageFlipLayerView extends StatelessWidget {
                     (flapContentRevealEnd - flapContentRevealStart);
                 opacity = t * t * (3 - 2 * t);
               }
-              child = Opacity(opacity: opacity, child: child);
+              // FadeTransition is preferred over Opacity because Flutter's
+              // compositing pipeline can optimize animated transitions better.
+              // When a flipAnimation is provided from the parent controller,
+              // it can drive this transition for further savings.
+              child = FadeTransition(
+                opacity: AlwaysStoppedAnimation<double>(opacity),
+                child: child,
+              );
             }
             return child;
           })(),

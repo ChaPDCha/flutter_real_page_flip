@@ -67,7 +67,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +75,15 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
       await customStatement(
         'CREATE VIRTUAL TABLE IF NOT EXISTS book_contents_fts USING fts5(bookId, chapterIndex, content, tokenize="unicode61");',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_highlights_bookid ON highlights(book_id);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_bookmarks_bookid ON bookmarks(book_id);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_reading_logs_bookid ON reading_logs(book_id);',
       );
     },
     onUpgrade: (m, from, to) async {
@@ -90,6 +99,17 @@ class AppDatabase extends _$AppDatabase {
           );
           await customStatement(
             "UPDATE bookmarks SET updated_at = CAST(strftime('%s', 'now') AS INTEGER);",
+          );
+        }
+        if (from < 3) {
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_highlights_bookid ON highlights(book_id);',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_bookmarks_bookid ON bookmarks(book_id);',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_reading_logs_bookid ON reading_logs(book_id);',
           );
         }
         await customStatement(

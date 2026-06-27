@@ -49,9 +49,14 @@ class SyncController extends Notifier<SyncState> {
 
       // 2. Pull Remote Deltas
       state = state.copyWith(status: SyncStatus.pulling);
-      final remoteBooks = await _syncClient.pullBooks(lastSyncedAt);
-      final remoteHighlights = await _syncClient.pullHighlights(lastSyncedAt);
-      final remoteBookmarks = await _syncClient.pullBookmarks(lastSyncedAt);
+      final pullResults = await Future.wait([
+        _syncClient.pullBooks(lastSyncedAt),
+        _syncClient.pullHighlights(lastSyncedAt),
+        _syncClient.pullBookmarks(lastSyncedAt),
+      ]);
+      final remoteBooks = pullResults[0];
+      final remoteHighlights = pullResults[1];
+      final remoteBookmarks = pullResults[2];
 
       await _repository.mergeRemoteBooks(remoteBooks);
       await _repository.mergeRemoteHighlights(remoteHighlights);
@@ -71,9 +76,11 @@ class SyncController extends Notifier<SyncState> {
       final securedHighlights = _bindUserId(localHighlights, userId);
       final securedBookmarks = _bindUserId(localBookmarks, userId);
 
-      await _syncClient.pushBooks(securedBooks);
-      await _syncClient.pushHighlights(securedHighlights);
-      await _syncClient.pushBookmarks(securedBookmarks);
+      await Future.wait([
+        _syncClient.pushBooks(securedBooks),
+        _syncClient.pushHighlights(securedHighlights),
+        _syncClient.pushBookmarks(securedBookmarks),
+      ]);
 
       // 4. Finalize Sync Vector
       await _prefs.setInt(

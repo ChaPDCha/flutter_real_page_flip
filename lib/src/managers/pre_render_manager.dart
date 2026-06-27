@@ -297,6 +297,7 @@ class PreRenderManager {
 
         if (_isDisposed || generation != _captureGeneration) {
           image.dispose();
+          _activeCaptures.remove(index);
           return;
         }
 

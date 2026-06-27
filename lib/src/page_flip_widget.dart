@@ -461,6 +461,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               constrainedSize: constrainedSize,
               isDoubleSpread: widget.spreadMode.isDoubleSpread,
               performanceProfile: widget.config.performanceProfile,
+              flipAnimation: _controller.animationController,
             ),
           );
 

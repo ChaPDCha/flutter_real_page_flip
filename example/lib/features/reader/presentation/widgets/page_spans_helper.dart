@@ -25,6 +25,19 @@ List<TextSpan> buildPageSpans({
   final sortedSplits = splitPoints.toList()..sort();
   final spans = <TextSpan>[];
 
+  // Pre-build an interval-map keyed by adjusted start offset so each text
+  // segment can look up its highlight in O(1) instead of O(n) per segment.
+  final highlightByStart = <int, Highlight>{};
+  for (final hl in pageHighlights) {
+    final adjStart = (hl.startOffset - pageStartOffset).clamp(0, pageText.length);
+    highlightByStart[adjStart] = hl;
+  }
+
+  // Track the highlight that covers the current position (segments are
+  // processed in sorted order, so a running pointer suffices).
+  Highlight? currentUserHl;
+  int currentUserHlEnd = -1;
+
   for (int i = 0; i < sortedSplits.length - 1; i++) {
     final start = sortedSplits[i];
     final end = sortedSplits[i + 1];
@@ -51,24 +64,27 @@ List<TextSpan> buildPageSpans({
       continue;
     }
 
-    // 2. User dynamic highlight
-    Highlight? activeUserHl;
-    for (final hl in pageHighlights) {
-      final hlStart = (hl.startOffset - pageStartOffset).clamp(
-        0,
-        pageText.length,
-      );
-      final hlEnd = (hl.endOffset - pageStartOffset).clamp(0, pageText.length);
-      if (start >= hlStart && end <= hlEnd) {
-        activeUserHl = hl;
-        break;
+    // 2. User dynamic highlight — O(1) lookup via pre-built map
+    if (currentUserHl != null && start >= currentUserHlEnd) {
+      currentUserHl = null;
+      currentUserHlEnd = -1;
+    }
+    if (currentUserHl == null) {
+      final found = highlightByStart[start];
+      if (found != null) {
+        final adjEnd = (found.endOffset - pageStartOffset)
+            .clamp(0, pageText.length);
+        if (end <= adjEnd) {
+          currentUserHl = found;
+          currentUserHlEnd = adjEnd;
+        }
       }
     }
 
-    if (activeUserHl != null) {
+    if (currentUserHl != null) {
       Color color = Colors.yellow.withValues(alpha: 0.3);
       try {
-        final hex = activeUserHl.highlightColor.replaceAll('#', '');
+        final hex = currentUserHl.highlightColor.replaceAll('#', '');
         if (hex.length == 6) {
           color = Color(int.parse('0x4D$hex'));
         }

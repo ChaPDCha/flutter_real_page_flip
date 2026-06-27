@@ -25,6 +25,7 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
   bool _isLoading = true;
   String? _error;
   int _renderId = 0;
+  bool _disposed = false;
 
   @override
   void initState() {
@@ -39,6 +40,12 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
     } else {
       _renderPage();
     }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 
   @override
@@ -71,6 +78,7 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
     final currentId = ++_renderId;
     try {
       final document = await PdfService.getOrOpenDocument(widget.filePath);
+      if (_disposed) return;
       // pdfx page indices are 1-based
       final pageNumber = widget.pageIndex + 1;
 
@@ -79,26 +87,34 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
       }
 
       final page = await document.getPage(pageNumber);
-
-      // Render page at 2x scale for premium, sharp text clarity
-      final pageImage = await page.render(
-        width: page.width * 2,
-        height: page.height * 2,
-        format: PdfPageImageFormat.png,
-      );
-
-      await page.close();
-
-      final bytes = pageImage?.bytes;
-      if (bytes != null) {
-        PdfService.cachePageImage(widget.filePath, widget.pageIndex, bytes);
+      if (_disposed) {
+        await page.close();
+        return;
       }
 
-      if (mounted && _renderId == currentId) {
-        setState(() {
-          _imageBytes = bytes;
-          _isLoading = false;
-        });
+      try {
+        // Render page at 1.5x scale (reduced from 2x) to balance
+        // text clarity against memory and GPU decode cost.
+        final pageImage = await page.render(
+          width: page.width * 1.5,
+          height: page.height * 1.5,
+          format: PdfPageImageFormat.png,
+        );
+        if (_disposed) return;
+
+        final bytes = pageImage?.bytes;
+        if (bytes != null) {
+          PdfService.cachePageImage(widget.filePath, widget.pageIndex, bytes);
+        }
+
+        if (mounted && _renderId == currentId) {
+          setState(() {
+            _imageBytes = bytes;
+            _isLoading = false;
+          });
+        }
+      } finally {
+        if (!_disposed) await page.close();
       }
     } catch (e) {
       if (mounted && _renderId == currentId) {
@@ -171,6 +187,8 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
         return Center(
           child: Image.memory(
             _imageBytes!,
+            cacheWidth: constraints.maxWidth.toInt(),
+            cacheHeight: constraints.maxHeight.toInt(),
             fit: BoxFit.contain,
             width: constraints.maxWidth,
             height: constraints.maxHeight,

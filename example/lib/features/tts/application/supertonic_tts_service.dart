@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_sdk/helper.dart'; // Supertonic SDK helper
 import 'package:just_audio/just_audio.dart';
@@ -38,6 +39,7 @@ class SupertonicTtsService {
 
   List<TtsWordAlignment> _activeAlignments = [];
   StreamSubscription? _positionSubscription;
+  String? _lastOutputPath;
 
   SupertonicTtsService({AudioPlayer? audioPlayer})
     : _audioPlayer = audioPlayer ?? AudioPlayer();
@@ -119,9 +121,19 @@ class SupertonicTtsService {
           ? result['wav']
           : (result['wav'] as List).cast<double>();
 
+      // Clean up previous WAV file to avoid temp file accumulation
+      if (_lastOutputPath != null) {
+        try {
+          await File(_lastOutputPath!).delete();
+        } catch (_) {
+          // Previous file may already be deleted or in use
+        }
+      }
+
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final outputPath = '${tempDir.path}/speech_$timestamp.wav';
+      _lastOutputPath = outputPath;
 
       writeWavFile(outputPath, wav, _textToSpeech!.sampleRate);
 
@@ -224,9 +236,20 @@ class SupertonicTtsService {
 
   Future<void> stop() async {
     await _positionSubscription?.cancel();
+    _positionSubscription = null;
     _highlightController.add(null);
     await _audioPlayer.stop();
     _isSpeaking = false;
+
+    // Clean up the last WAV temp file
+    if (_lastOutputPath != null) {
+      try {
+        await File(_lastOutputPath!).delete();
+      } catch (_) {
+        // File may already be deleted or in use
+      }
+      _lastOutputPath = null;
+    }
   }
 
   void dispose() {

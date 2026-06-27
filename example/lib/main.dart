@@ -24,32 +24,56 @@ import 'l10n/translations.g.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase 초기화 (Crashlytics, Analytics, Remote Config)
-  // 싱글톤 초기화가 한 번이라도 성공하면 이후 getter는 예외를 던지지 않는다.
-  // 실패 시 모든 FirebaseService 호출이 자동 no-op 처리된다.
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (_) {
-    // Firebase 미지원 환경(에뮬레이터, 테스트)에서 조용히 실패.
-    // FirebaseService의 lazy getter가 null을 반환하며 모든 호출이 no-op 처리된다.
-  }
+  // Firebase, Sentry, SharedPreferences, Supabase 초기화를 병렬로 실행
+  // 각각의 실패는 개별적으로 처리되어 전체 앱 시작을 차단하지 않는다.
+  late SharedPreferences prefs;
 
-  // Sentry 초기화 (DSN이 설정된 경우에만)
-  const sentryDsn = String.fromEnvironment('SENTRY_DSN');
-  if (sentryDsn.isNotEmpty) {
-    try {
-      await SentryFlutter.init(
-        (options) => options.dsn = sentryDsn,
-      );
-    } catch (_) {
-      // Sentry 초기화 실패 시 조용히 무시. 다른 에러 리포팅에 영향 없음.
-    }
-  }
+  await Future.wait([
+    (() async {
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } catch (_) {
+        // Firebase 미지원 환경(에뮬레이터, 테스트)에서 조용히 실패.
+        // FirebaseService의 lazy getter가 null을 반환하며 모든 호출이 no-op 처리된다.
+      }
+    })(),
+    (() async {
+      const sentryDsn = String.fromEnvironment('SENTRY_DSN');
+      if (sentryDsn.isNotEmpty) {
+        await SentryFlutter.init(
+          (options) => options.dsn = sentryDsn,
+        ).catchError((_) {
+          // Sentry 초기화 실패 시 조용히 무시. 다른 에러 리포팅에 영향 없음.
+        });
+      }
+    })(),
+    SharedPreferences.getInstance().then((p) {
+      prefs = p;
+    }),
+    (() async {
+      const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+      const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+      if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+        try {
+          await Supabase.initialize(
+            url: supabaseUrl,
+            publishableKey: supabaseAnonKey,
+          );
+        } catch (_) {
+          // Gracefully degrades to local-only SQLite mode if Supabase fails
+        }
+      }
+    })(),
+  ]);
 
-  // 이중 에러 리포팅: Flutter 프레임워크 에러 → Crashlytics + Sentry
+  // Chain original error handler before overriding
+  final originalHandler = FlutterError.onError;
+
+  // 이중 에러 리포팅: Flutter 프레임워크 에러 → 보존 + Crashlytics + Sentry
   FlutterError.onError = (details) {
+    originalHandler?.call(details);
     FirebaseCrashlytics.instance.recordFlutterFatalError(details);
     Sentry.captureException(details.exception, stackTrace: details.stack);
   };
@@ -66,23 +90,6 @@ void main() async {
 
   // AdMob 초기화 (비차단 — UI 첫 프레임 지연 방지)
   unawaited(MobileAds.instance.initialize());
-
-  final prefs = await SharedPreferences.getInstance();
-
-  // Supabase 초기화 (기존 코드 유지)
-  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
-
-  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-    try {
-      await Supabase.initialize(
-        url: supabaseUrl,
-        publishableKey: supabaseAnonKey,
-      );
-    } catch (_) {
-      // Gracefully degrades to local-only SQLite mode if Supabase fails
-    }
-  }
 
   // Restore saved locale before app starts
   final savedLocale = prefs.getString('app_locale');

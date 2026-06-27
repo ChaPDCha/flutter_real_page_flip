@@ -3,7 +3,8 @@ part of 'page_flip_engine.dart';
 /// PERFORMANCE CRITICAL: This painter is called 60 times per second during animation.
 class PageFlipPainter extends CustomPainter {
   /// Creates a [PageFlipPainter] with the given animation state.
-  const PageFlipPainter({
+  // Note: not const because non-final caching fields require mutable state.
+  PageFlipPainter({
     /// Normalised flip progress from 0.0 to 1.0.
     required this.progress,
 
@@ -141,6 +142,14 @@ class PageFlipPainter extends CustomPainter {
   /// Performance profile to control mesh density and shadows.
   final DevicePerformanceProfile performanceProfile;
 
+  // Cached shader state (cache gradients that rarely change).
+  Color _lastEdgeFadeColor = const Color(0x00000000);
+  Rect _lastEdgeFadeRect = Rect.zero;
+  Shader? _cachedEdgeFadeShader;
+  Color _lastFoldFadeColor = const Color(0x00000000);
+  Rect _lastFoldFadeRect = Rect.zero;
+  Shader? _cachedFoldFadeShader;
+
   @override
   void paint(Canvas canvas, Size size) {
     if (progress <= 0.001 || progress >= 0.999) {
@@ -190,7 +199,7 @@ class PageFlipPainter extends CustomPainter {
     final needsLayer = flapAlpha < 0.995;
     if (needsLayer) {
       canvas.saveLayer(
-        null,
+        flapRect,
         Paint()..color = Colors.white.withValues(alpha: flapAlpha),
       );
     }
@@ -404,17 +413,23 @@ class PageFlipPainter extends CustomPainter {
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
     final edgeFadeEnd =
         g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+    if (_cachedEdgeFadeShader == null ||
+        _lastEdgeFadeColor != paperBackColor ||
+        _lastEdgeFadeRect != edgeFadeRect) {
+      _lastEdgeFadeColor = paperBackColor;
+      _lastEdgeFadeRect = edgeFadeRect;
+      _cachedEdgeFadeShader = LinearGradient(
+        begin: edgeFadeBegin,
+        end: edgeFadeEnd,
+        colors: [
+          paperBackColor.withValues(alpha: 1),
+          Colors.transparent,
+        ],
+      ).createShader(edgeFadeRect);
+    }
     canvas.drawRect(
       edgeFadeRect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: edgeFadeBegin,
-          end: edgeFadeEnd,
-          colors: [
-            paperBackColor.withValues(alpha: 1),
-            Colors.transparent,
-          ],
-        ).createShader(edgeFadeRect),
+      Paint()..shader = _cachedEdgeFadeShader,
     );
 
     // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
@@ -429,17 +444,23 @@ class PageFlipPainter extends CustomPainter {
         g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
     final foldFadeEnd =
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
+    if (_cachedFoldFadeShader == null ||
+        _lastFoldFadeColor != paperBackColor ||
+        _lastFoldFadeRect != foldFadeRect) {
+      _lastFoldFadeColor = paperBackColor;
+      _lastFoldFadeRect = foldFadeRect;
+      _cachedFoldFadeShader = LinearGradient(
+        begin: foldFadeBegin,
+        end: foldFadeEnd,
+        colors: [
+          paperBackColor.withValues(alpha: 1),
+          Colors.transparent,
+        ],
+      ).createShader(foldFadeRect);
+    }
     canvas.drawRect(
       foldFadeRect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: foldFadeBegin,
-          end: foldFadeEnd,
-          colors: [
-            paperBackColor.withValues(alpha: 1),
-            Colors.transparent,
-          ],
-        ).createShader(foldFadeRect),
+      Paint()..shader = _cachedFoldFadeShader,
     );
 
     if (needsLayer) canvas.restore();
