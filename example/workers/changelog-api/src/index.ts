@@ -21,6 +21,14 @@ interface ChangelogEntry {
 // START_CHANGELOGS
 const changelogs: ChangelogEntry[] = [
     {
+      version: "1.0.30+36",
+      versionCode: 36,
+      versionName: "1.0.30",
+      date: "2026-06-27",
+      ko: { changes: ["앱 업데이트 로그를 Cloudflare Worker API에서 실시간으로 받아오도록 개선"] },
+      en: { changes: ["Release notes now fetched live from remote API instead of bundled-only"] },
+    },
+    {
       version: "1.0.29+35",
       versionCode: 35,
       versionName: "1.0.29",
@@ -262,6 +270,7 @@ const changelogs: ChangelogEntry[] = [
     },
   ];
 // END_CHANGELOGS
+
 
 
 export default {

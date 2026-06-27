@@ -1,0 +1,1 @@
+• 앱 업데이트 로그를 Cloudflare Worker API에서 실시간으로 받아오도록 개선

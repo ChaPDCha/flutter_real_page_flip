@@ -1,16 +1,16 @@
 {
-  "version": "1.0.29+35",
-  "versionCode": 35,
-  "versionName": "1.0.29",
+  "version": "1.0.30+36",
+  "versionCode": 36,
+  "versionName": "1.0.30",
   "date": "2026-06-27",
   "ko": {
     "changes": [
-      "설정 패널 스위치가 Android 네비게이션 바에 가려지던 문제 수정"
+      "앱 업데이트 로그를 Cloudflare Worker API에서 실시간으로 받아오도록 개선"
     ]
   },
   "en": {
     "changes": [
-      "Fixed settings panel switches hidden behind Android navigation bar"
+      "Release notes now fetched live from remote API instead of bundled-only"
     ]
   }
 }

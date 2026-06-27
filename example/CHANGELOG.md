@@ -3,6 +3,10 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.30+36] - 2026-06-27
+### ✨ 기능
+- 앱 업데이트 로그를 Cloudflare Worker API에서 실시간으로 받아오도록 개선 | Release notes now fetched live from remote API instead of bundled-only
+
 ## [1.0.29+35] - 2026-06-27
 ### 🐛 수정
 - 설정 패널 스위치가 Android 네비게이션 바에 가려지던 문제 수정 | Fixed settings panel switches hidden behind Android navigation bar

@@ -15,7 +15,7 @@ class ChangelogService {
   static const _cacheTtlHours = 24;
 
   /// Remote API base — uses workers.dev (production) or localhost (debug).
-  static const _apiBase = 'https://realbook-changelog-api.musicbox26.workers.dev';
+  static const _apiBase = 'https://realbook-changelog-api.sharebible.workers.dev';
 
   /// Checks if the changelog version differs from the stored version
   /// and shows the dialog if so.
