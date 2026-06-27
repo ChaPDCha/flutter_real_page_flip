@@ -208,4 +208,68 @@ void main() {
       expect(find.textContaining('Page 0'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'long press on SelectableText does not trigger page flip',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      var currentPage = 0;
+
+      await tester.pumpWidget(
+        _readerLikeFlipHost(
+          itemCount: 3,
+          onPageChanged: (index) => currentPage = index,
+          pageBuilder: (context, index) => Center(
+            child: SelectableText('Page $index'),
+          ),
+        ),
+      );
+
+      // Long press in center of page
+      final center = tester.getCenter(find.byType(PageFlipWidget));
+      await tester.longPressAt(center);
+      await tester.pumpAndSettle();
+
+      // Page should not have changed
+      expect(currentPage, 0);
+      expect(find.textContaining('Page 0'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'horizontal drag after failed long press still flips',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      var currentPage = 0;
+
+      await tester.pumpWidget(
+        _readerLikeFlipHost(
+          itemCount: 3,
+          onPageChanged: (index) => currentPage = index,
+          pageBuilder: (context, index) => Center(
+            child: SelectableText('Page $index'),
+          ),
+        ),
+      );
+
+      // Long press first (does nothing)
+      final center = tester.getCenter(find.byType(PageFlipWidget));
+      await tester.longPressAt(center);
+      await tester.pumpAndSettle();
+
+      // Then drag to flip
+      await tester.dragFrom(center, const Offset(-200, 0));
+      await tester.pumpAndSettle();
+
+      // Page should have changed
+      expect(currentPage, 1);
+      expect(find.textContaining('Page 1'), findsOneWidget);
+    },
+  );
 }

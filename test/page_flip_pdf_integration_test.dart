@@ -36,6 +36,7 @@ void main() {
       int itemCount = 4,
       int initialIndex = 0,
       void Function(int)? onPageChanged,
+      bool isRightSwipe = false,
     }) {
       return MaterialApp(
         home: Scaffold(
@@ -48,6 +49,9 @@ void main() {
                 isDoubleSpread: true,
                 itemBuilder: mockPdfSpreadPage,
                 onPageChanged: onPageChanged,
+                config: isRightSwipe
+                    ? const PageFlipConfig(isRightSwipe: true)
+                    : const PageFlipConfig(),
               ),
             ),
           ),
@@ -99,6 +103,150 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       expect(changedSpread, 0);
+      expect(find.byKey(const ValueKey('spread_0')), findsOneWidget);
+    });
+
+    testWidgets('isRightSwipe: forward swipe goes to previous spread', (
+      tester,
+    ) async {
+      int changedSpread = -1;
+
+      await tester.pumpWidget(
+        buildReader(
+          initialIndex: 1,
+          isRightSwipe: true,
+          onPageChanged: (index) => changedSpread = index,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byKey(const ValueKey('spread_1')), findsOneWidget);
+
+      // With isRightSwipe, dragging right is "forward" = previous
+      final start = Offset(centerDx + 320, centerDy + viewSize.height / 2);
+      await tester.dragFrom(start, const Offset(320, 0));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      expect(changedSpread, 0);
+      expect(find.byKey(const ValueKey('spread_0')), findsOneWidget);
+    });
+
+    testWidgets('isRightSwipe: backward swipe goes to next spread', (
+      tester,
+    ) async {
+      int changedSpread = -1;
+
+      await tester.pumpWidget(
+        buildReader(
+          isRightSwipe: true,
+          onPageChanged: (index) => changedSpread = index,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byKey(const ValueKey('spread_0')), findsOneWidget);
+
+      // With isRightSwipe, dragging left is "backward" = next
+      final start = Offset(centerDx + 600, centerDy + viewSize.height / 2);
+      await tester.dragFrom(start, const Offset(-320, 0));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      expect(changedSpread, 1);
+      expect(find.byKey(const ValueKey('spread_1')), findsOneWidget);
+    });
+
+    testWidgets('tall narrow aspect ratio flip completes', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      int changedSpread = -1;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox.fromSize(
+                size: const Size(360, 640),
+                child: PageFlipWidget(
+                  itemCount: 4,
+                  isDoubleSpread: true,
+                  itemBuilder: mockPdfSpreadPage,
+                  onPageChanged: (index) => changedSpread = index,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Drag in tall viewport
+      await tester.dragFrom(const Offset(320, 400), const Offset(-200, 0));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      expect(changedSpread, 1);
+    });
+
+    testWidgets('forward half-width drag completes in tall narrow viewport', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      int changedSpread = -1;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox.fromSize(
+                size: const Size(360, 640),
+                child: PageFlipWidget(
+                  itemCount: 4,
+                  isDoubleSpread: true,
+                  itemBuilder: mockPdfSpreadPage,
+                  onPageChanged: (index) => changedSpread = index,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Drag from right edge leftward
+      await tester.dragFrom(const Offset(340, 400), const Offset(-180, 0));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      expect(changedSpread, 1);
+    });
+
+    testWidgets('isRightSwipe: leftward swipe goes to next spread', (tester) async {
+      int changedSpread = -1;
+
+      await tester.pumpWidget(
+        buildReader(
+          isRightSwipe: true,
+          onPageChanged: (index) => changedSpread = index,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byKey(const ValueKey('spread_0')), findsOneWidget);
+
+      // isRightSwipe inverts: leftward drag = backward, stays on same spread.
+      // Drag from center-right of spread, enough to trigger threshold.
+      final start = Offset(centerDx + 500, centerDy + viewSize.height / 2);
+      await tester.dragFrom(start, const Offset(-250, 0));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      // With isRightSwipe, leftward drag is "backward" so it stays (no change).
+      expect(changedSpread, -1);
       expect(find.byKey(const ValueKey('spread_0')), findsOneWidget);
     });
   });

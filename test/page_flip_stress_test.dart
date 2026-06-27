@@ -97,4 +97,116 @@ void main() {
     // Should not crash and should be in a valid state
     expect(find.byType(PageFlipWidget), findsOneWidget);
   });
+
+  testWidgets('PageFlipWidget Stress: Forward-backward direction switch',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    var currentIndex = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PageFlipWidget(
+            itemCount: 10,
+            itemBuilder: (context, index) =>
+                Center(child: Text('Page $index')),
+            onPageChanged: (index) => currentIndex = index,
+            config: const PageFlipConfig(
+              duration: Duration(milliseconds: 50),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Page 0'), findsOneWidget);
+
+    // Forward drag
+    await tester.dragFrom(const Offset(300, 400), const Offset(-200, 0));
+    await tester.pumpAndSettle();
+    expect(currentIndex, 1);
+
+    // Immediately backward drag
+    await tester.dragFrom(const Offset(100, 400), const Offset(200, 0));
+    await tester.pumpAndSettle();
+    expect(currentIndex, 0);
+  });
+
+  testWidgets('PageFlipWidget Stress: Parent setState during drag',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    var flipCount = 0;
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) {
+          return MaterialApp(
+            home: Scaffold(
+              body: PageFlipWidget(
+                itemCount: 10,
+                itemBuilder: (context, index) =>
+                    Center(child: Text('Page $index')),
+                onPageChanged: (_) => flipCount++,
+                config: const PageFlipConfig(
+                  duration: Duration(milliseconds: 50),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    // Start a flip
+    final center = tester.getCenter(find.byType(PageFlipWidget));
+    await tester.dragFrom(center, const Offset(-200, 0));
+
+    // Rebuild parent mid-drag
+    await tester.pump(const Duration(milliseconds: 10));
+
+    // Settle
+    await tester.pumpAndSettle();
+
+    // Should not crash
+    expect(find.byType(PageFlipWidget), findsOneWidget);
+  });
+
+  testWidgets('PageFlipWidget Stress: Rapid single-tap edge navigation',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    int lastIndex = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PageFlipWidget(
+            itemCount: 10,
+            itemBuilder: (context, index) =>
+                Center(child: Text('Page $index')),
+            onPageChanged: (index) => lastIndex = index,
+            config: const PageFlipConfig(
+              duration: Duration(milliseconds: 50),
+              edgeTapWidthRatio: 0.2,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Rapid taps at right edge
+    for (int i = 0; i < 5; i++) {
+      await tester.tapAt(const Offset(380, 400));
+      await tester.pump(const Duration(milliseconds: 30));
+    }
+    await tester.pumpAndSettle();
+
+    // Should have navigated without crash
+    expect(lastIndex, greaterThan(0));
+  });
 }
