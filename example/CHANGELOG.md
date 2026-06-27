@@ -3,6 +3,31 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.34+40] - 2026-06-28
+### 🐛 수정
+- 검색 결과 탭 시 항상 1페이지로 이동하던 크리티컬 버그 수정 | Fixed search navigation always landing on page 0 due to missing await
+- 빠른 탭 시 챕터가 통째로 스킵되던 경합 조건 수정 | Fixed rapid tap causing chapter skip during boundary transition
+- 동기화 재시도 시 PK 충돌로 영구 중단되던 버그 수정 | Fixed sync permanently breaking on retry due to missing upsert
+- 페이지 레이아웃 캐시 해시 충돌 버그 수정 | Fixed pagination cache collision bug with hashCode-based key
+
+### ⚡ 성능
+- 페이지 플립 GPU 사용량 최적화 (saveLayer 범위 제한, shader 캐싱) | Optimized page flip GPU usage with bounded saveLayer and shader caching
+- 앱 시작 시간 단축 (Firebase/Sentry/Supabase 병렬 초기화) | Reduced app startup time with parallel initialization
+- PDF 렌더링 해상도 최적화 (2x→1.5x) 및 이미지 디코드 크기 제한 | Optimized PDF rendering to 1.5x with cacheWidth/cacheHeight
+- 동기화 속도 66% 개선 (pull/push 병렬화) | Improved sync speed 66% with parallel pull/push
+
+### 🎨 UI/UX
+- 설정 패널이 사용자 테마를 무시하고 charcoal로 고정되던 문제 수정 | Fixed settings panel ignoring user theme selection
+- 리더 화면 리빌드 최적화 (Consumer 분할로 불필요한 재렌더링 제거) | Split reader screen rebuilds per-consumer
+
+### ♻️ 리팩토링
+- PDF 서비스 정적 캐시를 인스턴스 싱글톤으로 전환 (메모리 누수 해결) | Converted PDF service caches from static to instance (fix memory leak)
+
+### 🧪 테스트
+- page_flip_engine 77개 단위 테스트 추가 | Added 77 unit tests for page-flip engine
+- 통합 테스트 인프라 구축 (3개 사용자 흐름) | Set up integration test infrastructure (3 user flows)
+- 전체 테스트 1,151개, 18개 pre-existing 실패 | Total 1,151 tests, 18 pre-existing failures
+
 ## [1.0.33+39] - 2026-06-27
 ### 🐛 수정
 - 페이지 플립 사운드가 불규칙하게 재생되던 문제 수정 (setSource() 경합 제거, stop+seek+resume 패턴으로 전환) | Fixed intermittent page flip sound by avoiding setSource() on every flip
