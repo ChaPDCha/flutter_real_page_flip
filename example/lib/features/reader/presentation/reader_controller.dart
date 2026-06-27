@@ -269,14 +269,6 @@ class ReaderController extends _$ReaderController {
     await _saveSettings();
   }
 
-  Future<void> toggleDoublePage(bool enabled) async {
-    state = state.copyWith(
-      settings: state.settings.copyWith(enableDoublePage: enabled),
-    );
-    _recalculatePages();
-    await _saveSettings();
-  }
-
   Future<void> updateHapticTexturePreset(String presetName) async {
     if (presetName == state.settings.hapticTexturePresetName) return;
     state = state.copyWith(

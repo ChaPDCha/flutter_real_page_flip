@@ -165,19 +165,6 @@ class ReaderSettingsPanel {
                     ),
                     const SizedBox(height: 20),
 
-                    // Two-Page Spread
-                    _SettingRow(
-                      label: l10n.readerSettings.doublePage,
-                      theme: theme,
-                      child: ShadSwitch(
-                        value: currentState.settings.enableDoublePage,
-                        onChanged: (val) async {
-                          await controller.toggleDoublePage(val);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
                     // Paper Texture Preset
                     _SettingRow(
                       label: l10n.readerSettings.texture,

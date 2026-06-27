@@ -51,7 +51,6 @@ readerSettings:
   brightness: "Brightness"
   font: "Font"
   haptics: "Haptic Feedback"
-  doublePage: "Two-Page Spread"
   texture: "Paper Texture"
   sound: "Sound Effects"
   done: "Done"

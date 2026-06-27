@@ -7,7 +7,7 @@ part of 'app_theme_controller.dart';
 // **************************************************************************
 
 String _$appThemeControllerHash() =>
-    r'e40873e54b9b50230c12dcc6e3def6da95d6f4ef';
+    r'798bed8e06a6f93bccde6081d1832f2bd478c3e1';
 
 /// See also [AppThemeController].
 @ProviderFor(AppThemeController)
