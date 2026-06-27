@@ -175,40 +175,43 @@ class _ReaderSearchPanelState extends ConsumerState<ReaderSearchPanel> {
                           Divider(color: panelTheme.dividerColor, height: 1),
                       itemBuilder: (context, index) {
                         final result = _results[index];
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 8,
-                          ),
-                          title: Text(
-                            result.snippet,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: ReaderTypography.getUiStyle(
-                              color: panelTheme.textColor,
-                              fontSize: 14,
-                              letterSpacing: -0.1,
+                        return Material(
+                          type: MaterialType.transparency,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 8,
                             ),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              '#${result.chapterIndex + 1}',
-                              style: ReaderTypography.getGeometricStyle(
-                                color: panelTheme.accentColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.2,
+                            title: Text(
+                              result.snippet,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: ReaderTypography.getUiStyle(
+                                color: panelTheme.textColor,
+                                fontSize: 14,
+                                letterSpacing: -0.1,
                               ),
                             ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                '#${result.chapterIndex + 1}',
+                                style: ReaderTypography.getGeometricStyle(
+                                  color: panelTheme.accentColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ),
+                            onTap: () {
+                              widget.onResultSelected(
+                                result.chapterIndex,
+                                _currentQuery,
+                              );
+                              Navigator.of(context).pop();
+                            },
                           ),
-                          onTap: () {
-                            widget.onResultSelected(
-                              result.chapterIndex,
-                              _currentQuery,
-                            );
-                            Navigator.of(context).pop();
-                          },
                         );
                       },
                     ),
