@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart' show AudioPlayer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -35,7 +36,7 @@ void main() {
   void mockChannel(String channelName) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-            MethodChannel(channelName), (call) async => null);
+            MethodChannel(channelName), (call) async => null,);
   }
 
   setUpAll(() {
@@ -60,7 +61,7 @@ void main() {
                 effectHandler: _NoOpEffectHandler(),
               ),
               itemCount: 10,
-              itemBuilder: (context, index) => Container(
+              itemBuilder: (context, index) => ColoredBox(
                 key: ValueKey('page_$index'),
                 color: Colors.blue,
                 child: Text('Page $index'),
@@ -95,7 +96,7 @@ void main() {
       expect(state.mounted, isFalse);
 
       print(
-          'Verified: PageFlipWidgetState successfully unmounted after interactions.');
+          'Verified: PageFlipWidgetState successfully unmounted after interactions.',);
     });
   });
 

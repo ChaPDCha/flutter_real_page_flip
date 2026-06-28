@@ -21,7 +21,7 @@ void main() {
           return x;
         }
       }
-      return -1.0;
+      return -1;
     }
 
     // ---------------------------------------------------------------------------
@@ -36,15 +36,15 @@ void main() {
             0,
             200,
             400,
-            600
-          ].map((x) => '($x,${y}):${stationaryPath.contains(Offset(x.toDouble(), y))}').join(', ')}. '
+            600,
+          ].map((x) => '($x,$y):${stationaryPath.contains(Offset(x.toDouble(), y))}').join(', ')}. '
               'flap contains at any X? '
               '${[
             0,
             200,
             400,
-            600
-          ].map((x) => '($x,${y}):${flapPath.contains(Offset(x.toDouble(), y))}').join(', ')}');
+            600,
+          ].map((x) => '($x,$y):${flapPath.contains(Offset(x.toDouble(), y))}').join(', ')}',);
     }
 
     // ---------------------------------------------------------------------------
@@ -52,7 +52,7 @@ void main() {
     // Samples points between 0 and width at mid-height.
     // ---------------------------------------------------------------------------
     void expectFlapRegion(Path flapPath) {
-      bool found = false;
+      var found = false;
       for (double x = 0; x < width; x += 4.0) {
         if (flapPath.contains(Offset(x, height / 2))) {
           found = true;
@@ -74,8 +74,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -95,8 +93,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -116,8 +112,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -138,8 +132,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: const Offset(0, -150),
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -159,8 +151,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: const Offset(0, 150),
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -182,8 +172,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final flapPath = buildFlapScreenClipPath(geo);
@@ -199,8 +187,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final flapPath = buildFlapScreenClipPath(geo);
@@ -214,8 +200,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
         // foldX ≈ pageWidth, so stationary covers [0, pageWidth] ≈ entire screen.
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -228,8 +212,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
         // foldX ≈ 0, so stationary covers [0, ~1.5] only.
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -245,7 +227,6 @@ void main() {
           touchOffset: Offset.zero,
           size: size,
           isDoubleSpread: true,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -288,7 +269,6 @@ void main() {
           isRightToLeft: false,
           touchOffset: Offset.zero,
           size: size,
-          isDoubleSpread: false,
           isForward: false,
         );
 
@@ -309,8 +289,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final openPath = buildOpenPageClipPath(size, geo);
@@ -328,14 +306,14 @@ void main() {
 
     group('snapClipCoord precision', () {
       test('rounds to nearest 0.5', () {
-        expect(snapClipCoord(0.0), equals(0.0));
+        expect(snapClipCoord(0), equals(0.0));
         expect(snapClipCoord(0.3), equals(0.5));
         expect(snapClipCoord(0.7), equals(0.5));
-        expect(snapClipCoord(1.0), equals(1.0));
+        expect(snapClipCoord(1), equals(1.0));
         expect(snapClipCoord(1.49), equals(1.5));
         expect(snapClipCoord(1.5), equals(1.5));
         expect(snapClipCoord(1.51), equals(1.5));
-        expect(snapClipCoord(2.0), equals(2.0));
+        expect(snapClipCoord(2), equals(2.0));
         expect(snapClipCoord(-0.3), equals(-0.5));
         expect(snapClipCoord(-0.7), equals(-0.5));
       });
@@ -348,8 +326,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: const Offset(0, 250),
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -367,8 +343,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: const Offset(0, -250),
           size: size,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(size, geo);
@@ -387,8 +361,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: smallSize,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(smallSize, geo);
@@ -408,8 +380,6 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           size: tallSize,
-          isDoubleSpread: false,
-          isForward: true,
         );
 
         final stationaryPath = buildStationaryPageClipPath(tallSize, geo);

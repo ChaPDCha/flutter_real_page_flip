@@ -90,13 +90,13 @@ void main() {
     });
 
     test('copyWith semanticBuilder (null to non-null)', () {
-      final builder = (int index, int total) => 'Page $index of $total';
+      String builder(int index, int total) => 'Page $index of $total';
       final copy = base.copyWith(semanticBuilder: builder);
       expect(copy.semanticBuilder, same(builder));
     });
 
     test('copyWith semanticBuilder (non-null to null)', () {
-      final builder = (int index, int total) => 'Page $index';
+      String builder(int index, int total) => 'Page $index';
       final withBuilder =
           const PageFlipConfig().copyWith(semanticBuilder: builder);
       expect(withBuilder.semanticBuilder, isNotNull);
@@ -135,13 +135,13 @@ void main() {
     });
 
     test('copyWith effectHandler (null to non-null)', () {
-      final handler = _CopyWithHandler();
+      const handler = _CopyWithHandler();
       final copy = base.copyWith(effectHandler: handler);
       expect(copy.effectHandler, same(handler));
     });
 
     test('copyWith effectHandler (non-null to null)', () {
-      final withHandler = base.copyWith(effectHandler: _CopyWithHandler());
+      final withHandler = base.copyWith(effectHandler: const _CopyWithHandler());
       final cleared = withHandler.copyWith(clearEffectHandler: true);
       expect(cleared.effectHandler, isNull);
     });

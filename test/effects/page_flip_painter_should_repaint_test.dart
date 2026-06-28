@@ -182,14 +182,12 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontSettleImage: null,
       );
       final withNonNullSettle = PageFlipPainter(
         progress: 0.9,
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontSettleImage: null, // still null
       );
       expect(withSettle.shouldRepaint(withNonNullSettle), isFalse);
     });

@@ -7,7 +7,7 @@ void main() {
   group('PageFlipController', () {
     testWidgets('nextPage changes page forward', (tester) async {
       final controller = PageFlipController();
-      int currentPage = 0;
+      var currentPage = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -28,7 +28,7 @@ void main() {
 
     testWidgets('previousPage changes page backward', (tester) async {
       final controller = PageFlipController();
-      int currentPage = 0;
+      var currentPage = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -50,7 +50,7 @@ void main() {
 
     testWidgets('goToPage jumps to valid index', (tester) async {
       final controller = PageFlipController();
-      int currentPage = 0;
+      var currentPage = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -71,7 +71,7 @@ void main() {
 
     testWidgets('goToPage ignores out-of-bounds index', (tester) async {
       final controller = PageFlipController();
-      int currentPage = 0;
+      var currentPage = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -94,18 +94,18 @@ void main() {
     });
 
     testWidgets('methods safe when not attached to widget',
-        (WidgetTester tester) async {
+        (tester) async {
       final controller = PageFlipController();
 
       // No widget attached — should not throw
-      expect(() => controller.nextPage(), returnsNormally);
-      expect(() => controller.previousPage(), returnsNormally);
+      expect(controller.nextPage, returnsNormally);
+      expect(controller.previousPage, returnsNormally);
       await expectLater(controller.goToPage(3), completes);
     });
 
     testWidgets('goToPage on currentIndex is no-op', (tester) async {
       final controller = PageFlipController();
-      int callbackCount = 0;
+      var callbackCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -123,12 +123,12 @@ void main() {
       await controller.goToPage(3);
       await tester.pumpAndSettle();
       expect(callbackCount, 0,
-          reason: 'goToPage current index should be no-op');
+          reason: 'goToPage current index should be no-op',);
     });
 
     testWidgets('goToPage from 0 to last page then back', (tester) async {
       final controller = PageFlipController();
-      int lastIndex = -1;
+      var lastIndex = -1;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -149,7 +149,7 @@ void main() {
 
     testWidgets('nextPage at last page is no-op', (tester) async {
       final controller = PageFlipController();
-      int callbackCount = 0;
+      var callbackCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -171,7 +171,7 @@ void main() {
 
     testWidgets('previousPage at first page is no-op', (tester) async {
       final controller = PageFlipController();
-      int callbackCount = 0;
+      var callbackCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -188,12 +188,12 @@ void main() {
       controller.previousPage();
       await tester.pumpAndSettle();
       expect(callbackCount, 0,
-          reason: 'previousPage at first page should be no-op');
+          reason: 'previousPage at first page should be no-op',);
     });
 
     testWidgets('sequential nextPage calls without settle', (tester) async {
       final controller = PageFlipController();
-      int lastIndex = 0;
+      var lastIndex = 0;
 
       await tester.pumpWidget(
         MaterialApp(

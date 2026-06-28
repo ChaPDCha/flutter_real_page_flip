@@ -8,7 +8,7 @@ void main() {
   group('PageFlipWidget callbacks', () {
     testWidgets('onPageChanged fires exactly once per successful transition',
         (tester) async {
-      int callCount = 0;
+      var callCount = 0;
       int? lastIndex;
 
       await tester.pumpWidget(
@@ -37,7 +37,7 @@ void main() {
 
     testWidgets('onPageFlipped fires exactly once per successful transition',
         (tester) async {
-      int callCount = 0;
+      var callCount = 0;
       int? lastIndex;
 
       await tester.pumpWidget(
@@ -91,8 +91,8 @@ void main() {
 
     testWidgets('neither callback fires on out-of-bounds goToPage',
         (tester) async {
-      int changedCount = 0;
-      int flippedCount = 0;
+      var changedCount = 0;
+      var flippedCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -126,8 +126,8 @@ void main() {
     testWidgets(
         'onFlipStart and onFlipEnd fire during a successful programmatic flip',
         (tester) async {
-      int startCount = 0;
-      int endCount = 0;
+      var startCount = 0;
+      var endCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -153,8 +153,8 @@ void main() {
     testWidgets(
         'onFlipStart and onFlipEnd fire during a programmatically cancelled flip (snapback)',
         (tester) async {
-      int startCount = 0;
-      int endCount = 0;
+      var startCount = 0;
+      var endCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -180,13 +180,12 @@ void main() {
     testWidgets(
         'onFlipEnd fires during a boundary swipe at the first page (gesture reject)',
         (tester) async {
-      int startCount = 0;
-      int endCount = 0;
+      var startCount = 0;
+      var endCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
-            initialIndex: 0,
             itemCount: 5,
             itemBuilder: (context, index) => Text('Page $index'),
             onFlipStart: () => startCount++,
@@ -237,7 +236,7 @@ void main() {
 
     testWidgets('onPageChanged does not fire on insufficient drag (snap-back)',
         (tester) async {
-      int callCount = 0;
+      var callCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -263,7 +262,7 @@ void main() {
 
     testWidgets('onFlipStart fires before onPageChanged in programmatic flip',
         (tester) async {
-      final List<String> callOrder = [];
+      final callOrder = <String>[];
 
       await tester.pumpWidget(
         MaterialApp(
@@ -283,12 +282,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-          callOrder.indexOf('start'), lessThan(callOrder.indexOf('changed')));
+          callOrder.indexOf('start'), lessThan(callOrder.indexOf('changed')),);
     });
 
     testWidgets('onFlipEnd fires after onPageChanged in programmatic flip',
         (tester) async {
-      final List<String> callOrder = [];
+      final callOrder = <String>[];
 
       await tester.pumpWidget(
         MaterialApp(
@@ -312,7 +311,7 @@ void main() {
 
     testWidgets('custom effect handler override via config works',
         (tester) async {
-      int handlerTriggerCount = 0;
+      var handlerTriggerCount = 0;
 
       final customHandler = _TestEffectHandler(
         onEffect: () => handlerTriggerCount++,

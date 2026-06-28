@@ -8,17 +8,13 @@ void main() {
 
   const hapticChannel = MethodChannel('com.chapdcha.real_page_flip/haptics');
 
-  setUp(() {
-    setupHapticMock();
-  });
+  setUp(setupHapticMock);
 
-  tearDown(() {
-    clearAllChannelMocks();
-  });
+  tearDown(clearAllChannelMocks);
 
   group('AdvancedHapticEngine platform channel', () {
     test('playTransient sends intensity and sharpness', () async {
-      List<MethodCall> calls = [];
+      final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(hapticChannel, (call) async {
         calls.add(call);
@@ -37,7 +33,7 @@ void main() {
     });
 
     test('playTransient clamps intensity to [0, 1]', () async {
-      List<MethodCall> calls = [];
+      final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(hapticChannel, (call) async {
         calls.add(call);
@@ -45,8 +41,8 @@ void main() {
       });
 
       await AdvancedHapticEngine.playTransient(
-        intensity: 5.0,
-        sharpness: -1.0,
+        intensity: 5,
+        sharpness: -1,
       );
 
       expect(calls, hasLength(1));
@@ -55,7 +51,7 @@ void main() {
     });
 
     test('playThud sends intensity', () async {
-      List<MethodCall> calls = [];
+      final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(hapticChannel, (call) async {
         calls.add(call);
@@ -70,7 +66,7 @@ void main() {
     });
 
     test('playSystemMedium sends method call', () async {
-      List<MethodCall> calls = [];
+      final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(hapticChannel, (call) async {
         calls.add(call);
@@ -84,7 +80,7 @@ void main() {
     });
 
     test('playSystemLight sends method call', () async {
-      List<MethodCall> calls = [];
+      final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(hapticChannel, (call) async {
         calls.add(call);

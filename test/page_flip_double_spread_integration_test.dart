@@ -6,14 +6,13 @@ import 'utils/test_helpers.dart';
 void main() {
   group('PageFlipWidget double-spread mode', () {
     testWidgets('forward drag flips to next page', (tester) async {
-      int currentIndex = 0;
+      var currentIndex = 0;
       final controller = PageFlipController();
 
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
             controller: controller,
-            initialIndex: 0,
             itemCount: 6,
             itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) => currentIndex = index,
@@ -35,7 +34,7 @@ void main() {
     });
 
     testWidgets('backward drag flips to previous page', (tester) async {
-      int currentIndex = 0;
+      var currentIndex = 0;
       final controller = PageFlipController();
 
       await tester.pumpWidget(
@@ -62,13 +61,12 @@ void main() {
 
     testWidgets('insufficient drag snaps back without page change',
         (tester) async {
-      int currentIndex = 0;
-      int changedCount = 0;
+      var currentIndex = 0;
+      var changedCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
-            initialIndex: 0,
             itemCount: 6,
             itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) {
@@ -91,12 +89,11 @@ void main() {
     });
 
     testWidgets('programmatic nextPage works in double-spread', (tester) async {
-      int currentIndex = 0;
+      var currentIndex = 0;
 
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
-            initialIndex: 0,
             itemCount: 6,
             itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (index) => currentIndex = index,
@@ -117,7 +114,7 @@ void main() {
 
     testWidgets('programmatic previousPage works in double-spread',
         (tester) async {
-      int currentIndex = 2;
+      var currentIndex = 2;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -142,7 +139,7 @@ void main() {
     });
 
     testWidgets('goToPage works in double-spread mode', (tester) async {
-      int currentIndex = 0;
+      var currentIndex = 0;
       final controller = PageFlipController();
 
       await tester.pumpWidget(
@@ -165,7 +162,7 @@ void main() {
     });
 
     testWidgets('boundary prevents flipping past last page', (tester) async {
-      int changedCount = 0;
+      var changedCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -191,12 +188,11 @@ void main() {
 
     testWidgets('boundary prevents flipping before first spread',
         (tester) async {
-      int changedCount = 0;
+      var changedCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
-            initialIndex: 0,
             itemCount: 6,
             itemBuilder: (context, index) => Container(key: Key('page_$index')),
             onPageChanged: (_) => changedCount++,
@@ -267,8 +263,8 @@ void main() {
 
     testWidgets('onPageChanged fires once per double-spread drag flip',
         (tester) async {
-      int callCount = 0;
-      int lastIndex = -1;
+      var callCount = 0;
+      var lastIndex = -1;
 
       await tester.pumpWidget(
         MaterialApp(

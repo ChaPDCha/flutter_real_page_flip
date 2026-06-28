@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/real_page_flip.dart';
 
 /// Stand-in for example [PdfPageRenderer] spreads: two labeled halves per index.
-Widget mockPdfSpreadPage(BuildContext context, int spreadIndex) {
-  return Row(
+Widget mockPdfSpreadPage(BuildContext context, int spreadIndex) => Row(
     key: ValueKey('spread_$spreadIndex'),
     children: [
       Expanded(
@@ -21,7 +20,6 @@ Widget mockPdfSpreadPage(BuildContext context, int spreadIndex) {
       ),
     ],
   );
-}
 
 void main() {
   group('PageFlip PDF-style double-spread integration', () {
@@ -37,8 +35,7 @@ void main() {
       int initialIndex = 0,
       void Function(int)? onPageChanged,
       bool isRightSwipe = false,
-    }) {
-      return MaterialApp(
+    }) => MaterialApp(
         home: Scaffold(
           body: Center(
             child: SizedBox.fromSize(
@@ -57,12 +54,11 @@ void main() {
           ),
         ),
       );
-    }
 
     testWidgets('forward half-width drag advances spread index', (
       tester,
     ) async {
-      int changedSpread = -1;
+      var changedSpread = -1;
 
       await tester.pumpWidget(
         buildReader(onPageChanged: (index) => changedSpread = index),
@@ -85,7 +81,7 @@ void main() {
     testWidgets('backward half-width drag returns to previous spread', (
       tester,
     ) async {
-      int changedSpread = -1;
+      var changedSpread = -1;
 
       await tester.pumpWidget(
         buildReader(
@@ -109,7 +105,7 @@ void main() {
     testWidgets('isRightSwipe: forward swipe goes to previous spread', (
       tester,
     ) async {
-      int changedSpread = -1;
+      var changedSpread = -1;
 
       await tester.pumpWidget(
         buildReader(
@@ -135,7 +131,7 @@ void main() {
     testWidgets('isRightSwipe: backward swipe goes to next spread', (
       tester,
     ) async {
-      int changedSpread = -1;
+      var changedSpread = -1;
 
       await tester.pumpWidget(
         buildReader(
@@ -162,7 +158,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      int changedSpread = -1;
+      var changedSpread = -1;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -197,7 +193,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      int changedSpread = -1;
+      var changedSpread = -1;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -227,7 +223,7 @@ void main() {
 
     testWidgets('isRightSwipe: leftward swipe goes to next spread',
         (tester) async {
-      int changedSpread = -1;
+      var changedSpread = -1;
 
       await tester.pumpWidget(
         buildReader(

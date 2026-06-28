@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:real_page_flip/real_page_flip.dart';
+import 'package:real_page_flip/src/physics/paper_physics_config.dart';
 
 void main() {
   group('PaperPhysicsConfig', () {
@@ -25,8 +25,8 @@ void main() {
     });
 
     test('copyWith creates new instance, original unchanged', () {
-      const original = PaperPhysicsConfig(sigmoidK: 6.0);
-      final modified = original.copyWith(sigmoidK: 10.0);
+      const original = PaperPhysicsConfig();
+      final modified = original.copyWith(sigmoidK: 10);
 
       // Original unchanged
       expect(original.sigmoidK, equals(6.0));
@@ -38,9 +38,7 @@ void main() {
 
     test('copyWith only overrides specified field', () {
       const original = PaperPhysicsConfig(
-        sigmoidK: 6.0,
-        sigmoidCenter: 0.5,
-        bindingStiffness: 0.5,
+        
       );
       final modified = original.copyWith(sigmoidCenter: 0.7);
 
@@ -50,101 +48,93 @@ void main() {
     });
 
     test('equality with same values', () {
-      const a = PaperPhysicsConfig(sigmoidK: 6.0, muStatic: 0.6);
-      const b = PaperPhysicsConfig(sigmoidK: 6.0, muStatic: 0.6);
+      const a = PaperPhysicsConfig();
+      const b = PaperPhysicsConfig();
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
     });
 
     test('inequality with different values', () {
-      const a = PaperPhysicsConfig(muStatic: 0.6);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(muStatic: 0.8);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different muKinetic', () {
-      const a = PaperPhysicsConfig(muKinetic: 0.25);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(muKinetic: 0.35);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different stribeckV0', () {
-      const a = PaperPhysicsConfig(stribeckV0: 0.08);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(stribeckV0: 0.12);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different perlinPersistence', () {
-      const a = PaperPhysicsConfig(perlinPersistence: 0.45);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(perlinPersistence: 0.55);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different perlinOctaves', () {
-      const a = PaperPhysicsConfig(perlinOctaves: 4);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(perlinOctaves: 6);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different perlinBaseFreq', () {
-      const a = PaperPhysicsConfig(perlinBaseFreq: 0.08);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(perlinBaseFreq: 0.12);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different throttleIntervalMs', () {
-      const a = PaperPhysicsConfig(throttleIntervalMs: 18);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(throttleIntervalMs: 25);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different minDurationMs', () {
-      const a = PaperPhysicsConfig(minDurationMs: 8);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(minDurationMs: 12);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different maxDurationMs', () {
-      const a = PaperPhysicsConfig(maxDurationMs: 120);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(maxDurationMs: 150);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different stationaryThresholdMs', () {
-      const a = PaperPhysicsConfig(stationaryThresholdMs: 50);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(stationaryThresholdMs: 80);
       expect(a, isNot(equals(b)));
     });
 
     test('inequality with different slipVelocityThreshold', () {
-      const a = PaperPhysicsConfig(slipVelocityThreshold: 0.02);
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(slipVelocityThreshold: 0.05);
       expect(a, isNot(equals(b)));
     });
 
     test('hashCode differs when fields differ', () {
       const a = PaperPhysicsConfig(
-        sigmoidK: 6.0,
-        muStatic: 0.6,
-        muKinetic: 0.25,
-        perlinOctaves: 4,
-        throttleIntervalMs: 18,
+        
       );
       const b = PaperPhysicsConfig(
-        sigmoidK: 6.0,
-        muStatic: 0.6,
-        muKinetic: 0.25,
         perlinOctaves: 6,
-        throttleIntervalMs: 18,
       );
       expect(a.hashCode, isNot(equals(b.hashCode)));
     });
 
     test('hashCode consistent for equal configs', () {
       const a =
-          PaperPhysicsConfig(perlinBaseFreq: 0.08, stationaryThresholdMs: 50);
+          PaperPhysicsConfig();
       const b =
-          PaperPhysicsConfig(perlinBaseFreq: 0.08, stationaryThresholdMs: 50);
+          PaperPhysicsConfig();
       expect(a.hashCode, equals(b.hashCode));
     });
 

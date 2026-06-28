@@ -4,14 +4,13 @@ import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 
 void main() {
   group('PageFlipGestureRecognizer', () {
-    const int pointerId = 1;
-    const double defaultSlop = 9.5; // 18 - 17*0.5
+    const pointerId = 1;
+    const defaultSlop = 9.5; // 18 - 17*0.5
 
     void feedPointerDown(PageFlipGestureRecognizer r) {
       r.addAllowedPointer(const PointerDownEvent(
         pointer: pointerId,
-        position: Offset.zero,
-      ));
+      ),);
     }
 
     void feedMove(PageFlipGestureRecognizer r, Offset delta) {
@@ -19,15 +18,13 @@ void main() {
         pointer: pointerId,
         position: delta,
         delta: delta,
-      ));
+      ),);
     }
 
-    bool hasSufficient(PageFlipGestureRecognizer r) {
-      return r.hasSufficientGlobalDistanceToAccept(
+    bool hasSufficient(PageFlipGestureRecognizer r) => r.hasSufficientGlobalDistanceToAccept(
         PointerDeviceKind.touch,
         defaultSlop,
       );
-    }
 
     testWidgets(
         'yields to vertical scroll when movement is predominantly vertical',

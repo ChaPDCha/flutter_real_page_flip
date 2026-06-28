@@ -6,19 +6,19 @@ import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 
 /// Records every Canvas call for detailed verification.
 class _Record {
+  const _Record(this.method, this.args);
   final String method;
   final List<Object?> args;
-  const _Record(this.method, this.args);
 }
 
 class RecordingCanvas extends Fake implements Canvas {
   final records = <_Record>[];
 
   @override
-  void save() => records.add(_Record('save', []));
+  void save() => records.add(const _Record('save', []));
 
   @override
-  void restore() => records.add(_Record('restore', []));
+  void restore() => records.add(const _Record('restore', []));
 
   @override
   void saveLayer(Rect? bounds, Paint paint) =>
@@ -30,13 +30,13 @@ class RecordingCanvas extends Fake implements Canvas {
 
   @override
   void clipRect(Rect rect,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {
     records.add(_Record('clipRect', [rect, clipOp]));
   }
 
   @override
   void clipPath(Path path,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {
     records.add(_Record('clipPath', [path, clipOp]));
   }
 
@@ -63,10 +63,9 @@ class RecordingCanvas extends Fake implements Canvas {
   int drawRectCountWhere({
     BlendMode? blendMode,
     bool? hasShader,
-  }) {
-    return records.where((r) {
+  }) => records.where((r) {
       if (r.method != 'drawRect') return false;
-      final paint = r.args[1] as Paint;
+      final paint = r.args[1]! as Paint;
       if (blendMode != null && paint.blendMode != blendMode) return false;
       if (hasShader != null) {
         if (hasShader && paint.shader == null) return false;
@@ -74,22 +73,19 @@ class RecordingCanvas extends Fake implements Canvas {
       }
       return true;
     }).length;
-  }
 
   bool hasDrawRectWith({BlendMode? blendMode, bool? hasShader}) =>
       drawRectCountWhere(blendMode: blendMode, hasShader: hasShader) > 0;
 
-  bool hasDrawRectNearX(double expectedX, double tolerance) {
-    return records.any((r) {
+  bool hasDrawRectNearX(double expectedX, double tolerance) => records.any((r) {
       if (r.method != 'drawRect') return false;
-      final rect = r.args[0] as Rect;
+      final rect = r.args[0]! as Rect;
       return (rect.left - expectedX).abs() <= tolerance;
     });
-  }
 }
 
 void main() {
-  ui.Image? _testImage;
+  ui.Image? testImage;
   setUp(() async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -97,12 +93,12 @@ void main() {
       const Rect.fromLTWH(0, 0, 800, 600),
       Paint()..color = Colors.white,
     );
-    _testImage = await recorder.endRecording().toImage(800, 600);
+    testImage = await recorder.endRecording().toImage(800, 600);
   });
 
   tearDown(() {
-    _testImage?.dispose();
-    _testImage = null;
+    testImage?.dispose();
+    testImage = null;
   });
 
   group('PageFlipPainter paint — visual effects', () {
@@ -119,7 +115,6 @@ void main() {
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
         thinPaperStrength: 0.15,
-        endRevealStrength: 0.0,
       ).paint(canvas, size);
 
       // At progress=0.5, flapAlpha = 1.0 - sin(0.5π)*0.15 = 0.85 < 0.995
@@ -134,8 +129,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        thinPaperStrength: 0.0,
-        endRevealStrength: 0.0,
       ).paint(canvas, size);
 
       // flapAlpha = 1.0, not < 0.995 → no saveLayer
@@ -150,7 +143,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        thinPaperStrength: 0.0,
         endRevealStrength: 0.35,
       ).paint(canvas, size);
 
@@ -188,14 +180,13 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        isForward: true,
       ).paint(canvas, size);
 
       // Single forward: flap extends LEFT → edge fade at flapLeft.
       // foldX=200, flapVisibleWidth≈280, flapLeft≈-80? No: flapLeft=foldX-flapVisibleWidth≈200-280=-80. Hmm.
       // Wait for size=800: foldX=400, flapVisibleWidth≈280, flapLeft=120. Edge fade at 120.
       expect(canvas.hasDrawRectNearX(120, 30), isTrue,
-          reason: 'Edge-fade rect should start near flapLeft');
+          reason: 'Edge-fade rect should start near flapLeft',);
     });
 
     test('fold-fade rect is at foldX-6 with 6px width (single forward)', () {
@@ -206,13 +197,12 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        isForward: true,
       ).paint(canvas, size);
 
       // Single forward: flapRightOfFold=false → fold fade at foldX-6.
       // foldX=400, fold fade left ≈ 394.
       expect(canvas.hasDrawRectNearX(394, 20), isTrue,
-          reason: 'Fold-fade rect should start near foldX - 6');
+          reason: 'Fold-fade rect should start near foldX - 6',);
     });
 
     // ── Bend shading (highlight + fold-edge darkening) ─────────
@@ -289,8 +279,8 @@ void main() {
       // First drawRect inside clip is the paper underlay.
       // Find it: it has NO shader.
       final paperDraw = canvas.records.firstWhere(
-          (r) => r.method == 'drawRect' && (r.args[1] as Paint).shader == null);
-      final paint = paperDraw.args[1] as Paint;
+          (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,);
+      final paint = paperDraw.args[1]! as Paint;
       // Verify the paper color is approximately the given paperBackColor.
       // Use channel-by-channel comparison because Color.withValues() may
       // produce a different color space representation.
@@ -333,9 +323,9 @@ void main() {
 
       // Paper underlay drawRect has alpha = 0.5 (or adjusted)
       final paperDraws = canvas.records.where(
-          (r) => r.method == 'drawRect' && (r.args[1] as Paint).shader == null);
+          (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,);
       expect(paperDraws.isNotEmpty, isTrue);
-      final paint = paperDraws.first.args[1] as Paint;
+      final paint = paperDraws.first.args[1]! as Paint;
       expect(paint.color.alpha, lessThan(255));
     });
 
@@ -358,7 +348,7 @@ void main() {
       // → shadow IS drawn
       final allShaderDraws = canvas.records
           .where((r) =>
-              r.method == 'drawRect' && (r.args[1] as Paint).shader != null)
+              r.method == 'drawRect' && (r.args[1]! as Paint).shader != null,)
           .length;
       // Must be >= 4: bend highlight + bend shadow + edge-fade + fold-fade + revealed shadow
       // At progress=0.5 with single-page, no stationary shadow, no spine.
@@ -390,8 +380,8 @@ void main() {
       // Let me check revealed shadow specifically by the rect position.
       final revealedNearFoldX = canvas.records.any((r) {
         if (r.method != 'drawRect') return false;
-        final rect = r.args[0] as Rect;
-        final paint = r.args[1] as Paint;
+        final rect = r.args[0]! as Rect;
+        final paint = r.args[1]! as Paint;
         // Revealed shadow: rect.left ≈ foldX ≈ 800-800*0.01 ≈ 792
         // But wait, shadow rect.left is g.foldX which at progress=0.01 ≈ 792
         // and shadowWidth ≈ 30 * 0.031 ≈ 0.93 < 1 → NOT drawn due to shadowWidth > 1 check
@@ -419,7 +409,6 @@ void main() {
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
         isDoubleSpread: true,
-        isForward: true,
       ).paint(canvas, size);
 
       // Stationary shadow requires: isRightToLeft && isDoubleSpread → true
@@ -433,7 +422,7 @@ void main() {
       // Spine also uses clipRect.
       // Total: 1 clipPath + 3 clipRect = 4 clip operations
       expect(canvas.clipRectCount, greaterThanOrEqualTo(2),
-          reason: 'Should include shadow + stationary + spine clipRects');
+          reason: 'Should include shadow + stationary + spine clipRects',);
     });
 
     test('no stationary shadow in single-page mode', () {
@@ -444,7 +433,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        isDoubleSpread: false,
       ).paint(canvas, size);
 
       // Single page: isRightToLeft && isDoubleSpread → false → no stationary shadow
@@ -481,7 +469,7 @@ void main() {
       );
       // Spine rect starts at spineX which is 400 for 800-wide double-spread
       expect(canvas.hasDrawRectNearX(400, 5), isTrue,
-          reason: 'Spine groove rect starts near spineX=400');
+          reason: 'Spine groove rect starts near spineX=400',);
     });
 
     test('no spine groove in single-page mode', () {
@@ -492,7 +480,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        isDoubleSpread: false,
       ).paint(canvas, size);
     });
 
@@ -509,7 +496,7 @@ void main() {
       ).paint(canvas, size);
 
       expect(canvas.clipPathCount, equals(2),
-          reason: 'One clipPath for flap, one for shadow');
+          reason: 'One clipPath for flap, one for shadow',);
     });
 
     // ── Early return at progress extremes ──────────────────────
@@ -521,7 +508,7 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
       ).paint(canvas, size);
 
@@ -553,11 +540,10 @@ void main() {
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
         isDoubleSpread: true,
-        isForward: true,
       ).paint(canvas, size);
 
       expect(canvas.saveCount, equals(canvas.restoreCount),
-          reason: 'Every canvas.save() must have matching canvas.restore()');
+          reason: 'Every canvas.save() must have matching canvas.restore()',);
     });
 
     test('save/restore balanced in single-page mode', () {
@@ -568,7 +554,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        isDoubleSpread: false,
       ).paint(canvas, size);
 
       expect(canvas.saveCount, equals(canvas.restoreCount));
@@ -589,10 +574,10 @@ void main() {
       // Sequence: save → clipPath → [saveLayer] → transform → drawRect(paper) → ...
       final clipIdx = canvas.records.indexWhere((r) => r.method == 'clipPath');
       final paperIdx = canvas.records.indexWhere(
-          (r) => r.method == 'drawRect' && (r.args[1] as Paint).shader == null);
+          (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,);
 
       expect(paperIdx, greaterThan(clipIdx),
-          reason: 'Paper underlay drawRect must come after clipPath');
+          reason: 'Paper underlay drawRect must come after clipPath',);
     });
 
     test('drawVertices comes before gradient draws', () {
@@ -603,13 +588,9 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
         isDoubleSpread: true,
-        isForward: true,
-        flapContentFadeOutEnd: 0.20,
-        flapContentRevealStart: 0.85,
-        flapContentRevealEnd: 0.95,
       ).paint(canvas, size);
 
       // At progress=0.5: contentReveal = 0 (mid-fold) → NO front vertices
@@ -624,11 +605,8 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
-        flapContentFadeOutEnd: 0.20,
-        flapContentRevealStart: 0.85,
-        flapContentRevealEnd: 0.95,
       ).paint(canvas, size);
 
       // At progress=0.96: contentReveal = 1.0 → front vertices drawn
@@ -638,10 +616,10 @@ void main() {
       // Bend highlight: BlendMode.screen
       final firstBendIdx = canvas.records.indexWhere((r) =>
           r.method == 'drawRect' &&
-          (r.args[1] as Paint).blendMode == BlendMode.screen);
+          (r.args[1]! as Paint).blendMode == BlendMode.screen,);
 
       expect(lastVerticesIdx, lessThan(firstBendIdx),
-          reason: 'Vertices must be drawn before bend shading overlay');
+          reason: 'Vertices must be drawn before bend shading overlay',);
     });
 
     // ── 2.5D back content inside clip ──────────────────────────
@@ -654,14 +632,12 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
-        flapBackImage: _testImage,
+        flapBackImage: testImage,
         flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
         flapBackStrength: 0.3,
         isDoubleSpread: true,
-        isForward: true,
-        flapContentRevealEnd: 0.95,
       ).paint(canvas, size);
 
       // Front mesh + Back mesh + all gradient draws
@@ -734,7 +710,7 @@ void main() {
       // At progress=0.5, size=800x600, double backward: foldX=200, flapVisibleWidth≈140
       // flapLeft = foldX - flapVisibleWidth ≈ 60
       expect(canvas.hasDrawRectNearX(60, 40), isTrue,
-          reason: 'Edge-fade rect should start near flapLeft');
+          reason: 'Edge-fade rect should start near flapLeft',);
     });
 
     test('backward double-spread stationary shadow drawn with RTL', () {
@@ -760,17 +736,14 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
-        flapBackImage: _testImage,
+        flapBackImage: testImage,
         flapBackSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
         flapBackStrength: 0.3,
         isDoubleSpread: true,
         isForward: false,
-        flapContentFadeOutEnd: 0.20,
-        flapContentRevealStart: 0.85,
-        flapContentRevealEnd: 0.95,
       ).paint(canvas, size);
 
       expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
@@ -784,14 +757,11 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
         isDoubleSpread: true,
         isForward: false,
-        flapContentFadeOutEnd: 0.20,
-        flapContentRevealStart: 0.85,
-        flapContentRevealEnd: 0.95,
       ).paint(canvas, size);
 
       expect(canvas.drawVerticesCount, greaterThan(0));
@@ -830,7 +800,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        isForward: true,
       ).paint(fwdCanvas, size);
 
       final bwdCanvas = RecordingCanvas();

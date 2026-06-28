@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
@@ -160,13 +159,13 @@ void main() {
 
   group('flapFrontContentRevealOpacity', () {
     test('starts visible and fades out quickly during early drag', () {
-      expect(flapFrontContentRevealOpacity(0.0), equals(1.0));
+      expect(flapFrontContentRevealOpacity(0), equals(1.0));
       expect(
-        flapFrontContentRevealOpacity(0.10, fadeOutEnd: 0.20),
+        flapFrontContentRevealOpacity(0.10),
         closeTo(0.5, 0.01),
       );
       expect(
-        flapFrontContentRevealOpacity(0.20, fadeOutEnd: 0.20),
+        flapFrontContentRevealOpacity(0.20),
         equals(0.0),
       );
     });
@@ -175,7 +174,7 @@ void main() {
       expect(flapFrontContentRevealOpacity(0.25), equals(0.0));
       expect(flapFrontContentRevealOpacity(0.50), equals(0.0));
       expect(
-        flapFrontContentRevealOpacity(0.84, revealStart: 0.85),
+        flapFrontContentRevealOpacity(0.84),
         equals(0.0),
       );
     });
@@ -184,8 +183,6 @@ void main() {
       expect(
         flapFrontContentRevealOpacity(
           0.90,
-          revealStart: 0.85,
-          revealEnd: 0.95,
         ),
         closeTo(0.5, 0.01),
       );
@@ -195,16 +192,12 @@ void main() {
       expect(
         flapFrontContentRevealOpacity(
           0.95,
-          revealStart: 0.85,
-          revealEnd: 0.95,
         ),
         equals(1.0),
       );
       expect(
         flapFrontContentRevealOpacity(
-          1.0,
-          revealStart: 0.85,
-          revealEnd: 0.95,
+          1,
         ),
         equals(1.0),
       );
@@ -215,24 +208,24 @@ void main() {
     // ── Basics ──────────────────────────────────────────────
 
     test('start and end return 1.0 regardless of direction', () {
-      expect(flapOpacityModulator(0.0), equals(1.0));
-      expect(flapOpacityModulator(1.0), equals(1.0));
-      expect(flapOpacityModulator(0.0, isForward: false), equals(1.0));
-      expect(flapOpacityModulator(1.0, isForward: false), equals(1.0));
+      expect(flapOpacityModulator(0), equals(1.0));
+      expect(flapOpacityModulator(1), equals(1.0));
+      expect(flapOpacityModulator(0, isForward: false), equals(1.0));
+      expect(flapOpacityModulator(1, isForward: false), equals(1.0));
     });
 
     test('both strengths at zero return 1.0 throughout', () {
       for (final p in [0.0, 0.25, 0.5, 0.75, 1.0]) {
         expect(
-          flapOpacityModulator(p, thinPaperStrength: 0, endRevealStrength: 0),
+          flapOpacityModulator(p, thinPaperStrength: 0),
           equals(1.0),
         );
       }
     });
 
     test('early exit avoids computation at extremes', () {
-      expect(flapOpacityModulator(0.0, thinPaperStrength: 5.0), equals(1.0));
-      expect(flapOpacityModulator(1.0, thinPaperStrength: 5.0), equals(1.0));
+      expect(flapOpacityModulator(0, thinPaperStrength: 5), equals(1.0));
+      expect(flapOpacityModulator(1, thinPaperStrength: 5), equals(1.0));
     });
 
     // ── Thin paper symmetry ─────────────────────────────────
@@ -250,7 +243,7 @@ void main() {
       // Forward at progress=0.3  → p=0.3
       // Backward at progress=0.7 → p=1-0.7=0.3
       final fwd =
-          flapOpacityModulator(0.3, thinPaperStrength: s, isForward: true);
+          flapOpacityModulator(0.3, thinPaperStrength: s);
       final bwd =
           flapOpacityModulator(0.3, thinPaperStrength: s, isForward: false);
       expect(fwd, closeTo(bwd, 1e-15));
@@ -260,20 +253,20 @@ void main() {
       const s = 0.3;
       // Monotonic decrease 0→0.5
       double prev = 1.0;
-      for (int i = 1; i <= 5; i++) {
+      for (var i = 1; i <= 5; i++) {
         final p = i / 10.0;
         final v =
-            flapOpacityModulator(p, thinPaperStrength: s, endRevealStrength: 0);
+            flapOpacityModulator(p, thinPaperStrength: s);
         expect(v, lessThan(prev));
         prev = v;
       }
       // Monotonic increase 0.5→1.0
       prev =
-          flapOpacityModulator(0.5, thinPaperStrength: s, endRevealStrength: 0);
-      for (int i = 6; i < 10; i++) {
+          flapOpacityModulator(0.5, thinPaperStrength: s);
+      for (var i = 6; i < 10; i++) {
         final p = i / 10.0;
         final v =
-            flapOpacityModulator(p, thinPaperStrength: s, endRevealStrength: 0);
+            flapOpacityModulator(p, thinPaperStrength: s);
         expect(v, greaterThan(prev));
         prev = v;
       }
@@ -287,9 +280,9 @@ void main() {
       // Forward: progress=0.92  → p=0.92, end-reveal active
       // Backward: progress=0.08 → p=1-0.08=0.92, end-reveal active (SAME)
       final fwd = flapOpacityModulator(0.92,
-          thinPaperStrength: 0, endRevealStrength: s, isForward: true);
+          thinPaperStrength: 0, endRevealStrength: s,);
       final bwd = flapOpacityModulator(0.08,
-          thinPaperStrength: 0, endRevealStrength: s, isForward: false);
+          thinPaperStrength: 0, endRevealStrength: s, isForward: false,);
       expect(fwd, closeTo(bwd, 1e-15));
     });
 
@@ -297,24 +290,24 @@ void main() {
       // Backward: start of drag = floatProgress=1.0 → p=0
       // Just after: floatProgress=0.95 → p=0.05 ≪ endRevealStart=0.85
       final atStart = flapOpacityModulator(0.95,
-          thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false);
+          thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false,);
       expect(atStart, equals(1.0),
-          reason: 'Backward end-reveal must NOT trigger at drag start');
+          reason: 'Backward end-reveal must NOT trigger at drag start',);
 
       // Mid-backward: floatProgress=0.5 → p=0.5
       final mid = flapOpacityModulator(0.5,
-          thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false);
+          thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false,);
       expect(mid, equals(1.0),
-          reason: 'Backward end-reveal must NOT trigger mid-drag');
+          reason: 'Backward end-reveal must NOT trigger mid-drag',);
     });
 
     test('backward end-reveal activates near end of drag', () {
       // Backward: end of drag = floatProgress=0.0 → p=1.0
       // Near end: floatProgress=0.1 → p=0.9 > endRevealStart=0.85
       final nearEnd = flapOpacityModulator(0.05,
-          thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false);
+          thinPaperStrength: 0, endRevealStrength: 0.4, isForward: false,);
       expect(nearEnd, lessThan(1.0),
-          reason: 'Backward end-reveal MUST activate near drag end');
+          reason: 'Backward end-reveal MUST activate near drag end',);
     });
 
     // ── Smoothstep mathematical properties ──────────────────
@@ -322,11 +315,11 @@ void main() {
     test('end reveal uses C1-smooth smoothstep (zero slope at boundaries)', () {
       const s = 0.5;
       final atStart = flapOpacityModulator(0.85,
-          thinPaperStrength: 0, endRevealStrength: s, endRevealStart: 0.85);
+          thinPaperStrength: 0, endRevealStrength: s,);
       final justAfter = flapOpacityModulator(0.8501,
-          thinPaperStrength: 0, endRevealStrength: s, endRevealStart: 0.85);
+          thinPaperStrength: 0, endRevealStrength: s,);
       expect((atStart - justAfter).abs(), lessThan(0.001),
-          reason: 'Smoothstep derivative should be ~0 at boundary');
+          reason: 'Smoothstep derivative should be ~0 at boundary',);
     });
 
     // ── Exact mathematical values ───────────────────────────
@@ -344,16 +337,16 @@ void main() {
       // endFactor = 0.5 * 0.5 = 0.25
       // result = 1.0 - 0.25 = 0.75
       final v = flapOpacityModulator(0.9,
-          thinPaperStrength: 0, endRevealStrength: 0.5, endRevealStart: 0.8);
+          thinPaperStrength: 0, endRevealStrength: 0.5, endRevealStart: 0.8,);
       expect(v, closeTo(0.75, 0.001),
-          reason: 'smoothstep at t=0.5 halve endRevealStrength');
+          reason: 'smoothstep at t=0.5 halve endRevealStrength',);
     });
 
     // ── Clamping ────────────────────────────────────────────
 
     test('clamped to minimum 0.2 even with extreme strength', () {
       expect(
-        flapOpacityModulator(0.5, thinPaperStrength: 10.0),
+        flapOpacityModulator(0.5, thinPaperStrength: 10),
         closeTo(0.2, 0.001),
       );
     });
@@ -365,11 +358,11 @@ void main() {
       const es = 0.3;
       const rs = 0.85;
       final thin = flapOpacityModulator(0.92,
-          thinPaperStrength: s, endRevealStrength: 0);
+          thinPaperStrength: s,);
       final endOnly = flapOpacityModulator(0.92,
-          thinPaperStrength: 0, endRevealStrength: es, endRevealStart: rs);
+          thinPaperStrength: 0, endRevealStrength: es,);
       final both = flapOpacityModulator(0.92,
-          thinPaperStrength: s, endRevealStrength: es, endRevealStart: rs);
+          thinPaperStrength: s, endRevealStrength: es,);
 
       expect(both, lessThan(thin));
       expect(both, lessThan(endOnly));
@@ -383,10 +376,8 @@ void main() {
         'forward and backward produce identical outputs at equivalent positions',
         () {
       for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {
-        final fwd = flapOpacityModulator(p,
-            thinPaperStrength: 0.15, endRevealStrength: 0.35);
-        final bwd = flapOpacityModulator(1.0 - p,
-            thinPaperStrength: 0.15, endRevealStrength: 0.35, isForward: false);
+        final fwd = flapOpacityModulator(p, endRevealStrength: 0.35,);
+        final bwd = flapOpacityModulator(1.0 - p, endRevealStrength: 0.35, isForward: false,);
         expect(fwd, closeTo(bwd, 1e-15), reason: 'Symmetry mismatch at p=$p');
       }
     });

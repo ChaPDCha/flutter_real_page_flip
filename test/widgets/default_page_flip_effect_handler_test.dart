@@ -123,7 +123,7 @@ void main() {
     test('dispose method cleans up resources', () async {
       final handler = DefaultPageFlipEffectHandler();
       await Future.delayed(const Duration(milliseconds: 10));
-      expect(() => handler.dispose(), returnsNormally);
+      expect(handler.dispose, returnsNormally);
       await Future.delayed(Duration.zero);
     });
 

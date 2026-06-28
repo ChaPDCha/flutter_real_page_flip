@@ -19,7 +19,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
       );
       controller.setIndex(0, 5);
       controller.updateCachedWidth(400);

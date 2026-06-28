@@ -42,8 +42,7 @@ void main() {
       required bool isForward,
       required int currentIndex,
       required Map<int, ui.Image> pageSnapshots,
-    }) {
-      return MaterialApp(
+    }) => MaterialApp(
         theme: ThemeData(useMaterial3: true),
         home: Scaffold(
           backgroundColor: const Color(0xFFF5F5F5),
@@ -64,7 +63,6 @@ void main() {
                   for (var i = 0; i < 3; i++) i: GlobalKey(),
                 },
                 constrainedSize: canvasSize,
-                isDoubleSpread: false,
                 paperFlapColor: const Color(0xFFF5F5F5),
                 itemBuilder: (context, index) => ColoredBox(
                   color: Colors.primaries[index % Colors.primaries.length],
@@ -74,7 +72,6 @@ void main() {
           ),
         ),
       );
-    }
 
     testWidgets('forward progress 0.50', (tester) async {
       await tester.pumpWidget(

@@ -10,15 +10,13 @@ void main() {
     /// so its origin is at screen offset (200, 0). All gesture coordinates below
     /// account for this offset.
     Widget buildTestWidget({
-      int itemCount = 3,
+      required IndexedWidgetBuilder itemBuilder, int itemCount = 3,
       int initialIndex = 0,
-      required IndexedWidgetBuilder itemBuilder,
       void Function(int)? onPageChanged,
       void Function()? onFlipEnd,
       PageFlipController? controller,
       PageFlipConfig config = PageFlipConfig.defaultSettings,
-    }) {
-      return MaterialApp(
+    }) => MaterialApp(
         home: Scaffold(
           body: Center(
             child: SizedBox.fromSize(
@@ -36,15 +34,14 @@ void main() {
           ),
         ),
       );
-    }
 
     Widget defaultPage(BuildContext context, int index) => Container(
           color: [Colors.blue, Colors.red, Colors.green][index],
         );
 
     testWidgets('forward drag flips to next page', (tester) async {
-      int changedPage = -1;
-      bool flipEnded = false;
+      var changedPage = -1;
+      var flipEnded = false;
 
       await tester.pumpWidget(
         buildTestWidget(
@@ -69,7 +66,7 @@ void main() {
     });
 
     testWidgets('backward drag flips to previous page', (tester) async {
-      int changedPage = -1;
+      var changedPage = -1;
 
       await tester.pumpWidget(
         buildTestWidget(
@@ -95,7 +92,7 @@ void main() {
     testWidgets('drag during animation is ignored (gesture freeze)', (
       tester,
     ) async {
-      int flipCount = 0;
+      var flipCount = 0;
 
       await tester.pumpWidget(
         buildTestWidget(
@@ -128,7 +125,7 @@ void main() {
     });
 
     testWidgets('edge tap flips pages', (tester) async {
-      int changedPage = -1;
+      var changedPage = -1;
 
       await tester.pumpWidget(
         buildTestWidget(
@@ -155,12 +152,11 @@ void main() {
     });
 
     testWidgets('boundary prevents out-of-bounds flips', (tester) async {
-      int changedPage = -1;
+      var changedPage = -1;
 
       // Page 0: backward should be ignored
       await tester.pumpWidget(
         buildTestWidget(
-          initialIndex: 0,
           itemBuilder: defaultPage,
           onPageChanged: (page) => changedPage = page,
         ),

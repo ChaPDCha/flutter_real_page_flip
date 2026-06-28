@@ -10,8 +10,8 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
 
-    int pageFlippedCount = 0;
-    int lastPage = 0;
+    var pageFlippedCount = 0;
+    var lastPage = 0;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -38,7 +38,7 @@ void main() {
     expect(find.text('Page 0'), findsOneWidget);
 
     // Rapidly trigger 10 NEXT flips
-    for (int i = 0; i < 10; i++) {
+    for (var i = 0; i < 10; i++) {
       // With width 400 and ratio 0.1, edge is last 40px (360-400)
       const rightSide = Offset(380, 400);
       await tester.tapAt(rightSide);
@@ -56,11 +56,10 @@ void main() {
 
   testWidgets('PageFlipWidget Dynamic Data Stress: Changing itemCount rapidly',
       (tester) async {
-    int itemCount = 100;
+    var itemCount = 100;
 
     await tester.pumpWidget(
-      StatefulBuilder(builder: (context, setState) {
-        return MaterialApp(
+      StatefulBuilder(builder: (context, setState) => MaterialApp(
           home: Scaffold(
             body: Column(
               children: [
@@ -78,8 +77,7 @@ void main() {
               ],
             ),
           ),
-        );
-      }),
+        ),),
     );
 
     // Start a flip
@@ -142,8 +140,7 @@ void main() {
     var flipCount = 0;
     await tester.pumpWidget(
       StatefulBuilder(
-        builder: (context, setState) {
-          return MaterialApp(
+        builder: (context, setState) => MaterialApp(
             home: Scaffold(
               body: PageFlipWidget(
                 itemCount: 10,
@@ -155,8 +152,7 @@ void main() {
                 ),
               ),
             ),
-          );
-        },
+          ),
       ),
     );
 
@@ -180,7 +176,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
 
-    int lastIndex = 0;
+    var lastIndex = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -198,7 +194,7 @@ void main() {
     );
 
     // Rapid taps at right edge
-    for (int i = 0; i < 5; i++) {
+    for (var i = 0; i < 5; i++) {
       await tester.tapAt(const Offset(380, 400));
       await tester.pump(const Duration(milliseconds: 30));
     }

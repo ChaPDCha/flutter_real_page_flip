@@ -45,18 +45,16 @@ void main() {
           home: PageFlipWidget(
             controller: controller,
             itemCount: 100,
-            itemBuilder: (context, index) {
-              return SizedBox(
+            itemBuilder: (context, index) => SizedBox(
                 key: ValueKey('page_$index'),
                 child: Text('Page $index'),
-              );
-            },
+              ),
           ),
         ),
       );
 
       // Flip rapidly
-      for (int i = 0; i < 20; i++) {
+      for (var i = 0; i < 20; i++) {
         controller.nextPage();
         await tester.pump(); // Start animation
       }
@@ -71,7 +69,7 @@ void main() {
       // but the tree should only contain a few Offstage pages.
       final offstageCount = tester.widgetList(find.byType(Offstage)).length;
       expect(offstageCount,
-          lessThanOrEqualTo(4)); // prev, next + maybe old ones being disposed
+          lessThanOrEqualTo(4),); // prev, next + maybe old ones being disposed
     });
   });
 }

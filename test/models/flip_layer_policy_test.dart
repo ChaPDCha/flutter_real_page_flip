@@ -10,7 +10,7 @@ void main() {
 
     group('bottomSpreadHalf', () {
       test('double forward returns next spread index, right-aligned', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 2,
@@ -23,7 +23,7 @@ void main() {
       });
 
       test('double forward at last spread returns null (paper fallback)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 4,
@@ -33,7 +33,7 @@ void main() {
       });
 
       test('double backward returns previous index, left-aligned', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 3,
@@ -46,7 +46,7 @@ void main() {
       });
 
       test('double backward at index 0 returns null (paper fallback)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 0,
@@ -56,7 +56,7 @@ void main() {
       });
 
       test('single mode returns null (uses bottomPageIndex instead)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 2,
@@ -70,7 +70,7 @@ void main() {
 
     group('middleSpreadHalf', () {
       test('double forward returns current index, left-aligned', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 2,
@@ -83,7 +83,7 @@ void main() {
       });
 
       test('double forward at last spread still returns current index', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 4,
@@ -96,7 +96,7 @@ void main() {
       });
 
       test('double backward returns current index, right-aligned', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 3,
@@ -109,7 +109,7 @@ void main() {
       });
 
       test('double backward at index 0 still returns current index', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 0,
@@ -122,7 +122,7 @@ void main() {
       });
 
       test('single mode returns null (uses middlePageIndex instead)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 2,
@@ -136,7 +136,7 @@ void main() {
 
     group('bottomPageIndex', () {
       test('single forward returns next page', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 1,
@@ -146,7 +146,7 @@ void main() {
       });
 
       test('single forward at last page returns null', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 4,
@@ -156,7 +156,7 @@ void main() {
       });
 
       test('single backward returns currentIndex (underside)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
           currentIndex: 2,
@@ -166,7 +166,7 @@ void main() {
       });
 
       test('single backward at index 0 returns currentIndex (still valid)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
           currentIndex: 0,
@@ -176,7 +176,7 @@ void main() {
       });
 
       test('double mode returns null (uses bottomSpreadHalf)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 2,
@@ -190,7 +190,7 @@ void main() {
 
     group('middleSpreadIndex', () {
       test('double forward returns currentIndex', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 2,
@@ -200,7 +200,7 @@ void main() {
       });
 
       test('double backward returns currentIndex', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 2,
@@ -210,7 +210,7 @@ void main() {
       });
 
       test('single mode returns null', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 2,
@@ -224,7 +224,7 @@ void main() {
 
     group('middlePageIndex', () {
       test('single forward returns currentIndex (stationary content)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 2,
@@ -234,7 +234,7 @@ void main() {
       });
 
       test('single backward returns previous page', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
           currentIndex: 3,
@@ -244,7 +244,7 @@ void main() {
       });
 
       test('single backward at index 0 returns null', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
           currentIndex: 0,
@@ -254,7 +254,7 @@ void main() {
       });
 
       test('double mode returns null (uses middleSpreadIndex)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 2,
@@ -268,7 +268,7 @@ void main() {
 
     group('flapSnapshotSpreadIndex', () {
       test('double mode returns currentIndex', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 2,
@@ -278,7 +278,7 @@ void main() {
       });
 
       test('double backward returns currentIndex', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 2,
@@ -288,7 +288,7 @@ void main() {
       });
 
       test('single forward returns currentIndex', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 1,
@@ -300,7 +300,7 @@ void main() {
       test(
           'single backward returns previous page index (peels previous page from left)',
           () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
           currentIndex: 2,
@@ -314,7 +314,7 @@ void main() {
 
     group('flapBackSnapshotSpreadIndex', () {
       test('double forward returns next spread index', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 2,
@@ -324,7 +324,7 @@ void main() {
       });
 
       test('double forward at last spread returns null', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 4,
@@ -334,7 +334,7 @@ void main() {
       });
 
       test('double backward returns previous spread index', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 3,
@@ -344,7 +344,7 @@ void main() {
       });
 
       test('double backward at first spread returns null', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 0,
@@ -355,7 +355,7 @@ void main() {
 
       test('single mode returns null regardless of direction', () {
         expect(
-          FlipLayerPolicy(
+          const FlipLayerPolicy(
             isDoubleSpread: false,
             isForward: true,
             currentIndex: 2,
@@ -364,7 +364,7 @@ void main() {
           isNull,
         );
         expect(
-          FlipLayerPolicy(
+          const FlipLayerPolicy(
             isDoubleSpread: false,
             isForward: false,
             currentIndex: 2,
@@ -379,7 +379,7 @@ void main() {
 
     group('flapSettleSnapshotSpreadIndex', () {
       test('double forward returns next spread index', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 2,
@@ -389,7 +389,7 @@ void main() {
       });
 
       test('double forward at last spread returns null', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 4,
@@ -399,7 +399,7 @@ void main() {
       });
 
       test('double backward returns previous spread index', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 3,
@@ -409,7 +409,7 @@ void main() {
       });
 
       test('double backward at first spread returns null', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 0,
@@ -419,7 +419,7 @@ void main() {
       });
 
       test('single forward delegates to flapSnapshotSpreadIndex', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 2,
@@ -432,7 +432,7 @@ void main() {
       });
 
       test('single backward delegates to flapSnapshotSpreadIndex', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
           currentIndex: 2,
@@ -451,7 +451,7 @@ void main() {
       test(
           'double forward at index 0: bottom returns null (no next spread), middle=current',
           () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 0,
@@ -470,7 +470,7 @@ void main() {
       test(
           'single backward at index 0: bottomPageIndex=0, middlePageIndex=null',
           () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: false,
           currentIndex: 0,
@@ -486,7 +486,7 @@ void main() {
       test(
           'single forward at index 0: bottomPageIndex=null (out of bounds), '
           'middlePageIndex=0 (current page stays)', () {
-        final policy = FlipLayerPolicy(
+        const policy = FlipLayerPolicy(
           isDoubleSpread: false,
           isForward: true,
           currentIndex: 0,

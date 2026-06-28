@@ -154,12 +154,12 @@ void main() {
     });
 
     test('forward: returns 1.0 at progress=1 (end)', () {
-      final result = flapFrontContentRevealOpacity(1.0);
+      final result = flapFrontContentRevealOpacity(1);
       expect(result, closeTo(1, 0.001));
     });
 
     test('forward: smoothstep fade-out from 1.0 to 0.0', () {
-      final atStart = flapFrontContentRevealOpacity(0.0);
+      final atStart = flapFrontContentRevealOpacity(0);
       final atMidFade = flapFrontContentRevealOpacity(0.10);
       final atEndFade = flapFrontContentRevealOpacity(0.20);
       expect(atStart, closeTo(1, 0.001));
@@ -193,7 +193,7 @@ void main() {
       );
       // At backward progress=1.0, p=0.0 → start → 1.0.
       expect(
-        flapFrontContentRevealOpacity(1.0, isForward: false),
+        flapFrontContentRevealOpacity(1, isForward: false),
         closeTo(1, 0.001),
       );
     });
@@ -234,7 +234,7 @@ void main() {
     test('returns 1.0 when both strengths are 0', () {
       for (final p in [0.0, 0.25, 0.5, 0.75, 1.0]) {
         expect(
-          flapOpacityModulator(p, thinPaperStrength: 0, endRevealStrength: 0),
+          flapOpacityModulator(p, thinPaperStrength: 0),
           closeTo(1, 0.001),
         );
       }
@@ -243,8 +243,6 @@ void main() {
     test('thin paper reduces opacity at mid-flip (forward)', () {
       final atMid = flapOpacityModulator(
         0.5,
-        thinPaperStrength: 0.15,
-        endRevealStrength: 0,
       );
       expect(atMid, lessThan(1.0));
       expect(atMid, greaterThan(0.5));
@@ -255,7 +253,6 @@ void main() {
         0.95,
         thinPaperStrength: 0,
         endRevealStrength: 0.35,
-        endRevealStart: 0.85,
       );
       expect(nearEnd, lessThan(1.0));
       expect(nearEnd, greaterThan(0.2));
@@ -264,21 +261,19 @@ void main() {
     test('backward: normalization inverts progress', () {
       // Backward progress=0 → p=1 → 1.0
       expect(
-        flapOpacityModulator(0, thinPaperStrength: 0.15, isForward: false),
+        flapOpacityModulator(0, isForward: false),
         closeTo(1, 0.001),
       );
       // Backward progress=1 → p=0 → 1.0
       expect(
-        flapOpacityModulator(1, thinPaperStrength: 0.15, isForward: false),
+        flapOpacityModulator(1, isForward: false),
         closeTo(1, 0.001),
       );
       // Backward and forward should produce the same result at p=0.5
       expect(
-        flapOpacityModulator(0.5,
-            thinPaperStrength: 0.15, endRevealStrength: 0, isForward: false),
+        flapOpacityModulator(0.5, isForward: false,),
         closeTo(
-          flapOpacityModulator(0.5,
-              thinPaperStrength: 0.15, endRevealStrength: 0),
+          flapOpacityModulator(0.5,),
           0.001,
         ),
       );
@@ -288,7 +283,6 @@ void main() {
       final result = flapOpacityModulator(
         0.5,
         thinPaperStrength: 0.8,
-        endRevealStrength: 0,
       );
       expect(result, greaterThanOrEqualTo(0.2));
     });
@@ -359,7 +353,7 @@ void main() {
     });
 
     test('zero overlapShift is no-op', () {
-      final withShift = snapClipPoint(const Offset(3.5, 5.5), overlapShift: 0);
+      final withShift = snapClipPoint(const Offset(3.5, 5.5));
       final without = snapClipPoint(const Offset(3.5, 5.5));
       expect(withShift.dx, closeTo(without.dx, 0.001));
       expect(withShift.dy, closeTo(without.dy, 0.001));
@@ -398,7 +392,7 @@ void main() {
     });
 
     test('curved fold (curvatureAmount>0) adds quadratic bezier', () {
-      final geo = makeGeo(progress: 0.5);
+      final geo = makeGeo();
       final path = Path()..moveTo(0, 0);
       appendFoldLineBoundary(path, geo);
       expect(path, isA<Path>());
@@ -407,9 +401,9 @@ void main() {
     });
 
     test('positive overlapShift moves fold boundary right', () {
-      final geo = makeGeo(progress: 0.5);
+      final geo = makeGeo();
       final pathUnshifted = Path()..moveTo(0, 0);
-      appendFoldLineBoundary(pathUnshifted, geo, overlapShift: 0);
+      appendFoldLineBoundary(pathUnshifted, geo);
       final unshiftedBounds = pathUnshifted.getBounds();
 
       final pathShifted = Path()..moveTo(0, 0);
@@ -552,8 +546,7 @@ void main() {
       Rect srcRect = const Rect.fromLTWH(0, 0, 200, 600),
       int segments = 16,
       int columns = 4,
-    }) {
-      return buildFlapContentMesh(
+    }) => buildFlapContentMesh(
         size: Size(width, height),
         foldX: foldX,
         flapLeft: flapLeft,
@@ -562,7 +555,6 @@ void main() {
         segments: segments,
         columns: columns,
       );
-    }
 
     test('returns ui.Vertices with correct type', () {
       expect(buildDefaultMesh(), isA<ui.Vertices>());
@@ -570,7 +562,7 @@ void main() {
 
     test('default parameters produces valid mesh', () {
       // 16 segments × 4 columns → non-trivial mesh.
-      expect(buildDefaultMesh(segments: 16, columns: 4), isA<ui.Vertices>());
+      expect(buildDefaultMesh(), isA<ui.Vertices>());
     });
 
     test('with segments=1 and columns=0 produces minimal mesh', () {
@@ -682,7 +674,7 @@ void main() {
 
     test('single-page with foldX at left edge clamps to 0', () {
       final geo = PageFlipGeometry(
-        progress: 1.0,
+        progress: 1,
         isRightToLeft: true,
         touchOffset: Offset.zero,
         size: const Size(400, 600),
@@ -724,7 +716,7 @@ void main() {
 
     test('returns empty Path when degenerate (flap width near zero)', () {
       final geo = PageFlipGeometry(
-        progress: 1.0,
+        progress: 1,
         isRightToLeft: true,
         touchOffset: Offset.zero,
         size: const Size(400, 600),
@@ -893,9 +885,7 @@ void main() {
       // When fadeOutEnd == revealStart, mid-fold phase is zero-width.
       final atBoundary = flapFrontContentRevealOpacity(
         0.20,
-        fadeOutEnd: 0.20,
         revealStart: 0.20,
-        revealEnd: 0.95,
       );
       // At p=fadeOutEnd, Phase 1 is active and returns 0.
       expect(atBoundary, closeTo(0, 0.001));

@@ -1,0 +1,14 @@
+include: ../analysis_options.yaml
+
+analyzer:
+  errors:
+    avoid_print: ignore
+    use_named_constants: ignore
+    comment_references: ignore
+    prefer_const_constructors: ignore
+    prefer_const_literals_to_create_immutables: ignore
+    prefer_const_constructors_in_immutables: ignore
+    unused_local_variable: ignore
+    unused_element: ignore
+    unused_import: ignore
+    deprecated_member_use: ignore

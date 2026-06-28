@@ -11,8 +11,7 @@ void main() {
     bool isDoubleSpread = true,
     bool isForward = true,
     Offset touchOffset = Offset.zero,
-  }) {
-    return PageFlipGeometry(
+  }) => PageFlipGeometry(
       progress: progress,
       isRightToLeft: true,
       touchOffset: touchOffset,
@@ -20,7 +19,6 @@ void main() {
       isDoubleSpread: isDoubleSpread,
       isForward: isForward,
     );
-  }
 
   group('fold seam overlap', () {
     for (final progress in [0.5, 0.85, 0.92]) {
@@ -65,7 +63,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         isDoubleSpread: true,
-        isForward: true,
       );
       final fromClipper = clipper.getClip(canvasSize);
       final fromBuilder = buildStationaryPageClipPath(canvasSize, g);
@@ -83,7 +80,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         isDoubleSpread: true,
-        isForward: true,
       );
       final fromClipper = clipper.getClip(canvasSize);
       final fromBuilder = buildOpenPageClipPath(canvasSize, g);
@@ -145,7 +141,7 @@ void main() {
       // It should mathematically cover the right side starting from the seam.
       final expectedOpenLeft = math.min(
         snapClipCoord(g.flapLeft),
-        snapClipCoord(g.foldX - kSpineRevealOverlapPx)
+        snapClipCoord(g.foldX - kSpineRevealOverlapPx),
       );
       // Because of the bezier curve for the page curl, getBounds().left 
       // might be slightly inward from the theoretical flapLeft.
@@ -169,7 +165,6 @@ void main() {
           touchOffset: Offset.zero,
           size: size,
           isDoubleSpread: true,
-          isForward: true,
         );
 
         final statPath = buildStationaryPageClipPath(size, g);

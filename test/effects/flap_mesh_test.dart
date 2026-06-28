@@ -161,7 +161,7 @@ void main() {
       );
 
       final byteData = await image.toByteData(
-        format: ui.ImageByteFormat.rawRgba,
+        
       );
       expect(byteData, isNotNull);
 
@@ -174,14 +174,14 @@ void main() {
       final offset = my * stride + mx * 4;
       final r = byteData!.getUint8(offset);
       expect(r, greaterThan(0),
-          reason: 'Mesh should cover the region between flapLeft and foldX');
+          reason: 'Mesh should cover the region between flapLeft and foldX',);
 
       // Pixel outside flap (far right of foldX) should be transparent.
       final outsideX = (foldX + 50).toInt();
       final outsideOffset = my * stride + outsideX * 4;
       final outsideR = byteData.getUint8(outsideOffset);
       expect(outsideR, equals(0),
-          reason: 'Area beyond foldX should not be covered');
+          reason: 'Area beyond foldX should not be covered',);
 
       image.dispose();
     });
@@ -196,7 +196,6 @@ void main() {
         flapLeft: -200,
         curveOffset: 50,
         srcRect: const Rect.fromLTWH(0, 0, 400, 600),
-        segments: 16,
         columns: 6,
         flipHorizontal: true,
       );
@@ -223,7 +222,6 @@ void main() {
         curveOffset: 12,
         srcRect: srcRect,
         segments: 8,
-        columns: 4,
         flipHorizontal: true,
       );
 

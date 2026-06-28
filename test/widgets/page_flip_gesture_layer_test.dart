@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
-import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 import 'package:real_page_flip/src/widgets/page_flip_gesture_layer.dart';
 
 void main() {
@@ -20,7 +19,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
       );
       controller.setIndex(0, 5);
       controller.updateCachedWidth(400);
@@ -116,7 +115,7 @@ void main() {
         ),
       );
 
-      final center = const Offset(200, 300);
+      const center = Offset(200, 300);
       final gesture = await tester.startGesture(center);
       await gesture.moveBy(const Offset(-200, 0));
       await tester.pump();
@@ -239,7 +238,7 @@ void main() {
             height: 600,
             child: PageFlipGestureLayer(
               controller: controller,
-              sensitivity: 1.0, // most sensitive
+              sensitivity: 1, // most sensitive
               totalPages: 3,
             ),
           ),

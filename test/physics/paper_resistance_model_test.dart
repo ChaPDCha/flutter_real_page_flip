@@ -4,7 +4,7 @@ import 'package:real_page_flip/src/physics/paper_resistance_model.dart';
 void main() {
   group('PaperResistanceModel.resistance', () {
     test('returns value in [0, 1] range for all fold angles', () {
-      for (int i = 0; i <= 100; i++) {
+      for (var i = 0; i <= 100; i++) {
         final angle = i / 100.0;
         final r = PaperResistanceModel.resistance(foldAngle: angle);
         expect(r, greaterThanOrEqualTo(0));
@@ -29,11 +29,11 @@ void main() {
     test('higher sigmoidK produces sharper transition', () {
       final lowK = PaperResistanceModel.resistance(
         foldAngle: 0.5,
-        sigmoidK: 2.0,
+        sigmoidK: 2,
       );
       final highK = PaperResistanceModel.resistance(
         foldAngle: 0.5,
-        sigmoidK: 12.0,
+        sigmoidK: 12,
       );
       // Both at center should give similar values
       expect(lowK, greaterThan(0));
@@ -45,26 +45,20 @@ void main() {
     test('at velocity=0 equals muStatic', () {
       final f = PaperResistanceModel.frictionCoefficient(
         velocity: 0,
-        muStatic: 0.6,
-        muKinetic: 0.25,
-        stribeckV0: 0.08,
       );
       expect(f, closeTo(0.6, 0.001));
     });
 
     test('at high velocity approaches muKinetic', () {
       final f = PaperResistanceModel.frictionCoefficient(
-        velocity: 1.0,
-        muStatic: 0.6,
-        muKinetic: 0.25,
-        stribeckV0: 0.08,
+        velocity: 1,
       );
       expect(f, closeTo(0.25, 0.01));
     });
 
     test('is monotonically decreasing with velocity', () {
-      double prev = double.infinity;
-      for (int i = 0; i <= 50; i++) {
+      var prev = double.infinity;
+      for (var i = 0; i <= 50; i++) {
         final v = i / 50.0;
         final f = PaperResistanceModel.frictionCoefficient(velocity: v);
         expect(f, lessThanOrEqualTo(prev));
@@ -82,10 +76,10 @@ void main() {
         resistance: 0,
       );
       final maxAmp = PaperResistanceModel.hapticAmplitude(
-        velocity: 1.0,
-        friction: 1.0,
-        texture: 1.0,
-        resistance: 1.0,
+        velocity: 1,
+        friction: 1,
+        texture: 1,
+        resistance: 1,
       );
       expect(minAmp, greaterThanOrEqualTo(0.05));
       expect(maxAmp, lessThanOrEqualTo(1.0));
@@ -127,10 +121,8 @@ void main() {
   group('PaperResistanceModel.hapticDuration', () {
     test('clamps to [minDurationMs, maxDurationMs]', () {
       final d = PaperResistanceModel.hapticDuration(
-        resistance: 2.0,
-        friction: 2.0,
-        minDurationMs: 8,
-        maxDurationMs: 120,
+        resistance: 2,
+        friction: 2,
       );
       expect(d, greaterThanOrEqualTo(8));
       expect(d, lessThanOrEqualTo(120));
@@ -164,16 +156,16 @@ void main() {
       // At foldAngle=0: sigmoidValue=1/(1+exp(6*0.5))≈0.047, sin(0)=0
       // With bindingStiffness=0: only sigmoid component
       final noBind = PaperResistanceModel.resistance(
-        foldAngle: 0.0,
-        bindingStiffness: 0.0,
+        foldAngle: 0,
+        bindingStiffness: 0,
       );
       expect(noBind, greaterThanOrEqualTo(0));
       expect(noBind, lessThanOrEqualTo(1));
 
       // With bindingStiffness=1: sin(0)*1*0.3 = 0, same as no bind at angle 0
       final fullBind = PaperResistanceModel.resistance(
-        foldAngle: 0.0,
-        bindingStiffness: 1.0,
+        foldAngle: 0,
+        bindingStiffness: 1,
       );
       expect(fullBind, equals(noBind));
     });
@@ -181,8 +173,7 @@ void main() {
     test('resistance at foldAngle=1 includes edge boost', () {
       // At foldAngle=1: edgeBoost = (1-0.75)*0.4 = 0.1
       final result = PaperResistanceModel.resistance(
-        foldAngle: 1.0,
-        bindingStiffness: 0.5,
+        foldAngle: 1,
       );
       expect(result, greaterThanOrEqualTo(0));
       expect(result, lessThanOrEqualTo(1));
@@ -194,7 +185,7 @@ void main() {
     test('bindingStiffness=0 removes sine component', () {
       final result = PaperResistanceModel.resistance(
         foldAngle: 0.5,
-        bindingStiffness: 0.0,
+        bindingStiffness: 0,
       );
       // Only sigmoid (0.5*0.3=0.15) + no edge boost (<0.75)
       expect(result, lessThan(0.2));
@@ -204,18 +195,18 @@ void main() {
       // sigmoidK=0: sigmoid = 1/(1+exp(0)) = 0.5 for any foldAngle
       final atStart = PaperResistanceModel.resistance(
         foldAngle: 0.1,
-        sigmoidK: 0.0,
-        bindingStiffness: 0.0,
+        sigmoidK: 0,
+        bindingStiffness: 0,
       );
       final atMid = PaperResistanceModel.resistance(
         foldAngle: 0.5,
-        sigmoidK: 0.0,
-        bindingStiffness: 0.0,
+        sigmoidK: 0,
+        bindingStiffness: 0,
       );
       final atEnd = PaperResistanceModel.resistance(
         foldAngle: 0.9,
-        sigmoidK: 0.0,
-        bindingStiffness: 0.0,
+        sigmoidK: 0,
+        bindingStiffness: 0,
       );
       // All have sigmoid contribution 0.5*0.3 = 0.15
       // atEnd has edge boost (0.9-0.75)*0.4 = 0.06
@@ -226,11 +217,11 @@ void main() {
     test('edge boost activates only beyond foldAngle=0.75', () {
       final before = PaperResistanceModel.resistance(
         foldAngle: 0.75,
-        bindingStiffness: 0.0,
+        bindingStiffness: 0,
       );
       final after = PaperResistanceModel.resistance(
         foldAngle: 0.751,
-        bindingStiffness: 0.0,
+        bindingStiffness: 0,
       );
       // before: no edge boost (0.75 is NOT > 0.75), after: tiny boost
       // The sigmoid is smooth so there's a tiny difference, but the
@@ -243,13 +234,12 @@ void main() {
       // = 0.25 + 0.35*exp(-1) ≈ 0.25 + 0.1288 = 0.3788
       final result = PaperResistanceModel.frictionCoefficient(
         velocity: 0.08,
-        stribeckV0: 0.08,
       );
       expect(result, closeTo(0.3788, 0.001));
     });
 
     test('frictionCoefficient with equal static/kinetic is constant', () {
-      for (int i = 0; i <= 10; i++) {
+      for (var i = 0; i <= 10; i++) {
         final v = i / 10.0;
         final result = PaperResistanceModel.frictionCoefficient(
           velocity: v,
@@ -297,8 +287,8 @@ void main() {
     });
 
     test('frictionCoefficient is monotonically decreasing with velocity', () {
-      double prev = double.infinity;
-      for (int i = 0; i <= 100; i++) {
+      var prev = double.infinity;
+      for (var i = 0; i <= 100; i++) {
         final v = i / 100.0;
         final f = PaperResistanceModel.frictionCoefficient(velocity: v);
         expect(f, lessThanOrEqualTo(prev));
@@ -307,9 +297,9 @@ void main() {
     });
 
     test('resistance is in [0, 1] for exhaustive parameter sweep', () {
-      for (int i = 0; i <= 200; i++) {
+      for (var i = 0; i <= 200; i++) {
         final foldAngle = i / 200.0;
-        for (int j = 0; j <= 2; j++) {
+        for (var j = 0; j <= 2; j++) {
           final k = [2.0, 6.0, 12.0][j];
           final r = PaperResistanceModel.resistance(
             foldAngle: foldAngle,

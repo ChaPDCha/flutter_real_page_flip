@@ -23,7 +23,7 @@ void main() {
 
     testWidgets('1000 pages programmatic goToPage works', (tester) async {
       final controller = PageFlipController();
-      int currentIndex = 0;
+      var currentIndex = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -45,7 +45,7 @@ void main() {
 
     testWidgets('1000 pages programmatic nextPage 3 times', (tester) async {
       final controller = PageFlipController();
-      int currentIndex = 0;
+      var currentIndex = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -75,7 +75,7 @@ void main() {
     testWidgets('1000 pages goToPage to last page then goToPage back',
         (tester) async {
       final controller = PageFlipController();
-      int currentIndex = 0;
+      var currentIndex = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -100,7 +100,7 @@ void main() {
 
     testWidgets('1000 pages goToPage out of bounds is no-op', (tester) async {
       final controller = PageFlipController();
-      int currentIndex = 0;
+      var currentIndex = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -126,8 +126,8 @@ void main() {
     testWidgets('1000 pages sequential nextPage at end is no-op',
         (tester) async {
       final controller = PageFlipController();
-      int currentIndex = 999;
-      int callbackCount = 0;
+      var currentIndex = 999;
+      var callbackCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(

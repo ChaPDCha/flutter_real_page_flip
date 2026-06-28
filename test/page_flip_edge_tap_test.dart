@@ -12,8 +12,6 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             controller: controller,
-            // Default edgeTapWidthRatio is 0.1
-            config: const PageFlipConfig(edgeTapWidthRatio: 0.1),
             itemCount: 2,
             itemBuilder: (context, index) => [
               Container(color: Colors.blue),
@@ -51,7 +49,6 @@ void main() {
           home: PageFlipWidget(
             controller: controller,
             initialIndex: 1, // Start at page 1
-            config: const PageFlipConfig(edgeTapWidthRatio: 0.1),
             itemBuilder: (context, index) => [
               Container(color: Colors.blue),
               Container(color: Colors.red),
@@ -88,7 +85,6 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             controller: controller,
-            config: const PageFlipConfig(edgeTapWidthRatio: 0.1),
             itemCount: 2,
             itemBuilder: (context, index) => [
               Container(color: Colors.blue),
@@ -123,7 +119,7 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             controller: controller,
-            config: const PageFlipConfig(edgeTapWidthRatio: 0.0), // Disable
+            config: const PageFlipConfig(edgeTapWidthRatio: 0), // Disable
             itemCount: 2,
             itemBuilder: (context, index) => [
               Container(color: Colors.blue),
@@ -157,8 +153,6 @@ void main() {
         MaterialApp(
           home: PageFlipWidget(
             controller: controller,
-            config: const PageFlipConfig(
-                edgeTapWidthRatio: 0.1, sensitivity: 0.5, enableSwipe: true),
             itemCount: 2,
             itemBuilder: (context, index) => [
               Container(color: Colors.blue),

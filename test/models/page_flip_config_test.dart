@@ -38,63 +38,63 @@ void main() {
     });
 
     test('equality respects enableHaptics', () {
-      const a = PageFlipConfig(enableHaptics: true);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(enableHaptics: false);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects enableSound', () {
-      const a = PageFlipConfig(enableSound: true);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(enableSound: false);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects effectHandler (null vs null)', () {
-      const a = PageFlipConfig(effectHandler: null);
-      const b = PageFlipConfig(effectHandler: null);
+      const a = PageFlipConfig();
+      const b = PageFlipConfig();
       expect(a == b, isTrue);
       expect(a.hashCode == b.hashCode, isTrue);
     });
 
     test('equality respects effectHandler (non-null vs null)', () {
       const handler = _TestEffectHandler();
-      final a = PageFlipConfig(effectHandler: handler);
-      const b = PageFlipConfig(effectHandler: null);
+      const a = PageFlipConfig(effectHandler: handler);
+      const b = PageFlipConfig();
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects effectHandler (different instances)', () {
-      final a = PageFlipConfig(effectHandler: _TestEffectHandler());
-      final b = PageFlipConfig(effectHandler: _TestEffectHandler());
+      const a = PageFlipConfig(effectHandler: _TestEffectHandler());
+      const b = PageFlipConfig(effectHandler: _TestEffectHandler());
       expect(a == b, isFalse);
     });
 
     test('equality respects paperOpacity', () {
-      const a = PageFlipConfig(paperOpacity: 1.0);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(paperOpacity: 0.5);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects flapContentRevealStart', () {
-      const a = PageFlipConfig(flapContentRevealStart: 0.85);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(flapContentRevealStart: 0.75);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects flapContentRevealEnd', () {
-      const a = PageFlipConfig(flapContentRevealEnd: 0.95);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(flapContentRevealEnd: 0.90);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects flapBackStrength', () {
-      const a = PageFlipConfig(flapBackStrength: 0.3);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(flapBackStrength: 0.5);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
@@ -130,13 +130,9 @@ void main() {
 
     test('hashCode consistent for equal configs', () {
       const a = PageFlipConfig(
-        flapContentRevealEnd: 0.95,
-        flapBackStrength: 0.3,
         edgeTapPreviousLabel: 'Previous',
       );
       const b = PageFlipConfig(
-        flapContentRevealEnd: 0.95,
-        flapBackStrength: 0.3,
         edgeTapPreviousLabel: 'Previous',
       );
       expect(a.hashCode, equals(b.hashCode));
@@ -145,69 +141,69 @@ void main() {
     // === NEW: Missing equality fields ===
 
     test('equality respects duration', () {
-      const a = PageFlipConfig(duration: Duration(milliseconds: 450));
+      const a = PageFlipConfig();
       const b = PageFlipConfig(duration: Duration(milliseconds: 300));
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects cutoffForward', () {
-      const a = PageFlipConfig(cutoffForward: 0.4);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(cutoffForward: 0.5);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects cutoffPrevious', () {
-      const a = PageFlipConfig(cutoffPrevious: 0.4);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(cutoffPrevious: 0.5);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects backgroundColor', () {
-      const a = PageFlipConfig(backgroundColor: null);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(backgroundColor: Color(0xFF123456));
       expect(a == b, isFalse);
     });
 
     test('equality respects isRightSwipe', () {
-      const a = PageFlipConfig(isRightSwipe: false);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(isRightSwipe: true);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects enableSwipe', () {
-      const a = PageFlipConfig(enableSwipe: true);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(enableSwipe: false);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects sensitivity', () {
-      const a = PageFlipConfig(sensitivity: 0.5);
-      const b = PageFlipConfig(sensitivity: 1.0);
+      const a = PageFlipConfig();
+      const b = PageFlipConfig(sensitivity: 1);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects edgeTapWidthRatio', () {
-      const a = PageFlipConfig(edgeTapWidthRatio: 0.1);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(edgeTapWidthRatio: 0.3);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects skipTapAnimation', () {
-      const a = PageFlipConfig(skipTapAnimation: true);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(skipTapAnimation: false);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects thinPaperStrength', () {
-      const a = PageFlipConfig(thinPaperStrength: 0.15);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(thinPaperStrength: 0.30);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
@@ -221,7 +217,7 @@ void main() {
     });
 
     test('equality respects flapContentFadeOutEnd', () {
-      const a = PageFlipConfig(flapContentFadeOutEnd: 0.20);
+      const a = PageFlipConfig();
       const b = PageFlipConfig(flapContentFadeOutEnd: 0.30);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
@@ -229,7 +225,7 @@ void main() {
 
     test('equality respects performanceProfile', () {
       const a = PageFlipConfig(
-        performanceProfile: DevicePerformanceProfile.high,
+        
       );
       const b = PageFlipConfig(
         performanceProfile: DevicePerformanceProfile.low,
@@ -240,7 +236,7 @@ void main() {
 
     test('equality respects hapticTexturePreset', () {
       const a = PageFlipConfig(
-        hapticTexturePreset: PaperTexturePreset.standard,
+        
       );
       const b = PageFlipConfig(
         hapticTexturePreset: PaperTexturePreset.kraft,
@@ -250,15 +246,15 @@ void main() {
     });
 
     test('equality respects semanticBuilder (null vs null)', () {
-      const a = PageFlipConfig(semanticBuilder: null);
-      const b = PageFlipConfig(semanticBuilder: null);
+      const a = PageFlipConfig();
+      const b = PageFlipConfig();
       expect(a == b, isTrue);
     });
 
     test('equality respects semanticBuilder (non-null vs null)', () {
-      final builder = (int index, int total) => 'Page $index';
+      String builder(int index, int total) => 'Page $index';
       final a = PageFlipConfig(semanticBuilder: builder);
-      const b = PageFlipConfig(semanticBuilder: null);
+      const b = PageFlipConfig();
       expect(a == b, isFalse);
     });
 
@@ -272,7 +268,7 @@ void main() {
         const PageFlipConfig(backgroundColor: Color(0xFF123456)),
         const PageFlipConfig(isRightSwipe: true),
         const PageFlipConfig(enableSwipe: false),
-        const PageFlipConfig(sensitivity: 1.0),
+        const PageFlipConfig(sensitivity: 1),
         const PageFlipConfig(edgeTapWidthRatio: 0.3),
         const PageFlipConfig(skipTapAnimation: false),
         const PageFlipConfig(enableHaptics: false),
@@ -293,7 +289,7 @@ void main() {
       ];
       for (final v in variants) {
         expect(v == base, isFalse,
-            reason: 'Variant should differ from base: $v');
+            reason: 'Variant should differ from base: $v',);
       }
     });
   });

@@ -11,25 +11,25 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      MethodChannel('xyz.luan/audioplayers.global'),
-      (MethodCall methodCall) async => null,
+      const MethodChannel('xyz.luan/audioplayers.global'),
+      (methodCall) async => null,
     );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      MethodChannel('xyz.luan/audioplayers'),
-      (MethodCall methodCall) async => null,
+      const MethodChannel('xyz.luan/audioplayers'),
+      (methodCall) async => null,
     );
   });
 
   tearDownAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      MethodChannel('xyz.luan/audioplayers.global'),
+      const MethodChannel('xyz.luan/audioplayers.global'),
       null,
     );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      MethodChannel('xyz.luan/audioplayers'),
+      const MethodChannel('xyz.luan/audioplayers'),
       null,
     );
   });
@@ -37,15 +37,15 @@ void main() {
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      MethodChannel('com.chapdcha.real_page_flip/haptics'),
-      (MethodCall methodCall) async => null,
+      const MethodChannel('com.chapdcha.real_page_flip/haptics'),
+      (methodCall) async => null,
     );
   });
 
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      MethodChannel('com.chapdcha.real_page_flip/haptics'),
+      const MethodChannel('com.chapdcha.real_page_flip/haptics'),
       null,
     );
   });
@@ -137,7 +137,7 @@ void main() {
             pageIndex: 0,
             intensity: 128,
             texture: 0.7,
-            volume: 1.0,
+            volume: 1,
             resistance: 0.5,
           );
         }
@@ -205,7 +205,7 @@ void main() {
 
       test('high profile does not throw', () async {
         final handler = DefaultPageFlipEffectHandler(
-          performanceProfile: DevicePerformanceProfile.high,
+          
         );
         await Future<void>.delayed(Duration.zero);
         await handler.onHandleEffect(
@@ -226,7 +226,7 @@ void main() {
     test('multiple consecutive texture ticks do not throw', () async {
       final handler = DefaultPageFlipEffectHandler();
       await Future<void>.delayed(Duration.zero);
-      for (int i = 0; i < 5; i++) {
+      for (var i = 0; i < 5; i++) {
         await handler.onHandleEffect(
           PageFlipEvent.texturedHaptic,
           pageIndex: 30,
@@ -240,7 +240,7 @@ void main() {
     test('multiple page indices create separate physics engines', () async {
       final handler = DefaultPageFlipEffectHandler();
       await Future<void>.delayed(Duration.zero);
-      for (int i = 0; i < 3; i++) {
+      for (var i = 0; i < 3; i++) {
         await handler.onHandleEffect(
           PageFlipEvent.texturedHaptic,
           pageIndex: i,

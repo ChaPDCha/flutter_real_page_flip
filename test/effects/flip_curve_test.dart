@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 
@@ -7,8 +5,8 @@ void main() {
   group('PaperFlipCurve', () {
     test('starts at 0 and ends at 1', () {
       const curve = PaperFlipCurve();
-      expect(curve.transform(0.0), closeTo(0.0, 0.001));
-      expect(curve.transform(1.0), closeTo(1.0, 0.001));
+      expect(curve.transform(0), closeTo(0.0, 0.001));
+      expect(curve.transform(1), closeTo(1.0, 0.001));
     });
 
     test('early push: steep initial ramp', () {
@@ -50,7 +48,7 @@ void main() {
     test('monotonic non-decreasing throughout [0,1]', () {
       const curve = PaperFlipCurve();
       double prev = 0.0;
-      for (int i = 0; i <= 100; i++) {
+      for (var i = 0; i <= 100; i++) {
         final t = i / 100.0;
         final v = curve.transform(t);
         expect(v, greaterThanOrEqualTo(prev));
@@ -62,9 +60,9 @@ void main() {
       // Numerical derivative check: (f(t+ε) - f(t)) / ε at boundaries.
       const curve = PaperFlipCurve();
       const eps = 0.001;
-      final derivStart = (curve.transform(eps) - curve.transform(0.0)) / eps;
+      final derivStart = (curve.transform(eps) - curve.transform(0)) / eps;
       final derivEnd =
-          (curve.transform(1.0) - curve.transform(1.0 - eps)) / eps;
+          (curve.transform(1) - curve.transform(1.0 - eps)) / eps;
       // Slope should be finite and positive at both ends.
       expect(derivStart, greaterThan(0.0));
       expect(derivEnd, greaterThan(0.0));
@@ -76,8 +74,8 @@ void main() {
   group('TapFlipCurve', () {
     test('starts at 0 and ends at 1', () {
       const curve = TapFlipCurve();
-      expect(curve.transform(0.0), closeTo(0.0, 0.001));
-      expect(curve.transform(1.0), closeTo(1.0, 0.001));
+      expect(curve.transform(0), closeTo(0.0, 0.001));
+      expect(curve.transform(1), closeTo(1.0, 0.001));
     });
 
     test('ease-in-out-quart: slow start, faster mid, slow end', () {
@@ -94,19 +92,19 @@ void main() {
     test('exact ease-in-out-quart values', () {
       const curve = TapFlipCurve();
       // t < 0.5: 4*t^3
-      expect(curve.transform(0.0), closeTo(0.0, 0.001));
+      expect(curve.transform(0), closeTo(0.0, 0.001));
       expect(curve.transform(0.25), closeTo(4 * 0.25 * 0.25 * 0.25, 0.001));
       expect(curve.transform(0.5), closeTo(0.5, 0.001));
       // t > 0.5: 1 - (-2t+2)^3 / 2
       // t=0.75: (-1.5+2)=0.5, 0.5^3=0.125, 0.125/2=0.0625, 1-0.0625=0.9375
       expect(curve.transform(0.75), closeTo(0.9375, 0.001));
-      expect(curve.transform(1.0), closeTo(1.0, 0.001));
+      expect(curve.transform(1), closeTo(1.0, 0.001));
     });
 
     test('monotonic non-decreasing throughout [0,1]', () {
       const curve = TapFlipCurve();
       double prev = 0.0;
-      for (int i = 0; i <= 100; i++) {
+      for (var i = 0; i <= 100; i++) {
         final t = i / 100.0;
         final v = curve.transform(t);
         expect(v, greaterThanOrEqualTo(prev));

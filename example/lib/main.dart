@@ -1,138 +1,93 @@
-import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shadcn_ui/shadcn_ui.dart' hide AppLocaleUtils;
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
-import 'features/bookshelf/presentation/bookshelf_screen.dart';
-import 'features/sync/application/sync_provider.dart';
-import 'features/sync/presentation/sync_wrapper.dart';
-import 'shared/changelog/changelog_service.dart';
-import 'shared/theme/app_theme_controller.dart';
-import 'shared/theme/reader_theme.dart';
-import 'shared/firebase/firebase_options.dart';
-import 'shared/firebase/firebase_service.dart';
-import 'core/locale_provider.dart';
-import 'l10n/translations.g.dart';
+import 'package:real_page_flip/real_page_flip.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Firebase, Sentry, SharedPreferences, Supabase 초기화를 병렬로 실행
-  // 각각의 실패는 개별적으로 처리되어 전체 앱 시작을 차단하지 않는다.
-  late SharedPreferences prefs;
-
-  await Future.wait([
-    (() async {
-      try {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-      } catch (_) {
-        // Firebase 미지원 환경(에뮬레이터, 테스트)에서 조용히 실패.
-        // FirebaseService의 lazy getter가 null을 반환하며 모든 호출이 no-op 처리된다.
-      }
-    })(),
-    (() async {
-      const sentryDsn = String.fromEnvironment('SENTRY_DSN');
-      if (sentryDsn.isNotEmpty) {
-        await SentryFlutter.init(
-          (options) => options.dsn = sentryDsn,
-        ).catchError((_) {
-          // Sentry 초기화 실패 시 조용히 무시. 다른 에러 리포팅에 영향 없음.
-        });
-      }
-    })(),
-    SharedPreferences.getInstance().then((p) {
-      prefs = p;
-    }),
-    (() async {
-      const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-      const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
-      if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-        try {
-          await Supabase.initialize(
-            url: supabaseUrl,
-            publishableKey: supabaseAnonKey,
-          );
-        } catch (_) {
-          // Gracefully degrades to local-only SQLite mode if Supabase fails
-        }
-      }
-    })(),
-  ]);
-
-  // Chain original error handler before overriding
-  final originalHandler = FlutterError.onError;
-
-  // 이중 에러 리포팅: Flutter 프레임워크 에러 → 보존 + Crashlytics + Sentry
-  FlutterError.onError = (details) {
-    originalHandler?.call(details);
-    FirebaseCrashlytics.instance.recordFlutterFatalError(details);
-    Sentry.captureException(details.exception, stackTrace: details.stack);
-  };
-
-  // 이중 에러 리포팅: 네이티브 영역 에러 → Crashlytics + Sentry
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    Sentry.captureException(error, stackTrace: stack);
-    return true;
-  };
-
-  // Remote Config 초기화 (비차단 — 기본값 사용 후 백그라운드 업데이트)
-  unawaited(FirebaseService.initRemoteConfig());
-
-  // AdMob 초기화 (비차단 — UI 첫 프레임 지연 방지)
-  unawaited(MobileAds.instance.initialize());
-
-  // Restore saved locale before app starts
-  final savedLocale = prefs.getString('app_locale');
-  if (savedLocale != null && savedLocale.isNotEmpty) {
-    LocaleSettings.setLocaleRawSync(savedLocale);
-  }
-
-  runApp(
-    ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: TranslationProvider(child: const MyApp()),
-    ),
-  );
+void main() {
+  runApp(const MyApp());
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeType = ref.watch(appThemeControllerProvider);
-    final themeData = ReaderThemeData.get(themeType);
-    final shadTheme = themeData.toShadTheme();
-    final materialTheme = themeData.toMaterialTheme();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Page Flip Demo',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      ),
+      home: const PageFlipDemo(),
+    );
+  }
+}
 
-    final locale = ref.watch(localeProvider);
+class PageFlipDemo extends StatefulWidget {
+  const PageFlipDemo({super.key});
 
-    return ShadApp(
-      title: context.t.app.title,
-      locale: locale,
-      supportedLocales: AppLocaleUtils.supportedLocales,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      debugShowCheckedModeBanner: false,
-      navigatorObservers: [routeObserver],
-      theme: shadTheme,
-      darkTheme: shadTheme,
-      themeMode: themeData.isDark ? ThemeMode.dark : ThemeMode.light,
-      materialThemeBuilder: (context, theme) => materialTheme,
-      home: const ChangelogGate(child: SyncWrapper(child: BookshelfScreen())),
+  @override
+  State<PageFlipDemo> createState() => _PageFlipDemoState();
+}
+
+class _PageFlipDemoState extends State<PageFlipDemo> {
+  final List<String> pages = List.generate(10, (index) => 'Page ${index + 1}');
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Real Page Flip Demo'),
+        elevation: 2,
+      ),
+      body: Center(
+        child: Container(
+          width: 500,
+          height: 700,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400, width: 2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: PageFlipWidget(
+            itemCount: pages.length,
+            isDoubleSpread: false, // Set to true for side-by-side spread
+            config: const PageFlipConfig(
+              backgroundColor: Colors.white,
+              // Configure performance/visual balance here
+            ),
+            itemBuilder: (context, index) {
+              return Card(
+                margin: EdgeInsets.zero,
+                color: Colors.primaries[index % Colors.primaries.length].shade100,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        pages[index],
+                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                      ),
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                        child: Text(
+                          'Swipe from the right edge to turn forward, or swipe from the left edge to turn backward.',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.black54,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 }

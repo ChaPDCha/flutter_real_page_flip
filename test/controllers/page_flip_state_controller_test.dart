@@ -20,7 +20,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
       );
     });
 
@@ -123,7 +123,7 @@ void main() {
       );
       expect(controller.dragProgress, 1.0);
       controller.onDragEnd(
-        DragEndDetails(primaryVelocity: 0, velocity: Velocity.zero),
+        DragEndDetails(primaryVelocity: 0),
         5,
       );
       // Animation runs async; finalize happens after animateTo completes.
@@ -147,7 +147,7 @@ void main() {
             primaryDelta: -500,
             delta: const Offset(-500, 0),
             globalPosition: Offset.zero,
-            localPosition: Offset.zero),
+            localPosition: Offset.zero,),
         5,
       );
       expect(controller.dragProgress, greaterThanOrEqualTo(0.0));
@@ -159,7 +159,7 @@ void main() {
             primaryDelta: 200,
             delta: const Offset(200, 0),
             globalPosition: Offset.zero,
-            localPosition: Offset.zero),
+            localPosition: Offset.zero,),
         5,
       );
       expect(controller.dragProgress, greaterThanOrEqualTo(0.0));
@@ -177,11 +177,11 @@ void main() {
             primaryDelta: -50,
             delta: const Offset(-50, 0),
             globalPosition: Offset.zero,
-            localPosition: Offset.zero),
+            localPosition: Offset.zero,),
         5,
       );
       expect(controller.isDragging, false,
-          reason: 'Should not start drag at boundary');
+          reason: 'Should not start drag at boundary',);
     });
 
     test('onDragUpdate blocks backward drag past first page', () {
@@ -195,39 +195,39 @@ void main() {
             primaryDelta: 50,
             delta: const Offset(50, 0),
             globalPosition: Offset.zero,
-            localPosition: Offset.zero),
+            localPosition: Offset.zero,),
         5,
       );
       expect(controller.isDragging, false,
-          reason: 'Should not start drag at boundary');
+          reason: 'Should not start drag at boundary',);
     });
 
     test('dispose during any state does not throw', () {
       // Dispose immediately after creation
       final fresh = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
-        onEffectTrigger: (PageFlipEvent effect,
-            {int? intensity,
-            double? volume,
-            double? texture,
-            double? resistance}) {},
+        onEffectTrigger: (effect,
+            {intensity,
+            volume,
+            texture,
+            resistance,}) {},
       );
       // No exception expected
-      expect(() => fresh.dispose(), returnsNormally);
+      expect(fresh.dispose, returnsNormally);
     });
 
     test('onEffectTrigger receives startHaptic from first delta', () {
       final effects = <PageFlipEvent>[];
       final effectController = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (effect,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
+            {intensity, pageIndex, resistance, texture, timestampMs, volume,}) {
           effects.add(effect);
         },
       );
@@ -254,12 +254,12 @@ void main() {
     test('texturedHaptic intensity in valid range (40-255)', () {
       final intensities = <int>[];
       final effectController = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (effect,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
+            {intensity, pageIndex, resistance, texture, timestampMs, volume,}) {
           if (effect == PageFlipEvent.texturedHaptic && intensity != null) {
             intensities.add(intensity);
           }
@@ -276,7 +276,7 @@ void main() {
             primaryDelta: -10,
             delta: const Offset(-10, 0),
             globalPosition: Offset.zero,
-            localPosition: Offset.zero),
+            localPosition: Offset.zero,),
         5,
       );
       effectController.onDragUpdate(
@@ -284,7 +284,7 @@ void main() {
             primaryDelta: -15,
             delta: const Offset(-15, 0),
             globalPosition: Offset.zero,
-            localPosition: Offset.zero),
+            localPosition: Offset.zero,),
         5,
       );
       effectController.onDragUpdate(
@@ -292,7 +292,7 @@ void main() {
             primaryDelta: -20,
             delta: const Offset(-20, 0),
             globalPosition: Offset.zero,
-            localPosition: Offset.zero),
+            localPosition: Offset.zero,),
         5,
       );
       effectController.onDragUpdate(
@@ -300,7 +300,7 @@ void main() {
             primaryDelta: -25,
             delta: const Offset(-25, 0),
             globalPosition: Offset.zero,
-            localPosition: Offset.zero),
+            localPosition: Offset.zero,),
         5,
       );
 
@@ -319,7 +319,7 @@ void main() {
 
       late PageFlipStateController flipController;
       flipController = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 50),
         onUpdate: () {},
         onPageFinalized: (index) {
@@ -333,7 +333,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
       );
       flipController.setIndex(0, 3);
       flipController.updateCachedWidth(400);
@@ -373,7 +373,6 @@ void main() {
       controller.onDragStart(
         DragStartDetails(localPosition: Offset.zero),
         5,
-        accumulatedTotalDx: 0,
       );
       expect(controller.isDragging, isFalse);
     });
@@ -437,9 +436,9 @@ void main() {
     });
 
     test('onDragEnd when not dragging ends capture and fires onFlipEnd', () {
-      bool flipEnded = false;
+      var flipEnded = false;
       final local = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
@@ -449,7 +448,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
         onFlipEnd: () => flipEnded = true,
       );
       local.onDragEnd(DragEndDetails(primaryVelocity: 0), 5);
@@ -458,9 +457,9 @@ void main() {
     });
 
     test('onDragEnd when disposed returns early', () {
-      bool flipEnded = false;
+      var flipEnded = false;
       final local = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
@@ -470,7 +469,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
         onFlipEnd: () => flipEnded = true,
       );
       local.dispose();
@@ -480,7 +479,7 @@ void main() {
 
     test('onDragCancel when disposed returns early', () {
       final local = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
@@ -490,7 +489,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
       );
       local.dispose();
       // Should not throw
@@ -498,9 +497,9 @@ void main() {
     });
 
     test('onDragCancel when not dragging ends capture and fires onFlipEnd', () {
-      bool flipEnded = false;
+      var flipEnded = false;
       final local = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
@@ -510,7 +509,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
         onFlipEnd: () => flipEnded = true,
       );
       local.onDragCancel(5);
@@ -529,7 +528,7 @@ void main() {
       expect(controller.isDragging, isTrue);
       // Should NOT start a tap flip while dragging
       expect(() => controller.triggerTapFlip(isNext: true, totalPages: 5),
-          returnsNormally);
+          returnsNormally,);
     });
 
     test('triggerTapFlip when animationController.isAnimating returns early',
@@ -539,7 +538,7 @@ void main() {
       controller.triggerTapFlip(isNext: true, totalPages: 5);
       // Animation is running, second call should be ignored
       expect(() => controller.triggerTapFlip(isNext: true, totalPages: 5),
-          returnsNormally);
+          returnsNormally,);
     });
 
     test('triggerTapFlip when next at last page returns early', () {
@@ -557,7 +556,7 @@ void main() {
 
     test('dispose is idempotent', () {
       final local = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
@@ -567,15 +566,15 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
       );
       local.dispose();
-      expect(() => local.dispose(), returnsNormally);
+      expect(local.dispose, returnsNormally);
     });
 
     test('dispose clears isPendingFinalize', () {
       final local = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 50),
         onUpdate: () {},
         onPageFinalized: (index) {},
@@ -585,7 +584,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
       );
       local.updateCachedWidth(400);
       local.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
@@ -626,7 +625,7 @@ void main() {
 
     test('onFlipStart null callback does not throw', () {
       final local = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
@@ -636,8 +635,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
-        onFlipStart: null,
+            volume,}) {},
       );
       local.updateCachedWidth(400);
       expect(
@@ -653,7 +651,7 @@ void main() {
 
     test('onFlipEnd null callback does not throw', () {
       final local = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
@@ -663,18 +661,17 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
-        onFlipEnd: null,
+            volume,}) {},
       );
       expect(() => local.onDragEnd(DragEndDetails(primaryVelocity: 0), 5),
-          returnsNormally);
+          returnsNormally,);
       local.dispose();
     });
 
     testWidgets('successful flip via onDragEnd advances currentIndex',
         (tester) async {
       final local = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 50),
         onUpdate: () {},
         onPageFinalized: (index) {},
@@ -684,7 +681,7 @@ void main() {
             resistance,
             texture,
             timestampMs,
-            volume}) {},
+            volume,}) {},
       );
       local.setIndex(0, 5);
       local.updateCachedWidth(400);
@@ -710,17 +707,17 @@ void main() {
       controller.updateCachedWidth(400);
 
       // Store callbacks that fire
-      bool soundFired = false;
-      bool hapticFired = false;
+      var soundFired = false;
+      var hapticFired = false;
 
       // Create a controller with effect tracking
       final tapController = PageFlipStateController(
-        vsync: TestVSync(),
+        vsync: const TestVSync(),
         animationDuration: const Duration(milliseconds: 300),
         onUpdate: () {},
         onPageFinalized: (index) {},
         onEffectTrigger: (effect,
-            {intensity, pageIndex, resistance, texture, timestampMs, volume}) {
+            {intensity, pageIndex, resistance, texture, timestampMs, volume,}) {
           if (effect == PageFlipEvent.sound) soundFired = true;
           if (effect == PageFlipEvent.impulseHaptic) hapticFired = true;
         },

@@ -14,8 +14,7 @@ void main() {
       Size size = const Size(400, 600),
       bool isDoubleSpread = false,
       bool isForward = true,
-    }) {
-      return PageFlipGeometry(
+    }) => PageFlipGeometry(
         progress: progress,
         isRightToLeft: isRightToLeft,
         touchOffset: touchOffset,
@@ -23,65 +22,61 @@ void main() {
         isDoubleSpread: isDoubleSpread,
         isForward: isForward,
       );
-    }
 
     test('flapVisibleWidth >= 0 for all progress values', () {
-      for (int i = 0; i <= 100; i++) {
+      for (var i = 0; i <= 100; i++) {
         final p = i / 100.0;
         final geo = makeGeo(progress: p);
         expect(geo.flapVisibleWidth, greaterThanOrEqualTo(0),
-            reason: 'progress=$p');
+            reason: 'progress=$p',);
 
         final geoDS = makeGeo(progress: p, isDoubleSpread: true);
         expect(geoDS.flapVisibleWidth, greaterThanOrEqualTo(0),
-            reason: 'double-spread progress=$p');
+            reason: 'double-spread progress=$p',);
       }
     });
 
     test('foldX is within valid range for all modes', () {
-      for (int i = 0; i <= 100; i++) {
+      for (var i = 0; i <= 100; i++) {
         final p = i / 100.0;
-        final size = const Size(400, 600);
+        const size = Size(400, 600);
 
         // Single mode: foldX in [spineX (0), width]
-        final geo = makeGeo(progress: p, size: size);
+        final geo = makeGeo(progress: p);
         expect(geo.foldX, greaterThanOrEqualTo(geo.spineX));
         expect(geo.foldX, lessThanOrEqualTo(size.width),
-            reason: 'single progress=$p foldX=${geo.foldX}');
+            reason: 'single progress=$p foldX=${geo.foldX}',);
 
         // Double-spread backward: foldX can be < spineX (moves left from spine)
         final geoDSBwd = makeGeo(
           progress: p,
-          size: size,
           isDoubleSpread: true,
           isForward: false,
         );
         expect(geoDSBwd.foldX, greaterThanOrEqualTo(0.0),
-            reason: 'DS bwd progress=$p foldX=${geoDSBwd.foldX}');
+            reason: 'DS bwd progress=$p foldX=${geoDSBwd.foldX}',);
         expect(geoDSBwd.foldX, lessThanOrEqualTo(size.width));
 
         // Double-spread forward: foldX in [spineX, width]
         final geoDSFwd = makeGeo(
           progress: p,
-          size: size,
           isDoubleSpread: true,
-          isForward: true,
         );
         expect(geoDSFwd.foldX, greaterThanOrEqualTo(geoDSFwd.spineX),
             reason:
-                'DS fwd progress=$p foldX=${geoDSFwd.foldX} spineX=${geoDSFwd.spineX}');
+                'DS fwd progress=$p foldX=${geoDSFwd.foldX} spineX=${geoDSFwd.spineX}',);
         expect(geoDSFwd.foldX, lessThanOrEqualTo(size.width));
       }
     });
 
     test('shadowIntensity is 0 at progress=0/1, peaks at 0.5', () {
-      final at0 = makeGeo(progress: 0.0).shadowIntensity;
-      final at1 = makeGeo(progress: 1.0).shadowIntensity;
+      final at0 = makeGeo(progress: 0).shadowIntensity;
+      final at1 = makeGeo(progress: 1).shadowIntensity;
       expect(at0, closeTo(0.0, 1e-6));
       expect(at1, closeTo(0.0, 1e-6));
 
       double maxIntensity = 0;
-      for (int i = 0; i <= 100; i++) {
+      for (var i = 0; i <= 100; i++) {
         final p = i / 100.0;
         final s = makeGeo(progress: p).shadowIntensity;
         if (s > maxIntensity) maxIntensity = s;
@@ -91,54 +86,53 @@ void main() {
     });
 
     test('curvatureAmount is 0 at progress=0/1', () {
-      final at0 = makeGeo(progress: 0.0).curvatureAmount;
-      final at1 = makeGeo(progress: 1.0).curvatureAmount;
+      final at0 = makeGeo(progress: 0).curvatureAmount;
+      final at1 = makeGeo(progress: 1).curvatureAmount;
       expect(at0, closeTo(0.0, 1e-6));
       expect(at1, closeTo(0.0, 1e-6));
     });
 
     test('angle is 0 at progress=0 and progress=1', () {
-      final at0 = makeGeo(progress: 0.0).angle;
-      final at1 = makeGeo(progress: 1.0).angle;
+      final at0 = makeGeo(progress: 0).angle;
+      final at1 = makeGeo(progress: 1).angle;
       expect(at0, equals(0.0));
       expect(at1, equals(0.0));
     });
 
     test('spineX depends on isDoubleSpread', () {
-      final single = makeGeo(isDoubleSpread: false, size: const Size(400, 600));
+      final single = makeGeo();
       expect(single.spineX, equals(0.0));
 
-      final ds = makeGeo(isDoubleSpread: true, size: const Size(400, 600));
+      final ds = makeGeo(isDoubleSpread: true);
       expect(ds.spineX, equals(200.0));
     });
 
     test('flapRightOfFold is false in single mode forward, true in backward', () {
-      for (int i = 0; i <= 10; i++) {
+      for (var i = 0; i <= 10; i++) {
         final p = i / 10.0;
-        final geoFwd = makeGeo(progress: p, isForward: true);
+        final geoFwd = makeGeo(progress: p);
         final geoBwd = makeGeo(progress: p, isForward: false);
         expect(geoFwd.flapRightOfFold, isFalse,
-            reason: 'single fwd progress=$p');
+            reason: 'single fwd progress=$p',);
         expect(geoBwd.flapRightOfFold, isTrue,
-            reason: 'single bwd progress=$p');
+            reason: 'single bwd progress=$p',);
       }
     });
 
     test('flapLeft <= width for all progress values', () {
-      for (int i = 0; i <= 100; i++) {
+      for (var i = 0; i <= 100; i++) {
         final p = i / 100.0;
-        final geo = makeGeo(progress: p, size: const Size(400, 600));
+        final geo = makeGeo(progress: p);
         expect(geo.flapLeft, lessThanOrEqualTo(400),
-            reason: 'single progress=$p flapLeft=${geo.flapLeft}');
+            reason: 'single progress=$p flapLeft=${geo.flapLeft}',);
 
         // In double-spread, flapLeft can be to the right of spine (backward)
         final geoDS = makeGeo(
           progress: p,
-          size: const Size(400, 600),
           isDoubleSpread: true,
         );
         expect(geoDS.flapLeft, lessThanOrEqualTo(400),
-            reason: 'double progress=$p flapLeft=${geoDS.flapLeft}');
+            reason: 'double progress=$p flapLeft=${geoDS.flapLeft}',);
       }
     });
 
@@ -150,20 +144,17 @@ void main() {
     });
 
     test('mirror symmetry: forward p vs backward 1-p', () {
-      for (int i = 0; i <= 20; i++) {
+      for (var i = 0; i <= 20; i++) {
         final p = i / 20.0;
         if (p <= 0 || p >= 1) continue;
 
-        final size = const Size(400, 600);
+        const size = Size(400, 600);
         final fwd = makeGeo(
           progress: p,
-          size: size,
-          isForward: true,
           isDoubleSpread: true,
         );
         final bwd = makeGeo(
           progress: 1.0 - p,
-          size: size,
           isForward: false,
           isDoubleSpread: true,
         );
@@ -183,7 +174,7 @@ void main() {
         const Size(100, 2000),
       ];
       for (final size in sizes) {
-        for (int i = 0; i <= 10; i++) {
+        for (var i = 0; i <= 10; i++) {
           final p = i / 10.0;
           final geo = makeGeo(progress: p, size: size);
           expect(geo.flapVisibleWidth, greaterThanOrEqualTo(0));
@@ -197,7 +188,7 @@ void main() {
 
     test('random parameter combinations produce valid geometry', () {
       final rng = math.Random(42);
-      for (int i = 0; i < 100; i++) {
+      for (var i = 0; i < 100; i++) {
         final progress = rng.nextDouble();
         final isRightToLeft = rng.nextBool();
         final touchDy = rng.nextDouble() * 600;
@@ -216,7 +207,7 @@ void main() {
         );
 
         expect(geo.flapVisibleWidth, greaterThanOrEqualTo(0),
-            reason: 'i=$i progress=$progress');
+            reason: 'i=$i progress=$progress',);
         expect(geo.flapLeft, lessThanOrEqualTo(width));
         // Double-spread backward: foldX can be < spineX (moves left from spine)
         if (geo.isDoubleSpread && !geo.isForward) {
@@ -233,10 +224,10 @@ void main() {
     });
 
     test('isRightToLeft does not affect geometry calculations', () {
-      for (int i = 0; i <= 10; i++) {
+      for (var i = 0; i <= 10; i++) {
         final p = i / 10.0;
         final ltr = makeGeo(progress: p, isRightToLeft: false);
-        final rtl = makeGeo(progress: p, isRightToLeft: true);
+        final rtl = makeGeo(progress: p);
         expect(ltr.flapVisibleWidth, equals(rtl.flapVisibleWidth));
         expect(ltr.foldX, equals(rtl.foldX));
         expect(ltr.shadowIntensity, equals(rtl.shadowIntensity));

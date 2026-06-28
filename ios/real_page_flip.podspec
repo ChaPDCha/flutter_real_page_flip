@@ -4,14 +4,14 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'real_page_flip'
-  s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  s.version          = '1.11.0'
+  s.summary          = 'A high-fidelity 3D-like page flip engine for Flutter.'
   s.description      = <<-DESC
-A new Flutter plugin project.
+A high-fidelity 3D-like page flip engine for Flutter. Features physics-based paper fold effects with realistic shadows, sound, and haptic feedback.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/ChaPDCha/flutter_real_page_flip'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'ChaPDCha' => 'https://github.com/ChaPDCha' }
   s.source           = { :path => '.' }
   s.source_files = 'real_page_flip/Sources/real_page_flip/**/*'
   s.dependency 'Flutter'
@@ -25,5 +25,5 @@ A new Flutter plugin project.
   # required reason APIs, update the PrivacyInfo.xcprivacy file to describe your
   # plugin's privacy impact, and then uncomment this line. For more information,
   # see https://developer.apple.com/documentation/bundleresources/privacy_manifest_files
-  # s.resource_bundles = {'real_page_flip_privacy' => ['real_page_flip/Sources/real_page_flip/PrivacyInfo.xcprivacy']}
+  s.resource_bundles = {'real_page_flip_privacy' => ['real_page_flip/Sources/real_page_flip/PrivacyInfo.xcprivacy']}
 end

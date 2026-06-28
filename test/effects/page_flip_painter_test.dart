@@ -48,7 +48,7 @@ void main() {
       final painter2 = PageFlipPainter(
         progress: 0.5,
         isRightToLeft: true,
-        touchOffset: Offset(10, 0),
+        touchOffset: const Offset(10, 0),
         paperBackColor: Colors.white,
       );
       expect(painter1.shouldRepaint(painter2), isTrue);
@@ -76,7 +76,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        paperOpacity: 1.0,
       );
       final painter2 = PageFlipPainter(
         progress: 0.5,
@@ -94,14 +93,12 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: null,
       );
       final painter2 = PageFlipPainter(
         progress: 0.5,
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: null,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 1, 1),
       );
       expect(painter1.shouldRepaint(painter2), isTrue);
@@ -242,7 +239,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapContentRevealStart: 0.85,
       );
       final painter2 = PageFlipPainter(
         progress: 0.5,
@@ -254,7 +250,7 @@ void main() {
       expect(painter1.shouldRepaint(painter2), isTrue);
     });
 
-    ui.Image? _testImage;
+    ui.Image? testImage;
     setUp(() async {
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
@@ -262,12 +258,12 @@ void main() {
         const Rect.fromLTWH(0, 0, 800, 600),
         Paint()..color = Colors.white,
       );
-      _testImage = await recorder.endRecording().toImage(800, 600);
+      testImage = await recorder.endRecording().toImage(800, 600);
     });
 
     tearDown(() {
-      _testImage?.dispose();
-      _testImage = null;
+      testImage?.dispose();
+      testImage = null;
     });
 
     test('mid fold skips texture when reveal opacity is zero', () {
@@ -278,12 +274,9 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
-        flapContentFadeOutEnd: 0.20,
-        flapContentRevealStart: 0.85,
-        flapContentRevealEnd: 0.95,
       ).paint(canvas, const Size(800, 600));
 
       expect(canvas.didDrawVertices, isFalse);
@@ -298,14 +291,10 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
         flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
         isDoubleSpread: true,
-        isForward: true,
-        flapContentFadeOutEnd: 0.20,
-        flapContentRevealStart: 0.85,
-        flapContentRevealEnd: 0.95,
       ).paint(canvas, const Size(800, 600));
 
       expect(canvas.didDrawVertices, isTrue);
@@ -320,14 +309,10 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
         flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
         isDoubleSpread: true,
-        isForward: true,
-        flapContentFadeOutEnd: 0.20,
-        flapContentRevealStart: 0.85,
-        flapContentRevealEnd: 0.95,
       ).paint(canvas, const Size(800, 600));
 
       expect(canvas.didDrawVertices, isTrue);
@@ -341,14 +326,11 @@ void main() {
         isRightToLeft: false,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 400, 600),
         isDoubleSpread: true,
         isForward: false,
-        flapContentFadeOutEnd: 0.20,
-        flapContentRevealStart: 0.85,
-        flapContentRevealEnd: 0.95,
       ).paint(canvas, const Size(800, 600));
 
       expect(canvas.didDrawVertices, isTrue);
@@ -362,9 +344,6 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        flapFrontImage: null,
-        flapFrontSrcRect: null,
-        flapFrontDestRect: null,
       );
 
       painter.paint(canvas, const Size(800, 600));
@@ -381,9 +360,7 @@ void main() {
         isRightToLeft: true,
         touchOffset: const Offset(350, 150),
         paperBackColor: Colors.white,
-        isDoubleSpread: false,
-        isForward: true,
-        flapFrontImage: _testImage,
+        flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
       ).paint(canvas, const Size(800, 600));
@@ -402,17 +379,13 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           paperBackColor: Colors.white,
-          flapFrontImage: _testImage,
+          flapFrontImage: testImage,
           flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
           flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
-          flapBackImage: _testImage,
+          flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
           flapBackStrength: 0.3,
           isDoubleSpread: true,
-          isForward: true,
-          flapContentRevealEnd: 0.95, // progress=0.96 > 0.95 → full reveal
-          flapContentFadeOutEnd: 0.20,
-          flapContentRevealStart: 0.85,
         ).paint(canvas, const Size(800, 600));
 
         // At progress=0.96, front content is fully revealed AND back content is drawn.
@@ -430,14 +403,12 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           paperBackColor: Colors.white,
-          flapFrontImage: _testImage,
+          flapFrontImage: testImage,
           flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
           flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
-          flapBackImage: _testImage,
+          flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
-          flapBackStrength: 0.0,
           isDoubleSpread: true,
-          isForward: true,
         ).paint(canvas, const Size(800, 600));
 
         // flapBackStrength=0 means backFadeAlpha=1.0 → cover entirely.
@@ -455,14 +426,11 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           paperBackColor: Colors.white,
-          flapFrontImage: _testImage,
+          flapFrontImage: testImage,
           flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
-          flapBackImage: _testImage,
+          flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
           flapBackStrength: 0.3,
-          isDoubleSpread: false,
-          isForward: true,
-          flapContentRevealEnd: 0.95,
         ).paint(canvas, const Size(800, 600));
 
         // hasFlapBack requires isDoubleSpread → false in single mode → no back mesh.
@@ -478,17 +446,14 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           paperBackColor: Colors.white,
-          flapFrontImage: _testImage,
+          flapFrontImage: testImage,
           flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
           flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
-          flapBackImage: _testImage,
+          flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
           flapBackStrength: 0.3,
           isDoubleSpread: true,
           isForward: false,
-          flapContentFadeOutEnd: 0.20,
-          flapContentRevealStart: 0.85,
-          flapContentRevealEnd: 0.95,
         ).paint(canvas, const Size(800, 600));
 
         // Front mesh + back mesh = 2 drawVertices
@@ -504,12 +469,11 @@ void main() {
           isRightToLeft: true,
           touchOffset: Offset.zero,
           paperBackColor: Colors.white,
-          flapFrontImage: _testImage,
+          flapFrontImage: testImage,
           flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
           flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
-          flapBackImage: _testImage,
+          flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
-          flapBackStrength: 0.0,
           isDoubleSpread: true,
           isForward: false,
         ).paint(canvas, const Size(800, 600));
@@ -532,7 +496,6 @@ void main() {
           touchOffset: Offset.zero,
           paperBackColor: Colors.white,
           isDoubleSpread: true,
-          isForward: true,
         );
         expect(painter1.shouldRepaint(painter2), isTrue);
       });
@@ -582,11 +545,11 @@ class TrackingShaderCanvas extends Fake implements Canvas {
 
   @override
   void clipRect(Rect rect,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {}
 
   @override
   void clipPath(Path path,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {}
 }
 
 class MockCanvas extends Fake implements Canvas {
@@ -616,9 +579,9 @@ class MockCanvas extends Fake implements Canvas {
 
   @override
   void clipRect(Rect rect,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {}
 
   @override
   void clipPath(Path path,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true}) {}
+      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {}
 }

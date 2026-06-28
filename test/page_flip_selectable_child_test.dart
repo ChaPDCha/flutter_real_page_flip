@@ -9,39 +9,33 @@ Widget _readerLikeFlipHost({
   required ValueChanged<int> onPageChanged,
   required IndexedWidgetBuilder pageBuilder,
   PageFlipSpreadMode spreadMode = PageFlipSpreadMode.single,
-}) {
-  return MaterialApp(
+}) => MaterialApp(
     home: Scaffold(
       body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Listener(
+        builder: (context, constraints) => Listener(
             behavior: HitTestBehavior.translucent,
             onPointerDown: (_) {},
             onPointerUp: (_) {},
             child: PageFlipWidget(
               itemCount: itemCount,
-              initialIndex: 0,
               spreadMode: spreadMode,
               config: const PageFlipConfig(
                 sensitivity: 0.6,
-                edgeTapWidthRatio: 0.0,
+                edgeTapWidthRatio: 0,
               ),
               onPageChanged: onPageChanged,
               itemBuilder: pageBuilder,
             ),
-          );
-        },
+          ),
       ),
     ),
   );
-}
 
 /// Simulates [PdfPageRenderer] letterboxing (16:9 content on portrait viewport).
 Widget letterboxedPage(int index, {required double viewportWidth}) {
   final contentHeight = viewportWidth * 9 / 16;
   return LayoutBuilder(
-    builder: (context, constraints) {
-      return ColoredBox(
+    builder: (context, constraints) => ColoredBox(
         color: Colors.black,
         child: Center(
           child: SizedBox(
@@ -53,8 +47,7 @@ Widget letterboxedPage(int index, {required double viewportWidth}) {
             ),
           ),
         ),
-      );
-    },
+      ),
   );
 }
 
@@ -100,7 +93,7 @@ void main() {
           home: Scaffold(
             body: PageFlipWidget(
               itemCount: 2,
-              config: const PageFlipConfig(edgeTapWidthRatio: 0.0),
+              config: const PageFlipConfig(edgeTapWidthRatio: 0),
               itemBuilder: (_, __) => const Center(child: Text('x')),
             ),
           ),
@@ -109,7 +102,7 @@ void main() {
 
       final layerElement = tester.element(find.byType(PageFlipGestureLayer));
       final hostStack =
-          layerElement.findAncestorWidgetOfExactType<Stack>() as Stack;
+          layerElement.findAncestorWidgetOfExactType<Stack>()!;
       expect(hostStack.children.last, isA<PageFlipGestureLayer>());
     },
   );
@@ -155,8 +148,7 @@ void main() {
           itemCount: 3,
           onPageChanged: (index) => currentPage = index,
           pageBuilder: (context, index) => LayoutBuilder(
-            builder: (context, constraints) {
-              return GestureDetector(
+            builder: (context, constraints) => GestureDetector(
                 onDoubleTapDown: (_) {},
                 child: SingleChildScrollView(
                   physics: const NeverScrollableScrollPhysics(),
@@ -164,8 +156,7 @@ void main() {
                     TextSpan(text: 'Page $index — selectable rich body text.'),
                   ),
                 ),
-              );
-            },
+              ),
           ),
         ),
       );

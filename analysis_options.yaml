@@ -24,7 +24,6 @@ analyzer:
     - "lib_legacy/**"
     - "tool/**" # Exclude tool scripts
     - "tmp/**"
-    - "test/**" # 1487 info-level issues (require_trailing_commas, directives_ordering 등)
     - "packages/hybrid_reader/**" # Deactivated for future development
   errors:
     # Treat missing required parameters as errors

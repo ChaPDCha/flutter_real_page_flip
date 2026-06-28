@@ -13,8 +13,7 @@ void main() {
     required bool isForward,
     int currentIndex = 0,
     int itemCount = 3,
-  }) {
-    return MaterialApp(
+  }) => MaterialApp(
       home: Scaffold(
         body: SizedBox.fromSize(
           size: canvasSize,
@@ -40,15 +39,13 @@ void main() {
         ),
       ),
     );
-  }
 
   group('PageFlipLayerView single-page mode', () {
     Widget pumpSinglePageLayerView({
       required double dragProgress,
       required bool isForward,
       int currentIndex = 0,
-    }) {
-      return MaterialApp(
+    }) => MaterialApp(
         home: Scaffold(
           body: SizedBox.fromSize(
             size: canvasSize,
@@ -65,7 +62,6 @@ void main() {
                 for (var i = 0; i < 3; i++) i: GlobalKey(),
               },
               constrainedSize: canvasSize,
-              isDoubleSpread: false,
               itemBuilder: (context, index) => ColoredBox(
                 color: Colors.primaries[index % Colors.primaries.length],
                 child: Center(child: Text('Page $index')),
@@ -74,7 +70,6 @@ void main() {
           ),
         ),
       );
-    }
 
     testWidgets('forward drag shows opaque paper fallback when snapshot missing', (
       tester,
@@ -121,7 +116,6 @@ void main() {
                   2: GlobalKey(),
                 },
                 constrainedSize: canvasSize,
-                isDoubleSpread: false,
                 itemBuilder: (context, index) => ColoredBox(
                   color: Colors.primaries[index % Colors.primaries.length],
                   child: Center(child: Text('Page $index')),
@@ -169,7 +163,6 @@ void main() {
                   2: GlobalKey(),
                 },
                 constrainedSize: canvasSize,
-                isDoubleSpread: false,
                 itemBuilder: (context, index) => ColoredBox(
                   color: Colors.primaries[index % Colors.primaries.length],
                   child: Center(child: Text('Page $index')),
@@ -224,9 +217,7 @@ void main() {
                   for (var i = 0; i < 3; i++) i: GlobalKey(),
                 },
                 constrainedSize: canvasSize,
-                isDoubleSpread: false,
                 paperFlapColor: const Color(0xFFF5F5F5),
-                paperOpacity: 1.0,
                 itemBuilder: (context, index) => Text('Page $index'),
               ),
             ),
@@ -443,7 +434,6 @@ void main() {
                   for (var i = 0; i < 3; i++) i: GlobalKey(),
                 },
                 constrainedSize: canvasSize,
-                isDoubleSpread: false,
                 itemBuilder: (context, index) => Text('Page $index'),
               ),
             ),
@@ -498,7 +488,6 @@ void main() {
                   for (var i = 0; i < 3; i++) i: GlobalKey(),
                 },
                 constrainedSize: canvasSize,
-                isDoubleSpread: false,
                 paperFlapColor: const Color(0xFFF5F5F5),
                 itemBuilder: (context, index) => Text('Page $index'),
               ),
@@ -955,11 +944,11 @@ void main() {
       );
 
       // Adjacent indices (1, 3) are findable via their keys
-      expect(find.byKey(keys[1]!, skipOffstage: true), findsOneWidget);
-      expect(find.byKey(keys[3]!, skipOffstage: true), findsOneWidget);
+      expect(find.byKey(keys[1]!), findsOneWidget);
+      expect(find.byKey(keys[3]!), findsOneWidget);
 
       // Non-adjacent index 0 should have no OffscreenPreRenderer in the tree
-      expect(find.byKey(keys[0]!, skipOffstage: true), findsNothing);
+      expect(find.byKey(keys[0]!), findsNothing);
     });
   });
 }

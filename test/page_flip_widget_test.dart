@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/page_flip.dart';
-import 'utils/test_helpers.dart';
 import 'package:real_page_flip/src/widgets/page_flip_gesture_layer.dart';
+
+import 'utils/test_helpers.dart';
 
 void main() {
   group('PageFlipWidget', () {
@@ -64,7 +65,6 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
-            initialIndex: 0,
             itemCount: pages.length,
             itemBuilder: (context, index) => pages[index],
           ),
@@ -109,7 +109,7 @@ void main() {
     testWidgets('itemCount=2 allows next and previous navigation',
         (tester) async {
       final controller = PageFlipController();
-      int currentIndex = 0;
+      var currentIndex = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -169,8 +169,8 @@ void main() {
 
     testWidgets('onFlipStart and onFlipEnd fire for programmatic navigation',
         (tester) async {
-      int startCount = 0;
-      int endCount = 0;
+      var startCount = 0;
+      var endCount = 0;
       final controller = PageFlipController();
 
       await tester.pumpWidget(
@@ -199,7 +199,7 @@ void main() {
 
     testWidgets('goToPage ignores out-of-bounds index', (tester) async {
       final controller = PageFlipController();
-      int currentIndex = 0;
+      var currentIndex = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -224,7 +224,7 @@ void main() {
 
     testWidgets('nextPage at last page is no-op', (tester) async {
       final controller = PageFlipController();
-      int callbackCount = 0;
+      var callbackCount = 0;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -602,7 +602,6 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
-            controller: null,
             itemCount: 3,
             itemBuilder: (context, index) => Container(),
           ),
@@ -660,7 +659,7 @@ void main() {
               height: 600,
               child: PageFlipWidget(
                 itemCount: 3,
-                itemBuilder: (context, index) => Container(
+                itemBuilder: (context, index) => ColoredBox(
                   color: Colors.red,
                   child: Text('Page $index'),
                 ),
@@ -687,7 +686,7 @@ void main() {
               height: 600,
               child: PageFlipWidget(
                 itemCount: 3,
-                itemBuilder: (context, index) => Container(
+                itemBuilder: (context, index) => ColoredBox(
                   color: Colors.red,
                   child: Text('Page $index'),
                 ),

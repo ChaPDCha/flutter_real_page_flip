@@ -5,7 +5,7 @@ import 'package:real_page_flip/src/widgets/edge_tap_feedback.dart';
 void main() {
   group('EdgeTapFeedback', () {
     testWidgets('renders on left side', (tester) async {
-      bool tapped = false;
+      var tapped = false;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -26,7 +26,7 @@ void main() {
     });
 
     testWidgets('renders on right side', (tester) async {
-      bool tapped = false;
+      var tapped = false;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -50,7 +50,7 @@ void main() {
     });
 
     testWidgets('tap fires callback', (tester) async {
-      int tapCount = 0;
+      var tapCount = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -110,7 +110,7 @@ void main() {
     });
 
     testWidgets('cancel fades out without calling onTap', (tester) async {
-      bool tapped = false;
+      var tapped = false;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -237,7 +237,7 @@ void main() {
     });
 
     testWidgets('right edge tap fires callback', (tester) async {
-      bool tapped = false;
+      var tapped = false;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -262,7 +262,7 @@ void main() {
     });
 
     testWidgets('cancel on right edge does not call onTap', (tester) async {
-      bool tapped = false;
+      var tapped = false;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -344,7 +344,7 @@ void main() {
     testWidgets('does not block taps outside edge area', (tester) async {
       // Regression: EdgeTapFeedback should not prevent background widgets
       // from receiving taps outside the edge zone.
-      int backgroundTaps = 0;
+      const backgroundTaps = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -371,7 +371,7 @@ void main() {
     });
 
     testWidgets('tap-up fires callback then fades', (tester) async {
-      int tapCount = 0;
+      var tapCount = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -395,7 +395,7 @@ void main() {
     });
 
     testWidgets('widget rebuild with new isLeftEdge', (tester) async {
-      bool tapped = false;
+      var tapped = false;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

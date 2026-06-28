@@ -3,15 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  app_links
   audioplayers_windows
-  firebase_core
-  flutter_onnxruntime
-  passkeys_windows
-  pdfx
-  sentry_flutter
-  sqlite3_flutter_libs
-  url_launcher_windows
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

@@ -7,7 +7,7 @@ void main() {
     late PageFlipGestureRecognizer recognizer;
 
     setUp(() {
-      recognizer = PageFlipGestureRecognizer(sensitivity: 0.5);
+      recognizer = PageFlipGestureRecognizer();
     });
 
     tearDown(() {

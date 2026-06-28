@@ -61,7 +61,7 @@ void main() {
     });
 
     testWidgets('last page onIncrease is null (no next)', (tester) async {
-      int changedIndex = -1;
+      var changedIndex = -1;
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
