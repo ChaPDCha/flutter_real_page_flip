@@ -67,8 +67,8 @@ void main() {
     });
 
     test('equality respects effectHandler (different instances)', () {
-      const a = PageFlipConfig(effectHandler: _TestEffectHandler());
-      const b = PageFlipConfig(effectHandler: _TestEffectHandler());
+      final a = PageFlipConfig(effectHandler: _TestEffectHandler());
+      final b = PageFlipConfig(effectHandler: _TestEffectHandler());
       expect(a == b, isFalse);
     });
 
