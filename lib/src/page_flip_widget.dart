@@ -129,6 +129,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   late final PageFlipStateController _controller;
   final PreRenderManager _preRenderManager = PreRenderManager();
   Size? _lastConstrainedSize;
+  bool _isInternalEffectHandler = false;
+  bool _pendingLayoutCallback = false;
 
   int get _totalPages => widget.itemCount;
 
@@ -153,6 +155,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _controller.setIndex(widget.initialIndex, _totalPages);
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
     // Initialize Effect Handler
+    _isInternalEffectHandler = widget.config.effectHandler == null;
     _effectHandler = widget.config.effectHandler ??
         DefaultPageFlipEffectHandler(
           performanceProfile: widget.config.performanceProfile,
@@ -235,7 +238,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     if (effectHandlerChanged ||
         (widget.config.effectHandler == null &&
             (profileChanged || texturePresetChanged))) {
-      _effectHandler.dispose();
+      if (_isInternalEffectHandler) {
+        _effectHandler.dispose();
+      }
+      _isInternalEffectHandler = widget.config.effectHandler == null;
       _effectHandler = widget.config.effectHandler ??
           DefaultPageFlipEffectHandler(
             performanceProfile: widget.config.performanceProfile,
@@ -281,7 +287,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     widget.controller?._state = null;
     _controller.dispose();
     _preRenderManager.dispose();
-    _effectHandler.dispose();
+    if (_isInternalEffectHandler) {
+      _effectHandler.dispose();
+    }
     super.dispose();
   }
 
@@ -440,8 +448,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               : MediaQuery.sizeOf(context).width;
           final flipDragExtent =
               widget.spreadMode.isDoubleSpread ? maxW / 2 : maxW;
-          _controller.updateCachedWidth(flipDragExtent);
-          _effectHandler.viewportWidth = flipDragExtent;
           final maxH = constraints.maxHeight.isFinite
               ? constraints.maxHeight
               : MediaQuery.sizeOf(context).height;
@@ -449,7 +455,22 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               constraints.maxWidth.isFinite ? constraints.maxWidth : maxW;
 
           final constrainedSize = Size(maxW, maxH);
-          _handleSizeChange(constrainedSize);
+
+          // PERFORMANCE & STABILITY: Defer layout-driven state modifications
+          // to a post-frame callback so they do not occur during active build passes.
+          // Deduplicate via _pendingLayoutCallback to prevent stacking multiple
+          // callbacks when LayoutBuilder.build() is called multiple times per frame.
+          if (!_pendingLayoutCallback) {
+            _pendingLayoutCallback = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _pendingLayoutCallback = false;
+              if (mounted) {
+                _controller.updateCachedWidth(flipDragExtent);
+                _effectHandler.viewportWidth = flipDragExtent;
+                _handleSizeChange(constrainedSize);
+              }
+            });
+          }
 
           // PERFORMANCE: flip layers update through a ValueListenableBuilder so they
           // rebuild independently of the parent widget tree. During animation frames,
