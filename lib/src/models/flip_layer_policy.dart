@@ -133,10 +133,7 @@ class FlipLayerPolicy {
   /// Returns null at book boundaries where the destination does not exist.
   int? get flapSettleSnapshotSpreadIndex {
     if (!isDoubleSpread) {
-      if (isForward) {
-        return currentIndex < itemCount - 1 ? currentIndex + 1 : null;
-      }
-      return currentIndex;
+      return flapSnapshotSpreadIndex;
     }
     if (isForward) {
       return currentIndex < itemCount - 1 ? currentIndex + 1 : null;
