@@ -95,6 +95,18 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
       );
     }
 
+    // After flip is active, continuously monitor whether the gesture has
+    // become predominantly vertical (e.g. user started scrolling page content).
+    // If so, cancel the flip so scrollable content beneath can respond.
+    if (PageFlipGestureArbitration.shouldYieldToContent(
+      totalDx: _totalDx,
+      totalDy: _totalDy,
+      sensitivity: widget.sensitivity,
+    )) {
+      _finishPointer(event.pointer, canceled: true);
+      return;
+    }
+
     widget.controller.onDragUpdate(
       DragUpdateDetails(
         sourceTimeStamp: event.timeStamp,
