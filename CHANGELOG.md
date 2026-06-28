@@ -3,6 +3,12 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.9.8] - 2026-06-28
+### 🐛 수정
+- 단면 모드 이전장(Backward) 전환 시 접히는 종이의 잘리는 면적과 그림자 방향이 꼬이던 지오메트리 계산 오류 수정 | Fixed Single Backward flip geometry where flap direction and material width calculations were inverted
+- 백그라운드 인접 페이지들이 `Offstage` 설정으로 인해 플러터 엔진에서 페인팅이 생략되어 스냅샷(toImage) 캡처에 영구 실패하던 문제 수정 | Fixed background adjacent page snapshots failing to capture due to `Offstage` omitting painting
+- 화면 밖 백그라운드 렌더링 영역의 스크린 리더(Semantics), 포커스(Focus Scope), 마우스/터치 입력(IgnorePointer) 누수를 원천 차단하는 `OffscreenPreRenderer` 도입 | Introduced `OffscreenPreRenderer` to prevent focus, semantics, and pointer interaction leaks from off-screen pre-rendered pages
+
 ## [1.9.7] - 2026-06-28
 ### 🐛 수정
 - `onMethodCall()` 전체 try-catch 적용으로 SecurityException 등 모든 예외가 `result.error()`로 전달되어 Dart HapticFeedback fallback이 안정적으로 발동 | Wrapped `onMethodCall()` in try-catch so all exceptions (including SecurityException) propagate as `result.error()`, ensuring reliable Dart HapticFeedback fallback
