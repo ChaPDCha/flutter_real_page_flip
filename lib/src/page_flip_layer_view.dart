@@ -362,9 +362,13 @@ class PageFlipLayerView extends StatelessWidget {
               } else if (floatProgress >= flapContentRevealEnd) {
                 opacity = 1.0;
               } else {
-                final t = (floatProgress - flapContentRevealStart) /
-                    (flapContentRevealEnd - flapContentRevealStart);
-                opacity = t * t * (3 - 2 * t);
+                final divisor = flapContentRevealEnd - flapContentRevealStart;
+                if (divisor > 0.001) {
+                  final t = (floatProgress - flapContentRevealStart) / divisor;
+                  opacity = t * t * (3 - 2 * t);
+                } else {
+                  opacity = 1.0;
+                }
               }
               // FadeTransition is preferred over Opacity because Flutter's
               // compositing pipeline can optimize animated transitions better.
@@ -502,7 +506,20 @@ class PageFlipLayerView extends StatelessWidget {
     required double floatProgress,
   }) {
     if (!isDoubleSpread) {
-      return ClipPath(
+      var middleOpacity = 1.0;
+      if (floatProgress >= flapContentRevealEnd) {
+        middleOpacity = 0.0;
+      } else if (floatProgress >= flapContentRevealStart) {
+        final divisor = flapContentRevealEnd - flapContentRevealStart;
+        if (divisor > 0.001) {
+          final t = (floatProgress - flapContentRevealStart) / divisor;
+          middleOpacity = 1.0 - t * t * (3 - 2 * t);
+        } else {
+          middleOpacity = 0.0;
+        }
+      }
+
+      Widget middle = ClipPath(
         clipper: PageFlipClipper(
           progress: floatProgress,
           isRightToLeft: true,
@@ -512,6 +529,14 @@ class PageFlipLayerView extends StatelessWidget {
         ),
         child: middleLayerContent,
       );
+
+      if (middleOpacity < 0.999) {
+        middle = FadeTransition(
+          opacity: AlwaysStoppedAnimation<double>(middleOpacity),
+          child: middle,
+        );
+      }
+      return middle;
     }
 
     // Double-spread: clip to stationary half if forward.

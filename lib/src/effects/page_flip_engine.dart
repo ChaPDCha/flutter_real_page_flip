@@ -573,7 +573,7 @@ Path buildFlapScreenClipPath(
 double flapOpacityModulator(
   double progress, {
   double thinPaperStrength = 0.15,
-  double endRevealStrength = 0.35,
+  double endRevealStrength = 0.0,
   double endRevealStart = 0.85,
   bool isForward = true,
   bool isDoubleSpread = false,

@@ -95,7 +95,7 @@ class PageFlipConfig {
     this.effectHandler,
     this.paperOpacity = 1.0,
     this.thinPaperStrength = 0.15,
-    this.endRevealStrength = 0.35,
+    this.endRevealStrength = 0.0,
     this.flapContentFadeOutEnd = 0.20,
     this.flapContentRevealStart = 0.85,
     this.flapContentRevealEnd = 0.95,
@@ -118,10 +118,7 @@ class PageFlipConfig {
   final double thinPaperStrength;
 
   /// How much the next page content shows through the paper at end of flip (0.0–1.0).
-  /// 0.0 = no reveal, 0.35 = moderate reveal as animation completes.
-  ///
-  /// At the end of the animation (progress > 0.85), the paper gradually becomes
-  /// transparent, revealing the next/previous page content beneath.
+  /// Defaults to 0.0 (no transparent reveal, since late-settle texture cross-fade handles it).
   final double endRevealStrength;
 
   /// Flip progress (0–1) by which flap-front content is fully hidden during fold.
