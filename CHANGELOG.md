@@ -3,7 +3,19 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
-## [1.9.1] - 2026-06-26
+## [1.9.4] - 2026-06-28
+### ✨ 기능
+- PageFlipConfig.copyWith() 26개 필드 전수 지원 및 clear-flag로 nullable 필드 초기화 | Added full copyWith() for all 26 fields with clear-flags for nullable fields
+
+### 🐛 수정
+- PageFlipConfig.== 연산자에 semanticBuilder 필드 누락되어 잘못된 동등성 비교 | Fixed == operator missing semanticBuilder field causing incorrect equality
+- PageFlipStateController.dispose()가 AnimationController.dispose()를 중복 호출하던 버그 (비멱등성 보호) | Fixed dispose() calling AnimationController.dispose() twice (idempotency guard)
+
+### 🧪 테스트
+- Phase I-VI 통합 테스트 대규모 추가: 설정 정확성, 상태 컨트롤러 분기, 물리 속성기반 60+개, 위젯 제스처, 양면모드·멀티터치, 기하 불변속성, 메모리 생명주기, 플랫폼 채널, 접근성, 대용량 아이템, 스트레스 | Added comprehensive Phase I-VI tests: 60+ physics property-based, gesture/edge/widget, double-spread/multitouch integration, geometry invariants, memory lifecycle, platform channels, accessibility, large itemCount, stress
+- PageFlipConfig 서명, 복사, 스프레드모드 3개 파일 55개 테스트 | Config copyWith, equality, spread mode tests
+- 컨트롤러 엣지케이스 30개 및 프로그램 API 검증 | Controller edge case and programmatic API tests
+- 위젯 제스처·콜백·엣지탭 통합 30개 테스트 + 5개 기존 파일 개선 | Widget gesture/callback/edge tap tests with 5 existing file enhancements
 ### 🐛 수정
 - 햅틱 물리 계산이 항상 400px로 하드코딩되어 기기 크기에 따라 진동 강도가 달라지던 버그 수정 (실제 뷰포트 폭 사용)
 - 페이지를 많이 넘길수록 메모리가 누적되던 PaperPhysicsEngine 맵 무한 성장 버그 수정

@@ -21,19 +21,35 @@ interface ChangelogEntry {
 // START_CHANGELOGS
 const changelogs: ChangelogEntry[] = [
     {
+      version: "1.0.34+41",
+      versionCode: 41,
+      versionName: "1.0.34",
+      date: "2026-06-28",
+      ko: { changes: ["페이지플립 엔진 GPU 사용량 추가 최적화 (렌더링 경로 단순화)", "PageFlipConfig에 copyWith() 패턴 도입으로 설정 객체 불변 업데이트", "PageFlipStateController.dispose() 이중 호출 방지 guard 추가", "페이지플립 엔진 전면 테스트 보강: 코어 엔진 160+개 단위/통합 테스트 추가", "페이지플립 테스트 총 686개 달성 (4개 pre-existing 실패)"] },
+      en: { changes: ["Further page flip GPU optimization with simplified rendering paths", "Introduced copyWith() pattern for immutable config updates", "Added idempotency guard to state controller dispose()", "Added 160+ core engine unit/integration tests", "Total 686 page flip tests (4 pre-existing failures)"] },
+    },
+    {
+      version: "1.0.34+40",
+      versionCode: 40,
+      versionName: "1.0.34",
+      date: "2026-06-28",
+      ko: { changes: ["검색 결과 탭 시 항상 1페이지로 이동하던 크리티컬 버그 수정", "빠른 탭 시 챕터가 통째로 스킵되던 경합 조건 수정", "동기화 재시도 시 PK 충돌로 영구 중단되던 버그 수정", "페이지 레이아웃 캐시 해시 충돌 버그 수정", "페이지 플립 GPU 사용량 최적화 (saveLayer 범위 제한, shader 캐싱)", "앱 시작 시간 단축 (Firebase/Sentry/Supabase 병렬 초기화)", "PDF 렌더링 해상도 최적화 (2x→1.5x) 및 이미지 디코드 크기 제한", "동기화 속도 66% 개선 (pull/push 병렬화)", "설정 패널이 사용자 테마를 무시하고 charcoal로 고정되던 문제 수정", "리더 화면 리빌드 최적화 (Consumer 분할로 불필요한 재렌더링 제거)", "PDF 서비스 정적 캐시를 인스턴스 싱글톤으로 전환 (메모리 누수 해결)", "page_flip_engine 77개 단위 테스트 추가", "통합 테스트 인프라 구축 (3개 사용자 흐름)", "전체 테스트 1,151개, 18개 pre-existing 실패"] },
+      en: { changes: ["Fixed search navigation always landing on page 0 due to missing await", "Fixed rapid tap causing chapter skip during boundary transition", "Fixed sync permanently breaking on retry due to missing upsert", "Fixed pagination cache collision bug with hashCode-based key", "Optimized page flip GPU usage with bounded saveLayer and shader caching", "Reduced app startup time with parallel initialization", "Optimized PDF rendering to 1.5x with cacheWidth/cacheHeight", "Improved sync speed 66% with parallel pull/push", "Fixed settings panel ignoring user theme selection", "Split reader screen rebuilds per-consumer", "Converted PDF service caches from static to instance (fix memory leak)", "Added 77 unit tests for page-flip engine", "Set up integration test infrastructure (3 user flows)", "Total 1,151 tests, 18 pre-existing failures"] },
+    },
+    {
       version: "1.0.33+39",
       versionCode: 39,
       versionName: "1.0.33",
       date: "2026-06-27",
-      ko: { changes: ["페이지 플립 사운드 재생 안정성 개선", "Android VIBRATE 권한 누락으로 햅틱이 작동하지 않던 문제 수정"] },
-      en: { changes: ["Fixed intermittent page flip sound playback", "Fixed haptic vibration not working due to missing Android VIBRATE permission"] },
+      ko: { changes: ["페이지 플립 사운드가 불규칙하게 재생되던 문제 수정 (setSource() 경합 제거, stop+seek+resume 패턴으로 전환)", "햅틱 진동이 Android VIBRATE 권한 누락으로 작동하지 않던 문제 수정"] },
+      en: { changes: ["Fixed intermittent page flip sound by avoiding setSource() on every flip", "Fixed haptic vibration not working due to missing VIBRATE permission"] },
     },
     {
       version: "1.0.32+38",
       versionCode: 38,
       versionName: "1.0.32",
       date: "2026-06-27",
-      ko: { changes: ["페이지플립엔진 의존성을 로컬 경로에서 GitHub 저장소로 전환"] },
+      ko: { changes: ["페이지플립엔진 의존성을 로컬 경로(path)에서 GitHub 저장소(git)로 전환"] },
       en: { changes: ["Switched page-flip engine dependency from local path to GitHub repository"] },
     },
     {
@@ -41,8 +57,8 @@ const changelogs: ChangelogEntry[] = [
       versionCode: 37,
       versionName: "1.0.31",
       date: "2026-06-27",
-      ko: { changes: ["페이지 플립 소리가 재생되지 않던 오디오 상태 처리 버그 수정", "햅틱 피드백 신뢰성 개선 (시스템 수준 폴백 추가)"] },
-      en: { changes: ["Fixed page flip sound not playing due to audio state handling", "Fixed haptic feedback reliability with system-level fallbacks"] },
+      ko: { changes: ["페이지 플립 소리가 재생되지 않던 버그 수정 (audioplayers resume/play 상태 처리)", "햅틱 피드백이 MethodChannel 실패 시에도 기본 진동이 울리도록 폴백 추가"] },
+      en: { changes: ["Fixed page flip sound not playing due to incorrect audio state handling", "Added HapticFeedback fallback when native haptic channel fails"] },
     },
     {
       version: "1.0.30+36",
@@ -294,6 +310,7 @@ const changelogs: ChangelogEntry[] = [
     },
   ];
 // END_CHANGELOGS
+
 
 
 

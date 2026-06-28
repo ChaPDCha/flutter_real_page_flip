@@ -3,6 +3,18 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.34+41] - 2026-06-28
+### ⚡ 성능
+- 페이지플립 엔진 GPU 사용량 추가 최적화 (렌더링 경로 단순화) | Further page flip GPU optimization with simplified rendering paths
+
+### ♻️ 리팩토링
+- PageFlipConfig에 copyWith() 패턴 도입으로 설정 객체 불변 업데이트 | Introduced copyWith() pattern for immutable config updates
+- PageFlipStateController.dispose() 이중 호출 방지 guard 추가 | Added idempotency guard to state controller dispose()
+
+### 🧪 테스트
+- 페이지플립 엔진 전면 테스트 보강: 코어 엔진 160+개 단위/통합 테스트 추가 | Added 160+ core engine unit/integration tests
+- 페이지플립 테스트 총 686개 달성 (4개 pre-existing 실패) | Total 686 page flip tests (4 pre-existing failures)
+
 ## [1.0.34+40] - 2026-06-28
 ### 🐛 수정
 - 검색 결과 탭 시 항상 1페이지로 이동하던 크리티컬 버그 수정 | Fixed search navigation always landing on page 0 due to missing await

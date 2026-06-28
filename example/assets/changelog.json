@@ -1,16 +1,24 @@
 {
-  "version": "1.0.30+36",
-  "versionCode": 36,
-  "versionName": "1.0.30",
-  "date": "2026-06-27",
+  "version": "1.0.34+41",
+  "versionCode": 41,
+  "versionName": "1.0.34",
+  "date": "2026-06-28",
   "ko": {
     "changes": [
-      "앱 업데이트 로그를 Cloudflare Worker API에서 실시간으로 받아오도록 개선"
+      "페이지플립 엔진 GPU 사용량 추가 최적화 (렌더링 경로 단순화)",
+      "PageFlipConfig에 copyWith() 패턴 도입으로 설정 객체 불변 업데이트",
+      "PageFlipStateController.dispose() 이중 호출 방지 guard 추가",
+      "페이지플립 엔진 전면 테스트 보강: 코어 엔진 160+개 단위/통합 테스트 추가",
+      "페이지플립 테스트 총 686개 달성 (4개 pre-existing 실패)"
     ]
   },
   "en": {
     "changes": [
-      "Release notes now fetched live from remote API instead of bundled-only"
+      "Further page flip GPU optimization with simplified rendering paths",
+      "Introduced copyWith() pattern for immutable config updates",
+      "Added idempotency guard to state controller dispose()",
+      "Added 160+ core engine unit/integration tests",
+      "Total 686 page flip tests (4 pre-existing failures)"
     ]
   }
 }
