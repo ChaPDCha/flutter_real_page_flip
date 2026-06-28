@@ -9,6 +9,11 @@ These versions use the `X.Y.Z+N` format matching Android versionCode for Play St
 - 화면 크기 변경 시 캐시 무효화 및 레이아웃 재계산 처리 추가 | Added cache invalidation and layout recalculation on size changes
 - `endRevealStrength` 기본값을 `0.0`으로 변경하고, settling 단계에서의 미세 비주얼 잔상 개선을 위해 중간 레이어 fade transition 추가 | Changed `endRevealStrength` default to `0.0` and added middle layer fade transition to eliminate settled artifacts
 - `flapContentRevealStart/End` 분모 0 억제 처리 | Handled potential division by zero in `flapContentRevealStart/End` divisor
+- 햅틱 엔진 MissingPluginException 처리 추가로 페이지플립 진동이 작동하지 않던 문제 수정 | Fixed haptic vibration during page flips by handling MissingPluginException
+- 가로형 PDF 화면 비율 왜곡 및 더블페이지 모드 오류 수정 | Fixed landscape PDF aspect ratio distortion and double-page layout bug
+
+### 🎨 UI/UX
+- 가로형 PDF가 화면에 정확한 비율로 표시되도록 개선 | Landscape PDFs now display with correct aspect ratio
 
 ## [1.0.34+41] - 2026-06-28
 ### ⚡ 성능
