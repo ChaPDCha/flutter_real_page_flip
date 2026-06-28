@@ -24,6 +24,23 @@ final supertonicTtsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SupertonicTtsRef = AutoDisposeProviderRef<SupertonicTtsService>;
+String _$smartTtsEngineHash() => r'a2921e7f12681572e4b6b54736713e105896ea61';
+
+/// See also [smartTtsEngine].
+@ProviderFor(smartTtsEngine)
+final smartTtsEngineProvider = AutoDisposeProvider<SmartTtsEngine>.internal(
+  smartTtsEngine,
+  name: r'smartTtsEngineProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$smartTtsEngineHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SmartTtsEngineRef = AutoDisposeProviderRef<SmartTtsEngine>;
 String _$activeTtsPageIndexHash() =>
     r'898653c38ffabcf672db7f24d954f0a10689f1be';
 

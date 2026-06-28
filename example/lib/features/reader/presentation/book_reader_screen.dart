@@ -10,6 +10,7 @@ import '../../../shared/theme/reader_theme.dart';
 import '../../tts/application/supertonic_tts_provider.dart';
 import '../../../l10n/translations.g.dart';
 import 'reader_controller.dart';
+import 'reader_state.dart';
 import 'widgets/pdf_page_renderer.dart';
 import 'widgets/reader_app_bar.dart';
 import 'widgets/reader_bottom_bar.dart';
@@ -70,13 +71,41 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
     return textOnly.length < 50;
   }
 
+  /// Pre-generate TTS audio for the next 2 pages after navigation.
+  void _preGenerateUpcomingTts(
+    ReaderState pageState,
+    bool isDbl,
+    int spreadIndex,
+  ) {
+    final engine = ref.read(smartTtsEngineProvider);
+    final pageStep = isDbl && !pageState.isPdfLandscape ? 2 : 1;
+    final actualIndex = isDbl && !pageState.isPdfLandscape
+        ? spreadIndex * 2
+        : spreadIndex;
+
+    for (int offset = pageStep; offset <= pageStep * 2; offset += pageStep) {
+      final nextIdx = actualIndex + offset;
+      if (nextIdx >= pageState.pages.length) break;
+
+      final text = pageState.pages[nextIdx];
+      if (text.isNotEmpty) {
+        engine.preGeneratePage(
+          pageState.book.id,
+          text,
+          pageState.currentChapterIndex,
+          nextIdx,
+        );
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _ttsSubscription = ref
-            .read(supertonicTtsProvider)
+            .read(smartTtsEngineProvider)
             .playerStateStream
             .listen((state) {
               if (mounted) {
@@ -94,7 +123,7 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
     _ttsSubscription?.cancel();
     _uiTimer?.cancel();
     try {
-      ref.read(supertonicTtsProvider).stop();
+      ref.read(smartTtsEngineProvider).stop();
     } catch (_) {
       // Ignore errors when calling ref after element disposal/hot restart
     }
@@ -304,6 +333,13 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                                               } else {
                                                 controller.goToPageIndex(index);
                                               }
+
+                                              // Pre-generate TTS audio for upcoming pages
+                                              _preGenerateUpcomingTts(
+                                                pageState,
+                                                isDbl,
+                                                index,
+                                              );
                                             });
                                       },
                                     );
@@ -342,11 +378,16 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                     onBack: () => Navigator.of(context).pop(),
                     onTtsPressed: () {
                       if (_isTtsPlaying) {
-                        ref.read(supertonicTtsProvider).pause();
+                        ref.read(smartTtsEngineProvider).pause();
                       } else {
                         final currentText =
                             readerState.pages[readerState.currentPageIndex];
-                        ref.read(supertonicTtsProvider).speak(currentText);
+                        ref.read(smartTtsEngineProvider).speak(
+                          bookId: readerState.book.id,
+                          text: currentText,
+                          chapterIndex: readerState.currentChapterIndex,
+                          pageIndex: readerState.currentPageIndex,
+                        );
                       }
                     },
                     onSettingsPressed: () => ReaderSettingsPanel.show(

@@ -12,24 +12,24 @@ import 'package:real_page_flip_example/features/reader/presentation/reader_state
 import 'package:real_page_flip_example/features/reader/presentation/widgets/reader_app_bar.dart';
 import 'package:real_page_flip_example/features/reader/presentation/widgets/reader_bottom_bar.dart';
 import 'package:real_page_flip_example/features/tts/application/supertonic_tts_provider.dart';
-import 'package:real_page_flip_example/features/tts/application/supertonic_tts_service.dart';
+import 'package:real_page_flip_example/features/tts/application/smart_tts_engine.dart';
 import 'package:real_page_flip_example/shared/theme/app_theme_controller.dart';
 import 'package:real_page_flip_example/shared/theme/reader_theme.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:real_page_flip_example/l10n/translations.g.dart';
 
 // ---------------------------------------------------------------------------
-// Test TTS Service
+// Test SmartTtsEngine
 // ---------------------------------------------------------------------------
 
-/// A test double for [SupertonicTtsService] that returns a controlled
+/// A test double for [SmartTtsEngine] that returns a controlled
 /// [playerStateStream] and records calls.
-class _TestTtsService extends SupertonicTtsService {
+class _TestTtsEngine extends SmartTtsEngine {
   final _playerStateController = StreamController<PlayerState>.broadcast();
   int pauseCallCount = 0;
   int stopCallCount = 0;
 
-  _TestTtsService() : super();
+  _TestTtsEngine() : super();
 
   @override
   Stream<PlayerState> get playerStateStream => _playerStateController.stream;
@@ -49,8 +49,11 @@ class _TestTtsService extends SupertonicTtsService {
   }
 
   @override
-  Future<void> speak(
-    String text, {
+  Future<void> speak({
+    required String bookId,
+    required String text,
+    required int chapterIndex,
+    required int pageIndex,
     String language = 'ko',
     double speed = 1.0,
   }) async {
@@ -238,9 +241,9 @@ final _chNavNextState = ReaderState(
 
 /// Builds the widget tree for BookReaderScreen tests with test doubles.
 ///
-/// Returns a record containing the test controller and test TTS service so
+/// Returns a record containing the test controller and test TTS engine so
 /// callers can verify interactions.
-Future<({_TestReaderController controller, _TestTtsService ttsService})>
+Future<({_TestReaderController controller, _TestTtsEngine ttsEngine})>
 _buildApp({
   required WidgetTester tester,
   required ReaderState state,
@@ -248,7 +251,7 @@ _buildApp({
   List<NavigatorObserver> navigatorObservers = const [],
 }) async {
   final controller = _TestReaderController(state);
-  final ttsService = _TestTtsService();
+  final ttsEngine = _TestTtsEngine();
   final effectiveBook = book ?? _testBook;
 
   await tester.pumpWidget(
@@ -261,7 +264,7 @@ _buildApp({
           appThemeControllerProvider.overrideWith(
             () => _TestAppThemeController(),
           ),
-          supertonicTtsProvider.overrideWithValue(ttsService),
+          smartTtsEngineProvider.overrideWithValue(ttsEngine),
         ],
         child: ShadTheme(
           data: ReaderThemeData.charcoal.toShadTheme(),
@@ -278,7 +281,7 @@ _buildApp({
   await tester.pump();
   await tester.pump();
 
-  return (controller: controller, ttsService: ttsService);
+  return (controller: controller, ttsEngine: ttsEngine);
 }
 
 /// Returns the physical screen centre used for tap-based UI toggle tests.
@@ -500,7 +503,7 @@ void main() {
       );
     });
 
-    testWidgets('supertonicTtsProvider does not crash', (tester) async {
+    testWidgets('smartTtsEngineProvider does not crash', (tester) async {
       await _buildApp(tester: tester, state: _loadedState);
 
       expect(tester.takeException(), isNull);
@@ -524,7 +527,7 @@ void main() {
               appThemeControllerProvider.overrideWith(
                 () => _TestAppThemeController(),
               ),
-              supertonicTtsProvider.overrideWithValue(result.ttsService),
+              smartTtsEngineProvider.overrideWithValue(result.ttsEngine),
             ],
             child: const SizedBox.shrink(),
           ),
@@ -535,7 +538,7 @@ void main() {
       // The production code wraps ref.read().stop() in a try-catch, so no
       // exception should bubble up.  Verify the widget caught it cleanly.
       expect(tester.takeException(), isNull);
-      expect(result.ttsService.stopCallCount, greaterThanOrEqualTo(0));
+      expect(result.ttsEngine.stopCallCount, greaterThanOrEqualTo(0));
     });
   });
 
@@ -770,7 +773,7 @@ void main() {
         themeType: ReaderThemeType.cream,
       );
       final controller = _TestReaderController(_loadedState);
-      final ttsService = _TestTtsService();
+      final ttsEngine = _TestTtsEngine();
 
       await tester.pumpWidget(
         TranslationProvider(
@@ -780,7 +783,7 @@ void main() {
                 _testBook,
               ).overrideWith(() => controller),
               appThemeControllerProvider.overrideWith(() => creamController),
-              supertonicTtsProvider.overrideWithValue(ttsService),
+              smartTtsEngineProvider.overrideWithValue(ttsEngine),
             ],
             child: ShadTheme(
               data: ReaderThemeData.charcoal.toShadTheme(),
@@ -874,7 +877,7 @@ void main() {
       expect(find.byIcon(Icons.volume_up_outlined), findsOneWidget);
 
       // Emit TTS playing state
-      result.ttsService.emitPlayerState(
+      result.ttsEngine.emitPlayerState(
         PlayerState(true, ProcessingState.ready),
       );
       await tester.pump();

@@ -7,7 +7,7 @@ part of 'bookshelf_controller.dart';
 // **************************************************************************
 
 String _$bookshelfControllerHash() =>
-    r'd97a9bdb37d9d3ec3845e51cc9ab76746f1575e3';
+    r'b8039c778d40c55559ef298aead1414d67df171c';
 
 /// See also [BookshelfController].
 @ProviderFor(BookshelfController)

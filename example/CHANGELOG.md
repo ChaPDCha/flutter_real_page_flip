@@ -3,6 +3,20 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.1.0+43] - 2026-06-28
+### ✨ 기능
+- EPUB 본문 콘텐츠 필터링 도입: 30+ non-content 타입(목차, 페이지번호, 각주, 저작권 등) 자동 제거 | Smart EPUB content filtering: auto-removes 30+ non-content types (TOC, page numbers, footnotes, copyright, etc.)
+- SmartTtsEngine 3계층 캐시 아키텍처 (메모리 LRU → 디스크 → ONNX 합성) + 예측 선합성 | Three-tier smart TTS engine (memory LRU → disk → ONNX synthesis) with predictive pre-generation
+- TTS 페이지 전환 시 다음 2페이지 오디오 미리 생성 (재생 지연 제거) | Pre-generates next 2 pages' TTS audio on page change (zero-delay playback)
+
+### 🎨 UI/UX
+- TTS word-level 하이라이트 엔진 통합 (재생 중 단어 단위 강조 표시) | Integrated word-level TTS highlight engine
+
+### 🧪 테스트
+- SmartTtsEngine 42개 단위/통합 테스트 (엣지케이스: 한글/일본어/이모지/5000+자/동시호출/LRU eviction/에러 핸들링/WAV 헤더 검증) | Added 42 TTS engine tests covering unicode, emoji, long text, concurrency, LRU eviction, error handling, and WAV header validation
+- EPUB 콘텐츠 필터 16개 테스트 추가 | Added 16 EPUB content filter tests
+- Reader screen TTS 통합 테스트 업데이트 | Updated reader screen TTS integration tests
+
 ## [1.0.35+42] - 2026-06-28
 ### 🐛 수정
 - 위젯 소멸 및 제스처 레이어 언마운트 시점에 발생할 수 있는 Null check 및 lifecycle 크래시 방지 | Guarded against null safety/lifecycle crashes during unmounting and disposal

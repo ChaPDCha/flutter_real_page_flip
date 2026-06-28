@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:epubx/epubx.dart';
 import 'package:html/dom.dart' show Element, Node, Text;
 import 'package:html/parser.dart' show parse;
+import 'epub_content_filter.dart';
 
 class EpubService {
   final Expando<String> _chapterTextCache = Expando<String>();
@@ -14,6 +15,9 @@ class EpubService {
   }
 
   /// Extracts clean plain text with preserved paragraph breaks from an EPUB chapter.
+  ///
+  /// Non-content elements (page numbers, footnotes, navigation, copyright, etc.)
+  /// are filtered out via [EpubContentFilter] before text extraction.
   String getChapterText(EpubChapter chapter) {
     final cachedText = _chapterTextCache[chapter];
     if (cachedText != null) {
@@ -27,7 +31,9 @@ class EpubService {
 
     final document = parse(htmlContent);
 
-    // Remove unwanted tags
+    // Remove non-content elements (page numbers, footnotes, nav, etc.)
+    EpubContentFilter.removeNonContent(document);
+    // Remove technical elements
     document.querySelectorAll('script').forEach((e) => e.remove());
     document.querySelectorAll('style').forEach((e) => e.remove());
     document.querySelectorAll('head').forEach((e) => e.remove());

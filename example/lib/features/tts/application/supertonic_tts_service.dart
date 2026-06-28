@@ -11,6 +11,12 @@ class TtsWordHighlight {
   TtsWordHighlight(this.startOffset, this.endOffset);
 }
 
+class TtsSynthesisResult {
+  final List<double> pcmSamples;
+  final int sampleRate;
+  TtsSynthesisResult({required this.pcmSamples, required this.sampleRate});
+}
+
 class TtsWordAlignment {
   final String word;
   final int startCharOffset;
@@ -48,6 +54,39 @@ class SupertonicTtsService {
   bool get isSpeaking => _isSpeaking;
 
   Stream<PlayerState> get playerStateStream => _audioPlayer.playerStateStream;
+
+  /// Synthesizes [text] to raw PCM audio without playing it.
+  ///
+  /// Returns the sample data and sample rate so callers can cache, encode,
+  /// or stream the audio themselves. Throws if TTS models are not loaded.
+  Future<TtsSynthesisResult> synthesize(
+    String text, {
+    String language = 'ko',
+    double speed = 1.0,
+  }) async {
+    if (!_isInitialized) {
+      await init();
+    }
+    if (_textToSpeech == null || _style == null) {
+      throw Exception('Supertonic TTS models not loaded');
+    }
+
+    final result = await _textToSpeech!.call(
+      text,
+      language,
+      _style!,
+      8,
+      speed: speed,
+    );
+    final List<double> wav = result['wav'] is List<double>
+        ? result['wav']
+        : (result['wav'] as List).cast<double>();
+
+    return TtsSynthesisResult(
+      pcmSamples: wav,
+      sampleRate: _textToSpeech!.sampleRate,
+    );
+  }
 
   Future<void> init() async {
     if (_isInitialized) return;

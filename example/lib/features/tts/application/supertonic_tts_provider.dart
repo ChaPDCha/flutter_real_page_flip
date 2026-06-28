@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'smart_tts_engine.dart';
 import 'supertonic_tts_service.dart';
 
 part 'supertonic_tts_provider.g.dart';
@@ -10,6 +11,13 @@ SupertonicTtsService supertonicTts(SupertonicTtsRef ref) {
     service.dispose();
   });
   return service;
+}
+
+@riverpod
+SmartTtsEngine smartTtsEngine(SmartTtsEngineRef ref) {
+  final engine = SmartTtsEngine();
+  ref.onDispose(() => engine.dispose());
+  return engine;
 }
 
 @riverpod

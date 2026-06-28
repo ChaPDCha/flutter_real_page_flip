@@ -68,7 +68,7 @@ class ReflowablePageContent extends ConsumerWidget {
     );
 
     // Watch TTS state
-    final ttsService = ref.watch(supertonicTtsProvider);
+    final ttsService = ref.watch(smartTtsEngineProvider);
     final activeTtsPageIndex = ref.watch(activeTtsPageIndexProvider);
     final activeTtsStartOffset = ref.watch(activeTtsStartOffsetProvider);
 
@@ -214,12 +214,17 @@ class ReflowablePageContent extends ConsumerWidget {
 
     if (sentenceText.isEmpty) return;
 
-    await ref.read(supertonicTtsProvider).stop();
+    await ref.read(smartTtsEngineProvider).stop();
 
     ref.read(activeTtsPageIndexProvider.notifier).set(index);
     ref.read(activeTtsStartOffsetProvider.notifier).set(sentenceStartOffset);
 
     final remainingText = pageText.substring(sentenceStartOffset);
-    await ref.read(supertonicTtsProvider).speak(remainingText);
+    await ref.read(smartTtsEngineProvider).speak(
+      bookId: state.book.id,
+      text: remainingText,
+      chapterIndex: state.currentChapterIndex,
+      pageIndex: index,
+    );
   }
 }
