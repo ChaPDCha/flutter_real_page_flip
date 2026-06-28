@@ -184,11 +184,11 @@ class _PdfPageRendererState extends State<PdfPageRenderer> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth.toInt();
         return Center(
           child: Image.memory(
             _imageBytes!,
-            cacheWidth: constraints.maxWidth.toInt(),
-            cacheHeight: constraints.maxHeight.toInt(),
+            cacheWidth: maxWidth,
             fit: BoxFit.contain,
             width: constraints.maxWidth,
             height: constraints.maxHeight,

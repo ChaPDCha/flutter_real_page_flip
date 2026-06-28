@@ -26,5 +26,5 @@ class ReaderState with _$ReaderState {
   }) = _ReaderState;
 
   bool get isDoublePage =>
-      viewportWidth > 600 && viewportWidth >= viewportHeight;
+      viewportWidth > 600 && viewportWidth >= viewportHeight && !isPdfLandscape;
 }
