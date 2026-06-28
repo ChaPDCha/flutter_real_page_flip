@@ -6,17 +6,20 @@
 
 A professional, high-fidelity 3D-like page flip engine for Flutter. Specifically engineered to deliver **ultra-smooth 60/120 FPS performance even on low-end devices** through advanced rendering optimizations.
 
-> **Notice**: This page flip engine is optimized for vertical mobile devices (single-page view) and does not support horizontal two-page view (dual-page reading).
+> **Notice**: This page flip engine is fully optimized for both single-page vertical layouts and horizontal two-page view (double-spread mode) for tablets and wider screens.
 
 English | [한국어](#한국어-korean)
 
 ## Demos
 
-### 1. Full Performance Demo (v1.2+)
-![Performance Demo](doc/screenshots/performance_demo.webp)
+### 1. Premium Control Deck & Interactive Dashboard (v1.11+)
+![Premium Control Deck](doc/screenshots/performance_demo.webp)
 
-### 2. Legacy Interaction Demo (Core Physics)
-![Interaction Demo](doc/screenshots/interaction_demo.webp)
+### 2. Double-Spread Tablet Layout (v1.11+)
+![Double-Spread Mode](doc/screenshots/interaction_demo.webp)
+
+### 3. Interactive Web Preview (Recorded Animation)
+![Interactive Web Preview](doc/screenshots/page_flip_demo.webp)
 
 
 ## Why Real Page Flip? (The Technical Edge)
