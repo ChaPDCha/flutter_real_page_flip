@@ -167,13 +167,11 @@ class PageFlipLayerView extends StatelessWidget {
 
     // Current page: always present at this Stack position.
     final currentKey = pageKeys[currentIndex];
-    final currentPage = Offstage(
-      offstage: isDragActive,
-      key: currentKey,
-      child: _wrapWithConstraints(
-        RepaintBoundary(
-          child: _buildPage(context, currentIndex),
-        ),
+    final currentPage = OffscreenPreRenderer(
+      isOffscreen: isDragActive,
+      child: RepaintBoundary(
+        key: currentKey,
+        child: _wrapWithConstraints(_buildPage(context, currentIndex)),
       ),
     );
 
@@ -189,10 +187,11 @@ class PageFlipLayerView extends StatelessWidget {
       if (gKey == null) continue;
 
       backgroundWidgets.add(
-        Offstage(
-          key: gKey,
-          child: _wrapWithConstraints(
-            RepaintBoundary(child: _buildPage(context, index)),
+        OffscreenPreRenderer(
+          isOffscreen: true,
+          child: RepaintBoundary(
+            key: gKey,
+            child: _wrapWithConstraints(_buildPage(context, index)),
           ),
         ),
       );
@@ -488,6 +487,16 @@ class PageFlipLayerView extends StatelessWidget {
       return _wrapWithConstraints(_buildSnapshotImage(snapshot));
     }
 
+    // Single-mode fallback: currentIndex is stored only in spreadSnapshots
+    // (PreRenderManager._doCaptureSnapshots skips pageSnapshots for currentIndex).
+    // Check spreadSnapshots before falling through to opaque paper.
+    if (!isDoubleSpread) {
+      final spreadFallback = spreadSnapshots[index];
+      if (spreadFallback != null) {
+        return _wrapWithConstraints(_buildSnapshotImage(spreadFallback));
+      }
+    }
+
     // CRITICAL: Never fall back to live _buildPage here. The Offstage widgets
     // (backgroundWidgets, currentPage) already render live pages for capture.
     // Adding another live itemBuilder call for the same index in the same Stack
@@ -575,6 +584,41 @@ class PageFlipLayerView extends StatelessWidget {
         geo: geo,
       ),
       child: stationaryContent,
+    );
+  }
+}
+
+/// Helper widget that safely pushes pre-rendering widgets offscreen.
+///
+/// Disables focus, semantics, and pointer interactions so they do not leak into the active tree,
+/// but keeps them in the paint tree so [RepaintBoundary] can capture snapshots successfully.
+class OffscreenPreRenderer extends StatelessWidget {
+  /// Creates an [OffscreenPreRenderer].
+  const OffscreenPreRenderer({
+    required this.child,
+    required this.isOffscreen,
+    super.key,
+  });
+
+  /// The child widget to render.
+  final Widget child;
+
+  /// True to push the child offscreen and isolate it.
+  final bool isOffscreen;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isOffscreen) return child;
+
+    return Transform.translate(
+      offset: const Offset(-20000, -20000),
+      child: IgnorePointer(
+        child: ExcludeFocus(
+          child: ExcludeSemantics(
+            child: child,
+          ),
+        ),
+      ),
     );
   }
 }
