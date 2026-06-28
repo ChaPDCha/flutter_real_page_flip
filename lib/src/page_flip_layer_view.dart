@@ -166,11 +166,6 @@ class PageFlipLayerView extends StatelessWidget {
     final isDragActive = dragProgress > 0 && isDragging;
 
     // Current page: always present at this Stack position.
-    // pageKeys[currentIndex] is used as the Offstage's GlobalKey so that
-    // Flutter can REPARENT (not recreate) the element when transitioning
-    // between drag and non-drag modes.  During drag the Offstage is hidden
-    // and serves as a live capture source for the PreRenderManager; after
-    // finalize it becomes visible with its RepaintBoundary already painted.
     final currentKey = pageKeys[currentIndex];
     final currentPage = Offstage(
       offstage: isDragActive,
@@ -183,8 +178,6 @@ class PageFlipLayerView extends StatelessWidget {
     );
 
     // Background adjacent pages kept in the tree for snapshot capture.
-    // Each Offstage carries pageKeys[index] as its GlobalKey so the element
-    // survives reparenting between drag and non-drag children lists.
     final backgroundWidgets = <Widget>[];
     final windowIndices = {
       if (currentIndex > 0) currentIndex - 1,
@@ -477,7 +470,9 @@ class PageFlipLayerView extends StatelessWidget {
   ///
   /// Uses pre-captured snapshots only. Live [itemBuilder] widgets are never
   /// shown in flip layers — Offstage copies hold GlobalKeys for capture.
-  /// When a snapshot is not ready yet, an opaque paper underlay is shown.
+  /// When a snapshot is not ready yet, an opaque paper underlay is shown
+  /// to avoid Duplicate GlobalKey crashes from live widget trees appearing
+  /// in both Offstage and drag-layer siblings of the same Stack.
   Widget _buildPageContent(BuildContext context, int index) {
     // Double-spread: full spread snapshots (current index is spread-only in PreRenderManager).
     if (isDoubleSpread) {
@@ -493,9 +488,13 @@ class PageFlipLayerView extends StatelessWidget {
       return _wrapWithConstraints(_buildSnapshotImage(snapshot));
     }
 
-    // Live page fallback while snapshot is being captured (1-2 frame window).
-    // This prevents the "pages disappear on animation start" bug.
-    return _buildPage(context, index);
+    // CRITICAL: Never fall back to live _buildPage here. The Offstage widgets
+    // (backgroundWidgets, currentPage) already render live pages for capture.
+    // Adding another live itemBuilder call for the same index in the same Stack
+    // would cause Duplicate GlobalKey crashes if the host's page widgets use
+    // GlobalKeys internally (e.g. Form, TextEditingController, PageStorage).
+    // Snapshots arrive within 1-2 frames via the PreRenderManager retry loop.
+    return _buildOpaquePaperUnderlay(context);
   }
 
   /// Layer 2: stationary content clipped to the fold.
