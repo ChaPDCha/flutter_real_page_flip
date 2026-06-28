@@ -8,6 +8,9 @@ class PreRenderManager {
   /// GlobalKeys for tracking rendered pages.
   final Map<int, GlobalKey> pageKeys = {};
 
+  /// Cached repaint boundaries to avoid expensive DFS traversal on every capture retry.
+  final Map<GlobalKey, RenderRepaintBoundary> _boundaryCache = {};
+
   /// Cached snapshots (ui.Image) of pre-rendered adjacent pages.
   final Map<int, ui.Image> pageSnapshots = {};
 
@@ -99,6 +102,7 @@ class PreRenderManager {
     _activeCaptures.clear();
     _pendingRetryIndices.clear();
     _captureRetryCounts.clear();
+    _boundaryCache.clear();
     cancelPreRender();
     flushSnapshots();
     pageKeys.clear();
@@ -305,15 +309,22 @@ class PreRenderManager {
 
         if (captureAsSpread) {
           final oldImage = spreadSnapshots[index];
-          spreadSnapshots[index] = image.clone();
+          // Directly store original image to prevent redundant cloning
+          spreadSnapshots[index] = image;
           if (oldImage != null) toDispose.add(oldImage);
-        }
-        if (!captureAsSpread || index != currentIndex) {
+
+          if (!captureAsSpread || index != currentIndex) {
+            final oldImage = pageSnapshots[index];
+            // Clone only when the snapshot must reside in both page and spread maps
+            pageSnapshots[index] = image.clone();
+            if (oldImage != null) toDispose.add(oldImage);
+          }
+        } else {
           final oldImage = pageSnapshots[index];
-          pageSnapshots[index] = image.clone();
+          // Single destination assignment - no clone required
+          pageSnapshots[index] = image;
           if (oldImage != null) toDispose.add(oldImage);
         }
-        image.dispose();
         if (toDispose.isNotEmpty) {
           _disposeImagesOnce(toDispose);
           toDispose.clear();
@@ -354,52 +365,64 @@ class PreRenderManager {
     _captureRetryCounts[index] = retries;
     _pendingRetryIndices.add(index);
 
-    _retryCurrentIndex = currentIndex;
-    _retryTotalPages = totalPages;
-    _retryOnCaptured = onSnapshotCaptured;
-    _retryGeneration = generation;
-    _retryIncludeCurrentSpread = includeCurrentSpread;
-    _retryPixelRatio = pixelRatio;
+    // Store parameters only on first retry for this generation.
+    // Subsequent calls within the same generation share identical params;
+    // storing once prevents the last-call-wins overwrite race.
+    if (!_retryScheduled) {
+      _retryCurrentIndex = currentIndex;
+      _retryTotalPages = totalPages;
+      _retryOnCaptured = onSnapshotCaptured;
+      _retryGeneration = generation;
+      _retryIncludeCurrentSpread = includeCurrentSpread;
+      _retryPixelRatio = pixelRatio;
+      _retryScheduled = true;
 
-    if (_retryScheduled) return;
-    _retryScheduled = true;
+      // Use addPostFrameCallback so the retry runs after layout/paint is complete.
+      // This ensures the boundary is fully painted (debugNeedsPaint == false),
+      // allowing the capture to succeed immediately on the first retry instead of
+      // looping through frame callbacks.
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        _retryScheduled = false;
+        if (_isDisposed ||
+            generation != _captureGeneration ||
+            _pendingRetryIndices.isEmpty) {
+          return;
+        }
 
-    // Use addPostFrameCallback so the retry runs after layout/paint is complete.
-    // This ensures the boundary is fully painted (debugNeedsPaint == false),
-    // allowing the capture to succeed immediately on the first retry instead of
-    // looping through frame callbacks.
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _retryScheduled = false;
-      if (_isDisposed ||
-          generation != _captureGeneration ||
-          _pendingRetryIndices.isEmpty) {
-        return;
-      }
+        final retryCurrent = _retryCurrentIndex;
+        final retryTotal = _retryTotalPages;
+        final retryCallback = _retryOnCaptured;
+        final retryGen = _retryGeneration;
+        final retryIncludeSpread = _retryIncludeCurrentSpread;
+        final retryRatio = _retryPixelRatio;
+        if (retryCurrent == null || retryTotal == null || retryCallback == null) {
+          return;
+        }
 
-      final retryCurrent = _retryCurrentIndex;
-      final retryTotal = _retryTotalPages;
-      final retryCallback = _retryOnCaptured;
-      final retryGen = _retryGeneration;
-      final retryIncludeSpread = _retryIncludeCurrentSpread;
-      final retryRatio = _retryPixelRatio;
-      if (retryCurrent == null || retryTotal == null || retryCallback == null) {
-        return;
-      }
-
-      await _doCaptureSnapshots(
-        retryCurrent,
-        retryTotal,
-        retryCallback,
-        retryGen,
-        includeCurrentSpread: retryIncludeSpread,
-        pixelRatio: retryRatio,
-      );
-    });
+        await _doCaptureSnapshots(
+          retryCurrent,
+          retryTotal,
+          retryCallback,
+          retryGen,
+          includeCurrentSpread: retryIncludeSpread,
+          pixelRatio: retryRatio,
+        );
+      });
+    }
   }
 
   RenderRepaintBoundary? _findRepaintBoundary(GlobalKey key) {
+    if (_boundaryCache.containsKey(key)) {
+      final cached = _boundaryCache[key];
+      if (cached != null && cached.attached && key.currentContext != null) {
+        return cached;
+      }
+      _boundaryCache.remove(key);
+    }
+
     final renderObject = key.currentContext?.findRenderObject();
     if (renderObject is RenderRepaintBoundary) {
+      _boundaryCache[key] = renderObject;
       return renderObject;
     }
     if (renderObject is RenderObject) {
@@ -407,6 +430,10 @@ class PreRenderManager {
       renderObject.visitChildren((child) {
         found ??= _findRepaintBoundaryInTree(child);
       });
+      final actualBoundary = found;
+      if (actualBoundary != null) {
+        _boundaryCache[key] = actualBoundary;
+      }
       return found;
     }
     return null;
@@ -448,6 +475,7 @@ class PreRenderManager {
     _activeCaptures.clear();
     _pendingRetryIndices.clear();
     _captureRetryCounts.clear();
+    _boundaryCache.clear();
     cancelPreRender();
     flushSnapshots();
     pageKeys.clear();
