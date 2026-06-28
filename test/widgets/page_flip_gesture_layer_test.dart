@@ -302,5 +302,38 @@ void main() {
 
       expect(controller.currentIndex, 1);
     });
+
+    testWidgets(
+        'does not throw Null check operator error when unmounted during pointer event',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: PageFlipGestureLayer(
+              controller: controller,
+              sensitivity: 0.5,
+              totalPages: 3,
+            ),
+          ),
+        ),
+      );
+
+      final gesture = await tester.startGesture(const Offset(350, 300));
+      await gesture.moveBy(const Offset(-30, 0));
+
+      // Remove the widget from the tree to unmount it
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: SizedBox(),
+        ),
+      );
+
+      // Now move the pointer. This should not throw.
+      await gesture.moveBy(const Offset(-120, 0));
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
   });
 }

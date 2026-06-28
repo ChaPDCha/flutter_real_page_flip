@@ -436,6 +436,7 @@ class PageFlipStateController {
   }
 
   void _finalizePageChange(bool success, int totalPages) {
+    if (_isDisposed) return;
     if (success) {
       // Save velocity for haptic calculation before resetting state.
       final releaseVelocity = _lastReleaseVelocity;

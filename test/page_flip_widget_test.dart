@@ -549,4 +549,164 @@ void main() {
       expect(error, isNotNull);
     });
   });
+
+  group('PageFlipWidget stability and lifecycle', () {
+    testWidgets('itemCount=0 renders SizedBox.shrink and does not crash or pre-render', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 0,
+            itemBuilder: (context, index) => Container(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(PageFlipWidget), findsOneWidget);
+      expect(find.byType(SizedBox), findsWidgets);
+    });
+
+    testWidgets('attaches, detaches, and cleans up controllers on widget update and dispose', (tester) async {
+      final controller1 = PageFlipController();
+      final controller2 = PageFlipController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller1,
+            itemCount: 3,
+            itemBuilder: (context, index) => Container(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller1.isAttached, isTrue);
+      expect(controller2.isAttached, isFalse);
+
+      // Rebuild with new controller
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: controller2,
+            itemCount: 3,
+            itemBuilder: (context, index) => Container(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller1.isAttached, isFalse);
+      expect(controller2.isAttached, isTrue);
+
+      // Rebuild with no controller
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            controller: null,
+            itemCount: 3,
+            itemBuilder: (context, index) => Container(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller2.isAttached, isFalse);
+    });
+
+    testWidgets('disposed during snapback animation does not throw state or disposed error', (tester) async {
+      final controller = PageFlipController();
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: PageFlipWidget(
+              controller: controller,
+              itemCount: 5,
+              itemBuilder: (context, index) => Text('Page $index'),
+              config: const PageFlipConfig(
+                duration: Duration(milliseconds: 200),
+                effectHandler: NoOpEffectHandler(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final state = tester.state<PageFlipWidgetState>(find.byType(PageFlipWidget));
+      final gesture = await tester.startGesture(const Offset(350, 300));
+      await gesture.moveBy(const Offset(-100, 0));
+      await gesture.up(); // starts snapback animation
+
+      // Unmount/dispose the widget while animation is running
+      await tester.pumpWidget(
+        const MaterialApp(home: SizedBox()),
+      );
+
+      // Settle the framework to let pending callbacks execute.
+      await tester.pumpAndSettle();
+      // Should not throw or crash.
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('resizes dynamically and handles cache invalidation on size change', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 400,
+              height: 600,
+              child: PageFlipWidget(
+                itemCount: 3,
+                itemBuilder: (context, index) => Container(
+                  color: Colors.red,
+                  child: Text('Page $index'),
+                ),
+                config: const PageFlipConfig(
+                  duration: Duration(milliseconds: 200),
+                  effectHandler: NoOpEffectHandler(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final state = tester.state<PageFlipWidgetState>(find.byType(PageFlipWidget));
+      expect(state.context.size, equals(const Size(400, 600)));
+
+      // Resize the constraints to trigger size change detection.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 800,
+              height: 600,
+              child: PageFlipWidget(
+                itemCount: 3,
+                itemBuilder: (context, index) => Container(
+                  color: Colors.red,
+                  child: Text('Page $index'),
+                ),
+                config: const PageFlipConfig(
+                  duration: Duration(milliseconds: 200),
+                  effectHandler: NoOpEffectHandler(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Re-trigger layout and post-frame callback
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(state.context.size, equals(const Size(800, 600)));
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

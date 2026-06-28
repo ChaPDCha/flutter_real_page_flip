@@ -50,11 +50,13 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
       );
 
   Offset _localPosition(Offset global) {
+    if (!mounted) return global;
     final box = context.findRenderObject() as RenderBox?;
     return box?.globalToLocal(global) ?? global;
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    if (!mounted) return;
     if (_activePointer != null) return;
     _activePointer = event.pointer;
     _totalDx = 0;
@@ -65,6 +67,7 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
   }
 
   void _onPointerMove(PointerMoveEvent event) {
+    if (!mounted) return;
     if (event.pointer != _activePointer) return;
 
     _totalDx += event.delta.dx;
@@ -105,14 +108,17 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
   }
 
   void _onPointerUp(PointerUpEvent event) {
+    if (!mounted) return;
     _finishPointer(event.pointer, canceled: false);
   }
 
   void _onPointerCancel(PointerCancelEvent event) {
+    if (!mounted) return;
     _finishPointer(event.pointer, canceled: true);
   }
 
   void _finishPointer(int pointer, {required bool canceled}) {
+    if (!mounted) return;
     if (pointer != _activePointer) return;
 
     if (_flipActive) {

@@ -17,6 +17,7 @@ analyzer:
     - "**/*.mocks.dart"
     - "**/*.gr.dart"
     - "docs/**/refactoring_examples/**"  # 리팩토링 예제 파일 제외
+    - "doc/**" # Exclude math verification and doc files
     - "lib/deprecated/**"  # 사용되지 않는 코드 보관소
     - "scripts/**"
     - ".trash/**"

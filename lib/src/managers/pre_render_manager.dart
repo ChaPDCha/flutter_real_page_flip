@@ -24,6 +24,7 @@ class PreRenderManager {
     int totalPages, {
     bool includeCurrent = false,
   }) {
+    if (totalPages <= 0) return const [];
     final indices = <int>[];
     if (currentIndex > 0) indices.add(currentIndex - 1);
     if (includeCurrent) indices.add(currentIndex);
@@ -43,6 +44,7 @@ class PreRenderManager {
     int totalPages, {
     bool includeCurrent = false,
   }) {
+    if (totalPages <= 0) return const [];
     if (!includeCurrent) return const [];
     final indices = <int>[];
     if (currentIndex > 0) indices.add(currentIndex - 1);

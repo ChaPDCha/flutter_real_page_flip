@@ -19,6 +19,9 @@ export 'models/page_flip_config.dart';
 class PageFlipController {
   PageFlipWidgetState? _state;
 
+  /// Returns true if this controller is currently attached to an active [PageFlipWidgetState].
+  bool get isAttached => _state != null;
+
   /// Navigates to the next page.
   void nextPage() {
     _state?.nextPage();
@@ -59,7 +62,7 @@ class PageFlipWidget extends StatefulWidget {
               isDoubleSpread: isDoubleSpread,
             ),
         assert(
-          initialIndex < itemCount,
+          itemCount == 0 || initialIndex < itemCount,
           'initialIndex cannot be greater than itemCount',
         );
 
@@ -125,6 +128,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     with TickerProviderStateMixin {
   late final PageFlipStateController _controller;
   final PreRenderManager _preRenderManager = PreRenderManager();
+  Size? _lastConstrainedSize;
 
   int get _totalPages => widget.itemCount;
 
@@ -189,6 +193,18 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     widget.onFlipEnd?.call();
   }
 
+  void _handleSizeChange(Size newSize) {
+    if (_lastConstrainedSize == null) {
+      _lastConstrainedSize = newSize;
+      return;
+    }
+    if (_lastConstrainedSize != newSize) {
+      _lastConstrainedSize = newSize;
+      _preRenderManager.flushSnapshots();
+      _captureSnapshots();
+    }
+  }
+
   late PageFlipEffectHandler _effectHandler;
 
   // Incremented on every didUpdateWidget so ValueListenableBuilder below can
@@ -199,6 +215,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   @override
   void didUpdateWidget(PageFlipWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?._state = null;
+    }
     widget.controller?._state = this;
 
     // Bump version so ValueListenableBuilder key changes on parent rebuild,
@@ -259,6 +278,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   @override
   void dispose() {
+    widget.controller?._state = null;
     _controller.dispose();
     _preRenderManager.dispose();
     _effectHandler.dispose();
@@ -429,6 +449,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               constraints.maxWidth.isFinite ? constraints.maxWidth : maxW;
 
           final constrainedSize = Size(maxW, maxH);
+          _handleSizeChange(constrainedSize);
 
           // PERFORMANCE: flip layers update through a ValueListenableBuilder so they
           // rebuild independently of the parent widget tree. During animation frames,
