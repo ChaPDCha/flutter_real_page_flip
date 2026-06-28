@@ -3,6 +3,10 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.9.9] - 2026-06-28
+### 🐛 수정
+- 뒤집히는 페이지의 그림자 영역(`Revealed Page Shadow`)이 직선 `clipRect` 대신 실제 곡선 폴드 경로(`clipPath`)를 따라 잘리도록 개선하여 모든 화면 비율에서 두 번째 레이어의 곡선 경계선과 그림자가 완전히 일치하도록 수정 | Replaced straight `clipRect` with curved `clipPath` for Revealed Page Shadow, ensuring perfect alignment between the curved fold line boundary and the shadow on all screen aspect ratios
+
 ## [1.9.8] - 2026-06-28
 ### 🐛 수정
 - 단면 모드 이전장(Backward) 전환 시 접히는 종이의 잘리는 면적과 그림자 방향이 꼬이던 지오메트리 계산 오류 수정 | Fixed Single Backward flip geometry where flap direction and material width calculations were inverted

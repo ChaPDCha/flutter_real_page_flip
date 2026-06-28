@@ -3,7 +3,7 @@ description: >
   A high-fidelity 3D-like page flip engine for Flutter. Features physics-based
   paper fold effects with realistic shadows, sound, and haptic feedback for
   ultra-smooth performance.
-version: 1.9.8
+version: 1.9.9
 repository: https://github.com/ChaPDCha/flutter_real_page_flip.git
 homepage: https://github.com/ChaPDCha/flutter_real_page_flip
 issue_tracker: https://github.com/ChaPDCha/flutter_real_page_flip/issues
