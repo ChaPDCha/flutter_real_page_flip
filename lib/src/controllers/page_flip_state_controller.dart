@@ -400,8 +400,9 @@ class PageFlipStateController {
   /// Triggers a programmatic page flip (e.g. from edge tap or controller).
   void triggerTapFlip({required bool isNext, required int totalPages}) {
     if (_isDisposed) return;
-    if (_isDragging || animationController.isAnimating || _isPendingFinalize)
+    if (_isDragging || animationController.isAnimating || _isPendingFinalize) {
       return;
+    }
 
     if ((isNext && _currentIndex >= totalPages - 1) ||
         (!isNext && _currentIndex <= 0)) {
