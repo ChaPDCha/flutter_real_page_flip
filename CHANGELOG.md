@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.11.1] - 2026-06-28
+### ✨ 예제 애플리케이션 개선 (Example Application)
+- 다크 모드, 네온 컬러 그라데이션, Glassmorphic 패널을 도입하여 개발자 친화적인 프리미엄 톤앤매너로 예제 앱 디자인을 전면 개편 | Completely redesigned the example app with a premium developer-focused look using dark theme, glassmorphic panels, and neon gradients.
+- 실시간 모니터링 상태바(페이지수, 엔진 상태 등) 및 PageFlipConfig 파라미터(민감도, 불투명도, AMO 성능 레벨 등)를 즉석에서 튜닝할 수 있는 대화형 Control Deck 탑재 | Implemented an interactive Control Deck with sliders, segmented selectors, and toggles to dynamically test and profile page flip settings live.
+
 ## [1.11.0] - 2026-06-28
 ### ✨ 성능 최적화 (Performance)
 - 저사양 기기 최적화를 위한 `PerformanceProfile` 도입 및 매쉬 렌더링 동적 건너뛰기 최적화 | Introduced `PerformanceProfile` and dynamic mesh-rendering skip to optimize GPU performance for low-end devices.
