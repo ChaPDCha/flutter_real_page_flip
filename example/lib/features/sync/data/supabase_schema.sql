@@ -55,7 +55,14 @@ alter table public.books enable row level security;
 alter table public.highlights enable row level security;
 alter table public.bookmarks enable row level security;
 
--- 5. Row-Level Security (RLS) Policies
+-- 5. Performance Indices for Sync Queries
+-- Composite index on (user_id, updated_at) enables narrow index scans for delta pull queries.
+-- Without this, Postgres falls back to bitmap scans or sequential scans even with RLS filtering.
+create index if not exists idx_books_user_updated on public.books (user_id, updated_at);
+create index if not exists idx_highlights_user_updated on public.highlights (user_id, updated_at);
+create index if not exists idx_bookmarks_user_updated on public.bookmarks (user_id, updated_at);
+
+-- 6. Row-Level Security (RLS) Policies
 -- Books Policies
 create policy "Allow authenticated users full access to their own books"
   on public.books for all
