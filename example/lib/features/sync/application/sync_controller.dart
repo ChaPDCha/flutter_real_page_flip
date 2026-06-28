@@ -12,9 +12,20 @@ class SyncController extends Notifier<SyncState> {
   late final SharedPreferences _prefs;
   bool _isSyncing = false;
 
+  /// Minimum interval between sync cycles. Prevents request storms from
+  /// rapid state changes (e.g., batch highlight operations that trigger
+  /// individual sync() calls).
+  static const _minSyncInterval = Duration(seconds: 10);
+  DateTime? _lastSyncCompletedAt;
+
+  /// Cap for the initial sync lookback window. A brand-new user with
+  /// last_synced_at = epoch 0 would otherwise pull ALL historic records.
+  /// 30 days is more than enough for a first sync — older data is unlikely
+  /// to exist for a new anonymous user anyway.
+  static const _initialSyncMaxLookback = Duration(days: 30);
+
   @override
   SyncState build() {
-    // Declarative Riverpod dependency injection
     _syncClient = ref.watch(cloudSyncClientProvider);
     _repository = ref.watch(syncRepositoryProvider);
     _prefs = ref.watch(sharedPreferencesProvider);
@@ -31,6 +42,13 @@ class SyncController extends Notifier<SyncState> {
   /// Silent anonymous onboarding and bi-directional delta synchronization.
   Future<void> sync() async {
     if (_isSyncing) return;
+
+    // Rate limiting: reject if called within minSyncInterval of last completion
+    if (_lastSyncCompletedAt != null &&
+        DateTime.now().difference(_lastSyncCompletedAt!) < _minSyncInterval) {
+      return;
+    }
+
     _isSyncing = true;
     final originalState = state;
     state = state.copyWith(status: SyncStatus.authenticating);
@@ -39,12 +57,21 @@ class SyncController extends Notifier<SyncState> {
       // 1. Frictionless Anonymous Onboarding Setup
       final userId = await _syncClient.signInAnonymously();
 
-      // Load last sync anchor
+      // Load last sync anchor; cap initial sync lookback to 30 days
       final lastSyncedMs = _prefs.getInt('sync_last_synced_at_ms') ?? 0;
-      final lastSyncedAt = DateTime.fromMillisecondsSinceEpoch(
+      var lastSyncedAt = DateTime.fromMillisecondsSinceEpoch(
         lastSyncedMs,
         isUtc: true,
       );
+
+      // Never pull data older than _initialSyncMaxLookback from now.
+      // This bounds the first-sync query range and avoids full-table scans
+      // on the (user_id, updated_at) index.
+      final maxLookback = DateTime.now().toUtc().subtract(_initialSyncMaxLookback);
+      if (lastSyncedAt.isBefore(maxLookback)) {
+        lastSyncedAt = maxLookback;
+      }
+
       final syncStartEpoch = DateTime.now().toUtc();
 
       // 2. Pull Remote Deltas
@@ -62,7 +89,7 @@ class SyncController extends Notifier<SyncState> {
       await _repository.mergeRemoteHighlights(remoteHighlights);
       await _repository.mergeRemoteBookmarks(remoteBookmarks);
 
-      // 3. Push Local Deltas with secured user_id attributes (RLS requirement)
+      // 3. Push Local Deltas
       state = state.copyWith(status: SyncStatus.pushing);
       final localBooks = await _repository.getLocalBooksDelta(lastSyncedAt);
       final localHighlights = await _repository.getLocalHighlightsDelta(
@@ -87,6 +114,7 @@ class SyncController extends Notifier<SyncState> {
         'sync_last_synced_at_ms',
         syncStartEpoch.millisecondsSinceEpoch,
       );
+      _lastSyncCompletedAt = DateTime.now();
       state = SyncState(
         status: SyncStatus.success,
         lastSyncedAt: syncStartEpoch,
