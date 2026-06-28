@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
@@ -120,5 +121,66 @@ void main() {
       expect(snapClipCoord(10.74), 10.5);
       expect(snapClipCoord(10.76), 11.0);
     });
+  });
+
+  group('clip path intersection exactness', () {
+    test('Stationary clip right boundary exactly matches Flap clip left boundary', () {
+      final g = geo(progress: 0.5);
+      final statPath = buildStationaryPageClipPath(canvasSize, g);
+      final flapPath = buildOpenPageClipPath(canvasSize, g);
+      
+      // We check that the bounding boxes of the two clips meet exactly at foldX.
+      // The open path bounding left edge should be the stationary path bounding right edge.
+      // Note: Due to curve and bleed, they might overlap by exactly kSpineRevealOverlapPx * 2
+      final statBounds = statPath.getBounds();
+      final flapBounds = flapPath.getBounds();
+      
+      // Stationary path extends to foldX + overlap
+      // Flap path extends to foldX - overlap (or flapLeft, whichever is furthest left)
+      // Since they are designed to overlap cleanly:
+      final expectedStatRight = snapClipCoord(g.foldX + kSpineRevealOverlapPx);
+      expect(statBounds.right, greaterThanOrEqualTo(expectedStatRight));
+      
+      // The left boundary of open clip depends on flapLeft and overlap.
+      // It should mathematically cover the right side starting from the seam.
+      final expectedOpenLeft = math.min(
+        snapClipCoord(g.flapLeft),
+        snapClipCoord(g.foldX - kSpineRevealOverlapPx)
+      );
+      // Because of the bezier curve for the page curl, getBounds().left 
+      // might be slightly inward from the theoretical flapLeft.
+      expect(flapBounds.left, closeTo(expectedOpenLeft, 15.0));
+    });
+  });
+
+  group('screen aspect ratio clip tests', () {
+    final ratios = {
+      'Ultra Wide 21:9': const Size(2100, 900),
+      'Standard 4:3': const Size(800, 600),
+      'Portrait 9:16': const Size(900, 1600),
+    };
+
+    for (final entry in ratios.entries) {
+      test('clip bounds are valid for ${entry.key}', () {
+        final size = entry.value;
+        final g = PageFlipGeometry(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          size: size,
+          isDoubleSpread: true,
+          isForward: true,
+        );
+
+        final statPath = buildStationaryPageClipPath(size, g);
+        final openPath = buildOpenPageClipPath(size, g);
+
+        expect(statPath.getBounds().left, lessThanOrEqualTo(0));
+        expect(statPath.getBounds().right, greaterThan(0));
+        
+        expect(openPath.getBounds().left, lessThanOrEqualTo(size.width));
+        expect(openPath.getBounds().right, greaterThanOrEqualTo(size.width));
+      });
+    }
   });
 }

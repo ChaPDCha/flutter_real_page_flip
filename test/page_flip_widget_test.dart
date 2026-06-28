@@ -708,5 +708,52 @@ void main() {
       expect(state.context.size, equals(const Size(800, 600)));
       expect(tester.takeException(), isNull);
     });
+    testWidgets('continuous rapid drag cancels animations without breaking state (race condition)', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: PageFlipWidget(
+              itemCount: 5,
+              itemBuilder: (context, index) => Text('Page $index'),
+              config: const PageFlipConfig(
+                duration: Duration(milliseconds: 500),
+                effectHandler: NoOpEffectHandler(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Start drag
+      var gesture = await tester.startGesture(const Offset(380, 300));
+      await tester.pump();
+      
+      // Move slightly to trigger flip
+      await gesture.moveBy(const Offset(-50, 0));
+      await tester.pump();
+      
+      // Release to start forward animation
+      await gesture.up();
+      await tester.pump();
+      
+      // While animating, immediately start another gesture on the same spot to cancel
+      // If race condition exists, this might crash or break the progress
+      gesture = await tester.startGesture(const Offset(380, 300));
+      await tester.pump();
+      
+      // Move again
+      await gesture.moveBy(const Offset(-10, 0));
+      await tester.pump();
+      
+      // Release
+      await gesture.up();
+      
+      // We expect the state to resolve cleanly without errors and eventually settle.
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+      expect(tester.takeException(), isNull);
+    });
   });
 }

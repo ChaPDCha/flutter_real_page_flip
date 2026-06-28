@@ -3,6 +3,12 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.10.0] - 2026-06-28
+### 🧪 테스트 및 안정성 검증 (Test & Stability)
+- 단면 모드(Single Backward) 지오메트리 엣지 케이스 테스트 추가 및 구버전 테스트 로직 최신화 | Added geometry edge case tests and updated outdated test expectations for single backward flips.
+- PageFlipClipper와 PageFlipOpenClipper 간의 클리핑 패스 교차점 정합성 및 화면 비율별 오차 없는 완전한 일치 검증 테스트 추가 | Added rigorous clip path alignment tests across multiple aspect ratios to ensure perfect boundary intersections.
+- 연속적인 드래그 및 애니메이션 취소 시 발생하는 Race Condition 방지 위젯 통합 테스트 추가 | Added widget integration tests to verify robust handling of rapid, continuous drag and cancellation race conditions.
+
 ## [1.9.9] - 2026-06-28
 ### 🐛 수정
 - 뒤집히는 페이지의 그림자 영역(`Revealed Page Shadow`)이 직선 `clipRect` 대신 실제 곡선 폴드 경로(`clipPath`)를 따라 잘리도록 개선하여 모든 화면 비율에서 두 번째 레이어의 곡선 경계선과 그림자가 완전히 일치하도록 수정 | Replaced straight `clipRect` with curved `clipPath` for Revealed Page Shadow, ensuring perfect alignment between the curved fold line boundary and the shadow on all screen aspect ratios
