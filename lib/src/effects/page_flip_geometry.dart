@@ -90,14 +90,14 @@ class PageFlipGeometry {
     // Flap direction is determined solely by animation direction:
     // forward → flap extends LEFT of foldX (peeling away from right edge)
     // backward → flap extends RIGHT of foldX (growing from spine)
-    final flapRightOfFold = isDoubleSpread && !isForward;
+    final flapRightOfFold = !isForward;
 
     // ── Fold line position ──────────────────────────────────────────────────
     // Double-spread: foldX moves across the spread between the edges/spine.
     // Single forward: foldX moves right→left (crease).
     // Single backward: foldX moves left→right (crease).
     final double foldX;
-    if (isDoubleSpread && !isForward) {
+    if (!isForward) {
       foldX = pageWidth * (1.0 - clampedProgress);
     } else {
       foldX = width - (pageWidth * clampedProgress);
@@ -106,7 +106,7 @@ class PageFlipGeometry {
     // ── Rotation angle ──────────────────────────────────────────────────────
     // Compute flap material width early — needed for both angle limits and flaps.
     // Double: flapMaterialWidth is the distance from foldX to the page edge.
-    final flapMaterialWidth = (isDoubleSpread && !isForward)
+    final flapMaterialWidth = !isForward
         ? pageWidth * (1.0 - clampedProgress)
         : pageWidth * clampedProgress;
 
