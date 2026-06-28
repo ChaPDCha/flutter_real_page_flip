@@ -142,13 +142,11 @@ class PageFlipPainter extends CustomPainter {
   /// Performance profile to control mesh density and shadows.
   final DevicePerformanceProfile performanceProfile;
 
-  // Cached shader state (cache gradients that rarely change).
-  Color _lastEdgeFadeColor = const Color(0x00000000);
-  Rect _lastEdgeFadeRect = Rect.zero;
-  Shader? _cachedEdgeFadeShader;
-  Color _lastFoldFadeColor = const Color(0x00000000);
-  Rect _lastFoldFadeRect = Rect.zero;
-  Shader? _cachedFoldFadeShader;
+  // Edge-fade shader fields: cache at instance level across paint() calls.
+  // CustomPainter is reallocated every build frame, but within a single paint()
+  // call both edge and fold shaders are created once and reused inline.
+  // No static cache needed — LinearGradient.createShader() for simple 2-stop
+  // gradients is a lightweight Impeller operation (~microseconds).
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -413,25 +411,19 @@ class PageFlipPainter extends CustomPainter {
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
     final edgeFadeEnd =
         g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
-    if (_cachedEdgeFadeShader == null ||
-        _lastEdgeFadeColor != paperBackColor ||
-        _lastEdgeFadeRect != edgeFadeRect) {
-      _lastEdgeFadeColor = paperBackColor;
-      _lastEdgeFadeRect = edgeFadeRect;
-      _cachedEdgeFadeShader = LinearGradient(
-        begin: edgeFadeBegin,
-        end: edgeFadeEnd,
-        colors: [
-          paperBackColor.withValues(alpha: 1),
-          Colors.transparent,
-        ],
-      ).createShader(edgeFadeRect);
-    }
     canvas.drawRect(
       edgeFadeRect,
-      Paint()..shader = _cachedEdgeFadeShader,
+      Paint()
+        ..shader = LinearGradient(
+          begin: edgeFadeBegin,
+          end: edgeFadeEnd,
+          colors: [
+            paperBackColor.withValues(alpha: 1),
+            Colors.transparent,
+          ],
+        ).createShader(edgeFadeRect),
     );
-
+ 
     // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
     // As the flap narrows near the fold line, texture pixels compress and
     // create visible fragments. This narrow gradient from paperBackColor →
@@ -444,23 +436,17 @@ class PageFlipPainter extends CustomPainter {
         g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
     final foldFadeEnd =
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-    if (_cachedFoldFadeShader == null ||
-        _lastFoldFadeColor != paperBackColor ||
-        _lastFoldFadeRect != foldFadeRect) {
-      _lastFoldFadeColor = paperBackColor;
-      _lastFoldFadeRect = foldFadeRect;
-      _cachedFoldFadeShader = LinearGradient(
-        begin: foldFadeBegin,
-        end: foldFadeEnd,
-        colors: [
-          paperBackColor.withValues(alpha: 1),
-          Colors.transparent,
-        ],
-      ).createShader(foldFadeRect);
-    }
     canvas.drawRect(
       foldFadeRect,
-      Paint()..shader = _cachedFoldFadeShader,
+      Paint()
+        ..shader = LinearGradient(
+          begin: foldFadeBegin,
+          end: foldFadeEnd,
+          colors: [
+            paperBackColor.withValues(alpha: 1),
+            Colors.transparent,
+          ],
+        ).createShader(foldFadeRect),
     );
 
     if (needsLayer) canvas.restore();
