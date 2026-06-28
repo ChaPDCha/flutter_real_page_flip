@@ -3,6 +3,21 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.1.1+45] - 2026-06-28
+### 🐛 수정
+- 햅틱 진동 3중 침묵 실패 수정: Android VIBRATE 퍼미션 추가, ProGuard 플러그인 클래스 보존 규칙 추가, Kotlin SecurityException 핸들링 및 Dart HapticFeedback fallback 복원 | Fixed triple-layer silent haptic failure: added VIBRATE permission, ProGuard plugin class keep rules, SecurityException handling, and Dart HapticFeedback fallback restoration
+
+### ⚡ 성능
+- Supabase 동기화 페이지네이션 도입 (pullPageSize=500)으로 대규모 데이터셋 응답 크기 바운딩 | Paginated Supabase sync pulls (pullPageSize=500) to bound response sizes at scale
+- Supabase upsert 50개 청크 분할로 페이로드 크기 제한 및 타임아웃 방지 | Chunked Supabase upserts (50/batch) to prevent payload limit breaches
+- 동기화 속도 제한 (최소 10초 간격)으로 요청 폭주 방지 | Added 10-second rate limit between sync cycles
+- 최초 동기화 lookback 30일 캡으로 신규 사용자 풀테이블 스캔 방지 | Capped initial sync lookback to 30 days to prevent full-table scans
+- Drift 머지 N+1 SELECT → 단일 IN 쿼리 배치 페치 최적화 | Optimized Drift merge: replaced N+1 SELECT with batch IN-clause fetch
+- Supabase (user_id, updated_at) 복합 인덱스 추가로 델타 풀 쿼리 인덱스 스캔 활용 | Added composite indices for delta pull index scans
+
+### 🧪 테스트
+- Sync 페이지네이션/청킹/속도제한/lookback 테스트 11개 추가 | Added 11 sync tests (pagination, chunking, rate limiting, lookback)
+
 ## [1.1.0+44] - 2026-06-28
 ### ✨ 기능
 - EPUB 본문 콘텐츠 필터링 도입: 30+ non-content 타입(목차, 페이지번호, 각주, 저작권 등) 자동 제거 | Smart EPUB content filtering: auto-removes 30+ non-content types (TOC, page numbers, footnotes, copyright, etc.)
