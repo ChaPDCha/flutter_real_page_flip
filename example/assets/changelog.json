@@ -1,24 +1,22 @@
 {
-  "version": "1.0.34+41",
-  "versionCode": 41,
-  "versionName": "1.0.34",
+  "version": "1.0.35+42",
+  "versionCode": 42,
+  "versionName": "1.0.35",
   "date": "2026-06-28",
   "ko": {
     "changes": [
-      "페이지플립 엔진 GPU 사용량 추가 최적화 (렌더링 경로 단순화)",
-      "PageFlipConfig에 copyWith() 패턴 도입으로 설정 객체 불변 업데이트",
-      "PageFlipStateController.dispose() 이중 호출 방지 guard 추가",
-      "페이지플립 엔진 전면 테스트 보강: 코어 엔진 160+개 단위/통합 테스트 추가",
-      "페이지플립 테스트 총 686개 달성 (4개 pre-existing 실패)"
+      "위젯 소멸 및 제스처 레이어 언마운트 시점에 발생할 수 있는 Null check 및 lifecycle 크래시 방지",
+      "화면 크기 변경 시 캐시 무효화 및 레이아웃 재계산 처리 추가",
+      "`endRevealStrength` 기본값을 `0.0`으로 변경하고, settling 단계에서의 미세 비주얼 잔상 개선을 위해 중간 레이어 fade transition 추가",
+      "`flapContentRevealStart/End` 분모 0 억제 처리"
     ]
   },
   "en": {
     "changes": [
-      "Further page flip GPU optimization with simplified rendering paths",
-      "Introduced copyWith() pattern for immutable config updates",
-      "Added idempotency guard to state controller dispose()",
-      "Added 160+ core engine unit/integration tests",
-      "Total 686 page flip tests (4 pre-existing failures)"
+      "Guarded against null safety/lifecycle crashes during unmounting and disposal",
+      "Added cache invalidation and layout recalculation on size changes",
+      "Changed `endRevealStrength` default to `0.0` and added middle layer fade transition to eliminate settled artifacts",
+      "Handled potential division by zero in `flapContentRevealStart/End` divisor"
     ]
   }
 }

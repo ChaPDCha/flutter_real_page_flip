@@ -3,6 +3,13 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
+## [1.0.35+42] - 2026-06-28
+### 🐛 수정
+- 위젯 소멸 및 제스처 레이어 언마운트 시점에 발생할 수 있는 Null check 및 lifecycle 크래시 방지 | Guarded against null safety/lifecycle crashes during unmounting and disposal
+- 화면 크기 변경 시 캐시 무효화 및 레이아웃 재계산 처리 추가 | Added cache invalidation and layout recalculation on size changes
+- `endRevealStrength` 기본값을 `0.0`으로 변경하고, settling 단계에서의 미세 비주얼 잔상 개선을 위해 중간 레이어 fade transition 추가 | Changed `endRevealStrength` default to `0.0` and added middle layer fade transition to eliminate settled artifacts
+- `flapContentRevealStart/End` 분모 0 억제 처리 | Handled potential division by zero in `flapContentRevealStart/End` divisor
+
 ## [1.0.34+41] - 2026-06-28
 ### ⚡ 성능
 - 페이지플립 엔진 GPU 사용량 추가 최적화 (렌더링 경로 단순화) | Further page flip GPU optimization with simplified rendering paths

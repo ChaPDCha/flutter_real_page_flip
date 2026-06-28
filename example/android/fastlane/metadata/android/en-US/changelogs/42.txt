@@ -1,0 +1,4 @@
+• Guarded against null safety/lifecycle crashes during unmounting and disposal
+• Added cache invalidation and layout recalculation on size changes
+• Changed `endRevealStrength` default to `0.0` and added middle layer fade transition to eliminate settled artifacts
+• Handled potential division by zero in `flapContentRevealStart/End` divisor
