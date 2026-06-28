@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.11.2] - 2026-06-28
+### ✨ 문서화 및 데모 에셋 최적화 (Documentation & Demo Assets)
+- 대화형 Web 애플리케이션 데모 시뮬레이션을 녹화한 신규 페이지 넘김 애니메이션 비디오(`page_flip_demo.webp`)를 포함한 최신 WebP 포맷 미디어 에셋 제공 | Added a high-fidelity interaction demo video (`page_flip_demo.webp`) showcasing full-cycle page flip animations and the Control Deck live.
+- 양면 보기(Double-Spread) 모드 완벽 지원 안내 및 신규 인터랙티브 데모 미디어를 README.md 문서에 통합 반영 | Integrated double-spread support notices and the new web interactive preview into the root README.md.
+
 ## [1.11.1] - 2026-06-28
 ### ✨ 예제 애플리케이션 개선 (Example Application)
 - 다크 모드, 네온 컬러 그라데이션, Glassmorphic 패널을 도입하여 개발자 친화적인 프리미엄 톤앤매너로 예제 앱 디자인을 전면 개편 | Completely redesigned the example app with a premium developer-focused look using dark theme, glassmorphic panels, and neon gradients.
