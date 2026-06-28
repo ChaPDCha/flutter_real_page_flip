@@ -252,7 +252,7 @@ void main() {
     test('sin curve creates single trough at mid-flip', () {
       const s = 0.3;
       // Monotonic decrease 0→0.5
-      double prev = 1.0;
+      double prev = 1;
       for (var i = 1; i <= 5; i++) {
         final p = i / 10.0;
         final v =

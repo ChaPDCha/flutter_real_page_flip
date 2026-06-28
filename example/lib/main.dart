@@ -10,8 +10,7 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context) => MaterialApp(
       title: 'Real Page Flip Premium Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(useMaterial3: true).copyWith(
@@ -29,7 +28,6 @@ class MyApp extends StatelessWidget {
       ),
       home: const PremiumDemoScreen(),
     );
-  }
 }
 
 class PremiumDemoScreen extends StatefulWidget {
@@ -41,7 +39,7 @@ class PremiumDemoScreen extends StatefulWidget {
 
 class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
   // PageFlip Config parameters
-  double _sensitivity = 1.0;
+  double _sensitivity = 1;
   double _paperOpacity = 0.9;
   double _thinPaperStrength = 0.2;
   double _flapContentRevealStart = 0.85;
@@ -68,7 +66,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
     _startAutoPlay();
   }
 
-  void _startAutoPlay() async {
+  Future<void> _startAutoPlay() async {
     // Settle time
     await Future.delayed(const Duration(seconds: 4));
     if (!_autoPlay || !mounted) return;
@@ -107,7 +105,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
       _isDoubleSpread = false;
       _autoPlay = false;
     });
-    _controller.goToPage(0);
+    await _controller.goToPage(0);
   }
 
   @override
@@ -176,15 +174,13 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
     );
   }
 
-  Widget _buildTopBar() {
-    return Container(
+  Widget _buildTopBar() => Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF161623).withValues(alpha: 0.8),
         border: Border(
           bottom: BorderSide(
             color: Colors.white.withValues(alpha: 0.08),
-            width: 1,
           ),
         ),
       ),
@@ -287,15 +283,13 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildLayoutOption({
     required IconData icon,
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
-  }) {
-    return GestureDetector(
+  }) => GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
@@ -323,12 +317,11 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ),
       ),
     );
-  }
 
   Widget _buildFullscreenBookLayout(bool isWide) {
-    final double maxWidth = _isDoubleSpread ? 1200 : 540;
+    final maxWidth = (_isDoubleSpread ? 1200 : 540).toDouble();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       alignment: Alignment.center,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -354,14 +347,13 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
     );
   }
 
-  Widget _buildWideLayout() {
-    return Row(
+  Widget _buildWideLayout() => Row(
       children: [
         // Left Column: Controller panel
         Expanded(
           flex: 2,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24),
             child: _buildControlPanel(),
           ),
         ),
@@ -369,7 +361,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         Expanded(
           flex: 3,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
             alignment: Alignment.center,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -383,68 +375,32 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ),
       ],
     );
-  }
 
-  Widget _buildNarrowLayout() {
-    return Column(
+  Widget _buildNarrowLayout() => Column(
       children: [
         Expanded(
           flex: 4,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: _buildBookTheatre(),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _buildStatusBar(),
         ),
         const Divider(color: Colors.white10),
         Expanded(
           flex: 3,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: _buildControlPanel(),
           ),
         ),
       ],
     );
-  }
 
-  Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-          ).createShader(bounds),
-          child: const Text(
-            'ANTIGRAVITY FLIP',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2.0,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Physics-based Curvature Page Flip Engine',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade400,
-            letterSpacing: 1.0,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBookTheatre() {
-    // Elegant frame representing a physical tablet/device
-    return Container(
+  Widget _buildBookTheatre() => Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E2F),
         borderRadius: BorderRadius.circular(24),
@@ -466,7 +422,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
           width: 1.5,
         ),
       ),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: PageFlipWidget(
@@ -504,13 +460,10 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
             hapticTexturePreset: _hapticPreset,
             backgroundColor: const Color(0xFF161623),
           ),
-          itemBuilder: (context, index) {
-            return _buildBookPage(index);
-          },
+          itemBuilder: (context, index) => _buildBookPage(index),
         ),
       ),
     );
-  }
 
   Widget _buildBookPage(int index) {
     switch (index) {
@@ -533,8 +486,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
 
   // --- Curated Book Pages ( 간지나는 디자인 ) ---
 
-  Widget _buildCoverPage() {
-    return Container(
+  Widget _buildCoverPage() => DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF1E1335), Color(0xFF0F081D)],
@@ -552,7 +504,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFFF6584).withValues(alpha: 0.15), width: 1),
+                border: Border.all(color: const Color(0xFFFF6584).withValues(alpha: 0.15)),
                 shape: BoxShape.circle,
               ),
             ),
@@ -574,7 +526,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
           ),
           // Content
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 48.0),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -588,7 +540,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 2.0,
+                        letterSpacing: 2,
                         color: Color(0xFFFF6584),
                       ),
                     ),
@@ -603,11 +555,11 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
                         fontSize: 34,
                         fontWeight: FontWeight.w900,
                         height: 1.1,
-                        letterSpacing: -1.0,
+                        letterSpacing: -1,
                         foreground: Paint()
                           ..shader = const LinearGradient(
                             colors: [Color(0xFFFFFFFF), Color(0xFFB1B1CF)],
-                          ).createShader(const Rect.fromLTWH(0.0, 0.0, 300.0, 100.0)),
+                          ).createShader(const Rect.fromLTWH(0, 0, 300, 100)),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -644,12 +596,10 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildIntroductionPage() {
-    return Container(
+  Widget _buildIntroductionPage() => Container(
       color: const Color(0xFF161623),
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -660,7 +610,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               fontSize: 10,
               fontWeight: FontWeight.bold,
               color: Color(0xFF6C63FF),
-              letterSpacing: 2.0,
+              letterSpacing: 2,
             ),
           ),
           const SizedBox(height: 16),
@@ -693,12 +643,10 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildDashboardPage() {
-    return Container(
+  Widget _buildDashboardPage() => Container(
       color: const Color(0xFF181827),
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -708,7 +656,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               fontSize: 10,
               fontWeight: FontWeight.bold,
               color: Color(0xFFFF6584),
-              letterSpacing: 2.0,
+              letterSpacing: 2,
             ),
           ),
           const SizedBox(height: 16),
@@ -730,14 +678,12 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
           Text(
             'AMO modulates clipping matrices depending on current screen coordinate bounds, securing consistent performance.',
             style: TextStyle(fontSize: 11, color: Colors.grey.shade500, height: 1.4),
-          )
+          ),
         ],
       ),
     );
-  }
 
-  Widget _buildMetricsCard(String title, String val, Color color) {
-    return Container(
+  Widget _buildMetricsCard(String title, String val, Color color) => Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
@@ -754,16 +700,14 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               const SizedBox(width: 8),
               Text(val, style: TextStyle(fontSize: 13, color: Colors.grey.shade300, fontWeight: FontWeight.bold)),
             ],
-          )
+          ),
         ],
       ),
     );
-  }
 
-  Widget _buildCodePlayground() {
-    return Container(
+  Widget _buildCodePlayground() => Container(
       color: const Color(0xFF131320),
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -773,7 +717,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               fontSize: 10,
               fontWeight: FontWeight.bold,
               color: Color(0xFF8E2DE2),
-              letterSpacing: 2.0,
+              letterSpacing: 2,
             ),
           ),
           const SizedBox(height: 12),
@@ -817,19 +761,16 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );
-  }
 
-  Widget _buildTypographyPage() {
-    return Container(
+  Widget _buildTypographyPage() => Container(
       color: const Color(0xFF161623),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const Text(
             '04 / CREATIVE',
@@ -837,7 +778,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               fontSize: 10,
               fontWeight: FontWeight.bold,
               color: Color(0xFFFF6584),
-              letterSpacing: 2.0,
+              letterSpacing: 2,
             ),
           ),
           const SizedBox(height: 24),
@@ -860,14 +801,12 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
           Text(
             '— ODE TO DART PHYSICS',
             style: TextStyle(fontSize: 10, letterSpacing: 1.5, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
-          )
+          ),
         ],
       ),
     );
-  }
 
-  Widget _buildBackCover() {
-    return Container(
+  Widget _buildBackCover() => DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF0F081D), Color(0xFF07040F)],
@@ -898,7 +837,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 3.0,
+                letterSpacing: 3,
               ),
             ),
             const SizedBox(height: 8),
@@ -930,18 +869,15 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ),
       ),
     );
-  }
 
   // --- Control Deck UI ( Glassmorphic ) ---
 
-  Widget _buildControlPanel() {
-    return Container(
+  Widget _buildControlPanel() => DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.05),
-          width: 1,
         ),
       ),
       child: ClipRRect(
@@ -949,7 +885,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -962,7 +898,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 2.0,
+                        letterSpacing: 2,
                         color: Color(0xFF6C63FF),
                       ),
                     ),
@@ -990,20 +926,20 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
                   label: 'Swipe Sensitivity',
                   val: _sensitivity,
                   min: 0.1,
-                  max: 2.0,
+                  max: 2,
                   onChanged: (v) => setState(() => _sensitivity = v),
                 ),
                 _buildSlider(
                   label: 'Paper Opacity',
                   val: _paperOpacity,
-                  min: 0.0,
-                  max: 1.0,
+                  min: 0,
+                  max: 1,
                   onChanged: (v) => setState(() => _paperOpacity = v),
                 ),
                 _buildSlider(
                   label: 'Thin Paper Transparency Strength',
                   val: _thinPaperStrength,
-                  min: 0.0,
+                  min: 0,
                   max: 0.8,
                   onChanged: (v) => setState(() => _thinPaperStrength = v),
                 ),
@@ -1068,22 +1004,19 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
+  Widget _buildSectionTitle(String title) => Padding(
+      padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
           color: Colors.grey.shade400,
-          letterSpacing: 1.0,
+          letterSpacing: 1,
         ),
       ),
     );
-  }
 
   Widget _buildSlider({
     required String label,
@@ -1091,9 +1024,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
     required double min,
     required double max,
     required ValueChanged<double> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+  }) => Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1110,7 +1042,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
               thumbColor: const Color(0xFFFF6584),
               overlayColor: const Color(0xFFFF6584).withValues(alpha: 0.12),
-              trackHeight: 3.0,
+              trackHeight: 3,
             ),
             child: Slider(
               value: val,
@@ -1122,11 +1054,9 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildToggle(String label, bool val, ValueChanged<bool> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6.0),
+  Widget _buildToggle(String label, bool val, ValueChanged<bool> onChanged) => Padding(
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -1141,15 +1071,13 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildSegmentedButton<T>({
     required T selectedValue,
     required List<T> values,
     required String Function(T) labelBuilder,
     required ValueChanged<T?> onChanged,
-  }) {
-    return Container(
+  }) => Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.04),
@@ -1185,12 +1113,10 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         }).toList(),
       ),
     );
-  }
 
   // --- Real-time Status Bar ---
 
-  Widget _buildStatusBar() {
-    return Container(
+  Widget _buildStatusBar() => Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
@@ -1206,10 +1132,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildStatusItem(IconData icon, String label, String val) {
-    return Row(
+  Widget _buildStatusItem(IconData icon, String label, String val) => Row(
       children: [
         Icon(icon, color: const Color(0xFFFF6584), size: 16),
         const SizedBox(width: 8),
@@ -1222,5 +1146,4 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ),
       ],
     );
-  }
 }

@@ -47,7 +47,7 @@ void main() {
 
     test('monotonic non-decreasing throughout [0,1]', () {
       const curve = PaperFlipCurve();
-      double prev = 0.0;
+      double prev = 0;
       for (var i = 0; i <= 100; i++) {
         final t = i / 100.0;
         final v = curve.transform(t);
@@ -103,7 +103,7 @@ void main() {
 
     test('monotonic non-decreasing throughout [0,1]', () {
       const curve = TapFlipCurve();
-      double prev = 0.0;
+      double prev = 0;
       for (var i = 0; i <= 100; i++) {
         final t = i / 100.0;
         final v = curve.transform(t);

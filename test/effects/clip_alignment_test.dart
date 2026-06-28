@@ -12,10 +12,10 @@ void main() {
     // Helper: find any X at a given Y where both paths contain the point.
     // Uses brute-force scan in screen space since flapLeft/foldX are
     // local coordinates and do not map linearly to screen-space positions.
-    // Returns -1 if no overlap found (degenerate geometry).
+    // Returns -1.0 if no overlap found (degenerate geometry).
     // ---------------------------------------------------------------------------
     double findOverlapX(Path stationaryPath, Path flapPath, double y) {
-      for (double x = 0.0; x < width; x += 2.0) {
+      for (double x = 0; x < width; x += 2.0) {
         if (stationaryPath.contains(Offset(x, y)) &&
             flapPath.contains(Offset(x, y))) {
           return x;

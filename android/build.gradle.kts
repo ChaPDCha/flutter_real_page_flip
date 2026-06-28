@@ -21,9 +21,8 @@ allprojects {
     }
 }
 
-plugins {
-    id("com.android.library")
-}
+apply(plugin = "com.android.library")
+apply(plugin = "kotlin-android")
 
 android {
     namespace = "com.chapdcha.real_page_flip"
