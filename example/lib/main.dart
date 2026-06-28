@@ -53,6 +53,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
   bool _enableSwipe = true;
   DevicePerformanceProfile _performanceProfile = DevicePerformanceProfile.high;
   PaperTexturePreset _hapticPreset = PaperTexturePreset.standard;
+  bool _showTuningDeck = false;
+  bool _autoPlay = true;
 
   // Controller to monitor state
   late PageFlipController _controller;
@@ -63,6 +65,49 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
   void initState() {
     super.initState();
     _controller = PageFlipController();
+    _startAutoPlay();
+  }
+
+  void _startAutoPlay() async {
+    // Settle time
+    await Future.delayed(const Duration(seconds: 4));
+    if (!_autoPlay || !mounted) return;
+
+    // Single-page mode flips
+    _controller.nextPage();
+    await Future.delayed(const Duration(seconds: 3));
+    if (!_autoPlay || !mounted) return;
+    _controller.nextPage();
+    await Future.delayed(const Duration(seconds: 3));
+    if (!_autoPlay || !mounted) return;
+    _controller.previousPage();
+    await Future.delayed(const Duration(seconds: 4));
+    if (!_autoPlay || !mounted) return;
+
+    // Switch to Double Spread
+    setState(() {
+      _isDoubleSpread = true;
+    });
+    await Future.delayed(const Duration(seconds: 4));
+    if (!_autoPlay || !mounted) return;
+
+    // Double-spread mode flips
+    _controller.nextPage();
+    await Future.delayed(const Duration(seconds: 3));
+    if (!_autoPlay || !mounted) return;
+    _controller.nextPage();
+    await Future.delayed(const Duration(seconds: 3));
+    if (!_autoPlay || !mounted) return;
+    _controller.previousPage();
+    await Future.delayed(const Duration(seconds: 4));
+    if (!_autoPlay || !mounted) return;
+
+    // Settle back to original
+    setState(() {
+      _isDoubleSpread = false;
+      _autoPlay = false;
+    });
+    _controller.goToPage(0);
   }
 
   @override
@@ -113,9 +158,196 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
             ),
           ),
 
-          // Main Responsive Layout
+          // Main Responsive Layout with top bar
           SafeArea(
-            child: isWide ? _buildWideLayout() : _buildNarrowLayout(),
+            child: Column(
+              children: [
+                _buildTopBar(),
+                Expanded(
+                  child: _showTuningDeck
+                      ? (isWide ? _buildWideLayout() : _buildNarrowLayout())
+                      : _buildFullscreenBookLayout(isWide),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161623).withValues(alpha: 0.8),
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Left: App Name
+          Row(
+            children: [
+              const Icon(Icons.menu_book, color: Color(0xFF6C63FF), size: 24),
+              const SizedBox(width: 12),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                ).createShader(bounds),
+                child: const Text(
+                  'ANTIGRAVITY FLIP',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Center: Layout option toggles
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Row(
+              children: [
+                _buildLayoutOption(
+                  icon: Icons.article,
+                  label: '1-Column (Single Page)',
+                  isSelected: !_isDoubleSpread,
+                  onTap: () {
+                    setState(() {
+                      _isDoubleSpread = false;
+                      _autoPlay = false; // Stop autoplay on layout tap
+                    });
+                  },
+                ),
+                _buildLayoutOption(
+                  icon: Icons.auto_stories,
+                  label: '2-Column (Double Spread)',
+                  isSelected: _isDoubleSpread,
+                  onTap: () {
+                    setState(() {
+                      _isDoubleSpread = true;
+                      _autoPlay = false; // Stop autoplay on layout tap
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          // Right: Tuning deck toggle
+          TextButton.icon(
+            onPressed: () {
+              setState(() {
+                _showTuningDeck = !_showTuningDeck;
+                _autoPlay = false; // Stop autoplay on settings tap
+              });
+            },
+            icon: Icon(
+              _showTuningDeck ? Icons.visibility : Icons.tune,
+              color: _showTuningDeck ? const Color(0xFFFF6584) : const Color(0xFF6C63FF),
+              size: 20,
+            ),
+            label: Text(
+              _showTuningDeck ? 'Hide Control Deck' : 'Show Control Deck',
+              style: TextStyle(
+                color: _showTuningDeck ? const Color(0xFFFF6584) : const Color(0xFF6C63FF),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: _showTuningDeck 
+                  ? const Color(0xFFFF6584).withValues(alpha: 0.1)
+                  : const Color(0xFF6C63FF).withValues(alpha: 0.1),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: _showTuningDeck 
+                      ? const Color(0xFFFF6584).withValues(alpha: 0.2)
+                      : const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLayoutOption({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF6C63FF) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.grey.shade400,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey.shade400,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullscreenBookLayout(bool isWide) {
+    final double maxWidth = _isDoubleSpread ? 1200 : 540;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: maxWidth,
+                  maxHeight: 760,
+                ),
+                child: _buildBookTheatre(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: _buildStatusBar(),
           ),
         ],
       ),
@@ -142,8 +374,6 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildHeader(),
-                const SizedBox(height: 24),
                 Expanded(child: _buildBookTheatre()),
                 const SizedBox(height: 16),
                 _buildStatusBar(),
@@ -158,19 +388,15 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
   Widget _buildNarrowLayout() {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: _buildHeader(),
-        ),
         Expanded(
           flex: 4,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: _buildBookTheatre(),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: _buildStatusBar(),
         ),
         const Divider(color: Colors.white10),
@@ -256,6 +482,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
           onFlipStart: () {
             setState(() {
               _animStatus = 'Animating';
+              _autoPlay = false; // Stop autoplay on manual swipe
             });
           },
           onFlipEnd: () {

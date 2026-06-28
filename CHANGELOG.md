@@ -3,6 +3,13 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.11.3] - 2026-06-28
+### ✨ 예제 레이아웃 개선 및 직관적인 데모 에셋 제공 (Example App & Demo Assets Overhaul)
+- 복잡한 대시보드 대신 페이지플립 효과(1단 단면 및 2단 양면)가 한눈에 보이도록 기본 화면을 풀스크린 책 뷰어로 개선 | Redesigned the example app to show a clean, fullscreen book view by default so developers can focus directly on the page flip effects.
+- 대시보드를 숨김/표시할 수 있는 토글 옵션을 상단 툴바에 제공 | Added a layout toolbar at the top allowing developers to switch between 1-Column and 2-Column views and toggle the advanced Tuning Deck overlay.
+- 시작 시 자동으로 1단 및 2단 넘김 시뮬레이션을 연속 실행해 주는 autoplay/presentation 모드 도입 | Implemented a startup autoplay demonstration sequence that showcases single-page and double-spread animations smoothly.
+- 새로운 레이아웃 기준의 고화질 데모 영상 및 스크린샷 에셋을 README와 패키지에 통합 배포 | Generated and packaged clean, dashboard-free animation WebP videos and layout screenshots.
+
 ## [1.11.2] - 2026-06-28
 ### ✨ 문서화 및 데모 에셋 최적화 (Documentation & Demo Assets)
 - 대화형 Web 애플리케이션 데모 시뮬레이션을 녹화한 신규 페이지 넘김 애니메이션 비디오(`page_flip_demo.webp`)를 포함한 최신 WebP 포맷 미디어 에셋 제공 | Added a high-fidelity interaction demo video (`page_flip_demo.webp`) showcasing full-cycle page flip animations and the Control Deck live.
