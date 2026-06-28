@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.9.7] - 2026-06-28
+### 🐛 수정
+- `onMethodCall()` 전체 try-catch 적용으로 SecurityException 등 모든 예외가 `result.error()`로 전달되어 Dart HapticFeedback fallback이 안정적으로 발동 | Wrapped `onMethodCall()` in try-catch so all exceptions (including SecurityException) propagate as `result.error()`, ensuring reliable Dart HapticFeedback fallback
+- `playFallback()`의 `vibrator?.vibrate()` 호출 예외가 상위로 전파되던 문제 수정 | Guarded `vibrator?.vibrate()` in `playFallback()` so exceptions don't bubble up unhandled
+
 ## [1.9.6] - 2026-06-28
 ### ♻️ 리팩토링
 - `PageFlipGeometry`의 모든 `late final` 필드를 `final` + factory constructor로 전환하여 `LateInitializationError` 위험 제거 | Converted 22 `late final` fields to plain `final` via factory constructor, eliminating `LateInitializationError` risk
