@@ -20,13 +20,18 @@ class AdvancedHapticEngine {
         'intensity': intensity.clamp(0.0, 1.0),
         'sharpness': sharpness.clamp(0.0, 1.0),
       });
+    } on MissingPluginException {
+      _fallbackTransient(intensity);
     } on PlatformException {
-      // Fallback: use system haptic based on intensity
-      if (intensity > 0.6) {
-        unawaited(HapticFeedback.mediumImpact());
-      } else {
-        unawaited(HapticFeedback.lightImpact());
-      }
+      _fallbackTransient(intensity);
+    }
+  }
+
+  static void _fallbackTransient(double intensity) {
+    if (intensity > 0.6) {
+      unawaited(HapticFeedback.mediumImpact());
+    } else {
+      unawaited(HapticFeedback.lightImpact());
     }
   }
 
@@ -37,8 +42,9 @@ class AdvancedHapticEngine {
       await _channel.invokeMethod('playThud', {
         'intensity': intensity.clamp(0.0, 1.0),
       });
+    } on MissingPluginException {
+      unawaited(HapticFeedback.heavyImpact());
     } on PlatformException {
-      // Fallback: use heavy impact for thud-like effect
       unawaited(HapticFeedback.heavyImpact());
     }
   }
@@ -47,8 +53,9 @@ class AdvancedHapticEngine {
   static Future<void> playSystemMedium() async {
     try {
       await _channel.invokeMethod('playSystemMedium');
+    } on MissingPluginException {
+      unawaited(HapticFeedback.mediumImpact());
     } on PlatformException {
-      // Fallback
       unawaited(HapticFeedback.mediumImpact());
     }
   }
@@ -56,6 +63,8 @@ class AdvancedHapticEngine {
   static Future<void> playSystemLight() async {
     try {
       await _channel.invokeMethod('playSystemLight');
+    } on MissingPluginException {
+      unawaited(HapticFeedback.lightImpact());
     } on PlatformException {
       unawaited(HapticFeedback.lightImpact());
     }

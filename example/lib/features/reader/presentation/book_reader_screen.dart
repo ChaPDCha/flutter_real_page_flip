@@ -223,11 +223,17 @@ class _BookReaderScreenState extends ConsumerState<BookReaderScreen> {
                                 ),
                                 child: Consumer(
                                   builder: (context, ref, child) {
-                                    // FIX 2C: Only rebuild PageFlipWidget when page index changes
+                                    // Rebuild on page index change (flip navigation)
                                     ref.watch(
                                       readerControllerProvider(
                                         widget.book,
                                       ).select((s) => s.currentPageIndex),
+                                    );
+                                    // Rebuild on settings change (haptics/sound/font toggle)
+                                    ref.watch(
+                                      readerControllerProvider(
+                                        widget.book,
+                                      ).select((s) => s.settings),
                                     );
                                     final pageState = ref.read(
                                       readerControllerProvider(widget.book),
