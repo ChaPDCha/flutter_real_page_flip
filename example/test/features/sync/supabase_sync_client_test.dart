@@ -20,18 +20,43 @@ class _MockAuthResponse extends Mock implements AuthResponse {}
 
 class _FakeFilterBuilder extends Fake
     implements PostgrestFilterBuilder<PostgrestList> {
-  final PostgrestList data;
-  _FakeFilterBuilder([this.data = const []]);
+  final PostgrestList fullData;
+  final int _rangeFrom;
+  final int _rangeTo;
+
+  _FakeFilterBuilder([this.fullData = const [], this._rangeFrom = 0, this._rangeTo = 0]);
+
+  PostgrestList get _slicedData {
+    if (_rangeTo <= 0) return fullData;
+    // PostgREST range() is inclusive on both ends; sublist end is exclusive
+    final end = (_rangeTo + 1) > fullData.length ? fullData.length : (_rangeTo + 1);
+    return fullData.sublist(_rangeFrom, end);
+  }
 
   @override
-  PostgrestFilterBuilder<PostgrestList> gt(String column, Object value) => this;
+  PostgrestFilterBuilder<PostgrestList> gt(String column, Object value) =>
+      this;
+
+  @override
+  PostgrestFilterBuilder<PostgrestList> order(
+    String column, {
+    bool ascending = false,
+    bool nullsFirst = false,
+    String? referencedTable,
+  }) =>
+      this;
+
+  @override
+  PostgrestFilterBuilder<PostgrestList> range(int from, int to,
+          {String? referencedTable}) =>
+      _FakeFilterBuilder(fullData, from, to) as PostgrestFilterBuilder<PostgrestList>;
 
   @override
   Future<S> then<S>(
     FutureOr<S> Function(PostgrestList) onValue, {
     Function? onError,
   }) {
-    return Future.value(onValue(data) as S);
+    return Future.value(onValue(_slicedData) as S);
   }
 }
 
@@ -337,6 +362,129 @@ void main() {
         syncClient.pullBookmarks(DateTime.now()),
         throwsException,
       );
+    });
+  });
+
+  // =========================================================================
+  // Pagination (all pull methods use _paginatedSelect)
+  // =========================================================================
+
+  group('paginated pull', () {
+    test('paginates through multiple pages of books', () async {
+      final largeData = List.generate(
+        SupabaseSyncClient.pullPageSize * 3,
+        (i) => <String, dynamic>{'id': 'b-$i', 'title': 'Book $i'},
+      );
+
+      fakeQueryBuilder.onSelect = () => _FakeFilterBuilder(largeData);
+
+      final result = await syncClient.pullBooks(DateTime.now());
+
+      // Should collect all results across pages
+      expect(result.length, largeData.length);
+    });
+
+    test('handles partial page (fewer than max)', () async {
+      final smallData = List.generate(
+        3,
+        (i) => <String, dynamic>{'id': 's-$i', 'title': 'Small $i'},
+      );
+
+      fakeQueryBuilder.onSelect = () => _FakeFilterBuilder(smallData);
+
+      final result = await syncClient.pullBooks(DateTime.now());
+      expect(result.length, 3);
+    });
+
+    test('paginates highlights pull', () async {
+      final data = List.generate(
+        SupabaseSyncClient.pullPageSize + 10,
+        (i) => <String, dynamic>{'id': i, 'selected_text': 'h$i'},
+      );
+
+      fakeQueryBuilder.onSelect = () => _FakeFilterBuilder(data);
+
+      final result = await syncClient.pullHighlights(DateTime.now());
+      expect(result.length, data.length);
+    });
+
+    test('paginates bookmarks pull', () async {
+      final data = List.generate(
+        SupabaseSyncClient.pullPageSize + 10,
+        (i) => <String, dynamic>{'id': i, 'label': 'bm$i'},
+      );
+
+      fakeQueryBuilder.onSelect = () => _FakeFilterBuilder(data);
+
+      final result = await syncClient.pullBookmarks(DateTime.now());
+      expect(result.length, data.length);
+    });
+  });
+
+  // =========================================================================
+  // Chunked upsert
+  // =========================================================================
+
+  group('chunked upsert', () {
+    test('splits large book upsert into chunks', () async {
+      final manyBooks = List.generate(
+        SupabaseSyncClient.pushChunkSize * 3,
+        (i) => <String, dynamic>{'id': 'b-$i', 'title': 'Chunk $i'},
+      );
+
+      var upsertCount = 0;
+      fakeQueryBuilder.onUpsert = () {
+        upsertCount++;
+        return _FakeFilterBuilder();
+      };
+
+      await syncClient.pushBooks(manyBooks);
+
+      // 3 chunks of 50 should produce exactly 3 upsert calls
+      expect(upsertCount, 3);
+    });
+
+    test('handles boundary exactly at chunk size', () async {
+      final exactBooks = List.generate(
+        SupabaseSyncClient.pushChunkSize,
+        (i) => <String, dynamic>{'id': 'e-$i', 'title': 'Exact $i'},
+      );
+
+      var upsertCount = 0;
+      fakeQueryBuilder.onUpsert = () {
+        upsertCount++;
+        return _FakeFilterBuilder();
+      };
+
+      await syncClient.pushBooks(exactBooks);
+      expect(upsertCount, 1);
+    });
+
+    test('splits large highlight upsert into chunks', () async {
+      final data = List.generate(
+        SupabaseSyncClient.pushChunkSize + 1,
+        (i) => <String, dynamic>{'id': i, 'selected_text': 'c$i'},
+      );
+
+      var upsertCount = 0;
+      fakeQueryBuilder.onUpsert = () {
+        upsertCount++;
+        return _FakeFilterBuilder();
+      };
+
+      await syncClient.pushHighlights(data);
+      expect(upsertCount, 2);
+    });
+
+    test('skips chunked upsert on empty list', () async {
+      var upsertCalled = false;
+      fakeQueryBuilder.onUpsert = () {
+        upsertCalled = true;
+        return _FakeFilterBuilder();
+      };
+
+      await syncClient.pushHighlights([]);
+      expect(upsertCalled, isFalse);
     });
   });
 }
