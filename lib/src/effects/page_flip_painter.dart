@@ -455,18 +455,24 @@ class PageFlipPainter extends CustomPainter {
 
     // Revealed Page Shadow
     canvas.save();
-    canvas.clipRect(flipSideShadowClipRect(g));
+    // Clip strictly to the revealed page side along the curved fold line
+    final shadowClipPath = isForward
+        ? buildOpenPageClipPath(size, g)
+        : buildStationaryPageClipPath(size, g);
+    canvas.clipPath(shadowClipPath);
     canvas.transform(g.transform.storage);
 
     final shadowWidth = _kRevealedShadowWidth * g.shadowIntensity;
     final revealedAlpha = 0.15 * g.shadowIntensity;
     if (revealedAlpha > 0.01 && shadowWidth > 1) {
-      final revealedRect = Rect.fromLTWH(
-        g.foldX,
-        0,
-        shadowWidth,
-        size.height,
-      );
+      final revealedRect = isForward
+          ? Rect.fromLTWH(g.foldX, 0, shadowWidth, size.height)
+          : Rect.fromLTWH(g.foldX - shadowWidth, 0, shadowWidth, size.height);
+
+      // Gradient direction must match the shadow side (darkest at the fold line)
+      final beginAlign = isForward ? Alignment.centerLeft : Alignment.centerRight;
+      final endAlign = isForward ? Alignment.centerRight : Alignment.centerLeft;
+
       if (performanceProfile == DevicePerformanceProfile.low) {
         canvas.drawRect(
           revealedRect,
@@ -477,6 +483,8 @@ class PageFlipPainter extends CustomPainter {
           revealedRect,
           Paint()
             ..shader = LinearGradient(
+              begin: beginAlign,
+              end: endAlign,
               colors: [
                 Colors.black.withValues(alpha: revealedAlpha),
                 Colors.transparent,
