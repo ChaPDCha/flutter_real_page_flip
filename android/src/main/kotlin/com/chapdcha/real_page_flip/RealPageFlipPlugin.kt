@@ -20,7 +20,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.chapdcha.real_page_flip/haptics")
         channel.setMethodCallHandler(this)
-        
+
         val context = flutterPluginBinding.applicationContext
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -29,7 +29,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
             @Suppress("DEPRECATION")
             context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
-        
+
         isVibratorAvailable = vibrator?.hasVibrator() == true
         if (isVibratorAvailable && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             hasAmplitudeControl = vibrator?.hasAmplitudeControl() == true
@@ -42,27 +42,34 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
             return
         }
 
-        when (call.method) {
-            "playTransient" -> {
-                val intensity = call.argument<Double>("intensity") ?: 0.5
-                val sharpness = call.argument<Double>("sharpness") ?: 0.5
-                playTransient(intensity, sharpness)
-                result.success(null)
+        try {
+            when (call.method) {
+                "playTransient" -> {
+                    val intensity = call.argument<Double>("intensity") ?: 0.5
+                    val sharpness = call.argument<Double>("sharpness") ?: 0.5
+                    playTransient(intensity, sharpness)
+                    result.success(null)
+                }
+                "playThud" -> {
+                    val intensity = call.argument<Double>("intensity") ?: 0.5
+                    playThud(intensity)
+                    result.success(null)
+                }
+                "playSystemMedium" -> {
+                    playFallback(40, 180)
+                    result.success(null)
+                }
+                "playSystemLight" -> {
+                    playFallback(20, 100)
+                    result.success(null)
+                }
+                else -> result.notImplemented()
             }
-            "playThud" -> {
-                val intensity = call.argument<Double>("intensity") ?: 0.5
-                playThud(intensity)
-                result.success(null)
-            }
-            "playSystemMedium" -> {
-                playFallback(40, 180)
-                result.success(null)
-            }
-            "playSystemLight" -> {
-                playFallback(20, 100)
-                result.success(null)
-            }
-            else -> result.notImplemented()
+        } catch (e: SecurityException) {
+            // VIBRATE permission missing — report error so Dart side falls back to HapticFeedback
+            result.error("VIBRATE_PERMISSION_MISSING", e.message, null)
+        } catch (e: Exception) {
+            result.error("HAPTIC_ERROR", e.message, null)
         }
     }
 
@@ -80,7 +87,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
                 // fallback
             }
         }
-        
+
         val amp = (intensity * 255).toInt().coerceIn(10, 255)
         val dur = (10 + (sharpness * 15)).toLong()
         playFallback(dur, amp)
@@ -99,7 +106,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
                 // fallback
             }
         }
-        
+
         val amp = (intensity * 255).toInt().coerceIn(50, 255)
         playFallback(40, amp)
     }
