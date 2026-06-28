@@ -1,3 +1,6 @@
+• Smart TTS engine: 3-tier cache (memory → disk → ONNX) with predictive pre-generation for instant playback
+• EPUB content filtering: auto-removes page numbers, TOC, footnotes, and 30+ non-content types
+• Word-level TTS highlighting during audio playback
 • Fixed GPU memory leak from gradient shader cache
 • Improved gesture handling: scroll detection works during page flips
 • Fixed snapshot capture failures on animation start

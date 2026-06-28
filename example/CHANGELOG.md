@@ -3,7 +3,7 @@
 All notable changes to the Realbook example application will be documented here.
 These versions use the `X.Y.Z+N` format matching Android versionCode for Play Store.
 
-## [1.1.0+43] - 2026-06-28
+## [1.1.0+44] - 2026-06-28
 ### ✨ 기능
 - EPUB 본문 콘텐츠 필터링 도입: 30+ non-content 타입(목차, 페이지번호, 각주, 저작권 등) 자동 제거 | Smart EPUB content filtering: auto-removes 30+ non-content types (TOC, page numbers, footnotes, copyright, etc.)
 - SmartTtsEngine 3계층 캐시 아키텍처 (메모리 LRU → 디스크 → ONNX 합성) + 예측 선합성 | Three-tier smart TTS engine (memory LRU → disk → ONNX synthesis) with predictive pre-generation
