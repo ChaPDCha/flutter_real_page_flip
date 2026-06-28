@@ -3,6 +3,13 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.11.4] - 2026-06-29
+### 🔧 빌드/배포
+- Gradle standalone 빌드 호환성 개선 및 Dart analyzer 경고 해결 | Improved Gradle standalone build compatibility and resolved Dart analyzer warnings
+
+### 🧪 테스트
+- 클립 정렬, 플랩 프론트 텍스처, 플립 커브 테스트의 린트 경고(불필요한 접근/형변환/괄호) 수정 | Fixed lint warnings in clip alignment, flap front texture, and flip curve tests
+
 ## [1.11.3] - 2026-06-28
 ### ✨ 예제 레이아웃 개선 및 직관적인 데모 에셋 제공 (Example App & Demo Assets Overhaul)
 - 복잡한 대시보드 대신 페이지플립 효과(1단 단면 및 2단 양면)가 한눈에 보이도록 기본 화면을 풀스크린 책 뷰어로 개선 | Redesigned the example app to show a clean, fullscreen book view by default so developers can focus directly on the page flip effects.
