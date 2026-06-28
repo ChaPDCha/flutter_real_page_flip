@@ -86,15 +86,21 @@ class DriftSyncRepository implements SyncRepository {
 
   @override
   Future<void> mergeRemoteBooks(List<Map<String, dynamic>> remoteBooks) async {
+    if (remoteBooks.isEmpty) return;
+
+    // Batch-fetch existing local rows by ID to avoid N+1 SELECTs
+    final ids = remoteBooks.map((r) => r['id'] as String).toList();
+    final localRows = await (_db.select(_db.books)
+      ..where((tbl) => tbl.id.isIn(ids))).get();
+    final localMap = {for (final row in localRows) row.id: row};
+
     await _db.transaction(() async {
       for (final raw in remoteBooks) {
         final id = raw['id'] as String;
         final remoteUpdatedAt = DateTime.parse(raw['updated_at'] as String);
+        final local = localMap[id];
 
-        final localRows = await (_db.select(
-          _db.books,
-        )..where((tbl) => tbl.id.equals(id))).get();
-        if (localRows.isEmpty) {
+        if (local == null) {
           await _db
               .into(_db.books)
               .insertOnConflictUpdate(
@@ -115,7 +121,6 @@ class DriftSyncRepository implements SyncRepository {
                 ),
               );
         } else {
-          final local = localRows.first;
           if (local.updatedAt == null ||
               remoteUpdatedAt.isAfter(local.updatedAt!)) {
             await (_db.update(
@@ -143,23 +148,37 @@ class DriftSyncRepository implements SyncRepository {
   Future<void> mergeRemoteHighlights(
     List<Map<String, dynamic>> remoteHighlights,
   ) async {
+    if (remoteHighlights.isEmpty) return;
+
+    // Batch-fetch existing rows by natural key to avoid N+1
+    final bookIds = remoteHighlights.map((r) => r['book_id'] as String).toList();
+    final chapterIndices = remoteHighlights.map((r) => r['chapter_index'] as int).toList();
+    final startOffsets = remoteHighlights.map((r) => r['start_offset'] as int).toList();
+
+    final localRows = await (_db.select(_db.highlights)
+      ..where(
+        (tbl) =>
+            tbl.bookId.isIn(bookIds) &
+            tbl.chapterIndex.isIn(chapterIndices) &
+            tbl.startOffset.isIn(startOffsets),
+      )).get();
+
+    // Build lookup key: "bookId:chapterIndex:startOffset"
+    final localMap = {
+      for (final row in localRows)
+        '${row.bookId}:${row.chapterIndex}:${row.startOffset}': row,
+    };
+
     await _db.transaction(() async {
       for (final raw in remoteHighlights) {
         final bookId = raw['book_id'] as String;
         final chapterIndex = raw['chapter_index'] as int;
         final startOffset = raw['start_offset'] as int;
         final remoteUpdatedAt = DateTime.parse(raw['updated_at'] as String);
+        final key = '$bookId:$chapterIndex:$startOffset';
+        final local = localMap[key];
 
-        final query = _db.select(_db.highlights)
-          ..where(
-            (tbl) =>
-                tbl.bookId.equals(bookId) &
-                tbl.chapterIndex.equals(chapterIndex) &
-                tbl.startOffset.equals(startOffset),
-          );
-        final localRows = await query.get();
-
-        if (localRows.isEmpty) {
+        if (local == null) {
           await _db
               .into(_db.highlights)
               .insert(
@@ -177,7 +196,6 @@ class DriftSyncRepository implements SyncRepository {
                 ),
               );
         } else {
-          final local = localRows.first;
           if (remoteUpdatedAt.isAfter(local.updatedAt)) {
             await (_db.update(
               _db.highlights,
@@ -201,23 +219,35 @@ class DriftSyncRepository implements SyncRepository {
   Future<void> mergeRemoteBookmarks(
     List<Map<String, dynamic>> remoteBookmarks,
   ) async {
+    if (remoteBookmarks.isEmpty) return;
+
+    final bookIds = remoteBookmarks.map((r) => r['book_id'] as String).toList();
+    final chapterIndices = remoteBookmarks.map((r) => r['chapter_index'] as int).toList();
+    final pageIndices = remoteBookmarks.map((r) => r['page_index'] as int).toList();
+
+    final localRows = await (_db.select(_db.bookmarks)
+      ..where(
+        (tbl) =>
+            tbl.bookId.isIn(bookIds) &
+            tbl.chapterIndex.isIn(chapterIndices) &
+            tbl.pageIndex.isIn(pageIndices),
+      )).get();
+
+    final localMap = {
+      for (final row in localRows)
+        '${row.bookId}:${row.chapterIndex}:${row.pageIndex}': row,
+    };
+
     await _db.transaction(() async {
       for (final raw in remoteBookmarks) {
         final bookId = raw['book_id'] as String;
         final chapterIndex = raw['chapter_index'] as int;
         final pageIndex = raw['page_index'] as int;
         final remoteUpdatedAt = DateTime.parse(raw['updated_at'] as String);
+        final key = '$bookId:$chapterIndex:$pageIndex';
+        final local = localMap[key];
 
-        final query = _db.select(_db.bookmarks)
-          ..where(
-            (tbl) =>
-                tbl.bookId.equals(bookId) &
-                tbl.chapterIndex.equals(chapterIndex) &
-                tbl.pageIndex.equals(pageIndex),
-          );
-        final localRows = await query.get();
-
-        if (localRows.isEmpty) {
+        if (local == null) {
           await _db
               .into(_db.bookmarks)
               .insert(
@@ -232,7 +262,6 @@ class DriftSyncRepository implements SyncRepository {
                 ),
               );
         } else {
-          final local = localRows.first;
           if (local.updatedAt == null ||
               remoteUpdatedAt.isAfter(local.updatedAt!)) {
             await (_db.update(
