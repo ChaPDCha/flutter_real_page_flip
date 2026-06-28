@@ -213,12 +213,17 @@ class PageFlipPainter extends CustomPainter {
       );
     canvas.drawRect(flapRect, paperPaint);
 
+    final invertProgress = !isForward;
+    final normalizedProgress = invertProgress ? (1.0 - progress) : progress;
+    final isSettlePhase = normalizedProgress >= flapContentRevealStart;
+    final skipEarlyMesh = (performanceProfile != DevicePerformanceProfile.high) && !isSettlePhase;
+
     // Layer 2: 2.5D page back content (double-spread only).
     // Shows the destination page content horizontally mirrored at low opacity,
     // creating the illusion of seeing through thin paper to the back side.
     final hasFlapBack =
         flapBackImage != null && flapBackSrcRect != null && isDoubleSpread;
-    if (hasFlapBack && g.flapVisibleWidth >= 8.0) {
+    if (hasFlapBack && g.flapVisibleWidth >= 8.0 && !skipEarlyMesh) {
       var segments = 16;
       var columns = 4;
       if (performanceProfile == DevicePerformanceProfile.low) {
@@ -278,9 +283,6 @@ class PageFlipPainter extends CustomPainter {
       if (contentReveal > 0.001) {
         // Determine which image/rect to use: settle content for Phase 3,
         // regular flap content for Phase 1 (early drag).
-        final invertProgress = !isForward;
-        final normalizedProgress = invertProgress ? (1.0 - progress) : progress;
-        final isSettlePhase = normalizedProgress >= flapContentRevealStart;
         final useSettle = isSettlePhase &&
             flapFrontSettleImage != null &&
             flapFrontSettleSrcRect != null;
@@ -290,7 +292,8 @@ class PageFlipPainter extends CustomPainter {
         // Minimum width guard: flap narrower than 8 px compresses the full
         // page texture into garbage. Paper underlay + fade overlay handle
         // this scale — skip the mesh entirely.
-        if (g.flapVisibleWidth >= 8.0) {
+        // Mesh rendering is also skipped early in the flip on low/medium devices.
+        if (g.flapVisibleWidth >= 8.0 && !skipEarlyMesh) {
           // Build a triangle mesh that follows the bezier curves so text and
           // images appear to bend with the paper — not a flat board tilting.
           // 16 vertical segments × 6 horizontal columns (4 interior) with

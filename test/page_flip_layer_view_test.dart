@@ -76,7 +76,7 @@ void main() {
       );
     }
 
-    testWidgets('forward drag shows live page fallback when snapshot missing', (
+    testWidgets('forward drag shows opaque paper fallback when snapshot missing', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -87,13 +87,13 @@ void main() {
         ),
       );
 
-      // When snapshots aren't ready, use live page instead of opaque paper fallback.
+      // When snapshots aren't ready, use opaque paper fallback instead of live page.
       final bottomClipper = find.byWidgetPredicate(
         (w) => w is ClipPath && w.clipper is PageFlipOpenClipper,
       );
       expect(
         find.descendant(of: bottomClipper, matching: find.text('Page 2')),
-        findsOneWidget,
+        findsNothing,
       );
     });
 
@@ -523,7 +523,7 @@ void main() {
       );
     });
 
-    testWidgets('flip layers use live page fallback when snapshot missing', (
+    testWidgets('flip layers use opaque paper fallback when snapshot missing', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -537,10 +537,10 @@ void main() {
       final bottomClipper = find.byWidgetPredicate(
         (w) => w is ClipPath && w.clipper is PageFlipOpenClipper,
       );
-      // Live page fallback shows page content instead of opaque paper.
+      // Opaque paper fallback shows up instead of live widget to avoid GlobalKey conflicts.
       expect(
         find.descendant(of: bottomClipper, matching: find.text('Page 2')),
-        findsOneWidget,
+        findsNothing,
       );
     });
   });
@@ -766,7 +766,7 @@ void main() {
       expect(middleImage.image, equals(currentSpread));
     });
 
-    testWidgets('double spread forward keeps Offstage current for capture', (
+    testWidgets('double spread forward keeps OffscreenPreRenderer current for capture', (
       tester,
     ) async {
       final currentKey = GlobalKey();
@@ -800,7 +800,7 @@ void main() {
 
       expect(
         find.byWidgetPredicate(
-          (w) => w is Offstage && w.offstage,
+          (w) => w is OffscreenPreRenderer && w.isOffscreen,
         ),
         findsWidgets,
       );
@@ -877,7 +877,7 @@ void main() {
       expect(find.byType(ColoredBox), findsWidgets);
     });
 
-    testWidgets('backward double-spread with live page fallback', (
+    testWidgets('backward double-spread with opaque paper fallback', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -904,13 +904,16 @@ void main() {
         ),
       );
 
-      // Bottom layer with spread 1 should show live Page 0 and Page 1 content
-      expect(find.text('Spread 1'), findsOneWidget);
-      // Both bottom and middle layers reference spread 2
-      expect(find.text('Spread 2'), findsAtLeast(1));
+      final bottomClipper = find.byWidgetPredicate(
+        (w) => w is ClipPath && w.clipper is PageFlipClipper,
+      );
+      // Bottom layer with spread 1 should NOT show live Page 0 and Page 1 content (opaque paper fallback)
+      expect(find.descendant(of: bottomClipper, matching: find.text('Spread 1')), findsNothing);
+      // Middle layer references spread 2
+      expect(find.text('Spread 2'), findsWidgets);
     });
 
-    testWidgets('backward double-spread offstage includes adjacent indices', (
+    testWidgets('backward double-spread offscreen renderer includes adjacent indices', (
       tester,
     ) async {
       final keys = <int, GlobalKey>{
@@ -944,19 +947,19 @@ void main() {
         ),
       );
 
-      // Offstage: background indices 1,3 + currentPage + MaterialApp internals
-      // At minimum the two background Offstage widgets must exist
+      // OffscreenPreRenderer: background indices 1,3 + currentPage + MaterialApp internals
+      // At minimum the two background OffscreenPreRenderer widgets must exist
       expect(
-        find.byWidgetPredicate((w) => w is Offstage),
+        find.byWidgetPredicate((w) => w is OffscreenPreRenderer),
         findsAtLeast(2),
       );
 
       // Adjacent indices (1, 3) are findable via their keys
-      expect(find.byKey(keys[1]!, skipOffstage: false), findsOneWidget);
-      expect(find.byKey(keys[3]!, skipOffstage: false), findsOneWidget);
+      expect(find.byKey(keys[1]!, skipOffstage: true), findsOneWidget);
+      expect(find.byKey(keys[3]!, skipOffstage: true), findsOneWidget);
 
-      // Non-adjacent index 0 should have no Offstage in the tree
-      expect(find.byKey(keys[0]!, skipOffstage: false), findsNothing);
+      // Non-adjacent index 0 should have no OffscreenPreRenderer in the tree
+      expect(find.byKey(keys[0]!, skipOffstage: true), findsNothing);
     });
   });
 }

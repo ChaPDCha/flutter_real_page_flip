@@ -508,8 +508,8 @@ void main() {
         paperBackColor: Colors.white,
       ).paint(canvas, size);
 
-      expect(canvas.clipPathCount, equals(1),
-          reason: 'One clipPath for buildFlapScreenClipPath');
+      expect(canvas.clipPathCount, equals(2),
+          reason: 'One clipPath for flap, one for shadow');
     });
 
     // ── Early return at progress extremes ──────────────────────
@@ -684,7 +684,7 @@ void main() {
 
       // isRightToLeft = false → stationary shadow skipped (requires true).
       // Spine: isDoubleSpread && progress > 0 → true, but NOT gated on isRightToLeft.
-      expect(canvas.clipPathCount, equals(1));
+      expect(canvas.clipPathCount, equals(2));
       // save/restore balanced
       expect(canvas.saveCount, equals(canvas.restoreCount));
       // Spine uses BlendMode.multiply
@@ -710,7 +710,7 @@ void main() {
       ).paint(canvas, size);
 
       // isRightToLeft && isDoubleSpread → stationary shadow IS drawn
-      expect(canvas.clipPathCount, equals(1));
+      expect(canvas.clipPathCount, equals(2));
       expect(canvas.saveCount, equals(canvas.restoreCount));
       expect(
         canvas.hasDrawRectWith(blendMode: BlendMode.multiply, hasShader: true),

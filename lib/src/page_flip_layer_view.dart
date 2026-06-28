@@ -433,11 +433,12 @@ class PageFlipLayerView extends StatelessWidget {
       );
     }
 
-    // Live page fallback while snapshot is being captured (1-2 frame window).
-    // This prevents the "pages disappear on animation start" bug.
+    // CRITICAL: Never fall back to live _buildPage here. The OffscreenPreRenderer
+    // widgets already render live pages for capture. Adding another live
+    // itemBuilder call would cause Duplicate GlobalKey crashes.
     return clipFullSpreadHalf(
       alignment: alignment,
-      child: _buildPage(context, spreadIndex),
+      child: _buildOpaquePaperUnderlay(context),
     );
   }
 

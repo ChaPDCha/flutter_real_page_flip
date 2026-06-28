@@ -112,14 +112,14 @@ void main() {
       expect(ds.spineX, equals(200.0));
     });
 
-    test('flapRightOfFold is false in single mode', () {
+    test('flapRightOfFold is false in single mode forward, true in backward', () {
       for (int i = 0; i <= 10; i++) {
         final p = i / 10.0;
         final geoFwd = makeGeo(progress: p, isForward: true);
         final geoBwd = makeGeo(progress: p, isForward: false);
         expect(geoFwd.flapRightOfFold, isFalse,
             reason: 'single fwd progress=$p');
-        expect(geoBwd.flapRightOfFold, isFalse,
+        expect(geoBwd.flapRightOfFold, isTrue,
             reason: 'single bwd progress=$p');
       }
     });

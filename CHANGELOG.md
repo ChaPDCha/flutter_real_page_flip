@@ -3,6 +3,15 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.11.0] - 2026-06-28
+### ✨ 성능 최적화 (Performance)
+- 저사양 기기 최적화를 위한 `PerformanceProfile` 도입 및 매쉬 렌더링 동적 건너뛰기 최적화 | Introduced `PerformanceProfile` and dynamic mesh-rendering skip to optimize GPU performance for low-end devices.
+- `PerformanceProfile.low` 모드일 때 시각적으로 변화가 적은 구간(드래그 초기나 넘김 애니메이션 초중반)에서 복잡한 Mesh 연산을 완전히 건너뛰고 단순 텍스처로 대체하여 렌더링 리소스를 절감 | Added `skipEarlyMesh` to bypass complex Mesh rendering during the invisible initial/middle phases of animations on low-profile devices.
+- 라이브 페이지 폴백(Live page fallback)이 Double-spread 모드에도 제거되도록 하여, 무거운 위젯 트리가 중복 렌더링될 때 발생하는 GlobalKey 충돌 및 불필요한 리소스 낭비 방지 | Fixed duplicate GlobalKey crashes by removing live page fallback from double-spread OffscreenPreRenderer.
+
+### 🧪 테스트 (Tests)
+- 최적화된 렌더링 분기에 맞추어 레이어 뷰 테스트들이 라이브 페이지 대신 Opaque Paper Fallback을 검증하도록 개선 | Updated layer view tests to assert Opaque Paper fallback correctly, reflecting the removed live page fallback optimization.
+
 ## [1.10.0] - 2026-06-28
 ### 🧪 테스트 및 안정성 검증 (Test & Stability)
 - 단면 모드(Single Backward) 지오메트리 엣지 케이스 테스트 추가 및 구버전 테스트 로직 최신화 | Added geometry edge case tests and updated outdated test expectations for single backward flips.
