@@ -3,6 +3,16 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.9.6] - 2026-06-28
+### ♻️ 리팩토링
+- `PageFlipGeometry`의 모든 `late final` 필드를 `final` + factory constructor로 전환하여 `LateInitializationError` 위험 제거 | Converted 22 `late final` fields to plain `final` via factory constructor, eliminating `LateInitializationError` risk
+### 🐛 수정
+- 정적 Shader 캐시(`static Map<String, Shader>`)가 절대 dispose되지 않아 GPU 메모리가 단조 증가하던 누수 수정. 인라인 `createShader`로 대체 | Fixed unbounded GPU memory leak from static Shader cache — inlined simple gradient creation instead
+- `build()` 내 `addPostFrameCallback`이 LayoutBuilder 재호출 시 중복 등록되어 `updateCachedWidth`/`captureSnapshots`가 여러 번 실행되던 버그 수정 | Fixed stacked post-frame callbacks in `build()` causing redundant `updateCachedWidth`/`captureSnapshots`
+- snapshot 부재 시 `Offstage`의 child가 단색 paper로 교체되어 capture pipeline이 영구 손상되던 문제 수정 (liveFallbackIndices 제거) | Fixed snapshot pipeline corruption where missing snapshots caused Offstage to render paper instead of live pages (removed liveFallbackIndices)
+- `_scheduleCaptureRetry`의 단일 스칼라 필드가 덮어써져 잘못된 파라미터로 retry되던 버그 수정 | Fixed capture retry parameter overwrite bug in `_scheduleCaptureRetry`
+- 드래그 수용 후 수직 제스처를 거부할 수 없어 Scrollable/SelectableText가 block되던 문제 수정 | Fixed post-accept vertical gesture rejection so Scrollable/SelectableText can receive scrolls
+
 ## [1.9.5] - 2026-06-28
 ### 🐛 수정
 - 위젯 소멸 및 제스처 레이어 언마운트 시점에 발생할 수 있는 Null check 및 lifecycle 크래시 방지 | Guarded against null safety/lifecycle crashes during unmounting and disposal

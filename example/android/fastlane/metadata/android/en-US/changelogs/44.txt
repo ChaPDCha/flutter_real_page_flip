@@ -1,0 +1,4 @@
+• Fixed GPU memory leak from gradient shader cache
+• Improved gesture handling: scroll detection works during page flips
+• Fixed snapshot capture failures on animation start
+• Improved rendering stability and performance
