@@ -3,6 +3,10 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.11.8] - 2026-06-30
+### ✨ 데모 및 애니메이션 시각화 업데이트 (Demo & Visualization)
+- **Preview Update**: README 내 데모 애니메이션을 업데이트하여 실제 적용된 햅틱 반응과 물리 엔진의 타이밍을 시각적으로 더 명확하게 반영 | Updated preview animations to better reflect natural haptic and physics timing visually in README.
+
 ## [1.11.7] - 2026-06-29
 ### 🐛 데모 자동재생 버그 및 시뮬레이션 환경 최적화 (Demo Autoplay & Simulation Fix)
 - **Autoplay Bug Fix**: 프로그래밍 방식의 드래그 애니메이션이 터치 제스처로 오인되어 오토플레이를 중단시키던 버그 완벽 해결 | Fixed a bug where programmatic drag animations were misinterpreted as touch gestures, incorrectly halting the autoplay sequence.
