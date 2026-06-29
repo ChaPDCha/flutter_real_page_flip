@@ -14,7 +14,7 @@ English | [한국어](#한국어-korean)
 
 ### 1. Interactive Web Preview (Recorded Animation)
 This demo showcases the ultra-smooth page flip animations in both **1-Column Layout** and **2-Column Double-Spread Layout**.
-![Interactive Web Preview](doc/screenshots/page_flip_demo_v1.11.8.webp)
+![Interactive Web Preview](doc/screenshots/page_flip_demo_v1.11.9.webp)
 
 ## Why Real Page Flip? (The Technical Edge)
 
@@ -180,7 +180,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ### 데모 시연
 이 데모는 **1단 레이아웃**과 **2단 스프레드 레이아웃** 모두에서 매끄러운 페이지 전환 애니메이션을 보여줍니다.
-![Interactive Web Preview](doc/screenshots/page_flip_demo_v1.11.8.webp)
+![Interactive Web Preview](doc/screenshots/page_flip_demo_v1.11.9.webp)
 
 ### 기술적 차별점 (Professional Edge)
 

@@ -3,6 +3,10 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.11.9] - 2026-07-01
+### ✨ 데모 애니메이션 세그먼트 최적화 (Demo Animation Segment)
+- **Highlight Focus**: README 미리보기 영상의 애니메이션 타임라인을 6초~14초 구간으로 집중 조정하여 페이지 플립의 핵심 물리 엔진 효과를 더 선명하게 강조 | Refined the demo animation segment to showcase the 6s-14s highlight section for better preview.
+
 ## [1.11.8] - 2026-06-30
 ### ✨ 데모 및 애니메이션 시각화 업데이트 (Demo & Visualization)
 - **Preview Update**: README 내 데모 애니메이션을 업데이트하여 실제 적용된 햅틱 반응과 물리 엔진의 타이밍을 시각적으로 더 명확하게 반영 | Updated preview animations to better reflect natural haptic and physics timing visually in README.
