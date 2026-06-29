@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'real_page_flip'
-  s.version          = '1.11.6'
+  s.version          = '1.11.7'
   s.summary          = 'A high-fidelity 3D-like page flip engine for Flutter.'
   s.description      = <<-DESC
 A high-fidelity 3D-like page flip engine for Flutter. Features physics-based paper fold effects with realistic shadows, sound, and haptic feedback.

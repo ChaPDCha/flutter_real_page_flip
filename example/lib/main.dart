@@ -55,6 +55,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
   bool _showTuningDeck = false;
   bool _autoPlay = true;
   bool _isCleanMode = true;
+  bool _isSimulatingDrag = false;
 
   late AnimationController _dragAnimationController;
 
@@ -76,6 +77,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
   }
 
   Future<void> _simulateHumanDrag(bool isForward) async {
+    _isSimulatingDrag = true;
+    print('DEBUG: _simulateHumanDrag started');
     final stateController = _flipKey.currentState?.controller;
     if (stateController == null) return;
 
@@ -128,6 +131,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
       DragEndDetails(primaryVelocity: velocityX, velocity: Velocity(pixelsPerSecond: Offset(velocityX, 0))),
       6,
     );
+    _isSimulatingDrag = false;
+    print('DEBUG: _simulateHumanDrag finished');
   }
 
   Future<void> _startAutoPlay() async {
@@ -490,7 +495,9 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
             onFlipStart: () {
               setState(() {
                 _animStatus = 'Animating';
-                _autoPlay = false; // Stop autoplay on manual swipe
+                if (!_isSimulatingDrag) {
+                  _autoPlay = false; // Stop autoplay on manual swipe
+                }
               });
             },
             onFlipEnd: () {

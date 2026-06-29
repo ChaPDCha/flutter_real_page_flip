@@ -3,7 +3,13 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
-## [1.11.6] - 2026-06-30
+## [1.11.7] - 2026-06-29
+### 🐛 데모 자동재생 버그 및 시뮬레이션 환경 최적화 (Demo Autoplay & Simulation Fix)
+- **Autoplay Bug Fix**: 프로그래밍 방식의 드래그 애니메이션이 터치 제스처로 오인되어 오토플레이를 중단시키던 버그 완벽 해결 | Fixed a bug where programmatic drag animations were misinterpreted as touch gestures, incorrectly halting the autoplay sequence.
+- **Aspect Ratio Restoration**: 1단 레이아웃은 스마트폰 세로 비율(420x800)로, 2단 레이아웃은 태블릿 가로 비율(1000x650)로 고정하여 실제 기기 사용 환경을 완벽히 시뮬레이션 | Enforced device-centric aspect ratios for the demo viewport, accurately simulating portrait phones for 1-column and landscape tablets for 2-column views.
+- **Fast Startup**: 앱 로딩 직후 불필요하게 멈춰있던 대기 시간(3초)을 0.5초로 제거하고 다크 모드 배경을 일치시켜 빈 흰 화면을 없앰 | Eliminated unnecessary white-screen idle time by reducing initial startup delay and matching the index.html background color to the app theme.
+
+## [1.11.6] - 2026-06-29
 ### ✨ 데모 업데이트 및 UX 개선 (Demo & UX Improvements)
 - **Demo Update**: 웹 미리보기 데모가 AnimationController를 사용하여 자연스럽고 몰입감 넘치는 인간적인 드래그 물리 효과를 시뮬레이션하도록 개선 | The web preview demo now simulates fluid human-like page drag physics using an AnimationController, delivering a much more natural and immersive feel.
 - **UX Improvement**: 대화형 웹 미리보기에서 기기 프레임, 테두리, 그라데이션 배경을 제거하여 깔끔한 풀스크린 뷰 환경 제공 | Removed device frames, borders, and gradient backgrounds from the Interactive Web Preview for a clean, fullscreen viewing experience.
