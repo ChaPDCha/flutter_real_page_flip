@@ -176,6 +176,12 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **Real Page Flip Engine**은 플러터를 위한 고성능 물리 기반 페이지 전환 엔진입니다. 특히 **저사양 기기에서도 끊김 없는 60/120 FPS 성능**을 보장하기 위해 설계된 독보적인 렌더링 최적화 기술이 적용되었습니다.
 
+> **안내**: 이 페이지 플립 엔진은 세로형 단일 페이지 레이아웃과 태블릿 및 넓은 화면을 위한 **가로형 2단 보기(양쪽 페이지 스프레드 모드)**를 모두 완벽하게 지원하도록 최적화되었습니다.
+
+### 데모 시연
+이 데모는 **1단 레이아웃**과 **2단 스프레드 레이아웃** 모두에서 매끄러운 페이지 전환 애니메이션을 보여줍니다.
+![Interactive Web Preview](doc/screenshots/page_flip_demo.webp)
+
 ### 기술적 차별점 (Professional Edge)
 
 1. **하이브리드 스냅샷 엔진**: 애니메이션 중 복잡한 위젯 트리를 매 프레임 다시 그리는 대신, 페이지를 고해상도 이미지로 캡처하여 처리합니다. 덕분에 아무리 복잡한 UI라도 GPU 부하 없이 부드럽게 넘어갑니다.
@@ -185,4 +191,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-Built with by [ChaPDCha](https://github.com/ChaPDCha)
+Built by [ChaPDCha](https://github.com/ChaPDCha)
