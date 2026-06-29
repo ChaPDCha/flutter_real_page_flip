@@ -1,6 +1,3 @@
-group = "com.chapdcha.real_page_flip"
-version = "1.0-SNAPSHOT"
-
 buildscript {
     val kotlinVersion = "2.3.20"
     repositories {
@@ -14,15 +11,20 @@ buildscript {
     }
 }
 
+plugins {
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
+}
+
+group = "com.chapdcha.real_page_flip"
+version = "1.0-SNAPSHOT"
+
 allprojects {
     repositories {
         google()
         mavenCentral()
     }
 }
-
-apply(plugin = "com.android.library")
-apply(plugin = "kotlin-android")
 
 android {
     namespace = "com.chapdcha.real_page_flip"

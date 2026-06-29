@@ -65,6 +65,9 @@ class PageFlipLayerView extends StatelessWidget {
     /// How visible the 2.5D page back content is (0.0–1.0, double-spread only).
     this.flapBackStrength = 0.0,
 
+    /// Single-page only: opacity of the peeled page's own content mid-flip.
+    this.singlePageBackContentOpacity = 1.0,
+
     /// Optional explicit size to constrain children.
     this.constrainedSize,
 
@@ -132,6 +135,10 @@ class PageFlipLayerView extends StatelessWidget {
 
   /// How visible the 2.5D page back content is (0.0–1.0, double-spread only).
   final double flapBackStrength;
+
+  /// Single-page only: opacity of the peeled page's own content mid-flip
+  /// (1.0 = crisp, lower = faint thin-paper bleed-through).
+  final double singlePageBackContentOpacity;
 
   /// Optional explicit size to constrain children (prevents infinite height from Stack).
   final Size? constrainedSize;
@@ -216,6 +223,16 @@ class PageFlipLayerView extends StatelessWidget {
   ) {
     final floatProgress = isForward ? dragProgress : 1.0 - dragProgress;
 
+    // Single-page mode renders the BACKWARD (previous-page) flip as a true
+    // time-reverse of the FORWARD flip: identical fold geometry (crease on the
+    // left, flap peeling leftward) driven by the already-reversed
+    // [floatProgress], instead of the double-spread "spine" geometry (crease on
+    // the right) that reads as a mirrored 2-page turn — wrong for a one-page
+    // reader. Page CONTENT still comes from [policy] (which already selects the
+    // previous page for backward); only the geometry/compositing direction is
+    // forced forward. Double-spread keeps its native per-direction geometry.
+    final renderForward = !isDoubleSpread || isForward;
+
     final policy = FlipLayerPolicy(
       isDoubleSpread: isDoubleSpread,
       isForward: isForward,
@@ -259,7 +276,9 @@ class PageFlipLayerView extends StatelessWidget {
               flapFrontImage.height.toDouble(),
             ),
             isDoubleSpread: isDoubleSpread,
-            isForward: isForward,
+            isForward: renderForward,
+            // Single-page only: map the lifted strip, not the whole page.
+            floatProgress: isDoubleSpread ? null : floatProgress,
           )
         : null;
     final resolvedFlapDestRect = flapFrontSrcRect != null &&
@@ -268,7 +287,7 @@ class PageFlipLayerView extends StatelessWidget {
         ? flapFrontDestRect(
             size: canvasSize,
             isDoubleSpread: isDoubleSpread,
-            isForward: isForward,
+            isForward: renderForward,
           )
         : null;
 
@@ -285,7 +304,8 @@ class PageFlipLayerView extends StatelessWidget {
               flapFrontSettleImage.height.toDouble(),
             ),
             isDoubleSpread: isDoubleSpread,
-            isForward: isForward,
+            isForward: renderForward,
+            floatProgress: isDoubleSpread ? null : floatProgress,
           )
         : null;
 
@@ -301,7 +321,7 @@ class PageFlipLayerView extends StatelessWidget {
               flapBackImage.height.toDouble(),
             ),
             isDoubleSpread: isDoubleSpread,
-            isForward: isForward,
+            isForward: renderForward,
           )
         : null;
 
@@ -311,7 +331,7 @@ class PageFlipLayerView extends StatelessWidget {
       touchOffset: touchPosition,
       size: canvasSize,
       isDoubleSpread: isDoubleSpread,
-      isForward: isForward,
+      isForward: renderForward,
     );
 
     final CustomClipper<Path> bottomClipper;
@@ -321,7 +341,7 @@ class PageFlipLayerView extends StatelessWidget {
         isRightToLeft: true,
         touchOffset: touchPosition,
         isDoubleSpread: isDoubleSpread,
-        isForward: isForward,
+        isForward: renderForward,
         geo: geo,
       );
     } else {
@@ -330,7 +350,7 @@ class PageFlipLayerView extends StatelessWidget {
         isRightToLeft: true,
         touchOffset: touchPosition,
         isDoubleSpread: isDoubleSpread,
-        isForward: isForward,
+        isForward: renderForward,
         geo: geo,
       );
     }
@@ -345,9 +365,14 @@ class PageFlipLayerView extends StatelessWidget {
           clipper: bottomClipper,
           child: (() {
             var child = bottomLayerContent;
-            // Apply fade-in to the destination page on the bottom layer.
-            // Single backward mode uses the bottom layer for the CURRENT page (origin), not destination.
-            if (isDoubleSpread || isForward) {
+            // Double-spread fades the destination page in during the settle
+            // phase because the flap back / spine reveal cover it mid-flip.
+            //
+            // Single-page mode must NOT fade: the revealed page sits to the
+            // right of the fold and has to stay continuously visible as the
+            // fold sweeps across. Fading it hid the next page until 0.85,
+            // leaving a blank gap during the flip (single-page reveal bug).
+            if (isDoubleSpread) {
               var opacity = 1.0;
               if (floatProgress < flapContentRevealStart) {
                 opacity = 0.0;
@@ -380,6 +405,7 @@ class PageFlipLayerView extends StatelessWidget {
           geo: geo,
           middleLayerContent: middleLayerContent,
           floatProgress: floatProgress,
+          renderForward: renderForward,
         ),
         // Layer 3: Flap shadow & highlight effects
         IgnorePointer(
@@ -392,7 +418,7 @@ class PageFlipLayerView extends StatelessWidget {
               paperBackColor:
                   paperFlapColor ?? Theme.of(context).scaffoldBackgroundColor,
               isDoubleSpread: isDoubleSpread,
-              isForward: isForward,
+              isForward: renderForward,
               paperOpacity: paperOpacity,
               flapContentFadeOutEnd: flapContentFadeOutEnd,
               thinPaperStrength: thinPaperStrength,
@@ -407,6 +433,7 @@ class PageFlipLayerView extends StatelessWidget {
               flapBackImage: flapBackImage,
               flapBackSrcRect: flapBackSrcRect,
               flapBackStrength: flapBackStrength,
+              singlePageBackContentOpacity: singlePageBackContentOpacity,
               geo: geo,
               performanceProfile: performanceProfile,
             ),
@@ -513,27 +540,28 @@ class PageFlipLayerView extends StatelessWidget {
     required PageFlipGeometry geo,
     required Widget middleLayerContent,
     required double floatProgress,
+    required bool renderForward,
   }) {
     if (!isDoubleSpread) {
-      var middleOpacity = 1.0;
-      if (floatProgress >= flapContentRevealEnd) {
-        middleOpacity = 0.0;
-      } else if (floatProgress >= flapContentRevealStart) {
-        final divisor = flapContentRevealEnd - flapContentRevealStart;
-        if (divisor > 0.001) {
-          final t = (floatProgress - flapContentRevealStart) / divisor;
-          middleOpacity = 1.0 - t * t * (3 - 2 * t);
-        } else {
-          middleOpacity = 0.0;
-        }
-      }
+      // Opacity is keyed on the REAL flip direction, not [renderForward]:
+      // forward fades the source page out during settle, while backward keeps
+      // the incoming previous page fully opaque so it always covers the strip
+      // left of the fold as it sweeps in (prevents the black-flash regression
+      // on previous-page flips). The CLIP geometry, however, uses the shared
+      // [geo] (forced forward for single mode). See [middleLayerOpacity].
+      final middleOpacity = middleLayerOpacity(
+        floatProgress,
+        isForward: isForward,
+        revealStart: flapContentRevealStart,
+        revealEnd: flapContentRevealEnd,
+      );
 
       Widget middle = ClipPath(
         clipper: PageFlipClipper(
           progress: floatProgress,
           isRightToLeft: true,
           touchOffset: touchPosition,
-          isForward: isForward,
+          isForward: renderForward,
           geo: geo,
         ),
         child: middleLayerContent,

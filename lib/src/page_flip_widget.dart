@@ -176,6 +176,18 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   void _onFlipStart() {
     widget.onFlipStart?.call();
+
+    // Refresh the CURRENT page snapshot from its live boundary so the flip turns
+    // the page from the user's present scroll position, not the stale top-of-page
+    // capture taken when the chapter loaded. Synchronous so the first flip frame
+    // already shows the scrolled content (see [PreRenderManager.refreshIndexSync]).
+    if (mounted) {
+      _preRenderManager.refreshIndexSync(
+        _controller.currentIndex,
+        pixelRatio: _capturePixelRatio(),
+      );
+    }
+
     if (!_preRenderManager.hasAdjacentSnapshots(
       _controller.currentIndex,
       _totalPages,
@@ -313,22 +325,20 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     });
   }
 
+  /// Device pixel ratio for snapshot capture, scaled down by performance profile.
+  double _capturePixelRatio() {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final pixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
+    return switch (widget.config.performanceProfile) {
+      DevicePerformanceProfile.low => pixelRatio.clamp(1.0, 1.25),
+      DevicePerformanceProfile.medium => pixelRatio.clamp(1.0, 2.0),
+      DevicePerformanceProfile.high => pixelRatio,
+    };
+  }
+
   void _captureSnapshots({bool immediate = false}) {
     if (!mounted) return;
-    final mediaQuery = MediaQuery.maybeOf(context);
-    var pixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
-
-    // Apply dynamic resolution scaling based on performance profile
-    switch (widget.config.performanceProfile) {
-      case DevicePerformanceProfile.low:
-        pixelRatio = pixelRatio.clamp(1.0, 1.25);
-        break;
-      case DevicePerformanceProfile.medium:
-        pixelRatio = pixelRatio.clamp(1.0, 2.0);
-        break;
-      case DevicePerformanceProfile.high:
-        break;
-    }
+    final pixelRatio = _capturePixelRatio();
 
     _preRenderManager.captureSnapshots(
       _controller.currentIndex,
@@ -503,6 +513,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               flapContentRevealStart: widget.config.flapContentRevealStart,
               flapContentRevealEnd: widget.config.flapContentRevealEnd,
               flapBackStrength: widget.config.flapBackStrength,
+              singlePageBackContentOpacity:
+                  widget.config.singlePageBackContentOpacity,
               constrainedSize: constrainedSize,
               isDoubleSpread: widget.spreadMode.isDoubleSpread,
               performanceProfile: widget.config.performanceProfile,

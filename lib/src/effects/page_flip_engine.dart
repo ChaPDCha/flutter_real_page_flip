@@ -35,6 +35,7 @@ Rect? flapFrontSourceRect({
   required Size imageSize,
   required bool isDoubleSpread,
   required bool isForward,
+  double? floatProgress,
 }) {
   if (isDoubleSpread) {
     final halfWidth = imageSize.width / 2;
@@ -44,7 +45,35 @@ Rect? flapFrontSourceRect({
     return Rect.fromLTWH(0, 0, halfWidth, imageSize.height);
   }
 
+  // Single-page: when [floatProgress] is supplied, map only the LIFTED strip
+  // (the page's right portion of width floatProgress·pageWidth) onto the flap.
+  // This keeps the crease continuous with the page beneath and preserves the
+  // text's horizontal scale, instead of crushing the whole page into the
+  // narrowing flap (the "over-compressed back side" artifact). The mesh is
+  // drawn with flipHorizontal so this right-anchored strip reads correctly as
+  // the folded-over paper.
+  if (floatProgress != null) {
+    return singlePagePeeledStripRect(imageSize, floatProgress);
+  }
+
   return Rect.fromLTWH(0, 0, imageSize.width, imageSize.height);
+}
+
+/// Right-anchored source strip for the single-page flap at [floatProgress].
+///
+/// Width grows with the lifted material: `floatProgress · width`, anchored at
+/// the page's right edge so the crease (fold) edge stays continuous with the
+/// stationary page and the free edge reveals the page's right border.
+@visibleForTesting
+Rect singlePagePeeledStripRect(Size imageSize, double floatProgress) {
+  final p = floatProgress.clamp(0.0, 1.0);
+  final stripWidth = imageSize.width * p;
+  return Rect.fromLTWH(
+    imageSize.width - stripWidth,
+    0,
+    stripWidth,
+    imageSize.height,
+  );
 }
 
 /// Returns the source rect within an adjacent spread snapshot for 2.5D back content.
@@ -84,6 +113,7 @@ Rect? flapFrontSettleSourceRect({
   required Size imageSize,
   required bool isDoubleSpread,
   required bool isForward,
+  double? floatProgress,
 }) {
   if (isDoubleSpread) {
     final halfWidth = imageSize.width / 2;
@@ -91,6 +121,12 @@ Rect? flapFrontSettleSourceRect({
       return Rect.fromLTWH(0, 0, halfWidth, imageSize.height);
     }
     return Rect.fromLTWH(halfWidth, 0, halfWidth, imageSize.height);
+  }
+
+  // Single-page settle phase reuses the same peeled-strip mapping as the front
+  // so the page does not "snap" scale between the peel and settle phases.
+  if (floatProgress != null) {
+    return singlePagePeeledStripRect(imageSize, floatProgress);
   }
 
   return Rect.fromLTWH(0, 0, imageSize.width, imageSize.height);
@@ -113,6 +149,50 @@ Rect flapFrontDestRect({
   return Rect.fromLTWH(0, 0, size.width, size.height);
 }
 
+/// Peak opacity of the free-edge / fold texture masks (the narrow paper-colour
+/// gradients that hide crushed mesh fragments at the flap boundaries).
+///
+/// On LIGHT paper the mask is paper-over-paper and therefore invisible, so it
+/// runs at full opacity to fully hide the crushed edge. On DARK paper (e.g. the
+/// pure-black theme) a full-opacity paper strip wipes the light text into a
+/// hard vertical "dark band at the paper edge"; holding it below full opacity
+/// lets the text bleed through faintly so the edge reads as a soft transition.
+@visibleForTesting
+double edgeMaskPeakOpacity({required bool isPaperDark}) =>
+    isPaperDark ? 0.7 : 1.0;
+
+/// Width (px) of the free-edge texture mask. Narrower on dark paper so any
+/// residual band stays thin; wider on light paper to fully cover the crush.
+@visibleForTesting
+double edgeMaskWidth({required bool isPaperDark}) => isPaperDark ? 5.0 : 8.0;
+
+/// Width (px) of the fold-crease texture mask. See [edgeMaskWidth].
+@visibleForTesting
+double foldMaskWidth({required bool isPaperDark}) => isPaperDark ? 4.0 : 6.0;
+
+/// Tint of the soft centre highlight that catches light on the curling paper.
+///
+/// `isPaperDark` selects between dark and light paper surfaces: dark paper gets
+/// a faint cool ambient tint so near-black stock reads as a real surface; light
+/// paper gets a warm paper-white sheen.
+@visibleForTesting
+Color flapHighlightTone({required bool isPaperDark}) => isPaperDark
+    ? const Color(0xFFEAF1FF) // faint cool ambient
+    : const Color(0xFFFFF4E0); // warm paper white
+
+/// Base peak alpha of the centre highlight (before shadow-intensity scaling).
+///
+/// Kept intentionally tiny — thin Bible paper is matte, so a strong specular
+/// streak would read as glass/plastic. Dark paper is dimmer still.
+@visibleForTesting
+double flapHighlightPeakBase({required bool isPaperDark}) =>
+    isPaperDark ? 0.04 : 0.05;
+
+/// Base mid-band alpha of the centre highlight (before shadow-intensity).
+@visibleForTesting
+double flapHighlightMidBase({required bool isPaperDark}) =>
+    isPaperDark ? 0.02 : 0.03;
+
 /// Opacity of flap-front page content (0 = paper back only, 1 = full texture).
 ///
 /// Three-phase curve to hide distorted text during the bend:
@@ -128,11 +208,18 @@ double flapFrontContentRevealOpacity(
   bool isForward = true,
   bool isDoubleSpread = false,
 }) {
+  // Single-page mode: pages are single-sided, so the flipping page shows its
+  // OWN content curling with the paper for the entire turn. There is no blank
+  // "paper back" to reveal — keeping content visible avoids an empty flap
+  // (the previous phased model left the flap blank through most of the flip).
+  if (!isDoubleSpread) return 1;
+
   // Normalize progress so p always goes 0→1 from flip-start to flip-end.
   // Invert p for backward flips because their geometry is a reverse animation (progress goes 1→0).
   final invertProgress = !isForward;
   final p = invertProgress ? (1.0 - progress) : progress;
 
+  // Double-spread two-sided paper model below:
   // Phase 1: brief early visibility → fast hide as fold begins.
   if (p <= fadeOutEnd) {
     if (fadeOutEnd <= 0) return 0;
@@ -147,6 +234,69 @@ double flapFrontContentRevealOpacity(
   if (p >= revealEnd) return 1;
   final t = (p - revealStart) / (revealEnd - revealStart);
   return t * t * (3 - 2 * t);
+}
+
+/// Opacity of the stationary middle layer in single-page mode.
+///
+/// The middle layer holds the page that sits *under* the flap on the
+/// stationary side of the fold:
+/// - **Forward**: the current (source) page. It fades out during the settle
+///   phase ([revealStart] → [revealEnd]) so the flap's destination content
+///   takes over without a double-exposed seam.
+/// - **Backward**: the incoming previous page. It MUST stay fully opaque for
+///   the whole turn because it covers the region to the LEFT of the fold as
+///   the page rolls back. [floatProgress] for a backward flip starts near 1.0,
+///   so applying the forward fade curve there forced the middle to opacity 0
+///   on the first frames and exposed the host background (black scaffold) in a
+///   thin strip at the binding edge — the "black flash on previous-page flip"
+///   bug. Backward therefore never fades.
+double middleLayerOpacity(
+  double floatProgress, {
+  required bool isForward,
+  double revealStart = 0.85,
+  double revealEnd = 0.95,
+}) {
+  if (!isForward) return 1;
+  if (floatProgress >= revealEnd) return 0;
+  if (floatProgress < revealStart) return 1;
+  final divisor = revealEnd - revealStart;
+  if (divisor <= 0.001) return 0;
+  final t = (floatProgress - revealStart) / divisor;
+  return 1.0 - t * t * (3 - 2 * t);
+}
+
+/// Dim multiplier for the single-page thin-paper bleed-through overlay.
+///
+/// Host apps may dim the peeled page's own content toward the paper colour while
+/// it is the back-facing side, so the reverse text only bleeds through faintly
+/// (controlled by [backOpacity], e.g. 0.35). As the page settles flat it
+/// becomes the crisp incoming/destination page, so the dim must relax back to
+/// 1.0 (no overlay) across the settle window [[revealStart], [revealEnd]].
+///
+/// The factor is **continuous**: it holds [backOpacity] through the peel and
+/// eases up to 1.0 across the settle window. The previous implementation
+/// gated the overlay on a hard `isSettlePhase` boolean, so the overlay's alpha
+/// jumped in a single frame at [revealStart] — a visible flicker ("the opaque
+/// paper layer disappears midway") at the binding edge near the end of a swipe.
+///
+/// [normalizedProgress] is direction-normalized (0 = start of fold, 1 = end),
+/// matching the painter's `normalizedProgress`. Returns 1.0 (no dim) when
+/// [backOpacity] is >= 1.0.
+@visibleForTesting
+double singlePageBackDim(
+  double normalizedProgress, {
+  required double backOpacity,
+  double revealStart = 0.85,
+  double revealEnd = 0.95,
+}) {
+  if (backOpacity >= 1.0) return 1;
+  if (normalizedProgress >= revealEnd) return 1;
+  if (normalizedProgress <= revealStart) return backOpacity;
+  final divisor = revealEnd - revealStart;
+  if (divisor <= 0.001) return 1;
+  final t = ((normalizedProgress - revealStart) / divisor).clamp(0.0, 1.0);
+  final eased = t * t * (3 - 2 * t);
+  return backOpacity + (1.0 - backOpacity) * eased;
 }
 
 /// Sub-pixel overlap (px) at layer seams (fold line, flap edge, spine reveal).
@@ -576,7 +726,6 @@ double flapOpacityModulator(
   double endRevealStrength = 0.0,
   double endRevealStart = 0.85,
   bool isForward = true,
-  bool isDoubleSpread = false,
 }) {
   // Normalize so p always goes 0→1 from start to end of the flip.
   // Invert p for backward flips because their geometry is a reverse animation (progress goes 1→0).

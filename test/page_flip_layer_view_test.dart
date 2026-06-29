@@ -1,6 +1,8 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 import 'package:real_page_flip/src/page_flip_layer_view.dart';
@@ -461,6 +463,73 @@ void main() {
     });
 
     testWidgets(
+        'single forward: revealed next page stays visible through mid-flip', (
+      tester,
+    ) async {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawRect(
+        const Rect.fromLTWH(0, 0, 400, 300),
+        Paint()..color = const Color(0xFF43A047),
+      );
+      final nextSnapshot = await recorder.endRecording().toImage(400, 300);
+      addTearDown(nextSnapshot.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox.fromSize(
+              size: canvasSize,
+              child: PageFlipLayerView(
+                itemCount: 3,
+                currentIndex: 1,
+                // Mid-flip, well below the 0.85 settle threshold.
+                dragProgress: 0.5,
+                isDragging: true,
+                isForward: true,
+                touchPosition: const Offset(350, 150),
+                pageSnapshots: {2: nextSnapshot},
+                spreadSnapshots: const {},
+                pageKeys: {
+                  for (var i = 0; i < 3; i++) i: GlobalKey(),
+                },
+                constrainedSize: canvasSize,
+                itemBuilder: (context, index) => Text('Page $index'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final bottomClipper = find.byWidgetPredicate(
+        (w) => w is ClipPath && w.clipper is PageFlipOpenClipper,
+      );
+      final rawImageFinder = find.descendant(
+        of: bottomClipper,
+        matching: find.byType(RawImage),
+      );
+      expect(rawImageFinder, findsOneWidget);
+
+      // The revealed (next) page sits to the right of the fold and must be
+      // continuously visible as the fold sweeps across — not hidden at opacity
+      // 0 until the 0.85 settle phase (which leaves a blank gap mid-flip).
+      final fadeFinder = find.ancestor(
+        of: rawImageFinder,
+        matching: find.byType(FadeTransition),
+      );
+      if (fadeFinder.evaluate().isNotEmpty) {
+        final fade = tester.widget<FadeTransition>(fadeFinder.first);
+        expect(
+          fade.opacity.value,
+          closeTo(1, 0.001),
+          reason:
+              'Single forward revealed page must be visible during the flip, '
+              'not hidden until the settle phase.',
+        );
+      }
+    });
+
+    testWidgets(
         'backward bottom layer uses current page snapshot not live widget', (
       tester,
     ) async {
@@ -535,6 +604,145 @@ void main() {
         findsNothing,
       );
     });
+
+    // Invariant: a single-page flip NEVER leaves an uncovered gap at any frame.
+    //
+    // The page layers must always fully tile the viewport so the host
+    // background never shows through. This was violated on backward flips:
+    // floatProgress = 1 - dragProgress starts near 1.0, and the middle layer
+    // (incoming previous page) used to fade to opacity 0 there, exposing the
+    // strip LEFT of the fold (a black Scaffold in the app) — the "black flash
+    // on previous-page flip" bug.
+    //
+    // Render each frame over a SENTINEL background placed inside the captured
+    // boundary and assert no sentinel pixel survives anywhere.
+    Future<int> countSentinelPixels(
+      WidgetTester tester, {
+      required bool isForward,
+      required double dragProgress,
+    }) async {
+      const sentinel = Color(0xFFFF00FF); // magenta — must never show through
+
+      Future<ui.Image> solid(Color color) async {
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, canvasSize.width, canvasSize.height),
+          Paint()..color = color,
+        );
+        return recorder.endRecording().toImage(
+              canvasSize.width.toInt(),
+              canvasSize.height.toInt(),
+            );
+      }
+
+      final pageA = await solid(const Color(0xFF00C853)); // green
+      final pageB = await solid(const Color(0xFF2962FF)); // blue
+      addTearDown(pageA.dispose);
+      addTearDown(pageB.dispose);
+
+      final boundaryKey = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: RepaintBoundary(
+                key: boundaryKey,
+                child: SizedBox.fromSize(
+                  size: canvasSize,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      const ColoredBox(color: sentinel),
+                      PageFlipLayerView(
+                        itemCount: 3,
+                        currentIndex: 1,
+                        dragProgress: dragProgress,
+                        isDragging: true,
+                        isForward: isForward,
+                        touchPosition: isForward
+                            ? const Offset(350, 150)
+                            : const Offset(50, 150),
+                        // forward reveals next (2); backward reveals previous (0)
+                        pageSnapshots: isForward
+                            ? {1: pageB, 2: pageA}
+                            : {0: pageA, 1: pageB},
+                        spreadSnapshots: const {},
+                        pageKeys: {for (var i = 0; i < 3; i++) i: GlobalKey()},
+                        constrainedSize: canvasSize,
+                        paperFlapColor: const Color(0xFFF5F5F5),
+                        itemBuilder: (context, index) => const ColoredBox(
+                          color: Color(0xFFF5F5F5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find.byKey(boundaryKey),
+      );
+      // toImage()/toByteData() are real async GPU ops — must run outside the
+      // fake-async test zone via runAsync, or they never complete.
+      ByteData? byteData;
+      await tester.runAsync(() async {
+        final image = await boundary.toImage();
+        byteData = await image.toByteData();
+        image.dispose();
+      });
+      expect(byteData, isNotNull);
+
+      final pixels = byteData!.buffer.asUint8List();
+      var sentinelCount = 0;
+      for (var i = 0; i + 3 < pixels.length; i += 4) {
+        final r = pixels[i];
+        final g = pixels[i + 1];
+        final b = pixels[i + 2];
+        if (r > 200 && g < 60 && b > 200) sentinelCount++; // magenta
+      }
+      return sentinelCount;
+    }
+
+    // Backward includes the early frames (0.02, 0.05) that triggered the bug.
+    for (final p in [0.02, 0.05, 0.1, 0.5, 0.9]) {
+      testWidgets('backward flip leaves no uncovered gap at dragProgress=$p', (
+        tester,
+      ) async {
+        final gap = await countSentinelPixels(
+          tester,
+          isForward: false,
+          dragProgress: p,
+        );
+        expect(
+          gap,
+          0,
+          reason: 'backward dragProgress=$p exposed $gap host-background px',
+        );
+      });
+    }
+
+    for (final p in [0.02, 0.1, 0.5, 0.9]) {
+      testWidgets('forward flip leaves no uncovered gap at dragProgress=$p', (
+        tester,
+      ) async {
+        final gap = await countSentinelPixels(
+          tester,
+          isForward: true,
+          dragProgress: p,
+        );
+        expect(
+          gap,
+          0,
+          reason: 'forward dragProgress=$p exposed $gap host-background px',
+        );
+      });
+    }
   });
 
   group('PageFlipLayerView double-spread bottom layer', () {
@@ -904,7 +1112,7 @@ void main() {
       // Bottom layer with spread 1 should NOT show live Page 0 and Page 1 content (opaque paper fallback)
       expect(
           find.descendant(of: bottomClipper, matching: find.text('Spread 1')),
-          findsNothing);
+          findsNothing,);
       // Middle layer references spread 2
       expect(find.text('Spread 2'), findsWidgets);
     });

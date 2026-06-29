@@ -50,6 +50,80 @@ void main() {
       expect(result!.width, closeTo(0, 0.001));
       expect(result.left, closeTo(0, 0.001));
     });
+
+    test('single-page WITHOUT progress returns full rect (back-compat)', () {
+      final result = flapFrontSourceRect(
+        imageSize: const Size(400, 600),
+        isDoubleSpread: false,
+        isForward: true,
+      );
+      expect(result, const Rect.fromLTWH(0, 0, 400, 600));
+    });
+  });
+
+  // ===========================================================================
+  // flapFrontSourceRect — single-page peeled strip (progress-aware)
+  //
+  // Real paper only shows the LIFTED strip on the flap, not the whole page
+  // crushed into a narrowing region. The visible strip is the page's RIGHT
+  // portion of width = floatProgress · pageWidth (the lifted material), so the
+  // crease edge stays continuous with the page beneath and text keeps a
+  // natural 1:1 horizontal scale (minus perspective foreshortening only).
+  // ===========================================================================
+  group('flapFrontSourceRect single-page peeled strip', () {
+    test('forward mid-flip shows the right half (not the whole page)', () {
+      final result = flapFrontSourceRect(
+        imageSize: const Size(400, 600),
+        isDoubleSpread: false,
+        isForward: true,
+        floatProgress: 0.5,
+      );
+      // floatProgress 0.5 → strip width = 0.5·400 = 200, anchored at right edge.
+      expect(result, const Rect.fromLTWH(200, 0, 200, 600));
+    });
+
+    test('early flip shows a thin right strip (no over-compression)', () {
+      final result = flapFrontSourceRect(
+        imageSize: const Size(400, 600),
+        isDoubleSpread: false,
+        isForward: true,
+        floatProgress: 0.1,
+      );
+      // Only a 10% sliver of the page is lifted at the start.
+      expect(result!.left, closeTo(360, 0.001));
+      expect(result.width, closeTo(40, 0.001));
+      expect(result.right, closeTo(400, 0.001));
+    });
+
+    test('full progress shows the whole page (strip == page)', () {
+      final result = flapFrontSourceRect(
+        imageSize: const Size(400, 600),
+        isDoubleSpread: false,
+        isForward: true,
+        floatProgress: 1,
+      );
+      expect(result, const Rect.fromLTWH(0, 0, 400, 600));
+    });
+
+    test('backward uses the same right-anchored strip formula', () {
+      final result = flapFrontSourceRect(
+        imageSize: const Size(400, 600),
+        isDoubleSpread: false,
+        isForward: false,
+        floatProgress: 0.5,
+      );
+      expect(result, const Rect.fromLTWH(200, 0, 200, 600));
+    });
+
+    test('progress is ignored for double-spread (half mapping preserved)', () {
+      final result = flapFrontSourceRect(
+        imageSize: const Size(800, 600),
+        isDoubleSpread: true,
+        isForward: true,
+        floatProgress: 0.5,
+      );
+      expect(result, const Rect.fromLTWH(400, 0, 400, 600));
+    });
   });
 
   group('flapBackSourceRect', () {
@@ -108,6 +182,16 @@ void main() {
       );
       expect(result, const Rect.fromLTWH(0, 0, 400, 600));
     });
+
+    test('single-page with progress matches the peeled-strip mapping', () {
+      final result = flapFrontSettleSourceRect(
+        imageSize: const Size(400, 600),
+        isDoubleSpread: false,
+        isForward: true,
+        floatProgress: 0.5,
+      );
+      expect(result, const Rect.fromLTWH(200, 0, 200, 600));
+    });
   });
 
   group('flapFrontDestRect', () {
@@ -143,35 +227,67 @@ void main() {
   // flapFrontContentRevealOpacity
   // ===========================================================================
   group('flapFrontContentRevealOpacity', () {
-    test('forward: returns 1.0 at progress=0 (start)', () {
-      final result = flapFrontContentRevealOpacity(0);
+    // ── Single-page: content stays visible (no blank paper-back) ──
+    // Single-sided digital pages: the flipping page shows its own content
+    // curling with the paper for the whole turn, so the flap is never blank.
+    test('single-page: content stays fully visible across the whole flip', () {
+      for (final p in <double>[0.05, 0.2, 0.35, 0.5, 0.7, 0.85, 0.95]) {
+        expect(
+          flapFrontContentRevealOpacity(p),
+          closeTo(1, 0.001),
+          reason: 'single-page flap must show curling content at p=$p, '
+              'not a blank paper back',
+        );
+      }
+    });
+
+    test('single-page backward: content also stays visible across the flip',
+        () {
+      for (final p in <double>[0.1, 0.5, 0.9]) {
+        expect(
+          flapFrontContentRevealOpacity(
+            p,
+            isForward: false,
+          ),
+          closeTo(1, 0.001),
+        );
+      }
+    });
+
+    // ── Double-spread: physical two-sided paper-back reveal model ──
+    test('double: returns 1.0 at progress=0 (start)', () {
+      final result = flapFrontContentRevealOpacity(0, isDoubleSpread: true);
       expect(result, closeTo(1, 0.001));
     });
 
-    test('forward: returns 0.0 during mid-fold phase', () {
-      final result = flapFrontContentRevealOpacity(0.5);
+    test('double: returns 0.0 during mid-fold phase', () {
+      final result = flapFrontContentRevealOpacity(0.5, isDoubleSpread: true);
       expect(result, closeTo(0, 0.001));
     });
 
-    test('forward: returns 1.0 at progress=1 (end)', () {
-      final result = flapFrontContentRevealOpacity(1);
+    test('double: returns 1.0 at progress=1 (end)', () {
+      final result = flapFrontContentRevealOpacity(1, isDoubleSpread: true);
       expect(result, closeTo(1, 0.001));
     });
 
-    test('forward: smoothstep fade-out from 1.0 to 0.0', () {
-      final atStart = flapFrontContentRevealOpacity(0);
-      final atMidFade = flapFrontContentRevealOpacity(0.10);
-      final atEndFade = flapFrontContentRevealOpacity(0.20);
+    test('double: smoothstep fade-out from 1.0 to 0.0', () {
+      final atStart = flapFrontContentRevealOpacity(0, isDoubleSpread: true);
+      final atMidFade =
+          flapFrontContentRevealOpacity(0.10, isDoubleSpread: true);
+      final atEndFade =
+          flapFrontContentRevealOpacity(0.20, isDoubleSpread: true);
       expect(atStart, closeTo(1, 0.001));
       expect(atMidFade, greaterThan(0.0));
       expect(atMidFade, lessThan(1.0));
       expect(atEndFade, closeTo(0, 0.001));
     });
 
-    test('forward: smoothstep reveal from 0.0 to 1.0', () {
-      final atStart = flapFrontContentRevealOpacity(0.85);
-      final atMidReveal = flapFrontContentRevealOpacity(0.90);
-      final atEndReveal = flapFrontContentRevealOpacity(0.95);
+    test('double: smoothstep reveal from 0.0 to 1.0', () {
+      final atStart = flapFrontContentRevealOpacity(0.85, isDoubleSpread: true);
+      final atMidReveal =
+          flapFrontContentRevealOpacity(0.90, isDoubleSpread: true);
+      final atEndReveal =
+          flapFrontContentRevealOpacity(0.95, isDoubleSpread: true);
       expect(atStart, closeTo(0, 0.001));
       expect(atMidReveal, greaterThan(0.0));
       expect(atMidReveal, lessThan(1.0));
@@ -179,43 +295,163 @@ void main() {
     });
 
     test(
-        'backward: progress is inverted so content reveals at end of backward flip',
-        () {
+        'double backward: progress is inverted so content reveals at end of '
+        'backward flip', () {
       // At backward progress=0, p=1.0 → reveal phase → 1.0.
       expect(
-        flapFrontContentRevealOpacity(0, isForward: false),
+        flapFrontContentRevealOpacity(0, isForward: false, isDoubleSpread: true),
         closeTo(1, 0.001),
       );
       // At backward progress=0.5 (mid-flip), p=0.5 → mid-fold → 0.0.
       expect(
-        flapFrontContentRevealOpacity(0.5, isForward: false),
+        flapFrontContentRevealOpacity(
+          0.5,
+          isForward: false,
+          isDoubleSpread: true,
+        ),
         closeTo(0, 0.001),
       );
       // At backward progress=1.0, p=0.0 → start → 1.0.
       expect(
-        flapFrontContentRevealOpacity(1, isForward: false),
+        flapFrontContentRevealOpacity(1, isForward: false, isDoubleSpread: true),
         closeTo(1, 0.001),
       );
     });
 
-    test('fadeOutEnd=0 returns 0 for any p <= 0', () {
-      final result = flapFrontContentRevealOpacity(0, fadeOutEnd: 0);
+    test('double: fadeOutEnd=0 returns 0 for any p <= 0', () {
+      final result = flapFrontContentRevealOpacity(
+        0,
+        fadeOutEnd: 0,
+        isDoubleSpread: true,
+      );
       expect(result, closeTo(0, 0.001));
     });
 
-    test('revealStart equals revealEnd means instant transition', () {
+    test('double: revealStart equals revealEnd means instant transition', () {
       final before = flapFrontContentRevealOpacity(
         0.89,
         revealStart: 0.90,
         revealEnd: 0.90,
+        isDoubleSpread: true,
       );
       final after = flapFrontContentRevealOpacity(
         0.90,
         revealStart: 0.90,
         revealEnd: 0.90,
+        isDoubleSpread: true,
       );
       expect(before, closeTo(0, 0.001));
       expect(after, closeTo(1, 0.001));
+    });
+  });
+
+  // ===========================================================================
+  // middleLayerOpacity (single-page stationary layer)
+  // ===========================================================================
+  group('middleLayerOpacity', () {
+    test('forward stays opaque before the settle phase', () {
+      for (final p in [0.0, 0.25, 0.5, 0.84]) {
+        expect(
+          middleLayerOpacity(p, isForward: true),
+          closeTo(1, 0.001),
+          reason: 'forward middle must stay visible until settle (p=$p)',
+        );
+      }
+    });
+
+    test('forward fades to 0 across the settle phase', () {
+      expect(middleLayerOpacity(0.85, isForward: true), closeTo(1, 0.001));
+      final mid = middleLayerOpacity(0.90, isForward: true);
+      expect(mid, lessThan(1.0));
+      expect(mid, greaterThan(0.0));
+      expect(middleLayerOpacity(0.95, isForward: true), closeTo(0, 0.001));
+      expect(middleLayerOpacity(1, isForward: true), closeTo(0, 0.001));
+    });
+
+    test('backward NEVER fades — stays fully opaque for the whole turn', () {
+      // Backward floatProgress runs 1.0 -> 0.0. Every frame, including the
+      // first ones near 1.0, must keep the incoming previous page opaque so it
+      // covers the binding-edge strip and never exposes the host background
+      // (the black-flash-on-previous-page regression).
+      for (final p in [1.0, 0.99, 0.95, 0.9, 0.85, 0.5, 0.1, 0.0]) {
+        expect(
+          middleLayerOpacity(p, isForward: false),
+          closeTo(1, 0.001),
+          reason: 'backward middle must never fade (floatProgress=$p)',
+        );
+      }
+    });
+
+    test('degenerate revealStart==revealEnd does not divide by zero', () {
+      expect(
+        middleLayerOpacity(
+          0.90,
+          isForward: true,
+          revealStart: 0.90,
+          revealEnd: 0.90,
+        ),
+        closeTo(0, 0.001),
+      );
+    });
+  });
+
+  // ===========================================================================
+  // singlePageBackDim (thin-paper bleed-through overlay relaxation)
+  // ===========================================================================
+  group('singlePageBackDim', () {
+    test('holds the back opacity throughout the peel phase', () {
+      for (final p in [0.0, 0.3, 0.6, 0.84, 0.85]) {
+        expect(
+          singlePageBackDim(p, backOpacity: 0.35),
+          closeTo(0.35, 0.001),
+          reason: 'peel must keep the faint bleed dim (p=$p)',
+        );
+      }
+    });
+
+    test('eases up to crisp (1.0) by the end of the settle window', () {
+      expect(singlePageBackDim(0.95, backOpacity: 0.35), closeTo(1, 0.001));
+      expect(singlePageBackDim(1, backOpacity: 0.35), closeTo(1, 0.001));
+      final mid = singlePageBackDim(0.90, backOpacity: 0.35);
+      expect(mid, greaterThan(0.35));
+      expect(mid, lessThan(1.0));
+    });
+
+    test('is continuous across the settle boundary (no flicker snap)', () {
+      // The regression: a hard isSettlePhase gate made the overlay jump at
+      // revealStart. The relaxation must be continuous there.
+      final atStart = singlePageBackDim(0.85, backOpacity: 0.35);
+      final justAfter = singlePageBackDim(0.851, backOpacity: 0.35);
+      expect((justAfter - atStart).abs(), lessThan(0.02));
+      // Monotonic non-decreasing across the whole window.
+      var prev = -1.0;
+      for (var p = 0.80; p <= 1.0001; p += 0.01) {
+        final v = singlePageBackDim(p, backOpacity: 0.35);
+        expect(
+          v,
+          greaterThanOrEqualTo(prev - 1e-9),
+          reason: 'dim must not decrease (p=$p)',
+        );
+        prev = v;
+      }
+    });
+
+    test('disabled (returns 1.0) when backOpacity is full', () {
+      for (final p in [0.0, 0.5, 0.9, 1.0]) {
+        expect(singlePageBackDim(p, backOpacity: 1), closeTo(1, 0.001));
+      }
+    });
+
+    test('degenerate revealStart==revealEnd does not divide by zero', () {
+      expect(
+        singlePageBackDim(
+          0.90,
+          backOpacity: 0.35,
+          revealStart: 0.90,
+          revealEnd: 0.90,
+        ),
+        closeTo(1, 0.001),
+      );
     });
   });
 
@@ -240,12 +476,22 @@ void main() {
       }
     });
 
-    test('thin paper reduces opacity at mid-flip (forward)', () {
-      final atMid = flapOpacityModulator(
-        0.5,
-      );
+    test('thin paper reduces opacity at mid-flip', () {
+      final atMid = flapOpacityModulator(0.5);
       expect(atMid, lessThan(1.0));
       expect(atMid, greaterThan(0.5));
+    });
+
+    test('stays fully opaque when thin paper is disabled (no show-through)', () {
+      // Single-page mode disables the thin-paper show-through by passing
+      // thinPaperStrength: 0, so the flap stays fully opaque the whole flip.
+      for (final p in [0.1, 0.5, 0.9]) {
+        expect(
+          flapOpacityModulator(p, thinPaperStrength: 0),
+          closeTo(1, 0.001),
+          reason: 'flap must stay opaque with thin paper disabled (p=$p)',
+        );
+      }
     });
 
     test('end reveal reduces opacity near end (forward)', () {
@@ -276,9 +522,7 @@ void main() {
           isForward: false,
         ),
         closeTo(
-          flapOpacityModulator(
-            0.5,
-          ),
+          flapOpacityModulator(0.5),
           0.001,
         ),
       );
@@ -889,9 +1133,11 @@ void main() {
     test('flapFrontContentRevealOpacity handles exactly equal start/end values',
         () {
       // When fadeOutEnd == revealStart, mid-fold phase is zero-width.
+      // (Double-spread model; single-page keeps content visible throughout.)
       final atBoundary = flapFrontContentRevealOpacity(
         0.20,
         revealStart: 0.20,
+        isDoubleSpread: true,
       );
       // At p=fadeOutEnd, Phase 1 is active and returns 0.
       expect(atBoundary, closeTo(0, 0.001));

@@ -100,6 +100,7 @@ class PageFlipConfig {
     this.flapContentRevealStart = 0.85,
     this.flapContentRevealEnd = 0.95,
     this.flapBackStrength = 0.3,
+    this.singlePageBackContentOpacity = 1.0,
     this.performanceProfile = DevicePerformanceProfile.high,
     this.hapticTexturePreset = PaperTexturePreset.standard,
   });
@@ -141,6 +142,22 @@ class PageFlipConfig {
   /// page content horizontally mirrored at this opacity. 0.0 = disabled,
   /// 0.3 = subtle through-paper effect, 1.0 = fully visible mirror.
   final double flapBackStrength;
+
+  /// Single-page only: opacity of the flipping page's own content while it is
+  /// the back-facing side mid-flip (0.0–1.0).
+  ///
+  /// In single-page mode each page is single-sided, so the engine keeps the
+  /// flipping page's content fully visible for the whole turn. At the default
+  /// `1.0` the peeled side therefore reads as crisp, fully-printed text.
+  ///
+  /// Lowering this dims the peeled content toward the paper colour during the
+  /// peel (but NOT during the late settle reveal of the destination page),
+  /// simulating thin Bible (India) paper where the reverse text bleeds through
+  /// only faintly — as if a sheet of paper were laid over the back. A value
+  /// around `0.35` gives a subtle "thin paper" bleed-through.
+  ///
+  /// Has no effect in double-spread mode (see [flapBackStrength]).
+  final double singlePageBackContentOpacity;
 
   /// Whether to enable haptic feedback.
   final bool enableHaptics;
@@ -242,6 +259,7 @@ class PageFlipConfig {
     double? flapContentRevealStart,
     double? flapContentRevealEnd,
     double? flapBackStrength,
+    double? singlePageBackContentOpacity,
     DevicePerformanceProfile? performanceProfile,
     PaperTexturePreset? hapticTexturePreset,
     bool clearSemanticBuilder = false,
@@ -280,6 +298,8 @@ class PageFlipConfig {
             flapContentRevealStart ?? this.flapContentRevealStart,
         flapContentRevealEnd: flapContentRevealEnd ?? this.flapContentRevealEnd,
         flapBackStrength: flapBackStrength ?? this.flapBackStrength,
+        singlePageBackContentOpacity:
+            singlePageBackContentOpacity ?? this.singlePageBackContentOpacity,
         performanceProfile: performanceProfile ?? this.performanceProfile,
         hapticTexturePreset: hapticTexturePreset ?? this.hapticTexturePreset,
       );
@@ -313,6 +333,8 @@ class PageFlipConfig {
           flapContentRevealStart == other.flapContentRevealStart &&
           flapContentRevealEnd == other.flapContentRevealEnd &&
           flapBackStrength == other.flapBackStrength &&
+          singlePageBackContentOpacity ==
+              other.singlePageBackContentOpacity &&
           performanceProfile == other.performanceProfile &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
           edgeTapNextLabel == other.edgeTapNextLabel &&
@@ -341,6 +363,7 @@ class PageFlipConfig {
       flapContentRevealStart.hashCode ^
       flapContentRevealEnd.hashCode ^
       flapBackStrength.hashCode ^
+      singlePageBackContentOpacity.hashCode ^
       performanceProfile.hashCode ^
       edgeTapPreviousLabel.hashCode ^
       edgeTapNextLabel.hashCode ^

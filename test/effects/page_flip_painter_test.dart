@@ -266,7 +266,26 @@ void main() {
       testImage = null;
     });
 
-    test('mid fold skips texture when reveal opacity is zero', () {
+    test('double-spread mid fold skips texture when reveal opacity is zero', () {
+      final canvas = MockCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        flapFrontImage: testImage,
+        flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
+        flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
+        isDoubleSpread: true,
+      ).paint(canvas, const Size(800, 600));
+
+      expect(canvas.didDrawVertices, isFalse);
+      expect(canvas.didDrawRect, isTrue);
+    });
+
+    test('single-page mid fold draws texture (content curls with the paper)',
+        () {
       final canvas = MockCanvas();
 
       PageFlipPainter(
@@ -279,8 +298,9 @@ void main() {
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
       ).paint(canvas, const Size(800, 600));
 
-      expect(canvas.didDrawVertices, isFalse);
-      expect(canvas.didDrawRect, isTrue);
+      // Single-sided pages keep their content visible while flipping, so the
+      // textured mesh must be drawn even mid-fold (not blank paper).
+      expect(canvas.didDrawVertices, isTrue);
     });
 
     test('late progress draws texture when reveal opacity is full', () {

@@ -122,6 +122,7 @@ void main() {
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
         thinPaperStrength: 0.15,
+        isDoubleSpread: true,
       ).paint(canvas, size);
 
       // At progress=0.5, flapAlpha = 1.0 - sin(0.5π)*0.15 = 0.85 < 0.995
@@ -151,6 +152,7 @@ void main() {
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
         endRevealStrength: 0.35,
+        isDoubleSpread: true,
       ).paint(canvas, size);
 
       // At progress=0.92, end-reveal active: flapAlpha < 1.0
@@ -371,6 +373,43 @@ void main() {
       // At progress=0.5 with single-page, no stationary shadow, no spine.
       // So: highlight(1) + shadow(2) + edge-fade(3) + fold-fade(4) + revealed-shadow(5)
       expect(allShaderDraws, greaterThanOrEqualTo(4));
+    });
+
+    test(
+        'revealed shadow is drawn in the fold-aligned transform (single-page, '
+        'angled touch) so it hugs the tilted crease', () {
+      // Regression: with an off-centre touch the fold line tilts. The revealed
+      // shadow must be drawn inside canvas.transform(g.transform) so its dark
+      // edge lands on the tilted fold line. Without the transform the shadow is
+      // an axis-aligned rect at foldX and a bright wedge gap opens near the fold.
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(0, 0), // dy=0 → maximal fold tilt
+        paperBackColor: Colors.white,
+      ).paint(canvas, size);
+
+      // Single-page: flap transform (1) + revealed-shadow transform (2).
+      final transformIdxs = <int>[];
+      for (var i = 0; i < canvas.records.length; i++) {
+        if (canvas.records[i].method == 'transform') transformIdxs.add(i);
+      }
+      final lastClipPathIdx =
+          canvas.records.lastIndexWhere((r) => r.method == 'clipPath');
+
+      expect(
+        transformIdxs.length,
+        equals(2),
+        reason: 'Flap and revealed shadow must each apply the fold transform',
+      );
+      expect(
+        transformIdxs.last,
+        greaterThan(lastClipPathIdx),
+        reason: 'Revealed shadow transform must follow the shadow clipPath so '
+            'the shadow band aligns with the tilted fold line',
+      );
     });
 
     test('no revealed shadow at progress extremes', () {

@@ -3,6 +3,23 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.12.0] - 2026-06-30
+### ✨ 단면(Single-page) 모드 대폭 개선 (Single-Page Flip Overhaul)
+- **Backward geometry**: 단면 이전장 전환을 양면(spine) 지오메트리 대신 다음장과 동일한 접힘 방향의 **시간 역재생**으로 처리하여 단면 리더에 맞는 자연스러운 넘김 제공 | Single-page backward flips now reuse the forward fold geometry (time-reversed) instead of double-spread spine geometry.
+- **Adjacent reveal**: 단면 모드에서 넘김 중 다음/이전 장 콘텐츠가 접힘 뒤에서 연속적으로 보이도록 bottom 레이어 페이드 제거 | Bottom revealed page no longer fades in single-page mode, keeping the destination page visible throughout the flip.
+- **Scroll carry-over**: 드래그 시작 시 스크롤 오프셋을 스냅샷에 반영하여 세로 스크롤 후 가로 스와이프 시 같은 읽기 위치 유지 | Scroll offset is captured into flip snapshots so horizontal swipes preserve vertical scroll depth.
+- **Thin-paper bleed-through**: `PageFlipConfig.singlePageBackContentOpacity` 옵션 추가 (기본 1.0). 1.0 미만이면 접히는 면의 뒷글씨가 종이색 오버레이로 희미하게 비쳐 보이도록 지원 | New opt-in `singlePageBackContentOpacity` dims peeled back content for thin-paper bleed-through; default preserves existing crisp behaviour.
+- **Settle flicker fix**: 비침 오버레이가 정착(settle) 경계에서 한 프레임에 사라지던 깜박임을 `singlePageBackDim` 연속 보간으로 수정 | Bleed overlay now eases out continuously across the settle window instead of snapping off at `isSettlePhase`.
+
+### 🎨 시각 품질 (Visual Quality)
+- **Shadow seam**: 접힘 레이어 그림자 밴드 사이 밝은 칼날형 틈새(blade gap) 제거 | Eliminated bright blade-like gaps between shadow bands near the fold.
+- **Edge masks**: 다크/라이트 종이에 맞춰 edge·fold 마스크 폭·불투명도를 테마 인식(`isPaperDark`)으로 조정 | Theme-aware edge and fold masks (narrower/softer on dark paper).
+- **Highlight sheen**: 다크 종이는 은은한 쿨 톤, 라이트 종이는 따뜻한 매트 하이라이트 | Per-theme matte centre highlights (cool ambient on dark, warm on light paper).
+- **Fold crease**: 접힘 끝 테두리 선 두께·강도 완화로 만화적 아웃라인 제거 | Reduced cartoonish fold-edge stroke weight.
+
+### 🧪 테스트 (Tests)
+- 단면 backward 역재생, 비침 오버레이, 다크 마스크, 하이라이트 테마, 정착 깜박임 회귀 등 904개 테스트 통과 | Added regression tests for single backward, bleed-through, theme masks, settle flicker; full suite green.
+
 ## [1.11.9] - 2026-07-01
 ### ✨ 데모 애니메이션 세그먼트 최적화 (Demo Animation Segment)
 - **Highlight Focus**: README 미리보기 영상의 애니메이션 타임라인을 6초~14초 구간으로 집중 조정하여 페이지 플립의 핵심 물리 엔진 효과를 더 선명하게 강조 | Refined the demo animation segment to showcase the 6s-14s highlight section for better preview.

@@ -158,47 +158,54 @@ void main() {
   });
 
   group('flapFrontContentRevealOpacity', () {
-    test('starts visible and fades out quickly during early drag', () {
-      expect(flapFrontContentRevealOpacity(0), equals(1.0));
+    test('single-page keeps content visible throughout the flip', () {
+      for (final p in <double>[0.1, 0.25, 0.5, 0.84, 0.9]) {
+        expect(flapFrontContentRevealOpacity(p), equals(1.0));
+      }
+    });
+
+    test('double: starts visible and fades out quickly during early drag', () {
+      expect(flapFrontContentRevealOpacity(0, isDoubleSpread: true), equals(1.0));
       expect(
-        flapFrontContentRevealOpacity(0.10),
+        flapFrontContentRevealOpacity(0.10, isDoubleSpread: true),
         closeTo(0.5, 0.01),
       );
       expect(
-        flapFrontContentRevealOpacity(0.20),
+        flapFrontContentRevealOpacity(0.20, isDoubleSpread: true),
         equals(0.0),
       );
     });
 
-    test('is zero during mid fold between fade-out and late reveal', () {
-      expect(flapFrontContentRevealOpacity(0.25), equals(0.0));
-      expect(flapFrontContentRevealOpacity(0.50), equals(0.0));
+    test('double: is zero during mid fold between fade-out and late reveal',
+        () {
       expect(
-        flapFrontContentRevealOpacity(0.84),
+        flapFrontContentRevealOpacity(0.25, isDoubleSpread: true),
+        equals(0.0),
+      );
+      expect(
+        flapFrontContentRevealOpacity(0.50, isDoubleSpread: true),
+        equals(0.0),
+      );
+      expect(
+        flapFrontContentRevealOpacity(0.84, isDoubleSpread: true),
         equals(0.0),
       );
     });
 
-    test('ramps smoothly during late settle reveal', () {
+    test('double: ramps smoothly during late settle reveal', () {
       expect(
-        flapFrontContentRevealOpacity(
-          0.90,
-        ),
+        flapFrontContentRevealOpacity(0.90, isDoubleSpread: true),
         closeTo(0.5, 0.01),
       );
     });
 
-    test('is fully opaque at or after reveal end', () {
+    test('double: is fully opaque at or after reveal end', () {
       expect(
-        flapFrontContentRevealOpacity(
-          0.95,
-        ),
+        flapFrontContentRevealOpacity(0.95, isDoubleSpread: true),
         equals(1.0),
       );
       expect(
-        flapFrontContentRevealOpacity(
-          1,
-        ),
+        flapFrontContentRevealOpacity(1, isDoubleSpread: true),
         equals(1.0),
       );
     });

@@ -616,6 +616,89 @@ void main() {
       );
     });
   });
+
+  // ============================================================
+  // refreshIndexSync: re-capture live (scrolled) content at flip start
+  // ============================================================
+  group('refreshIndexSync', () {
+    // Reads the centre pixel [r,g,b] of an image (async GPU readback).
+    Future<List<int>> centrePixel(WidgetTester tester, ui.Image image) async {
+      late List<int> rgb;
+      await tester.runAsync(() async {
+        final data = await image.toByteData();
+        final bytes = data!.buffer.asUint8List();
+        final idx = ((image.height ~/ 2) * image.width + image.width ~/ 2) * 4;
+        rgb = [bytes[idx], bytes[idx + 1], bytes[idx + 2]];
+      });
+      return rgb;
+    }
+
+    testWidgets('captures the CURRENT scroll position, not a stale top capture',
+        (tester) async {
+      const red = Color(0xFFFF0000);
+      const green = Color(0xFF00FF00);
+      const blue = Color(0xFF0000FF);
+
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      final key = GlobalKey();
+      mgr.pageKeys[0] = key;
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 200,
+                height: 200,
+                child: RepaintBoundary(
+                  key: key,
+                  child: ListView(
+                    controller: scrollController,
+                    children: const [
+                      SizedBox(height: 200, child: ColoredBox(color: red)),
+                      SizedBox(height: 200, child: ColoredBox(color: green)),
+                      SizedBox(height: 200, child: ColoredBox(color: blue)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Stale capture at the top of the page (red fills the viewport).
+      mgr.refreshIndexSync(0);
+      final topRgb = await centrePixel(tester, mgr.pageSnapshots[0]!);
+      expect(topRgb[0], greaterThan(180), reason: 'top should be red. $topRgb');
+
+      // User scrolls the second screen (green) into view, then flips.
+      scrollController.jumpTo(200);
+      await tester.pump();
+      mgr.refreshIndexSync(0);
+
+      final scrolledRgb = await centrePixel(tester, mgr.pageSnapshots[0]!);
+      expect(
+        scrolledRgb[1],
+        greaterThan(180),
+        reason: 'after scroll the refreshed snapshot must show green '
+            '(current scroll position), not the stale red top. $scrolledRgb',
+      );
+      expect(scrolledRgb[0], lessThan(120));
+    });
+
+    testWidgets('no-ops safely when the index has no key', (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      // No pageKeys registered for index 0.
+      expect(() => mgr.refreshIndexSync(0), returnsNormally);
+      expect(mgr.pageSnapshots.containsKey(0), isFalse);
+    });
+  });
 }
 
 Future<ui.Image> _createTestImage() async {

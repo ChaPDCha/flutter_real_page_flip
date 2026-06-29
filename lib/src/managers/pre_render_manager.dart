@@ -450,6 +450,52 @@ class PreRenderManager {
     return found;
   }
 
+  /// Synchronously re-captures [index]'s snapshot from its live RepaintBoundary,
+  /// replacing any stale cached image.
+  ///
+  /// Used at flip start so the page being turned reflects the user's CURRENT
+  /// scroll position instead of the stale top-of-page capture taken when the
+  /// chapter first loaded. Uses [RenderRepaintBoundary.toImageSync] (not the
+  /// async [RenderRepaintBoundary.toImage]) so the very first flip frame already
+  /// draws the scrolled content — the async path lands ~1 frame late and lets a
+  /// "jumped to top" flash slip through at the start of the gesture.
+  ///
+  /// Refreshes both [spreadSnapshots] and [pageSnapshots] when an entry exists
+  /// (the current index is normally stored only as a spread snapshot). No-ops
+  /// safely when the boundary is missing, unpainted, or rasterization fails.
+  void refreshIndexSync(int index, {double pixelRatio = 1.0}) {
+    if (_isDisposed) return;
+    final key = pageKeys[index];
+    if (key == null) return;
+
+    final boundary = _findRepaintBoundary(key);
+    if (boundary == null || boundary.debugNeedsPaint) return;
+
+    final ui.Image image;
+    try {
+      image = boundary.toImageSync(pixelRatio: pixelRatio);
+    } on Object {
+      return;
+    }
+
+    final toDispose = <ui.Image>{};
+    if (spreadSnapshots.containsKey(index)) {
+      final old = spreadSnapshots[index];
+      spreadSnapshots[index] = image;
+      if (old != null) toDispose.add(old);
+      if (pageSnapshots.containsKey(index)) {
+        final oldPage = pageSnapshots[index];
+        pageSnapshots[index] = image.clone();
+        if (oldPage != null) toDispose.add(oldPage);
+      }
+    } else {
+      final old = pageSnapshots[index];
+      pageSnapshots[index] = image;
+      if (old != null) toDispose.add(old);
+    }
+    _disposeImagesOnce(toDispose);
+  }
+
   /// Disposes all cached snapshots and clears the snapshot maps.
   void flushSnapshots() {
     final toDispose = <ui.Image>{}
