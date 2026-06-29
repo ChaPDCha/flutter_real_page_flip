@@ -141,7 +141,8 @@ void main() {
     });
 
     test('copyWith effectHandler (non-null to null)', () {
-      final withHandler = base.copyWith(effectHandler: const _CopyWithHandler());
+      final withHandler =
+          base.copyWith(effectHandler: const _CopyWithHandler());
       final cleared = withHandler.copyWith(clearEffectHandler: true);
       expect(cleared.effectHandler, isNull);
     });

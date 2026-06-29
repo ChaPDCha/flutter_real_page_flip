@@ -11,14 +11,15 @@ void main() {
     bool isDoubleSpread = true,
     bool isForward = true,
     Offset touchOffset = Offset.zero,
-  }) => PageFlipGeometry(
-      progress: progress,
-      isRightToLeft: true,
-      touchOffset: touchOffset,
-      size: canvasSize,
-      isDoubleSpread: isDoubleSpread,
-      isForward: isForward,
-    );
+  }) =>
+      PageFlipGeometry(
+        progress: progress,
+        isRightToLeft: true,
+        touchOffset: touchOffset,
+        size: canvasSize,
+        isDoubleSpread: isDoubleSpread,
+        isForward: isForward,
+      );
 
   group('fold seam overlap', () {
     for (final progress in [0.5, 0.85, 0.92]) {
@@ -120,30 +121,32 @@ void main() {
   });
 
   group('clip path intersection exactness', () {
-    test('Stationary clip right boundary exactly matches Flap clip left boundary', () {
+    test(
+        'Stationary clip right boundary exactly matches Flap clip left boundary',
+        () {
       final g = geo(progress: 0.5);
       final statPath = buildStationaryPageClipPath(canvasSize, g);
       final flapPath = buildOpenPageClipPath(canvasSize, g);
-      
+
       // We check that the bounding boxes of the two clips meet exactly at foldX.
       // The open path bounding left edge should be the stationary path bounding right edge.
       // Note: Due to curve and bleed, they might overlap by exactly kSpineRevealOverlapPx * 2
       final statBounds = statPath.getBounds();
       final flapBounds = flapPath.getBounds();
-      
+
       // Stationary path extends to foldX + overlap
       // Flap path extends to foldX - overlap (or flapLeft, whichever is furthest left)
       // Since they are designed to overlap cleanly:
       final expectedStatRight = snapClipCoord(g.foldX + kSpineRevealOverlapPx);
       expect(statBounds.right, greaterThanOrEqualTo(expectedStatRight));
-      
+
       // The left boundary of open clip depends on flapLeft and overlap.
       // It should mathematically cover the right side starting from the seam.
       final expectedOpenLeft = math.min(
         snapClipCoord(g.flapLeft),
         snapClipCoord(g.foldX - kSpineRevealOverlapPx),
       );
-      // Because of the bezier curve for the page curl, getBounds().left 
+      // Because of the bezier curve for the page curl, getBounds().left
       // might be slightly inward from the theoretical flapLeft.
       expect(flapBounds.left, closeTo(expectedOpenLeft, 15.0));
     });
@@ -172,7 +175,7 @@ void main() {
 
         expect(statPath.getBounds().left, lessThanOrEqualTo(0));
         expect(statPath.getBounds().right, greaterThan(0));
-        
+
         expect(openPath.getBounds().left, lessThanOrEqualTo(size.width));
         expect(openPath.getBounds().right, greaterThanOrEqualTo(size.width));
       });

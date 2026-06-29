@@ -8,23 +8,28 @@ void main() {
     const defaultSlop = 9.5; // 18 - 17*0.5
 
     void feedPointerDown(PageFlipGestureRecognizer r) {
-      r.addAllowedPointer(const PointerDownEvent(
-        pointer: pointerId,
-      ),);
+      r.addAllowedPointer(
+        const PointerDownEvent(
+          pointer: pointerId,
+        ),
+      );
     }
 
     void feedMove(PageFlipGestureRecognizer r, Offset delta) {
-      r.handleEvent(PointerMoveEvent(
-        pointer: pointerId,
-        position: delta,
-        delta: delta,
-      ),);
+      r.handleEvent(
+        PointerMoveEvent(
+          pointer: pointerId,
+          position: delta,
+          delta: delta,
+        ),
+      );
     }
 
-    bool hasSufficient(PageFlipGestureRecognizer r) => r.hasSufficientGlobalDistanceToAccept(
-        PointerDeviceKind.touch,
-        defaultSlop,
-      );
+    bool hasSufficient(PageFlipGestureRecognizer r) =>
+        r.hasSufficientGlobalDistanceToAccept(
+          PointerDeviceKind.touch,
+          defaultSlop,
+        );
 
     testWidgets(
         'yields to vertical scroll when movement is predominantly vertical',

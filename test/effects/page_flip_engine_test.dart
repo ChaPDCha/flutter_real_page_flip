@@ -271,9 +271,14 @@ void main() {
       );
       // Backward and forward should produce the same result at p=0.5
       expect(
-        flapOpacityModulator(0.5, isForward: false,),
+        flapOpacityModulator(
+          0.5,
+          isForward: false,
+        ),
         closeTo(
-          flapOpacityModulator(0.5,),
+          flapOpacityModulator(
+            0.5,
+          ),
           0.001,
         ),
       );
@@ -546,15 +551,16 @@ void main() {
       Rect srcRect = const Rect.fromLTWH(0, 0, 200, 600),
       int segments = 16,
       int columns = 4,
-    }) => buildFlapContentMesh(
-        size: Size(width, height),
-        foldX: foldX,
-        flapLeft: flapLeft,
-        curveOffset: curveOffset,
-        srcRect: srcRect,
-        segments: segments,
-        columns: columns,
-      );
+    }) =>
+        buildFlapContentMesh(
+          size: Size(width, height),
+          foldX: foldX,
+          flapLeft: flapLeft,
+          curveOffset: curveOffset,
+          srcRect: srcRect,
+          segments: segments,
+          columns: columns,
+        );
 
     test('returns ui.Vertices with correct type', () {
       expect(buildDefaultMesh(), isA<ui.Vertices>());

@@ -37,9 +37,7 @@ void main() {
     });
 
     test('copyWith only overrides specified field', () {
-      const original = PaperPhysicsConfig(
-        
-      );
+      const original = PaperPhysicsConfig();
       final modified = original.copyWith(sigmoidCenter: 0.7);
 
       expect(modified.sigmoidK, equals(6.0));
@@ -121,9 +119,7 @@ void main() {
     });
 
     test('hashCode differs when fields differ', () {
-      const a = PaperPhysicsConfig(
-        
-      );
+      const a = PaperPhysicsConfig();
       const b = PaperPhysicsConfig(
         perlinOctaves: 6,
       );
@@ -131,10 +127,8 @@ void main() {
     });
 
     test('hashCode consistent for equal configs', () {
-      const a =
-          PaperPhysicsConfig();
-      const b =
-          PaperPhysicsConfig();
+      const a = PaperPhysicsConfig();
+      const b = PaperPhysicsConfig();
       expect(a.hashCode, equals(b.hashCode));
     });
 

@@ -59,7 +59,8 @@ void main() {
     var itemCount = 100;
 
     await tester.pumpWidget(
-      StatefulBuilder(builder: (context, setState) => MaterialApp(
+      StatefulBuilder(
+        builder: (context, setState) => MaterialApp(
           home: Scaffold(
             body: Column(
               children: [
@@ -77,7 +78,8 @@ void main() {
               ],
             ),
           ),
-        ),),
+        ),
+      ),
     );
 
     // Start a flip
@@ -141,18 +143,18 @@ void main() {
     await tester.pumpWidget(
       StatefulBuilder(
         builder: (context, setState) => MaterialApp(
-            home: Scaffold(
-              body: PageFlipWidget(
-                itemCount: 10,
-                itemBuilder: (context, index) =>
-                    Center(child: Text('Page $index')),
-                onPageChanged: (_) => flipCount++,
-                config: const PageFlipConfig(
-                  duration: Duration(milliseconds: 50),
-                ),
+          home: Scaffold(
+            body: PageFlipWidget(
+              itemCount: 10,
+              itemBuilder: (context, index) =>
+                  Center(child: Text('Page $index')),
+              onPageChanged: (_) => flipCount++,
+              config: const PageFlipConfig(
+                duration: Duration(milliseconds: 50),
               ),
             ),
           ),
+        ),
       ),
     );
 

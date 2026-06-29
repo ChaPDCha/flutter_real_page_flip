@@ -10,30 +10,32 @@ void main() {
     /// so its origin is at screen offset (200, 0). All gesture coordinates below
     /// account for this offset.
     Widget buildTestWidget({
-      required IndexedWidgetBuilder itemBuilder, int itemCount = 3,
+      required IndexedWidgetBuilder itemBuilder,
+      int itemCount = 3,
       int initialIndex = 0,
       void Function(int)? onPageChanged,
       void Function()? onFlipEnd,
       PageFlipController? controller,
       PageFlipConfig config = PageFlipConfig.defaultSettings,
-    }) => MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: SizedBox.fromSize(
-              size: viewSize,
-              child: PageFlipWidget(
-                controller: controller,
-                initialIndex: initialIndex,
-                itemCount: itemCount,
-                itemBuilder: itemBuilder,
-                onPageChanged: onPageChanged,
-                onFlipEnd: onFlipEnd,
-                config: config,
+    }) =>
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox.fromSize(
+                size: viewSize,
+                child: PageFlipWidget(
+                  controller: controller,
+                  initialIndex: initialIndex,
+                  itemCount: itemCount,
+                  itemBuilder: itemBuilder,
+                  onPageChanged: onPageChanged,
+                  onFlipEnd: onFlipEnd,
+                  config: config,
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
     Widget defaultPage(BuildContext context, int index) => Container(
           color: [Colors.blue, Colors.red, Colors.green][index],

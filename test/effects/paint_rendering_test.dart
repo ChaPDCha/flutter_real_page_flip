@@ -29,14 +29,20 @@ class RecordingCanvas extends Fake implements Canvas {
       records.add(_Record('transform', [matrix4]));
 
   @override
-  void clipRect(Rect rect,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {
+  void clipRect(
+    Rect rect, {
+    ui.ClipOp clipOp = ui.ClipOp.intersect,
+    bool doAntiAlias = true,
+  }) {
     records.add(_Record('clipRect', [rect, clipOp]));
   }
 
   @override
-  void clipPath(Path path,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {
+  void clipPath(
+    Path path, {
+    ui.ClipOp clipOp = ui.ClipOp.intersect,
+    bool doAntiAlias = true,
+  }) {
     records.add(_Record('clipPath', [path, clipOp]));
   }
 
@@ -63,25 +69,26 @@ class RecordingCanvas extends Fake implements Canvas {
   int drawRectCountWhere({
     BlendMode? blendMode,
     bool? hasShader,
-  }) => records.where((r) {
-      if (r.method != 'drawRect') return false;
-      final paint = r.args[1]! as Paint;
-      if (blendMode != null && paint.blendMode != blendMode) return false;
-      if (hasShader != null) {
-        if (hasShader && paint.shader == null) return false;
-        if (!hasShader && paint.shader != null) return false;
-      }
-      return true;
-    }).length;
+  }) =>
+      records.where((r) {
+        if (r.method != 'drawRect') return false;
+        final paint = r.args[1]! as Paint;
+        if (blendMode != null && paint.blendMode != blendMode) return false;
+        if (hasShader != null) {
+          if (hasShader && paint.shader == null) return false;
+          if (!hasShader && paint.shader != null) return false;
+        }
+        return true;
+      }).length;
 
   bool hasDrawRectWith({BlendMode? blendMode, bool? hasShader}) =>
       drawRectCountWhere(blendMode: blendMode, hasShader: hasShader) > 0;
 
   bool hasDrawRectNearX(double expectedX, double tolerance) => records.any((r) {
-      if (r.method != 'drawRect') return false;
-      final rect = r.args[0]! as Rect;
-      return (rect.left - expectedX).abs() <= tolerance;
-    });
+        if (r.method != 'drawRect') return false;
+        final rect = r.args[0]! as Rect;
+        return (rect.left - expectedX).abs() <= tolerance;
+      });
 }
 
 void main() {
@@ -185,8 +192,11 @@ void main() {
       // Single forward: flap extends LEFT → edge fade at flapLeft.
       // foldX=200, flapVisibleWidth≈280, flapLeft≈-80? No: flapLeft=foldX-flapVisibleWidth≈200-280=-80. Hmm.
       // Wait for size=800: foldX=400, flapVisibleWidth≈280, flapLeft=120. Edge fade at 120.
-      expect(canvas.hasDrawRectNearX(120, 30), isTrue,
-          reason: 'Edge-fade rect should start near flapLeft',);
+      expect(
+        canvas.hasDrawRectNearX(120, 30),
+        isTrue,
+        reason: 'Edge-fade rect should start near flapLeft',
+      );
     });
 
     test('fold-fade rect is at foldX-6 with 6px width (single forward)', () {
@@ -201,8 +211,11 @@ void main() {
 
       // Single forward: flapRightOfFold=false → fold fade at foldX-6.
       // foldX=400, fold fade left ≈ 394.
-      expect(canvas.hasDrawRectNearX(394, 20), isTrue,
-          reason: 'Fold-fade rect should start near foldX - 6',);
+      expect(
+        canvas.hasDrawRectNearX(394, 20),
+        isTrue,
+        reason: 'Fold-fade rect should start near foldX - 6',
+      );
     });
 
     // ── Bend shading (highlight + fold-edge darkening) ─────────
@@ -279,7 +292,8 @@ void main() {
       // First drawRect inside clip is the paper underlay.
       // Find it: it has NO shader.
       final paperDraw = canvas.records.firstWhere(
-          (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,);
+        (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,
+      );
       final paint = paperDraw.args[1]! as Paint;
       // Verify the paper color is approximately the given paperBackColor.
       // Use channel-by-channel comparison because Color.withValues() may
@@ -323,7 +337,8 @@ void main() {
 
       // Paper underlay drawRect has alpha = 0.5 (or adjusted)
       final paperDraws = canvas.records.where(
-          (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,);
+        (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,
+      );
       expect(paperDraws.isNotEmpty, isTrue);
       final paint = paperDraws.first.args[1]! as Paint;
       expect(paint.color.alpha, lessThan(255));
@@ -347,8 +362,10 @@ void main() {
       // At progress=0.5, revealedAlpha = 0.075 > 0.01 and shadowWidth > 1
       // → shadow IS drawn
       final allShaderDraws = canvas.records
-          .where((r) =>
-              r.method == 'drawRect' && (r.args[1]! as Paint).shader != null,)
+          .where(
+            (r) =>
+                r.method == 'drawRect' && (r.args[1]! as Paint).shader != null,
+          )
           .length;
       // Must be >= 4: bend highlight + bend shadow + edge-fade + fold-fade + revealed shadow
       // At progress=0.5 with single-page, no stationary shadow, no spine.
@@ -421,8 +438,11 @@ void main() {
       // flipSideShadowClipRect uses clipRect.
       // Spine also uses clipRect.
       // Total: 1 clipPath + 3 clipRect = 4 clip operations
-      expect(canvas.clipRectCount, greaterThanOrEqualTo(2),
-          reason: 'Should include shadow + stationary + spine clipRects',);
+      expect(
+        canvas.clipRectCount,
+        greaterThanOrEqualTo(2),
+        reason: 'Should include shadow + stationary + spine clipRects',
+      );
     });
 
     test('no stationary shadow in single-page mode', () {
@@ -468,8 +488,11 @@ void main() {
         reason: 'Spine groove uses BlendMode.multiply',
       );
       // Spine rect starts at spineX which is 400 for 800-wide double-spread
-      expect(canvas.hasDrawRectNearX(400, 5), isTrue,
-          reason: 'Spine groove rect starts near spineX=400',);
+      expect(
+        canvas.hasDrawRectNearX(400, 5),
+        isTrue,
+        reason: 'Spine groove rect starts near spineX=400',
+      );
     });
 
     test('no spine groove in single-page mode', () {
@@ -495,8 +518,11 @@ void main() {
         paperBackColor: Colors.white,
       ).paint(canvas, size);
 
-      expect(canvas.clipPathCount, equals(2),
-          reason: 'One clipPath for flap, one for shadow',);
+      expect(
+        canvas.clipPathCount,
+        equals(2),
+        reason: 'One clipPath for flap, one for shadow',
+      );
     });
 
     // ── Early return at progress extremes ──────────────────────
@@ -542,8 +568,11 @@ void main() {
         isDoubleSpread: true,
       ).paint(canvas, size);
 
-      expect(canvas.saveCount, equals(canvas.restoreCount),
-          reason: 'Every canvas.save() must have matching canvas.restore()',);
+      expect(
+        canvas.saveCount,
+        equals(canvas.restoreCount),
+        reason: 'Every canvas.save() must have matching canvas.restore()',
+      );
     });
 
     test('save/restore balanced in single-page mode', () {
@@ -574,10 +603,14 @@ void main() {
       // Sequence: save → clipPath → [saveLayer] → transform → drawRect(paper) → ...
       final clipIdx = canvas.records.indexWhere((r) => r.method == 'clipPath');
       final paperIdx = canvas.records.indexWhere(
-          (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,);
+        (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,
+      );
 
-      expect(paperIdx, greaterThan(clipIdx),
-          reason: 'Paper underlay drawRect must come after clipPath',);
+      expect(
+        paperIdx,
+        greaterThan(clipIdx),
+        reason: 'Paper underlay drawRect must come after clipPath',
+      );
     });
 
     test('drawVertices comes before gradient draws', () {
@@ -614,12 +647,17 @@ void main() {
       final lastVerticesIdx =
           canvas.records.lastIndexWhere((r) => r.method == 'drawVertices');
       // Bend highlight: BlendMode.screen
-      final firstBendIdx = canvas.records.indexWhere((r) =>
-          r.method == 'drawRect' &&
-          (r.args[1]! as Paint).blendMode == BlendMode.screen,);
+      final firstBendIdx = canvas.records.indexWhere(
+        (r) =>
+            r.method == 'drawRect' &&
+            (r.args[1]! as Paint).blendMode == BlendMode.screen,
+      );
 
-      expect(lastVerticesIdx, lessThan(firstBendIdx),
-          reason: 'Vertices must be drawn before bend shading overlay',);
+      expect(
+        lastVerticesIdx,
+        lessThan(firstBendIdx),
+        reason: 'Vertices must be drawn before bend shading overlay',
+      );
     });
 
     // ── 2.5D back content inside clip ──────────────────────────
@@ -709,8 +747,11 @@ void main() {
 
       // At progress=0.5, size=800x600, double backward: foldX=200, flapVisibleWidth≈140
       // flapLeft = foldX - flapVisibleWidth ≈ 60
-      expect(canvas.hasDrawRectNearX(60, 40), isTrue,
-          reason: 'Edge-fade rect should start near flapLeft',);
+      expect(
+        canvas.hasDrawRectNearX(60, 40),
+        isTrue,
+        reason: 'Edge-fade rect should start near flapLeft',
+      );
     });
 
     test('backward double-spread stationary shadow drawn with RTL', () {

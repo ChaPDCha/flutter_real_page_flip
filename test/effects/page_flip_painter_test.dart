@@ -544,12 +544,18 @@ class TrackingShaderCanvas extends Fake implements Canvas {
   void transform(Float64List matrix4) {}
 
   @override
-  void clipRect(Rect rect,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {}
+  void clipRect(
+    Rect rect, {
+    ui.ClipOp clipOp = ui.ClipOp.intersect,
+    bool doAntiAlias = true,
+  }) {}
 
   @override
-  void clipPath(Path path,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {}
+  void clipPath(
+    Path path, {
+    ui.ClipOp clipOp = ui.ClipOp.intersect,
+    bool doAntiAlias = true,
+  }) {}
 }
 
 class MockCanvas extends Fake implements Canvas {
@@ -578,10 +584,16 @@ class MockCanvas extends Fake implements Canvas {
   void transform(Float64List matrix4) {}
 
   @override
-  void clipRect(Rect rect,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {}
+  void clipRect(
+    Rect rect, {
+    ui.ClipOp clipOp = ui.ClipOp.intersect,
+    bool doAntiAlias = true,
+  }) {}
 
   @override
-  void clipPath(Path path,
-      {ui.ClipOp clipOp = ui.ClipOp.intersect, bool doAntiAlias = true,}) {}
+  void clipPath(
+    Path path, {
+    ui.ClipOp clipOp = ui.ClipOp.intersect,
+    bool doAntiAlias = true,
+  }) {}
 }

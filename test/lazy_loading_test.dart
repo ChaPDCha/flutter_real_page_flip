@@ -46,9 +46,9 @@ void main() {
             controller: controller,
             itemCount: 100,
             itemBuilder: (context, index) => SizedBox(
-                key: ValueKey('page_$index'),
-                child: Text('Page $index'),
-              ),
+              key: ValueKey('page_$index'),
+              child: Text('Page $index'),
+            ),
           ),
         ),
       );
@@ -68,8 +68,10 @@ void main() {
       // Note: buildCount tracks how many times itemBuilder was called, which might be more due to rebuilds,
       // but the tree should only contain a few Offstage pages.
       final offstageCount = tester.widgetList(find.byType(Offstage)).length;
-      expect(offstageCount,
-          lessThanOrEqualTo(4),); // prev, next + maybe old ones being disposed
+      expect(
+        offstageCount,
+        lessThanOrEqualTo(4),
+      ); // prev, next + maybe old ones being disposed
     });
   });
 }

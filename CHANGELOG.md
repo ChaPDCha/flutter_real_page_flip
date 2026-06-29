@@ -2,6 +2,10 @@
 
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
+## [1.11.5] - 2026-06-29
+### ✨ 데모 및 애니메이션 최적화 (Demo & Animation Optimization)
+- 패키지 예시 영상(page_flip_demo.webp)이 1-Column 및 2-Column 페이지 플립 애니메이션을 실제로 보여주도록 올바르게 교체 | Replaced the package demo video (page_flip_demo.webp) to properly show the actual 1-Column and 2-Column page flip animations.
+- 예제 앱 시작 시의 autoplay 시퀀스 속도를 2배로 빠르게 조정하여 개발자가 효과를 신속하게 확인할 수 있도록 개선 | Shortened and accelerated the example app autoplay sequence so developers can observe the page flip transitions much faster on launch.
 
 ## [1.11.4] - 2026-06-29
 ### 🔧 빌드/배포

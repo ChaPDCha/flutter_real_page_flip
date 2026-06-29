@@ -26,7 +26,8 @@ void main() {
       expect(
         PageFlipSpreadMode.values,
         containsAll(
-            [PageFlipSpreadMode.single, PageFlipSpreadMode.doubleSpread],),
+          [PageFlipSpreadMode.single, PageFlipSpreadMode.doubleSpread],
+        ),
       );
     });
 

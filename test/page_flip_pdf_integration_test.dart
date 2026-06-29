@@ -4,22 +4,23 @@ import 'package:real_page_flip/real_page_flip.dart';
 
 /// Stand-in for example [PdfPageRenderer] spreads: two labeled halves per index.
 Widget mockPdfSpreadPage(BuildContext context, int spreadIndex) => Row(
-    key: ValueKey('spread_$spreadIndex'),
-    children: [
-      Expanded(
-        child: ColoredBox(
-          color: Colors.primaries[spreadIndex % Colors.primaries.length],
-          child: Center(child: Text('PDF L$spreadIndex')),
+      key: ValueKey('spread_$spreadIndex'),
+      children: [
+        Expanded(
+          child: ColoredBox(
+            color: Colors.primaries[spreadIndex % Colors.primaries.length],
+            child: Center(child: Text('PDF L$spreadIndex')),
+          ),
         ),
-      ),
-      Expanded(
-        child: ColoredBox(
-          color: Colors.primaries[(spreadIndex + 1) % Colors.primaries.length],
-          child: Center(child: Text('PDF R$spreadIndex')),
+        Expanded(
+          child: ColoredBox(
+            color:
+                Colors.primaries[(spreadIndex + 1) % Colors.primaries.length],
+            child: Center(child: Text('PDF R$spreadIndex')),
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
 
 void main() {
   group('PageFlip PDF-style double-spread integration', () {
@@ -35,25 +36,26 @@ void main() {
       int initialIndex = 0,
       void Function(int)? onPageChanged,
       bool isRightSwipe = false,
-    }) => MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: SizedBox.fromSize(
-              size: viewSize,
-              child: PageFlipWidget(
-                initialIndex: initialIndex,
-                itemCount: itemCount,
-                isDoubleSpread: true,
-                itemBuilder: mockPdfSpreadPage,
-                onPageChanged: onPageChanged,
-                config: isRightSwipe
-                    ? const PageFlipConfig(isRightSwipe: true)
-                    : const PageFlipConfig(),
+    }) =>
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox.fromSize(
+                size: viewSize,
+                child: PageFlipWidget(
+                  initialIndex: initialIndex,
+                  itemCount: itemCount,
+                  isDoubleSpread: true,
+                  itemBuilder: mockPdfSpreadPage,
+                  onPageChanged: onPageChanged,
+                  config: isRightSwipe
+                      ? const PageFlipConfig(isRightSwipe: true)
+                      : const PageFlipConfig(),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
     testWidgets('forward half-width drag advances spread index', (
       tester,

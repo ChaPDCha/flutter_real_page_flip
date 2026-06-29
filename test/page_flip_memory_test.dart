@@ -36,7 +36,9 @@ void main() {
   void mockChannel(String channelName) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-            MethodChannel(channelName), (call) async => null,);
+      MethodChannel(channelName),
+      (call) async => null,
+    );
   }
 
   setUpAll(() {
@@ -96,7 +98,8 @@ void main() {
       expect(state.mounted, isFalse);
 
       print(
-          'Verified: PageFlipWidgetState successfully unmounted after interactions.',);
+        'Verified: PageFlipWidgetState successfully unmounted after interactions.',
+      );
     });
   });
 

@@ -216,7 +216,8 @@ class PageFlipPainter extends CustomPainter {
     final invertProgress = !isForward;
     final normalizedProgress = invertProgress ? (1.0 - progress) : progress;
     final isSettlePhase = normalizedProgress >= flapContentRevealStart;
-    final skipEarlyMesh = (performanceProfile != DevicePerformanceProfile.high) && !isSettlePhase;
+    final skipEarlyMesh =
+        (performanceProfile != DevicePerformanceProfile.high) && !isSettlePhase;
 
     // Layer 2: 2.5D page back content (double-spread only).
     // Shows the destination page content horizontally mirrored at low opacity,
@@ -426,7 +427,7 @@ class PageFlipPainter extends CustomPainter {
           ],
         ).createShader(edgeFadeRect),
     );
- 
+
     // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
     // As the flap narrows near the fold line, texture pixels compress and
     // create visible fragments. This narrow gradient from paperBackColor →
@@ -473,7 +474,8 @@ class PageFlipPainter extends CustomPainter {
           : Rect.fromLTWH(g.foldX - shadowWidth, 0, shadowWidth, size.height);
 
       // Gradient direction must match the shadow side (darkest at the fold line)
-      final beginAlign = isForward ? Alignment.centerLeft : Alignment.centerRight;
+      final beginAlign =
+          isForward ? Alignment.centerLeft : Alignment.centerRight;
       final endAlign = isForward ? Alignment.centerRight : Alignment.centerLeft;
 
       if (performanceProfile == DevicePerformanceProfile.low) {

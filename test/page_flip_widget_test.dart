@@ -551,7 +551,9 @@ void main() {
   });
 
   group('PageFlipWidget stability and lifecycle', () {
-    testWidgets('itemCount=0 renders SizedBox.shrink and does not crash or pre-render', (tester) async {
+    testWidgets(
+        'itemCount=0 renders SizedBox.shrink and does not crash or pre-render',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: PageFlipWidget(
@@ -565,7 +567,9 @@ void main() {
       expect(find.byType(SizedBox), findsWidgets);
     });
 
-    testWidgets('attaches, detaches, and cleans up controllers on widget update and dispose', (tester) async {
+    testWidgets(
+        'attaches, detaches, and cleans up controllers on widget update and dispose',
+        (tester) async {
       final controller1 = PageFlipController();
       final controller2 = PageFlipController();
 
@@ -612,9 +616,11 @@ void main() {
       expect(controller2.isAttached, isFalse);
     });
 
-    testWidgets('disposed during snapback animation does not throw state or disposed error', (tester) async {
+    testWidgets(
+        'disposed during snapback animation does not throw state or disposed error',
+        (tester) async {
       final controller = PageFlipController();
-      
+
       await tester.pumpWidget(
         MaterialApp(
           home: SizedBox(
@@ -634,7 +640,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final state = tester.state<PageFlipWidgetState>(find.byType(PageFlipWidget));
+      final state =
+          tester.state<PageFlipWidgetState>(find.byType(PageFlipWidget));
       final gesture = await tester.startGesture(const Offset(350, 300));
       await gesture.moveBy(const Offset(-100, 0));
       await gesture.up(); // starts snapback animation
@@ -650,7 +657,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('resizes dynamically and handles cache invalidation on size change', (tester) async {
+    testWidgets(
+        'resizes dynamically and handles cache invalidation on size change',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Center(
@@ -674,7 +683,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final state = tester.state<PageFlipWidgetState>(find.byType(PageFlipWidget));
+      final state =
+          tester.state<PageFlipWidgetState>(find.byType(PageFlipWidget));
       expect(state.context.size, equals(const Size(400, 600)));
 
       // Resize the constraints to trigger size change detection.
@@ -707,7 +717,9 @@ void main() {
       expect(state.context.size, equals(const Size(800, 600)));
       expect(tester.takeException(), isNull);
     });
-    testWidgets('continuous rapid drag cancels animations without breaking state (race condition)', (tester) async {
+    testWidgets(
+        'continuous rapid drag cancels animations without breaking state (race condition)',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: SizedBox(
@@ -729,27 +741,27 @@ void main() {
       // Start drag
       var gesture = await tester.startGesture(const Offset(380, 300));
       await tester.pump();
-      
+
       // Move slightly to trigger flip
       await gesture.moveBy(const Offset(-50, 0));
       await tester.pump();
-      
+
       // Release to start forward animation
       await gesture.up();
       await tester.pump();
-      
+
       // While animating, immediately start another gesture on the same spot to cancel
       // If race condition exists, this might crash or break the progress
       gesture = await tester.startGesture(const Offset(380, 300));
       await tester.pump();
-      
+
       // Move again
       await gesture.moveBy(const Offset(-10, 0));
       await tester.pump();
-      
+
       // Release
       await gesture.up();
-      
+
       // We expect the state to resolve cleanly without errors and eventually settle.
       await tester.pumpAndSettle(const Duration(seconds: 2));
       expect(tester.takeException(), isNull);

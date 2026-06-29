@@ -6,8 +6,7 @@ void main() {
   group('PaperPhysicsEngine', () {
     test('basic calculation produces positive amplitude and duration', () {
       final engine = PaperPhysicsEngine(pageNumber: 1);
-      final frame =
-          engine.calculate(dx: 10, foldAngle: 0.5, screenWidth: 400);
+      final frame = engine.calculate(dx: 10, foldAngle: 0.5, screenWidth: 400);
       expect(frame.amplitude, greaterThan(0));
       expect(frame.amplitude, lessThanOrEqualTo(1.0));
       expect(frame.durationMs, greaterThan(0));
@@ -17,8 +16,7 @@ void main() {
 
     test('zero dx produces minimal output', () {
       final engine = PaperPhysicsEngine(pageNumber: 1);
-      final frame =
-          engine.calculate(dx: 0, foldAngle: 0, screenWidth: 400);
+      final frame = engine.calculate(dx: 0, foldAngle: 0, screenWidth: 400);
       expect(frame.rawFriction, greaterThan(0)); // static friction at v=0
       expect(frame.amplitude, lessThan(0.5));
       expect(frame.sharpness, lessThan(0.5));
@@ -39,10 +37,8 @@ void main() {
 
     test('negative dx produces same result as positive', () {
       final engine = PaperPhysicsEngine(pageNumber: 1);
-      final pos =
-          engine.calculate(dx: 10, foldAngle: 0.5, screenWidth: 400);
-      final neg =
-          engine.calculate(dx: -10, foldAngle: 0.5, screenWidth: 400);
+      final pos = engine.calculate(dx: 10, foldAngle: 0.5, screenWidth: 400);
+      final neg = engine.calculate(dx: -10, foldAngle: 0.5, screenWidth: 400);
       expect(neg.amplitude, greaterThan(0));
     });
 
@@ -63,10 +59,8 @@ void main() {
 
     test('consecutive calls accumulate noise position', () {
       final engine = PaperPhysicsEngine(pageNumber: 1);
-      final frame1 =
-          engine.calculate(dx: 20, foldAngle: 0.5, screenWidth: 400);
-      final frame2 =
-          engine.calculate(dx: 20, foldAngle: 0.5, screenWidth: 400);
+      final frame1 = engine.calculate(dx: 20, foldAngle: 0.5, screenWidth: 400);
+      final frame2 = engine.calculate(dx: 20, foldAngle: 0.5, screenWidth: 400);
       expect(frame2.rawTexture, isNot(equals(frame1.rawTexture)));
     });
 
@@ -92,8 +86,7 @@ void main() {
 
     test('high fold angle produces higher resistance', () {
       final engine = PaperPhysicsEngine(pageNumber: 1);
-      final lowAngle =
-          engine.calculate(dx: 10, foldAngle: 0, screenWidth: 400);
+      final lowAngle = engine.calculate(dx: 10, foldAngle: 0, screenWidth: 400);
       final highAngle =
           engine.calculate(dx: 10, foldAngle: 1, screenWidth: 400);
       expect(highAngle.rawResistance, greaterThan(lowAngle.rawResistance));
@@ -101,8 +94,7 @@ void main() {
 
     test('very small screenWidth produces clamped velocity', () {
       final engine = PaperPhysicsEngine(pageNumber: 1);
-      final frame =
-          engine.calculate(dx: 100, foldAngle: 0.5, screenWidth: 1);
+      final frame = engine.calculate(dx: 100, foldAngle: 0.5, screenWidth: 1);
       expect(frame.amplitude, lessThanOrEqualTo(1.0));
     });
 

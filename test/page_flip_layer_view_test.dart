@@ -13,44 +13,13 @@ void main() {
     required bool isForward,
     int currentIndex = 0,
     int itemCount = 3,
-  }) => MaterialApp(
-      home: Scaffold(
-        body: SizedBox.fromSize(
-          size: canvasSize,
-          child: PageFlipLayerView(
-            itemCount: itemCount,
-            currentIndex: currentIndex,
-            dragProgress: dragProgress,
-            isDragging: true,
-            isForward: isForward,
-            touchPosition: const Offset(350, 150),
-            pageSnapshots: const {},
-            spreadSnapshots: const {},
-            pageKeys: {
-              for (var i = 0; i < itemCount; i++) i: GlobalKey(),
-            },
-            constrainedSize: canvasSize,
-            isDoubleSpread: true,
-            itemBuilder: (context, index) => ColoredBox(
-              color: Colors.primaries[index % Colors.primaries.length],
-              child: Center(child: Text('Page $index')),
-            ),
-          ),
-        ),
-      ),
-    );
-
-  group('PageFlipLayerView single-page mode', () {
-    Widget pumpSinglePageLayerView({
-      required double dragProgress,
-      required bool isForward,
-      int currentIndex = 0,
-    }) => MaterialApp(
+  }) =>
+      MaterialApp(
         home: Scaffold(
           body: SizedBox.fromSize(
             size: canvasSize,
             child: PageFlipLayerView(
-              itemCount: 3,
+              itemCount: itemCount,
               currentIndex: currentIndex,
               dragProgress: dragProgress,
               isDragging: true,
@@ -59,9 +28,10 @@ void main() {
               pageSnapshots: const {},
               spreadSnapshots: const {},
               pageKeys: {
-                for (var i = 0; i < 3; i++) i: GlobalKey(),
+                for (var i = 0; i < itemCount; i++) i: GlobalKey(),
               },
               constrainedSize: canvasSize,
+              isDoubleSpread: true,
               itemBuilder: (context, index) => ColoredBox(
                 color: Colors.primaries[index % Colors.primaries.length],
                 child: Center(child: Text('Page $index')),
@@ -71,7 +41,40 @@ void main() {
         ),
       );
 
-    testWidgets('forward drag shows opaque paper fallback when snapshot missing', (
+  group('PageFlipLayerView single-page mode', () {
+    Widget pumpSinglePageLayerView({
+      required double dragProgress,
+      required bool isForward,
+      int currentIndex = 0,
+    }) =>
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox.fromSize(
+              size: canvasSize,
+              child: PageFlipLayerView(
+                itemCount: 3,
+                currentIndex: currentIndex,
+                dragProgress: dragProgress,
+                isDragging: true,
+                isForward: isForward,
+                touchPosition: const Offset(350, 150),
+                pageSnapshots: const {},
+                spreadSnapshots: const {},
+                pageKeys: {
+                  for (var i = 0; i < 3; i++) i: GlobalKey(),
+                },
+                constrainedSize: canvasSize,
+                itemBuilder: (context, index) => ColoredBox(
+                  color: Colors.primaries[index % Colors.primaries.length],
+                  child: Center(child: Text('Page $index')),
+                ),
+              ),
+            ),
+          ),
+        );
+
+    testWidgets(
+        'forward drag shows opaque paper fallback when snapshot missing', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -755,7 +758,9 @@ void main() {
       expect(middleImage.image, equals(currentSpread));
     });
 
-    testWidgets('double spread forward keeps OffscreenPreRenderer current for capture', (
+    testWidgets(
+        'double spread forward keeps OffscreenPreRenderer current for capture',
+        (
       tester,
     ) async {
       final currentKey = GlobalKey();
@@ -897,12 +902,15 @@ void main() {
         (w) => w is ClipPath && w.clipper is PageFlipClipper,
       );
       // Bottom layer with spread 1 should NOT show live Page 0 and Page 1 content (opaque paper fallback)
-      expect(find.descendant(of: bottomClipper, matching: find.text('Spread 1')), findsNothing);
+      expect(
+          find.descendant(of: bottomClipper, matching: find.text('Spread 1')),
+          findsNothing);
       // Middle layer references spread 2
       expect(find.text('Spread 2'), findsWidgets);
     });
 
-    testWidgets('backward double-spread offscreen renderer includes adjacent indices', (
+    testWidgets(
+        'backward double-spread offscreen renderer includes adjacent indices', (
       tester,
     ) async {
       final keys = <int, GlobalKey>{

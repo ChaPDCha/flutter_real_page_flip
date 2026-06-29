@@ -282,7 +282,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-          callOrder.indexOf('start'), lessThan(callOrder.indexOf('changed')),);
+        callOrder.indexOf('start'),
+        lessThan(callOrder.indexOf('changed')),
+      );
     });
 
     testWidgets('onFlipEnd fires after onPageChanged in programmatic flip',

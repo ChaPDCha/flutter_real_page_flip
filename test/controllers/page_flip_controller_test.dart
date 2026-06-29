@@ -93,8 +93,7 @@ void main() {
       expect(currentPage, equals(0));
     });
 
-    testWidgets('methods safe when not attached to widget',
-        (tester) async {
+    testWidgets('methods safe when not attached to widget', (tester) async {
       final controller = PageFlipController();
 
       // No widget attached — should not throw
@@ -122,8 +121,11 @@ void main() {
 
       await controller.goToPage(3);
       await tester.pumpAndSettle();
-      expect(callbackCount, 0,
-          reason: 'goToPage current index should be no-op',);
+      expect(
+        callbackCount,
+        0,
+        reason: 'goToPage current index should be no-op',
+      );
     });
 
     testWidgets('goToPage from 0 to last page then back', (tester) async {
@@ -187,8 +189,11 @@ void main() {
 
       controller.previousPage();
       await tester.pumpAndSettle();
-      expect(callbackCount, 0,
-          reason: 'previousPage at first page should be no-op',);
+      expect(
+        callbackCount,
+        0,
+        reason: 'previousPage at first page should be no-op',
+      );
     });
 
     testWidgets('sequential nextPage calls without settle', (tester) async {

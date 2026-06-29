@@ -224,9 +224,7 @@ void main() {
     });
 
     test('equality respects performanceProfile', () {
-      const a = PageFlipConfig(
-        
-      );
+      const a = PageFlipConfig();
       const b = PageFlipConfig(
         performanceProfile: DevicePerformanceProfile.low,
       );
@@ -235,9 +233,7 @@ void main() {
     });
 
     test('equality respects hapticTexturePreset', () {
-      const a = PageFlipConfig(
-        
-      );
+      const a = PageFlipConfig();
       const b = PageFlipConfig(
         hapticTexturePreset: PaperTexturePreset.kraft,
       );
@@ -288,8 +284,11 @@ void main() {
         ),
       ];
       for (final v in variants) {
-        expect(v == base, isFalse,
-            reason: 'Variant should differ from base: $v',);
+        expect(
+          v == base,
+          isFalse,
+          reason: 'Variant should differ from base: $v',
+        );
       }
     });
   });

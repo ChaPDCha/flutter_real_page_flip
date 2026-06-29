@@ -204,9 +204,7 @@ void main() {
       });
 
       test('high profile does not throw', () async {
-        final handler = DefaultPageFlipEffectHandler(
-          
-        );
+        final handler = DefaultPageFlipEffectHandler();
         await Future<void>.delayed(Duration.zero);
         await handler.onHandleEffect(
           PageFlipEvent.texturedHaptic,

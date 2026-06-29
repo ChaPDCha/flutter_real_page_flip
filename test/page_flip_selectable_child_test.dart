@@ -9,10 +9,11 @@ Widget _readerLikeFlipHost({
   required ValueChanged<int> onPageChanged,
   required IndexedWidgetBuilder pageBuilder,
   PageFlipSpreadMode spreadMode = PageFlipSpreadMode.single,
-}) => MaterialApp(
-    home: Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) => Listener(
+}) =>
+    MaterialApp(
+      home: Scaffold(
+        body: LayoutBuilder(
+          builder: (context, constraints) => Listener(
             behavior: HitTestBehavior.translucent,
             onPointerDown: (_) {},
             onPointerUp: (_) {},
@@ -27,27 +28,27 @@ Widget _readerLikeFlipHost({
               itemBuilder: pageBuilder,
             ),
           ),
+        ),
       ),
-    ),
-  );
+    );
 
 /// Simulates [PdfPageRenderer] letterboxing (16:9 content on portrait viewport).
 Widget letterboxedPage(int index, {required double viewportWidth}) {
   final contentHeight = viewportWidth * 9 / 16;
   return LayoutBuilder(
     builder: (context, constraints) => ColoredBox(
-        color: Colors.black,
-        child: Center(
-          child: SizedBox(
-            width: constraints.maxWidth,
-            height: contentHeight,
-            child: ColoredBox(
-              color: Color(0xFF101010 + index),
-              child: Center(child: Text('PDF page $index')),
-            ),
+      color: Colors.black,
+      child: Center(
+        child: SizedBox(
+          width: constraints.maxWidth,
+          height: contentHeight,
+          child: ColoredBox(
+            color: Color(0xFF101010 + index),
+            child: Center(child: Text('PDF page $index')),
           ),
         ),
       ),
+    ),
   );
 }
 
@@ -101,8 +102,7 @@ void main() {
       );
 
       final layerElement = tester.element(find.byType(PageFlipGestureLayer));
-      final hostStack =
-          layerElement.findAncestorWidgetOfExactType<Stack>()!;
+      final hostStack = layerElement.findAncestorWidgetOfExactType<Stack>()!;
       expect(hostStack.children.last, isA<PageFlipGestureLayer>());
     },
   );
@@ -149,14 +149,14 @@ void main() {
           onPageChanged: (index) => currentPage = index,
           pageBuilder: (context, index) => LayoutBuilder(
             builder: (context, constraints) => GestureDetector(
-                onDoubleTapDown: (_) {},
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: SelectableText.rich(
-                    TextSpan(text: 'Page $index — selectable rich body text.'),
-                  ),
+              onDoubleTapDown: (_) {},
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: SelectableText.rich(
+                  TextSpan(text: 'Page $index — selectable rich body text.'),
                 ),
               ),
+            ),
           ),
         ),
       );

@@ -42,36 +42,38 @@ void main() {
       required bool isForward,
       required int currentIndex,
       required Map<int, ui.Image> pageSnapshots,
-    }) => MaterialApp(
-        theme: ThemeData(useMaterial3: true),
-        home: Scaffold(
-          backgroundColor: const Color(0xFFF5F5F5),
-          body: Center(
-            child: SizedBox.fromSize(
-              size: canvasSize,
-              child: PageFlipLayerView(
-                itemCount: 3,
-                currentIndex: currentIndex,
-                dragProgress: dragProgress,
-                isDragging: true,
-                isForward: isForward,
-                touchPosition:
-                    isForward ? const Offset(350, 150) : const Offset(50, 150),
-                pageSnapshots: pageSnapshots,
-                spreadSnapshots: const {},
-                pageKeys: {
-                  for (var i = 0; i < 3; i++) i: GlobalKey(),
-                },
-                constrainedSize: canvasSize,
-                paperFlapColor: const Color(0xFFF5F5F5),
-                itemBuilder: (context, index) => ColoredBox(
-                  color: Colors.primaries[index % Colors.primaries.length],
+    }) =>
+        MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: Scaffold(
+            backgroundColor: const Color(0xFFF5F5F5),
+            body: Center(
+              child: SizedBox.fromSize(
+                size: canvasSize,
+                child: PageFlipLayerView(
+                  itemCount: 3,
+                  currentIndex: currentIndex,
+                  dragProgress: dragProgress,
+                  isDragging: true,
+                  isForward: isForward,
+                  touchPosition: isForward
+                      ? const Offset(350, 150)
+                      : const Offset(50, 150),
+                  pageSnapshots: pageSnapshots,
+                  spreadSnapshots: const {},
+                  pageKeys: {
+                    for (var i = 0; i < 3; i++) i: GlobalKey(),
+                  },
+                  constrainedSize: canvasSize,
+                  paperFlapColor: const Color(0xFFF5F5F5),
+                  itemBuilder: (context, index) => ColoredBox(
+                    color: Colors.primaries[index % Colors.primaries.length],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
     testWidgets('forward progress 0.50', (tester) async {
       await tester.pumpWidget(

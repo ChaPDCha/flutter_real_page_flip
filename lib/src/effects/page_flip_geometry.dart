@@ -177,8 +177,7 @@ class PageFlipGeometry {
     // ── Fold curvature ──────────────────────────────────────────────────────
     final curvatureAmount = math.sin(clampedProgress * math.pi);
     final curveDirection = flapRightOfFold ? -1.0 : 1.0;
-    final curveOffset =
-        curvatureAmount * pageWidth * 0.04 * curveDirection;
+    final curveOffset = curvatureAmount * pageWidth * 0.04 * curveDirection;
     final foldCurveControl = MatrixUtils.transformPoint(
       transform,
       Offset(foldX - curveOffset, height / 2),

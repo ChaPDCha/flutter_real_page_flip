@@ -29,22 +29,25 @@ void main() {
     // ---------------------------------------------------------------------------
     void verifyOverlap(Path stationaryPath, Path flapPath, double y) {
       final overlapX = findOverlapX(stationaryPath, flapPath, y);
-      expect(overlapX, greaterThanOrEqualTo(0.0),
-          reason: 'No overlap found at y=$y. '
-              'stationary contains at any X? '
-              '${[
-            0,
-            200,
-            400,
-            600,
-          ].map((x) => '($x,$y):${stationaryPath.contains(Offset(x.toDouble(), y))}').join(', ')}. '
-              'flap contains at any X? '
-              '${[
-            0,
-            200,
-            400,
-            600,
-          ].map((x) => '($x,$y):${flapPath.contains(Offset(x.toDouble(), y))}').join(', ')}',);
+      expect(
+        overlapX,
+        greaterThanOrEqualTo(0.0),
+        reason: 'No overlap found at y=$y. '
+            'stationary contains at any X? '
+            '${[
+          0,
+          200,
+          400,
+          600,
+        ].map((x) => '($x,$y):${stationaryPath.contains(Offset(x.toDouble(), y))}').join(', ')}. '
+            'flap contains at any X? '
+            '${[
+          0,
+          200,
+          400,
+          600,
+        ].map((x) => '($x,$y):${flapPath.contains(Offset(x.toDouble(), y))}').join(', ')}',
+      );
     }
 
     // ---------------------------------------------------------------------------

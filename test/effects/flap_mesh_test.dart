@@ -160,9 +160,7 @@ void main() {
         curveOffset: 0, // flat mesh for deterministic test
       );
 
-      final byteData = await image.toByteData(
-        
-      );
+      final byteData = await image.toByteData();
       expect(byteData, isNotNull);
 
       // Check pixel at mid-point between flapLeft and foldX at mid-height.
@@ -173,15 +171,21 @@ void main() {
       final stride = size.width.toInt() * 4;
       final offset = my * stride + mx * 4;
       final r = byteData!.getUint8(offset);
-      expect(r, greaterThan(0),
-          reason: 'Mesh should cover the region between flapLeft and foldX',);
+      expect(
+        r,
+        greaterThan(0),
+        reason: 'Mesh should cover the region between flapLeft and foldX',
+      );
 
       // Pixel outside flap (far right of foldX) should be transparent.
       final outsideX = (foldX + 50).toInt();
       final outsideOffset = my * stride + outsideX * 4;
       final outsideR = byteData.getUint8(outsideOffset);
-      expect(outsideR, equals(0),
-          reason: 'Area beyond foldX should not be covered',);
+      expect(
+        outsideR,
+        equals(0),
+        reason: 'Area beyond foldX should not be covered',
+      );
 
       image.dispose();
     });

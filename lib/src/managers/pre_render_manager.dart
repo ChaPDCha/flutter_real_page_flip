@@ -395,7 +395,9 @@ class PreRenderManager {
         final retryGen = _retryGeneration;
         final retryIncludeSpread = _retryIncludeCurrentSpread;
         final retryRatio = _retryPixelRatio;
-        if (retryCurrent == null || retryTotal == null || retryCallback == null) {
+        if (retryCurrent == null ||
+            retryTotal == null ||
+            retryCallback == null) {
           return;
         }
 
