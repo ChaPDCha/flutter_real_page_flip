@@ -2,6 +2,13 @@
 
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
+
+## [1.11.6] - 2026-06-30
+### ✨ 데모 업데이트 및 UX 개선 (Demo & UX Improvements)
+- **Demo Update**: 웹 미리보기 데모가 AnimationController를 사용하여 자연스럽고 몰입감 넘치는 인간적인 드래그 물리 효과를 시뮬레이션하도록 개선 | The web preview demo now simulates fluid human-like page drag physics using an AnimationController, delivering a much more natural and immersive feel.
+- **UX Improvement**: 대화형 웹 미리보기에서 기기 프레임, 테두리, 그라데이션 배경을 제거하여 깔끔한 풀스크린 뷰 환경 제공 | Removed device frames, borders, and gradient backgrounds from the Interactive Web Preview for a clean, fullscreen viewing experience.
+- **Doc Optimization**: README 데모 섹션을 간소화하여 1단 및 2단 레이아웃 모두를 위한 통합 `Interactive Web Preview` 제공 | Simplified README demo sections to provide a unified `Interactive Web Preview` for both 1-column and 2-column layouts.
+
 ## [1.11.5] - 2026-06-29
 ### ✨ 데모 및 애니메이션 최적화 (Demo & Animation Optimization)
 - 패키지 예시 영상(page_flip_demo.webp)이 1-Column 및 2-Column 페이지 플립 애니메이션을 실제로 보여주도록 올바르게 교체 | Replaced the package demo video (page_flip_demo.webp) to properly show the actual 1-Column and 2-Column page flip animations.

@@ -134,6 +134,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   int get _totalPages => widget.itemCount;
 
+  /// Exposes the internal state controller for advanced programmatic interaction.
+  PageFlipStateController get controller => _controller;
+
   @override
   void initState() {
     super.initState();

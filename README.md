@@ -12,15 +12,9 @@ English | [한국어](#한국어-korean)
 
 ## Demos
 
-### 1. Premium Control Deck & Interactive Dashboard (v1.11+)
-![Premium Control Deck](doc/screenshots/performance_demo.webp)
-
-### 2. Double-Spread Tablet Layout (v1.11+)
-![Double-Spread Mode](doc/screenshots/interaction_demo.webp)
-
-### 3. Interactive Web Preview (Recorded Animation)
+### 1. Interactive Web Preview (Recorded Animation)
+This demo showcases the ultra-smooth page flip animations in both **1-Column Layout** and **2-Column Double-Spread Layout**.
 ![Interactive Web Preview](doc/screenshots/page_flip_demo.webp)
-
 
 ## Why Real Page Flip? (The Technical Edge)
 

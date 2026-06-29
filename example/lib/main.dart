@@ -37,7 +37,8 @@ class PremiumDemoScreen extends StatefulWidget {
   State<PremiumDemoScreen> createState() => _PremiumDemoScreenState();
 }
 
-class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
+class _PremiumDemoScreenState extends State<PremiumDemoScreen>
+    with SingleTickerProviderStateMixin {
   // PageFlip Config parameters
   double _sensitivity = 1;
   double _paperOpacity = 0.9;
@@ -53,9 +54,13 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
   PaperTexturePreset _hapticPreset = PaperTexturePreset.standard;
   bool _showTuningDeck = false;
   bool _autoPlay = true;
+  bool _isCleanMode = true;
+
+  late AnimationController _dragAnimationController;
 
   // Controller to monitor state
   late PageFlipController _controller;
+  final GlobalKey<PageFlipWidgetState> _flipKey = GlobalKey<PageFlipWidgetState>();
   int _currentPage = 0;
   String _animStatus = 'Idle';
 
@@ -63,7 +68,66 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
   void initState() {
     super.initState();
     _controller = PageFlipController();
+    _dragAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
     _startAutoPlay();
+  }
+
+  Future<void> _simulateHumanDrag(bool isForward) async {
+    final stateController = _flipKey.currentState?.controller;
+    if (stateController == null) return;
+
+    final context = _flipKey.currentContext;
+    if (context == null) return;
+    final size = context.size;
+    if (size == null) return;
+
+    final double startX = isForward ? size.width * 0.95 : size.width * 0.05;
+    final double endX = isForward ? size.width * 0.05 : size.width * 0.95;
+    final double startY = size.height * 0.8;
+
+    stateController.onDragStart(
+      DragStartDetails(localPosition: Offset(startX, startY)),
+      6,
+      accumulatedTotalDx: isForward ? -10.0 : 10.0,
+    );
+
+    double lastX = startX;
+
+    _dragAnimationController.value = 0.0;
+    void listener() {
+      final progress = _dragAnimationController.value;
+      final easedProgress = Curves.easeInOut.transform(progress);
+      final currentX = startX + (endX - startX) * easedProgress;
+      final currentY = startY + 50 * Curves.easeInOutSine.transform(progress);
+
+      final dx = currentX - lastX;
+      lastX = currentX;
+
+      stateController.onDragUpdate(
+        DragUpdateDetails(
+          globalPosition: Offset(currentX, currentY),
+          localPosition: Offset(currentX, currentY),
+          primaryDelta: dx,
+          delta: Offset(dx, 0),
+        ),
+        6,
+      );
+    }
+    
+    _dragAnimationController.addListener(listener);
+
+    await _dragAnimationController.animateTo(1.0);
+    _dragAnimationController.removeListener(listener);
+    
+    // Simulate release velocity
+    final velocityX = isForward ? -1000.0 : 1000.0;
+    stateController.onDragEnd(
+      DragEndDetails(primaryVelocity: velocityX, velocity: Velocity(pixelsPerSecond: Offset(velocityX, 0))),
+      6,
+    );
   }
 
   Future<void> _startAutoPlay() async {
@@ -71,8 +135,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
     await Future.delayed(const Duration(seconds: 2));
     if (!_autoPlay || !mounted) return;
 
-    // Single-page mode flip
-    _controller.nextPage();
+    // Single-page mode natural drag flip
+    await _simulateHumanDrag(true);
     await Future.delayed(const Duration(seconds: 2));
     if (!_autoPlay || !mounted) return;
 
@@ -83,8 +147,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
     await Future.delayed(const Duration(seconds: 2));
     if (!_autoPlay || !mounted) return;
 
-    // Double-page mode flip
-    _controller.nextPage();
+    // Double-page mode natural drag flip
+    await _simulateHumanDrag(true);
     await Future.delayed(const Duration(seconds: 2));
     if (!_autoPlay || !mounted) return;
 
@@ -98,6 +162,7 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
 
   @override
   void dispose() {
+    _dragAnimationController.dispose();
     super.dispose();
   }
 
@@ -108,47 +173,49 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background cool gradient shapes
-          Positioned(
-            top: -200,
-            right: -200,
-            child: Container(
-              width: 500,
-              height: 500,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF6C63FF).withValues(alpha: 0.15),
-                    blurRadius: 120,
-                  ),
-                ],
+          if (!_isCleanMode) ...[
+            // Background cool gradient shapes
+            Positioned(
+              top: -200,
+              right: -200,
+              child: Container(
+                width: 500,
+                height: 500,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6C63FF).withValues(alpha: 0.15),
+                      blurRadius: 120,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: -150,
-            left: -150,
-            child: Container(
-              width: 450,
-              height: 450,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF6584).withValues(alpha: 0.12),
-                    blurRadius: 100,
-                  ),
-                ],
+            Positioned(
+              bottom: -150,
+              left: -150,
+              child: Container(
+                width: 450,
+                height: 450,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF6584).withValues(alpha: 0.12),
+                      blurRadius: 100,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
 
           // Main Responsive Layout with top bar
           SafeArea(
             child: Column(
               children: [
-                _buildTopBar(),
+                if (!_isCleanMode) _buildTopBar(),
                 Expanded(
                   child: _showTuningDeck
                       ? (isWide ? _buildWideLayout() : _buildNarrowLayout())
@@ -157,6 +224,16 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               ],
             ),
           ),
+          if (_isCleanMode)
+            Positioned(
+              top: 16,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white54),
+                tooltip: 'Show Controls',
+                onPressed: () => setState(() => _isCleanMode = false),
+              ),
+            ),
         ],
       ),
     );
@@ -315,7 +392,9 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
   Widget _buildFullscreenBookLayout(bool isWide) {
     final maxWidth = (_isDoubleSpread ? 1200 : 540).toDouble();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+      padding: _isCleanMode
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       alignment: Alignment.center,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -324,18 +403,20 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
             child: Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: maxWidth,
-                  maxHeight: 760,
+                  maxWidth: _isCleanMode ? double.infinity : maxWidth,
+                  maxHeight: _isCleanMode ? double.infinity : 760,
                 ),
                 child: _buildBookTheatre(),
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: _buildStatusBar(),
-          ),
+          if (!_isCleanMode) ...[
+            const SizedBox(height: 16),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: _buildStatusBar(),
+            ),
+          ],
         ],
       ),
     );
@@ -394,34 +475,11 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
         ],
       );
 
-  Widget _buildBookTheatre() => Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2F),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 30,
-              spreadRadius: 2,
-              offset: const Offset(0, 15),
-            ),
-            BoxShadow(
-              color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
-              blurRadius: 20,
-              spreadRadius: -5,
-            ),
-          ],
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
-            width: 1.5,
-          ),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: PageFlipWidget(
-            controller: _controller,
-            itemCount: 6,
+  Widget _buildBookTheatre() {
+    final Widget pageFlipWidget = PageFlipWidget(
+      key: _flipKey,
+      controller: _controller,
+      itemCount: 6,
             isDoubleSpread: _isDoubleSpread,
             initialIndex: _currentPage,
             onPageChanged: (index) {
@@ -455,9 +513,41 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen> {
               backgroundColor: const Color(0xFF161623),
             ),
             itemBuilder: (context, index) => _buildBookPage(index),
+          );
+
+    if (_isCleanMode) {
+      return pageFlipWidget;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E2F),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 30,
+            spreadRadius: 2,
+            offset: const Offset(0, 15),
           ),
+          BoxShadow(
+            color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+            blurRadius: 20,
+            spreadRadius: -5,
+          ),
+        ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+          width: 1.5,
         ),
-      );
+      ),
+      padding: const EdgeInsets.all(16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: pageFlipWidget,
+      ),
+    );
+  }
 
   Widget _buildBookPage(int index) {
     switch (index) {
