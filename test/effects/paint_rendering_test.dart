@@ -702,7 +702,28 @@ void main() {
 
     // ── 2.5D back content inside clip ──────────────────────────
 
-    test('2.5D back mesh and fade drawn in double-spread', () {
+    test('2.5D back mesh and fade drawn in double-spread high profile', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.96,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        flapFrontImage: testImage,
+        flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
+        flapBackImage: testImage,
+        flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+        flapBackStrength: 0.3,
+        isDoubleSpread: true,
+        performanceProfile: DevicePerformanceProfile.high,
+      ).paint(canvas, size);
+
+      // Front mesh + Back mesh + all gradient draws
+      expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+    });
+
+    test('2.5D back mesh is skipped in double-spread medium profile', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -718,8 +739,9 @@ void main() {
         isDoubleSpread: true,
       ).paint(canvas, size);
 
-      // Front mesh + Back mesh + all gradient draws
-      expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+      // Medium can still draw the late-settle front texture, but not the
+      // opposite-page back mesh.
+      expect(canvas.drawVerticesCount, equals(1));
     });
 
     // ── Non-forward direction with double-spread ───────────────

@@ -43,6 +43,51 @@ void main() {
         ),
       );
 
+  group('OffscreenPreRenderer', () {
+    testWidgets('disables ticker mode while preserving the subtree', (
+      tester,
+    ) async {
+      bool? tickerEnabled;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: OffscreenPreRenderer(
+            isOffscreen: true,
+            child: Builder(
+              builder: (context) {
+                tickerEnabled = TickerMode.of(context);
+                return const SizedBox(width: 10, height: 10);
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(tickerEnabled, isFalse);
+      expect(find.byType(SizedBox), findsOneWidget);
+    });
+
+    testWidgets('leaves ticker mode unchanged when onscreen', (tester) async {
+      bool? tickerEnabled;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: OffscreenPreRenderer(
+            isOffscreen: false,
+            child: Builder(
+              builder: (context) {
+                tickerEnabled = TickerMode.of(context);
+                return const SizedBox(width: 10, height: 10);
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(tickerEnabled, isTrue);
+    });
+  });
+
   group('PageFlipLayerView single-page mode', () {
     Widget pumpSinglePageLayerView({
       required double dragProgress,
@@ -1111,8 +1156,9 @@ void main() {
       );
       // Bottom layer with spread 1 should NOT show live Page 0 and Page 1 content (opaque paper fallback)
       expect(
-          find.descendant(of: bottomClipper, matching: find.text('Spread 1')),
-          findsNothing,);
+        find.descendant(of: bottomClipper, matching: find.text('Spread 1')),
+        findsNothing,
+      );
       // Middle layer references spread 2
       expect(find.text('Spread 2'), findsWidgets);
     });

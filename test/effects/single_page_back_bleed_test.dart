@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 /// Records solid (non-shader) drawRect paints so tests can detect the
 /// thin-paper "back content dim" overlay that masks the peeled page content
@@ -18,7 +19,11 @@ class _SolidRectTrackingCanvas extends Fake implements Canvas {
   }
 
   @override
-  void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {}
+  void drawVertices(
+    ui.Vertices vertices,
+    ui.BlendMode blendMode,
+    Paint paint,
+  ) {}
 
   @override
   void save() {}
@@ -83,6 +88,7 @@ void main() {
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
+        performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, const Size(800, 600));
 
       expect(
@@ -107,6 +113,7 @@ void main() {
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
         singlePageBackContentOpacity: 0.35,
+        performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, const Size(800, 600));
 
       final overlays = canvas.solidRects.where(_isFaintPaperOverlay).toList();
@@ -148,6 +155,7 @@ void main() {
           flapFrontSettleSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
           flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
           singlePageBackContentOpacity: 0.35,
+          performanceProfile: DevicePerformanceProfile.high,
         ).paint(canvas, const Size(800, 600));
         final overlays = canvas.solidRects.where(_isFaintPaperOverlay).toList();
         return overlays.isEmpty

@@ -309,9 +309,11 @@ class PageFlipLayerView extends StatelessWidget {
           )
         : null;
 
-    // 2.5D page back content is opt-in. When disabled, avoid resolving the
-    // adjacent image/rect so the painter has no back mesh work to do.
-    final wantsFlapBack = isDoubleSpread && flapBackStrength > 0.005;
+    // 2.5D page back content is a high-fidelity opt-in only. Medium/low keep
+    // the back-facing flap as blank paper and avoid resolving back textures.
+    final wantsFlapBack = isDoubleSpread &&
+        performanceProfile == DevicePerformanceProfile.high &&
+        flapBackStrength > 0.005;
     final flapBackSpreadIndex =
         wantsFlapBack ? policy.flapBackSnapshotSpreadIndex : null;
     final flapBackImage = flapBackSpreadIndex != null
@@ -645,9 +647,12 @@ class OffscreenPreRenderer extends StatelessWidget {
     return Transform.translate(
       offset: const Offset(-20000, -20000),
       child: IgnorePointer(
-        child: ExcludeFocus(
-          child: ExcludeSemantics(
-            child: child,
+        child: TickerMode(
+          enabled: false,
+          child: ExcludeFocus(
+            child: ExcludeSemantics(
+              child: child,
+            ),
           ),
         ),
       ),
