@@ -50,7 +50,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
   bool _isDoubleSpread = false;
   bool _isRightSwipe = false;
   bool _enableSwipe = true;
-  DevicePerformanceProfile _performanceProfile = DevicePerformanceProfile.high;
+  DevicePerformanceProfile _performanceProfile =
+      DevicePerformanceProfile.medium;
   PaperTexturePreset _hapticPreset = PaperTexturePreset.standard;
   bool _showTuningDeck = false;
   bool _autoPlay = true;
@@ -61,7 +62,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
 
   // Controller to monitor state
   late PageFlipController _controller;
-  final GlobalKey<PageFlipWidgetState> _flipKey = GlobalKey<PageFlipWidgetState>();
+  final GlobalKey<PageFlipWidgetState> _flipKey =
+      GlobalKey<PageFlipWidgetState>();
   int _currentPage = 0;
   String _animStatus = 'Idle';
 
@@ -119,16 +121,19 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
         6,
       );
     }
-    
+
     _dragAnimationController.addListener(listener);
 
     await _dragAnimationController.animateTo(1);
     _dragAnimationController.removeListener(listener);
-    
+
     // Simulate release velocity
     final velocityX = isForward ? -1000.0 : 1000.0;
     stateController.onDragEnd(
-      DragEndDetails(primaryVelocity: velocityX, velocity: Velocity(pixelsPerSecond: Offset(velocityX, 0))),
+      DragEndDetails(
+        primaryVelocity: velocityX,
+        velocity: Velocity(pixelsPerSecond: Offset(velocityX, 0)),
+      ),
       6,
     );
     _isSimulatingDrag = false;
@@ -485,42 +490,42 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
       key: _flipKey,
       controller: _controller,
       itemCount: 6,
-            isDoubleSpread: _isDoubleSpread,
-            initialIndex: _currentPage,
-            onPageChanged: (index) {
-              setState(() {
-                _currentPage = index;
-              });
-            },
-            onFlipStart: () {
-              setState(() {
-                _animStatus = 'Animating';
-                if (!_isSimulatingDrag) {
-                  _autoPlay = false; // Stop autoplay on manual swipe
-                }
-              });
-            },
-            onFlipEnd: () {
-              setState(() {
-                _animStatus = 'Idle';
-              });
-            },
-            config: PageFlipConfig(
-              sensitivity: _sensitivity,
-              paperOpacity: _paperOpacity,
-              thinPaperStrength: _thinPaperStrength,
-              flapContentRevealStart: _flapContentRevealStart,
-              flapContentRevealEnd: _flapContentRevealEnd,
-              enableHaptics: _enableHaptics,
-              enableSound: _enableSound,
-              isRightSwipe: _isRightSwipe,
-              enableSwipe: _enableSwipe,
-              performanceProfile: _performanceProfile,
-              hapticTexturePreset: _hapticPreset,
-              backgroundColor: const Color(0xFF161623),
-            ),
-            itemBuilder: (context, index) => _buildBookPage(index),
-          );
+      isDoubleSpread: _isDoubleSpread,
+      initialIndex: _currentPage,
+      onPageChanged: (index) {
+        setState(() {
+          _currentPage = index;
+        });
+      },
+      onFlipStart: () {
+        setState(() {
+          _animStatus = 'Animating';
+          if (!_isSimulatingDrag) {
+            _autoPlay = false; // Stop autoplay on manual swipe
+          }
+        });
+      },
+      onFlipEnd: () {
+        setState(() {
+          _animStatus = 'Idle';
+        });
+      },
+      config: PageFlipConfig(
+        sensitivity: _sensitivity,
+        paperOpacity: _paperOpacity,
+        thinPaperStrength: _thinPaperStrength,
+        flapContentRevealStart: _flapContentRevealStart,
+        flapContentRevealEnd: _flapContentRevealEnd,
+        enableHaptics: _enableHaptics,
+        enableSound: _enableSound,
+        isRightSwipe: _isRightSwipe,
+        enableSwipe: _enableSwipe,
+        performanceProfile: _performanceProfile,
+        hapticTexturePreset: _hapticPreset,
+        backgroundColor: const Color(0xFF161623),
+      ),
+      itemBuilder: (context, index) => _buildBookPage(index),
+    );
 
     if (_isCleanMode) {
       return pageFlipWidget;
@@ -596,7 +601,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
                 height: 120,
                 decoration: BoxDecoration(
                   border: Border.all(
-                      color: const Color(0xFFFF6584).withValues(alpha: 0.15),),
+                    color: const Color(0xFFFF6584).withValues(alpha: 0.15),
+                  ),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -611,8 +617,9 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
                   height: 200,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: const Color(0xFF6C63FF).withValues(alpha: 0.15),
-                        width: 1.5,),
+                      color: const Color(0xFF6C63FF).withValues(alpha: 0.15),
+                      width: 1.5,
+                    ),
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
@@ -627,8 +634,11 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.auto_awesome,
-                          color: Color(0xFFFF6584), size: 16,),
+                      Icon(
+                        Icons.auto_awesome,
+                        color: Color(0xFFFF6584),
+                        size: 16,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'PORTFOLIO MAGAZINE',
@@ -765,18 +775,30 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
             ),
             const SizedBox(height: 16),
             _buildMetricsCard(
-                'Mesh Complexity', '120 vertices (curved)', Colors.blueAccent,),
+              'Mesh Complexity',
+              '120 vertices (curved)',
+              Colors.blueAccent,
+            ),
             const SizedBox(height: 10),
             _buildMetricsCard(
-                'Render Latency', '0.84 ms / frame', Colors.greenAccent,),
+              'Render Latency',
+              '0.84 ms / frame',
+              Colors.greenAccent,
+            ),
             const SizedBox(height: 10),
             _buildMetricsCard(
-                'AMO Efficiency', 'Skip rates up to 74%', Colors.purpleAccent,),
+              'AMO Efficiency',
+              'Skip rates up to 74%',
+              Colors.purpleAccent,
+            ),
             const SizedBox(height: 16),
             Text(
               'AMO modulates clipping matrices depending on current screen coordinate bounds, securing consistent performance.',
               style: TextStyle(
-                  fontSize: 11, color: Colors.grey.shade500, height: 1.4,),
+                fontSize: 11,
+                color: Colors.grey.shade500,
+                height: 1.4,
+              ),
             ),
           ],
         ),
@@ -792,22 +814,27 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title,
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
             Row(
               children: [
                 Container(
-                    width: 8,
-                    height: 8,
-                    decoration:
-                        BoxDecoration(shape: BoxShape.circle, color: color),),
+                  width: 8,
+                  height: 8,
+                  decoration:
+                      BoxDecoration(shape: BoxShape.circle, color: color),
+                ),
                 const SizedBox(width: 8),
-                Text(val,
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade300,
-                        fontWeight: FontWeight.bold,),),
+                Text(
+                  val,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade300,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ],
@@ -853,33 +880,43 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
                   child: RichText(
                     text: const TextSpan(
                       style: TextStyle(
-                          fontFamily: 'monospace', fontSize: 10, height: 1.5,),
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                        height: 1.5,
+                      ),
                       children: [
                         TextSpan(
-                            text: 'PageFlipWidget',
-                            style: TextStyle(
-                                color: Color(0xFF6C63FF),
-                                fontWeight: FontWeight.bold,),),
+                          text: 'PageFlipWidget',
+                          style: TextStyle(
+                            color: Color(0xFF6C63FF),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         TextSpan(text: '(\n'),
                         TextSpan(text: '  controller: controller,\n'),
                         TextSpan(
-                            text: '  config: PageFlipConfig(\n',
-                            style: TextStyle(color: Colors.tealAccent),),
+                          text: '  config: PageFlipConfig(\n',
+                          style: TextStyle(color: Colors.tealAccent),
+                        ),
                         TextSpan(
-                            text: '    sensitivity: 1.0,\n',
-                            style: TextStyle(color: Colors.orangeAccent),),
+                          text: '    sensitivity: 1.0,\n',
+                          style: TextStyle(color: Colors.orangeAccent),
+                        ),
                         TextSpan(
-                            text: '    paperOpacity: 0.9,\n',
-                            style: TextStyle(color: Colors.orangeAccent),),
+                          text: '    paperOpacity: 0.9,\n',
+                          style: TextStyle(color: Colors.orangeAccent),
+                        ),
                         TextSpan(text: '    performanceProfile:\n'),
                         TextSpan(
-                            text: '      DevicePerformanceProfile.high,\n',
-                            style: TextStyle(color: Colors.purpleAccent),),
+                          text: '      DevicePerformanceProfile.medium,\n',
+                          style: TextStyle(color: Colors.purpleAccent),
+                        ),
                         TextSpan(text: '  ),\n'),
                         TextSpan(text: '  itemBuilder: (context, idx) =>\n'),
                         TextSpan(
-                            text: '    YourBookPage(idx),\n',
-                            style: TextStyle(color: Colors.greenAccent),),
+                          text: '    YourBookPage(idx),\n',
+                          style: TextStyle(color: Colors.greenAccent),
+                        ),
                         TextSpan(text: ');'),
                       ],
                     ),
@@ -910,10 +947,11 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
             const Text(
               '“',
               style: TextStyle(
-                  fontSize: 48,
-                  fontFamily: 'serif',
-                  color: Color(0xFF6C63FF),
-                  height: 0.8,),
+                fontSize: 48,
+                fontFamily: 'serif',
+                color: Color(0xFF6C63FF),
+                height: 0.8,
+              ),
             ),
             const Text(
               'The paper curves, the shadows blend,\nA virtual touch that has no end.\nGravity pulls, friction holds,\nAs a brand new chapter unfolds.',
@@ -930,10 +968,11 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
             Text(
               '— ODE TO DART PHYSICS',
               style: TextStyle(
-                  fontSize: 10,
-                  letterSpacing: 1.5,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.bold,),
+                fontSize: 10,
+                letterSpacing: 1.5,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -957,7 +996,8 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
                   shape: BoxShape.circle,
                   color: const Color(0xFF6C63FF).withValues(alpha: 0.08),
                   border: Border.all(
-                      color: const Color(0xFF6C63FF).withValues(alpha: 0.2),),
+                    color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                  ),
                 ),
                 child: const Icon(
                   Icons.import_contacts_sharp,
@@ -1132,16 +1172,31 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
 
                   // Feature Switches
                   _buildSectionTitle('Configurations'),
-                  _buildToggle('Double-spread Mode', _isDoubleSpread,
-                      (v) => setState(() => _isDoubleSpread = v),),
-                  _buildToggle('Haptic Feedback (Stick-Slip)', _enableHaptics,
-                      (v) => setState(() => _enableHaptics = v),),
-                  _buildToggle('Sound FX (Paper Friction)', _enableSound,
-                      (v) => setState(() => _enableSound = v),),
-                  _buildToggle('Right-to-Left (RTL) Swipe', _isRightSwipe,
-                      (v) => setState(() => _isRightSwipe = v),),
-                  _buildToggle('Enable Gesture Swipe', _enableSwipe,
-                      (v) => setState(() => _enableSwipe = v),),
+                  _buildToggle(
+                    'Double-spread Mode',
+                    _isDoubleSpread,
+                    (v) => setState(() => _isDoubleSpread = v),
+                  ),
+                  _buildToggle(
+                    'Haptic Feedback (Stick-Slip)',
+                    _enableHaptics,
+                    (v) => setState(() => _enableHaptics = v),
+                  ),
+                  _buildToggle(
+                    'Sound FX (Paper Friction)',
+                    _enableSound,
+                    (v) => setState(() => _enableSound = v),
+                  ),
+                  _buildToggle(
+                    'Right-to-Left (RTL) Swipe',
+                    _isRightSwipe,
+                    (v) => setState(() => _isRightSwipe = v),
+                  ),
+                  _buildToggle(
+                    'Enable Gesture Swipe',
+                    _enableSwipe,
+                    (v) => setState(() => _enableSwipe = v),
+                  ),
                 ],
               ),
             ),
@@ -1177,14 +1232,18 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(label,
-                    style:
-                        TextStyle(fontSize: 11, color: Colors.grey.shade300),),
-                Text(val.toStringAsFixed(2),
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFFF6584),),),
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade300),
+                ),
+                Text(
+                  val.toStringAsFixed(2),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFF6584),
+                  ),
+                ),
               ],
             ),
             SliderTheme(
@@ -1212,8 +1271,10 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade300),),
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade300),
+            ),
             Switch(
               value: val,
               onChanged: onChanged,
@@ -1283,9 +1344,15 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildStatusItem(
-                Icons.menu_book, 'Page', '${_currentPage + 1} / 6',),
-            _buildStatusItem(Icons.settings_suggest, 'AMO Profiling',
-                _performanceProfile.name.toUpperCase(),),
+              Icons.menu_book,
+              'Page',
+              '${_currentPage + 1} / 6',
+            ),
+            _buildStatusItem(
+              Icons.settings_suggest,
+              'AMO Profiling',
+              _performanceProfile.name.toUpperCase(),
+            ),
             _buildStatusItem(Icons.bolt, 'Engine', _animStatus),
           ],
         ),
@@ -1298,14 +1365,21 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 9,
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.bold,),),
-              Text(val,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold,),),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                val,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ],

@@ -11,7 +11,7 @@ import 'package:real_page_flip/src/physics/stick_slip_controller.dart';
 
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   DefaultPageFlipEffectHandler({
-    this.performanceProfile = DevicePerformanceProfile.high,
+    this.performanceProfile = DevicePerformanceProfile.medium,
     this.hapticTexturePreset = PaperTexturePreset.standard,
   }) : _textureConfig = PaperTextureConfig.fromPreset(hapticTexturePreset) {
     _initAudio();

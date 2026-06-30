@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 void main() {
   group('PageFlipPainter', () {
@@ -266,7 +267,8 @@ void main() {
       testImage = null;
     });
 
-    test('double-spread mid fold skips texture when reveal opacity is zero', () {
+    test('double-spread mid fold skips texture when reveal opacity is zero',
+        () {
       final canvas = MockCanvas();
 
       PageFlipPainter(
@@ -333,6 +335,7 @@ void main() {
         flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
         flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
         isDoubleSpread: true,
+        performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, const Size(800, 600));
 
       expect(canvas.didDrawVertices, isTrue);
@@ -351,6 +354,7 @@ void main() {
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 400, 600),
         isDoubleSpread: true,
         isForward: false,
+        performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, const Size(800, 600));
 
       expect(canvas.didDrawVertices, isTrue);
@@ -431,11 +435,9 @@ void main() {
           isDoubleSpread: true,
         ).paint(canvas, const Size(800, 600));
 
-        // flapBackStrength=0 means backFadeAlpha=1.0 → cover entirely.
-        // So no separate back mesh is drawn since hasFlapBack is still true
-        // (flapBackStrength > 0 check is NOT in hasFlapBack).
-        // The mesh IS drawn, then the fade overlay covers it.
-        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(1));
+        // flapBackStrength=0 is a real performance-off switch: no hidden
+        // back mesh should be built and then covered by paper.
+        expect(canvas.drawVerticesCount, equals(0));
       });
 
       test('single page mode skips back content even with images', () {
@@ -474,6 +476,7 @@ void main() {
           flapBackStrength: 0.3,
           isDoubleSpread: true,
           isForward: false,
+          performanceProfile: DevicePerformanceProfile.high,
         ).paint(canvas, const Size(800, 600));
 
         // Front mesh + back mesh = 2 drawVertices
@@ -498,7 +501,7 @@ void main() {
           isForward: false,
         ).paint(canvas, const Size(800, 600));
 
-        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(1));
+        expect(canvas.drawVerticesCount, equals(0));
       });
 
       test('backward double-spread shouldRepaint when isForward changes', () {

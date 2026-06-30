@@ -75,7 +75,7 @@ class PageFlipLayerView extends StatelessWidget {
     this.isDoubleSpread = false,
 
     /// Performance profile to control rendering quality.
-    this.performanceProfile = DevicePerformanceProfile.high,
+    this.performanceProfile = DevicePerformanceProfile.medium,
 
     /// Animation controller for driving fade transitions.
     this.flipAnimation,
@@ -309,12 +309,15 @@ class PageFlipLayerView extends StatelessWidget {
           )
         : null;
 
-    // 2.5D page back content: same half geometry as front, from adjacent spread.
-    final flapBackSpreadIndex = policy.flapBackSnapshotSpreadIndex;
+    // 2.5D page back content is opt-in. When disabled, avoid resolving the
+    // adjacent image/rect so the painter has no back mesh work to do.
+    final wantsFlapBack = isDoubleSpread && flapBackStrength > 0.005;
+    final flapBackSpreadIndex =
+        wantsFlapBack ? policy.flapBackSnapshotSpreadIndex : null;
     final flapBackImage = flapBackSpreadIndex != null
         ? spreadSnapshots[flapBackSpreadIndex]
         : null;
-    final flapBackSrcRect = flapBackImage != null
+    final flapBackSrcRect = wantsFlapBack && flapBackImage != null
         ? flapBackSourceRect(
             imageSize: Size(
               flapBackImage.width.toDouble(),

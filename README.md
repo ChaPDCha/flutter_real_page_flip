@@ -97,6 +97,7 @@ PageFlipWidget(
   itemCount: spreadCount, // number of spreads, not single pages
   config: PageFlipConfig(
     skipTapAnimation: false, // required to animate spine-band reveal on tap
+    flapBackStrength: 0.0, // default: keep mirrored back text disabled
   ),
   itemBuilder: (context, spreadIndex) => MyTwoPageSpread(spreadIndex),
 )
@@ -113,6 +114,24 @@ PageFlipWidget(
 | Spine reveal | Forward flip reveals the **left half** of the next spread; backward reveals the **right half** of the previous spread. |
 
 Use `clipSpreadPageHalf` from the engine when aligning host layout with flip layers.
+
+`flapBackStrength` is intentionally disabled by default for reader performance
+and text clarity. Set it around `0.3` only when you want the subtle mirrored
+through-paper effect in double-spread mode.
+
+## Profile-mode performance benchmark
+
+Run the benchmark entrypoint on a real device in profile mode to measure frame
+timing under rapid page turns:
+
+```bash
+cd example
+flutter run --profile -t lib/performance_benchmark.dart --dart-define=PERFORMANCE_PROFILE=medium --dart-define=DOUBLE_SPREAD=false --dart-define=FLIPS=80
+```
+
+Use `DOUBLE_SPREAD=true` to measure two-page spread mode. The benchmark logs
+build/raster averages, P90/P99, max frame time, and jank count from
+`FrameTiming`.
 
 ## Dark Mode Support
 

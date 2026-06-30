@@ -99,6 +99,7 @@ class PreRenderManager {
     _retryTotalPages = null;
     _retryOnCaptured = null;
     _retryPixelRatio = 1;
+    _retryCapturePageSnapshotClones = true;
     _activeCaptures.clear();
     _pendingRetryIndices.clear();
     _captureRetryCounts.clear();
@@ -142,6 +143,7 @@ class PreRenderManager {
   VoidCallback? _retryOnCaptured;
   int _retryGeneration = 0;
   bool _retryIncludeCurrentSpread = false;
+  bool _retryCapturePageSnapshotClones = true;
   double _retryPixelRatio = 1;
 
   static const int _maxCaptureRetriesPerIndex = 12;
@@ -190,6 +192,12 @@ class PreRenderManager {
   /// When [immediate] is true, the debounce timer is skipped and capture
   /// happens on the next microtask. Use this after page changes or at flip
   /// start to ensure snapshots are available before animation frames.
+  ///
+  /// [capturePageSnapshotClones] controls whether non-current spread captures
+  /// are also cloned into [pageSnapshots]. Keep this true for single-page mode
+  /// so fallback page textures remain available. Double-spread mode reads
+  /// spread textures directly, so callers can set it to false to avoid
+  /// redundant image handles during rapid page turns.
   Future<void> captureSnapshots(
     int currentIndex,
     int totalPages,
@@ -197,6 +205,7 @@ class PreRenderManager {
     Duration delay = const Duration(milliseconds: 300),
     bool immediate = false,
     bool includeCurrentSpread = false,
+    bool capturePageSnapshotClones = true,
     double pixelRatio = 1.0,
   }) async {
     _debounceTimer?.cancel();
@@ -210,6 +219,7 @@ class PreRenderManager {
         onSnapshotCaptured,
         currentGen,
         includeCurrentSpread: includeCurrentSpread,
+        capturePageSnapshotClones: capturePageSnapshotClones,
         pixelRatio: pixelRatio,
       );
     } else {
@@ -220,6 +230,7 @@ class PreRenderManager {
           onSnapshotCaptured,
           currentGen,
           includeCurrentSpread: includeCurrentSpread,
+          capturePageSnapshotClones: capturePageSnapshotClones,
           pixelRatio: pixelRatio,
         );
       });
@@ -233,6 +244,7 @@ class PreRenderManager {
     VoidCallback onSnapshotCaptured,
     int generation, {
     bool includeCurrentSpread = false,
+    bool capturePageSnapshotClones = true,
     double pixelRatio = 1.0,
   }) async {
     if (_isDisposed || generation != _captureGeneration) return;
@@ -273,6 +285,7 @@ class PreRenderManager {
           onSnapshotCaptured,
           generation,
           includeCurrentSpread: includeCurrentSpread,
+          capturePageSnapshotClones: capturePageSnapshotClones,
           pixelRatio: pixelRatio,
         );
         continue;
@@ -289,6 +302,7 @@ class PreRenderManager {
             onSnapshotCaptured,
             generation,
             includeCurrentSpread: includeCurrentSpread,
+            capturePageSnapshotClones: capturePageSnapshotClones,
             pixelRatio: pixelRatio,
           );
           continue;
@@ -313,7 +327,7 @@ class PreRenderManager {
           spreadSnapshots[index] = image;
           if (oldImage != null) toDispose.add(oldImage);
 
-          if (!captureAsSpread || index != currentIndex) {
+          if (capturePageSnapshotClones && index != currentIndex) {
             final oldImage = pageSnapshots[index];
             // Clone only when the snapshot must reside in both page and spread maps
             pageSnapshots[index] = image.clone();
@@ -339,6 +353,7 @@ class PreRenderManager {
           onSnapshotCaptured,
           generation,
           includeCurrentSpread: includeCurrentSpread,
+          capturePageSnapshotClones: capturePageSnapshotClones,
           pixelRatio: pixelRatio,
         );
       }
@@ -352,6 +367,7 @@ class PreRenderManager {
     VoidCallback onSnapshotCaptured,
     int generation, {
     required bool includeCurrentSpread,
+    required bool capturePageSnapshotClones,
     required double pixelRatio,
   }) {
     if (_isDisposed || generation != _captureGeneration) return;
@@ -374,6 +390,7 @@ class PreRenderManager {
       _retryOnCaptured = onSnapshotCaptured;
       _retryGeneration = generation;
       _retryIncludeCurrentSpread = includeCurrentSpread;
+      _retryCapturePageSnapshotClones = capturePageSnapshotClones;
       _retryPixelRatio = pixelRatio;
       _retryScheduled = true;
 
@@ -394,6 +411,7 @@ class PreRenderManager {
         final retryCallback = _retryOnCaptured;
         final retryGen = _retryGeneration;
         final retryIncludeSpread = _retryIncludeCurrentSpread;
+        final retryCapturePageSnapshotClones = _retryCapturePageSnapshotClones;
         final retryRatio = _retryPixelRatio;
         if (retryCurrent == null ||
             retryTotal == null ||
@@ -407,6 +425,7 @@ class PreRenderManager {
           retryCallback,
           retryGen,
           includeCurrentSpread: retryIncludeSpread,
+          capturePageSnapshotClones: retryCapturePageSnapshotClones,
           pixelRatio: retryRatio,
         );
       });
@@ -520,6 +539,7 @@ class PreRenderManager {
     _retryTotalPages = null;
     _retryOnCaptured = null;
     _retryPixelRatio = 1;
+    _retryCapturePageSnapshotClones = true;
     _activeCaptures.clear();
     _pendingRetryIndices.clear();
     _captureRetryCounts.clear();

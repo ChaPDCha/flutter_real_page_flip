@@ -99,9 +99,9 @@ class PageFlipConfig {
     this.flapContentFadeOutEnd = 0.20,
     this.flapContentRevealStart = 0.85,
     this.flapContentRevealEnd = 0.95,
-    this.flapBackStrength = 0.3,
+    this.flapBackStrength = 0.0,
     this.singlePageBackContentOpacity = 1.0,
-    this.performanceProfile = DevicePerformanceProfile.high,
+    this.performanceProfile = DevicePerformanceProfile.medium,
     this.hapticTexturePreset = PaperTexturePreset.standard,
   });
 
@@ -139,8 +139,9 @@ class PageFlipConfig {
   /// How visible the 2.5D page back content is (0.0–1.0).
   ///
   /// In double-spread mode, the back of the flipping page shows the destination
-  /// page content horizontally mirrored at this opacity. 0.0 = disabled,
-  /// 0.3 = subtle through-paper effect, 1.0 = fully visible mirror.
+  /// page content horizontally mirrored at this opacity. Defaults to 0.0 for
+  /// readability and performance. Use about 0.3 for a subtle opt-in
+  /// through-paper effect; 1.0 is a fully visible mirror.
   final double flapBackStrength;
 
   /// Single-page only: opacity of the flipping page's own content while it is
@@ -333,8 +334,7 @@ class PageFlipConfig {
           flapContentRevealStart == other.flapContentRevealStart &&
           flapContentRevealEnd == other.flapContentRevealEnd &&
           flapBackStrength == other.flapBackStrength &&
-          singlePageBackContentOpacity ==
-              other.singlePageBackContentOpacity &&
+          singlePageBackContentOpacity == other.singlePageBackContentOpacity &&
           performanceProfile == other.performanceProfile &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
           edgeTapNextLabel == other.edgeTapNextLabel &&

@@ -466,6 +466,57 @@ void main() {
       expect(mgr.spreadSnapshots.containsKey(2), isTrue);
     });
 
+    testWidgets('double-spread capture can skip page snapshot clones',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(2, 4);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 300,
+            height: 100,
+            child: Row(
+              children: [
+                for (final index in [1, 2, 3])
+                  SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: RepaintBoundary(
+                      key: mgr.pageKeys[index],
+                      child: ColoredBox(
+                        color: Color(0xFF000000 | (index * 0x303030)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      var callCount = 0;
+      await mgr.captureSnapshots(
+        2,
+        4,
+        () => callCount++,
+        immediate: true,
+        includeCurrentSpread: true,
+        capturePageSnapshotClones: false,
+      );
+      await tester.pump();
+
+      expect(callCount, equals(3));
+      expect(mgr.spreadSnapshots.keys, containsAll([1, 2, 3]));
+      expect(mgr.pageSnapshots, isEmpty);
+      expect(
+        mgr.hasAdjacentSnapshots(2, 4, includeCurrentSpread: true),
+        isTrue,
+      );
+    });
+
     testWidgets('capture after cleanup eviction re-captures successfully',
         (tester) async {
       final mgr = PreRenderManager();

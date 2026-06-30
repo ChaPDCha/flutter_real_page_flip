@@ -348,6 +348,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       },
       immediate: immediate,
       includeCurrentSpread: true,
+      capturePageSnapshotClones: !widget.spreadMode.isDoubleSpread,
       pixelRatio: pixelRatio,
     );
   }

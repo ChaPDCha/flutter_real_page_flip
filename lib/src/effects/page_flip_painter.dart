@@ -1,5 +1,7 @@
 part of 'page_flip_engine.dart';
 
+const double _kVisibleFlapBackThreshold = 0.005;
+
 /// PERFORMANCE CRITICAL: This painter is called 60 times per second during animation.
 class PageFlipPainter extends CustomPainter {
   /// Creates a [PageFlipPainter] with the given animation state.
@@ -65,7 +67,7 @@ class PageFlipPainter extends CustomPainter {
     /// Source rect within [flapBackImage] for the mirrored back texture.
     this.flapBackSrcRect,
 
-    /// How visible the back content is (0.0–1.0, default 0.3).
+    /// How visible the back content is (0.0-1.0, default 0.0).
     /// 0 = disabled, 0.3 = subtle mirror-through-paper effect.
     this.flapBackStrength = 0.0,
 
@@ -77,7 +79,7 @@ class PageFlipPainter extends CustomPainter {
     this.geo,
 
     /// Performance profile to control mesh density and shadows.
-    this.performanceProfile = DevicePerformanceProfile.high,
+    this.performanceProfile = DevicePerformanceProfile.medium,
   });
 
   /// Normalised flip progress from 0.0 to 1.0.
@@ -231,14 +233,19 @@ class PageFlipPainter extends CustomPainter {
     final invertProgress = !isForward;
     final normalizedProgress = invertProgress ? (1.0 - progress) : progress;
     final isSettlePhase = normalizedProgress >= flapContentRevealStart;
-    final skipEarlyMesh =
-        (performanceProfile != DevicePerformanceProfile.high) && !isSettlePhase;
+    final skipEarlyMesh = isDoubleSpread &&
+        (performanceProfile != DevicePerformanceProfile.high) &&
+        !isSettlePhase;
 
     // Layer 2: 2.5D page back content (double-spread only).
     // Shows the destination page content horizontally mirrored at low opacity,
     // creating the illusion of seeing through thin paper to the back side.
+    final effectiveFlapBackStrength = flapBackStrength.clamp(0.0, 1.0);
     final hasFlapBack =
-        flapBackImage != null && flapBackSrcRect != null && isDoubleSpread;
+        effectiveFlapBackStrength > _kVisibleFlapBackThreshold &&
+            flapBackImage != null &&
+            flapBackSrcRect != null &&
+            isDoubleSpread;
     if (hasFlapBack && g.flapVisibleWidth >= 8.0 && !skipEarlyMesh) {
       var segments = 16;
       var columns = 4;
@@ -275,7 +282,7 @@ class PageFlipPainter extends CustomPainter {
 
       // Fade the back content into the paper by flapBackStrength so it looks
       // like a subtle bleed-through rather than a full texture layer.
-      final backFadeAlpha = (1.0 - flapBackStrength).clamp(0.0, 1.0);
+      final backFadeAlpha = 1.0 - effectiveFlapBackStrength;
       if (backFadeAlpha > 0.005) {
         canvas.drawRect(
           flapRect,

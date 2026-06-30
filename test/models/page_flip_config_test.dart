@@ -37,6 +37,13 @@ void main() {
       );
     });
 
+    test('defaults favor lightweight reader rendering', () {
+      const config = PageFlipConfig();
+
+      expect(config.flapBackStrength, equals(0.0));
+      expect(config.performanceProfile, DevicePerformanceProfile.medium);
+    });
+
     test('equality respects enableHaptics', () {
       const a = PageFlipConfig();
       const b = PageFlipConfig(enableHaptics: false);

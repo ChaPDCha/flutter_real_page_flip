@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 /// Records every Canvas call for detailed verification.
 class _Record {
@@ -824,6 +825,7 @@ void main() {
         flapBackStrength: 0.3,
         isDoubleSpread: true,
         isForward: false,
+        performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, size);
 
       expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
@@ -842,6 +844,7 @@ void main() {
         flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
         isDoubleSpread: true,
         isForward: false,
+        performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, size);
 
       expect(canvas.drawVerticesCount, greaterThan(0));

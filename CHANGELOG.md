@@ -3,6 +3,16 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [Unreleased]
+
+## [1.12.2] - 2026-06-30
+### Performance
+- Changed the default reader profile from `high` to `medium` to reduce mesh density and high-DPI snapshot cost while preserving the full page flip effect.
+- Changed the default `flapBackStrength` from `0.3` to `0.0`; double-spread mirrored back text is now opt-in instead of a default GPU cost.
+- Skips double-spread back mesh generation entirely when `flapBackStrength <= 0.005` instead of drawing it and covering it with paper.
+- Avoids redundant `pageSnapshots` clones in double-spread capture paths; spread snapshots remain available for front, settle, and revealed-page textures.
+- Aligns the example app with the new lightweight `medium` default profile and adds a profile-mode `FrameTiming` benchmark entrypoint for rapid page-turn measurement.
+
 ## [1.12.1] - 2026-06-30
 ### 🔧 기하학 및 렌더링 엔진 개선 (Geometry & Rendering Engine Enhancements)
 - **Angle Clamping & limits**: 터치 입력 범위를 뷰포트 내로 클램핑하여 과회전을 방지하고, 각도 제한 공식을 `atan2`에서 `asin` 투영법으로 변경하여 더 정확한 물리 한계 구현 | Clamped vertical touch inputs to viewport and updated the angle limit calculation to use `asin` projection, physically preventing flap corners from clipping outside.

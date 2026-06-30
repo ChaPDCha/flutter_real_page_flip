@@ -1,17 +1,15 @@
-# real_page_flip_example
+# real_page_flip example
 
-A new Flutter project.
+The default example starts in the lightweight `medium` performance profile,
+matching the package defaults.
 
-## Getting Started
+## Performance Benchmark
 
-This project is a starting point for a Flutter application.
+Run the benchmark on a physical device in profile mode:
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter run --profile -t lib/performance_benchmark.dart --dart-define=PERFORMANCE_PROFILE=medium --dart-define=DOUBLE_SPREAD=false --dart-define=FLIPS=80
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Set `DOUBLE_SPREAD=true` to measure two-page spread mode. The benchmark reports
+`FrameTiming` build/raster averages, P90/P99, max frame time, and jank count.

@@ -190,9 +190,7 @@ void main() {
       });
 
       test('medium profile does not throw', () async {
-        final handler = DefaultPageFlipEffectHandler(
-          performanceProfile: DevicePerformanceProfile.medium,
-        );
+        final handler = DefaultPageFlipEffectHandler();
         await Future<void>.delayed(Duration.zero);
         await handler.onHandleEffect(
           PageFlipEvent.texturedHaptic,
@@ -204,7 +202,9 @@ void main() {
       });
 
       test('high profile does not throw', () async {
-        final handler = DefaultPageFlipEffectHandler();
+        final handler = DefaultPageFlipEffectHandler(
+          performanceProfile: DevicePerformanceProfile.high,
+        );
         await Future<void>.delayed(Duration.zero);
         await handler.onHandleEffect(
           PageFlipEvent.texturedHaptic,
