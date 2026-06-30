@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -25,6 +26,23 @@ void main() {
   const canvasSize = Size(400, 300);
   const paper = Color(0xFFF7F1E3); // warm Bible paper
   const ink = Color(0xFF2B2620);
+
+  late GoldenFileComparator previousGoldenFileComparator;
+
+  setUpAll(() {
+    previousGoldenFileComparator = goldenFileComparator;
+    // These provisional goldens exercise paper/shadow shape, not exact glyph
+    // rasterization. Linux CI and Windows local Skia can differ by a few dozen
+    // edge pixels, so keep a tight tolerance while still catching real drift.
+    goldenFileComparator = _TolerantGoldenFileComparator(
+      Uri.parse('test/page_flip_layer_view_golden_test.dart'),
+      precisionTolerance: 0.0005,
+    );
+  });
+
+  tearDownAll(() {
+    goldenFileComparator = previousGoldenFileComparator;
+  });
 
   /// Renders a realistic single text page (title + wrapped body) to an image
   /// so goldens exercise how the flip treats actual content.
@@ -210,4 +228,35 @@ void main() {
       );
     });
   });
+}
+
+class _TolerantGoldenFileComparator extends LocalFileComparator {
+  _TolerantGoldenFileComparator(
+    super.testFile, {
+    required double precisionTolerance,
+  })  : assert(
+          0 <= precisionTolerance && precisionTolerance <= 1,
+          'precisionTolerance must be between 0 and 1',
+        ),
+        _precisionTolerance = precisionTolerance;
+
+  final double _precisionTolerance;
+
+  @override
+  Future<bool> compare(Uint8List imageBytes, Uri golden) async {
+    final result = await GoldenFileComparator.compareLists(
+      imageBytes,
+      await getGoldenBytes(golden),
+    );
+
+    final passed = result.passed || result.diffPercent <= _precisionTolerance;
+    if (passed) {
+      result.dispose();
+      return true;
+    }
+
+    final error = await generateFailureOutput(result, golden, basedir);
+    result.dispose();
+    throw FlutterError(error);
+  }
 }
