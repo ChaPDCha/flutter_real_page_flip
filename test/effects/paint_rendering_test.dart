@@ -468,21 +468,35 @@ void main() {
         isDoubleSpread: true,
       ).paint(canvas, size);
 
-      // Stationary shadow requires: isRightToLeft && isDoubleSpread → true
-      // At progress=0.5: stationaryWidth = 20 * 1.0 = 20 > 1, alpha = 0.05 > 0.01
-      // → shadow drawn
-      // Total clipRect calls: clipPath(inside flap) + clipRect(shadow) +
-      //   clipRect(stationary) + clipRect(spine) = 4 clip operations
-      // With the new buildFlapScreenClipPath being a Path clip, not Rect clip:
-      // buildFlapScreenClipPath uses clipPath.
-      // flipSideShadowClipRect uses clipRect.
-      // Spine also uses clipRect.
-      // Total: 1 clipPath + 3 clipRect = 4 clip operations
+      // Revealed + stationary shadows use curved clipPath; spine uses clipRect.
       expect(
-        canvas.clipRectCount,
-        greaterThanOrEqualTo(2),
-        reason: 'Should include shadow + stationary + spine clipRects',
+        canvas.clipPathCount,
+        greaterThanOrEqualTo(3),
+        reason: 'Flap + revealed + stationary shadow clipPaths',
       );
+      expect(canvas.clipRectCount, greaterThanOrEqualTo(1),
+          reason: 'Spine groove still uses clipRect');
+    });
+
+    test(
+        'stationary shadow uses fold-aligned clipPath at extreme vertical touch',
+        () {
+      final canvas = RecordingCanvas();
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(400, -300),
+        paperBackColor: Colors.white,
+        isDoubleSpread: true,
+        isForward: true,
+      ).paint(canvas, size);
+
+      // Revealed + stationary: clipPath before transform; spine: clipRect.
+      expect(canvas.clipPathCount, greaterThanOrEqualTo(3));
+      final transformCount =
+          canvas.records.where((r) => r.method == 'transform').length;
+      expect(transformCount, equals(3),
+          reason: 'Flap + revealed + stationary shadow each use one transform');
     });
 
     test('no stationary shadow in single-page mode', () {
@@ -786,7 +800,7 @@ void main() {
       ).paint(canvas, size);
 
       // isRightToLeft && isDoubleSpread → stationary shadow IS drawn
-      expect(canvas.clipPathCount, equals(2));
+      expect(canvas.clipPathCount, equals(3));
       expect(canvas.saveCount, equals(canvas.restoreCount));
       expect(
         canvas.hasDrawRectWith(blendMode: BlendMode.multiply, hasShader: true),

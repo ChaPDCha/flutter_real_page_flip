@@ -636,9 +636,16 @@ class PageFlipPainter extends CustomPainter {
 
     // Stationary Page Shadow (double-spread only; single-page stationary layer is
     // left of the fold and must not receive transformed shadows from the flip side).
+    //
+    // Clip along the curved fold boundary (perpendicular bleed via foldNormal),
+    // not an axis-aligned rect — otherwise extreme vertical drags leave the shadow
+    // band misaligned with the tilted crease on the stationary half.
     if (isRightToLeft && isDoubleSpread) {
       canvas.save();
-      canvas.clipRect(flipSideShadowClipRect(g));
+      final stationaryShadowClip = isForward
+          ? buildStationaryPageClipPath(size, g)
+          : buildOpenPageClipPath(size, g);
+      canvas.clipPath(stationaryShadowClip);
       canvas.transform(g.transform.storage);
 
       final stationaryWidth = _kStationaryShadowWidth * g.shadowIntensity;
