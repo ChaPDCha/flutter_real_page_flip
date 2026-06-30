@@ -3,6 +3,12 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.12.1] - 2026-06-30
+### 🔧 기하학 및 렌더링 엔진 개선 (Geometry & Rendering Engine Enhancements)
+- **Angle Clamping & limits**: 터치 입력 범위를 뷰포트 내로 클램핑하여 과회전을 방지하고, 각도 제한 공식을 `atan2`에서 `asin` 투영법으로 변경하여 더 정확한 물리 한계 구현 | Clamped vertical touch inputs to viewport and updated the angle limit calculation to use `asin` projection, physically preventing flap corners from clipping outside.
+- **Normal-aligned bleed**: 단순 가로축(X) 이동 대신 접힘 법선 벡터 `foldNormal` 방향으로 클립 overlap bleed 및 그림자 오프셋을 적용하여, 회전된 각도에서도 그림자와 클립라인이 완전히 일치하도록 정합성 개선 | Shifted clip bleed and shadow offsets along the fold normal vector `foldNormal` instead of raw X-axis, keeping tilted shadow lines parallel.
+- **Double-spread shadow fixes**: 양면 이전장(Double-spread backward) 플립 시의 spine 그림자 방향 및 stationary 그림자 좌표가 뒤집히던 버그 해결 | Fixed spine shadow directions and stationary shadow coordinate offsets during double-spread backward flips.
+
 ## [1.12.0] - 2026-06-30
 ### ✨ 단면(Single-page) 모드 대폭 개선 (Single-Page Flip Overhaul)
 - **Backward geometry**: 단면 이전장 전환을 양면(spine) 지오메트리 대신 다음장과 동일한 접힘 방향의 **시간 역재생**으로 처리하여 단면 리더에 맞는 자연스러운 넘김 제공 | Single-page backward flips now reuse the forward fold geometry (time-reversed) instead of double-spread spine geometry.
