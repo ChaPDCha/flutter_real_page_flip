@@ -36,9 +36,13 @@ void main() {
           overlapShift: -kSpineRevealOverlapPx,
         );
 
+        final overlapVector = statTop - openTop;
+        final normalOverlap = overlapVector.dx * g.foldNormal.dx +
+            overlapVector.dy * g.foldNormal.dy;
+
         expect(
-          statTop.dx - openTop.dx,
-          closeTo(kSpineRevealOverlapPx * 2, 0.01),
+          normalOverlap,
+          closeTo(kSpineRevealOverlapPx * 2, 0.75),
         );
       });
     }

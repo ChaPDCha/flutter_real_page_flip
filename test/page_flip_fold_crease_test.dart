@@ -15,20 +15,34 @@ import 'package:real_page_flip/src/page_flip_layer_view.dart';
 /// shadow. This test renders a uniform-grey flip and asserts there is no bright
 /// sliver sandwiched between two darker bands across the fold.
 void main() {
-  const canvasSize = Size(400, 300);
   const grey = Color(0xFF808080);
 
-  Future<ui.Image> solidGrey() async {
+  Future<ui.Image> solidGrey(Size size) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     canvas.drawRect(
-      Rect.fromLTWH(0, 0, canvasSize.width, canvasSize.height),
+      Rect.fromLTWH(0, 0, size.width, size.height),
       Paint()..color = grey,
     );
     return recorder.endRecording().toImage(
-          canvasSize.width.toInt(),
-          canvasSize.height.toInt(),
+          size.width.toInt(),
+          size.height.toInt(),
         );
+  }
+
+  double foldXFor({
+    required Size size,
+    required bool isDoubleSpread,
+    required bool isForward,
+    required double dragProgress,
+  }) {
+    final floatProgress = isForward ? dragProgress : 1.0 - dragProgress;
+    final pageWidth = isDoubleSpread ? size.width / 2 : size.width;
+
+    if (isDoubleSpread && !isForward) {
+      return pageWidth * (1.0 - floatProgress);
+    }
+    return size.width - pageWidth * floatProgress;
   }
 
   /// Returns the worst "blade" depth found across sampled rows: the luminance
@@ -39,13 +53,28 @@ void main() {
     required bool isForward,
     required double dragProgress,
     required Offset touch,
+    required Size canvasSize,
+    bool isDoubleSpread = false,
   }) async {
-    final pageA = await solidGrey();
-    final pageB = await solidGrey();
+    tester.view.physicalSize = canvasSize;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final pageA = await solidGrey(canvasSize);
+    final pageB = await solidGrey(canvasSize);
+    final pageC = await solidGrey(canvasSize);
     addTearDown(pageA.dispose);
     addTearDown(pageB.dispose);
+    addTearDown(pageC.dispose);
 
     final boundaryKey = GlobalKey();
+    final pageSnapshots = isDoubleSpread
+        ? <int, ui.Image>{}
+        : (isForward ? {1: pageB, 2: pageA} : {0: pageA, 1: pageB});
+    final spreadSnapshots =
+        isDoubleSpread ? {0: pageA, 1: pageB, 2: pageC} : <int, ui.Image>{};
+
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -61,13 +90,14 @@ void main() {
                   isDragging: true,
                   isForward: isForward,
                   touchPosition: touch,
-                  pageSnapshots:
-                      isForward ? {1: pageB, 2: pageA} : {0: pageA, 1: pageB},
-                  spreadSnapshots: const {},
+                  pageSnapshots: pageSnapshots,
+                  spreadSnapshots: spreadSnapshots,
                   pageKeys: {for (var i = 0; i < 3; i++) i: GlobalKey()},
                   constrainedSize: canvasSize,
+                  isDoubleSpread: isDoubleSpread,
                   paperFlapColor: grey,
-                  itemBuilder: (context, index) => const ColoredBox(color: grey),
+                  itemBuilder: (context, index) =>
+                      const ColoredBox(color: grey),
                 ),
               ),
             ),
@@ -90,12 +120,25 @@ void main() {
     final w = canvasSize.width.toInt();
     int lum(int x, int y) => px[(y * w + x) * 4];
 
-    final foldX = isForward
-        ? (400 * (1 - dragProgress)).round()
-        : (400 * (1 - dragProgress)).round();
+    final foldX = foldXFor(
+      size: canvasSize,
+      isDoubleSpread: isDoubleSpread,
+      isForward: isForward,
+      dragProgress: dragProgress,
+    ).round();
 
     var worst = 0;
-    for (final y in [10, 40, 80, 150, 220, 260, 290]) {
+    final sampleRows = <int>{
+      (canvasSize.height * 0.03).round(),
+      (canvasSize.height * 0.13).round(),
+      (canvasSize.height * 0.27).round(),
+      (canvasSize.height * 0.50).round(),
+      (canvasSize.height * 0.73).round(),
+      (canvasSize.height * 0.87).round(),
+      (canvasSize.height * 0.97).round(),
+    };
+    for (final yRaw in sampleRows) {
+      final y = yRaw.clamp(0, canvasSize.height.toInt() - 1);
       // Scan a window around the fold for the pattern dark → bright → dark.
       const half = 45;
       final lo = (foldX - half).clamp(0, w - 1);
@@ -160,12 +203,79 @@ void main() {
           isForward: isForward,
           dragProgress: p,
           touch: touch,
+          canvasSize: const Size(400, 300),
         );
         expect(
           rise,
           lessThanOrEqualTo(6),
           reason: 'A bright sliver (rise=$rise) appeared between two crease '
               'shadow bands — the fold "blade" artifact.',
+        );
+      });
+    }
+  });
+
+  group('double-spread fold crease has no bright blade', () {
+    final cases = <(String, Size, bool, double, Offset)>[
+      (
+        'landscape forward top-tilt p=0.5',
+        const Size(800, 600),
+        true,
+        0.5,
+        const Offset(760, 0),
+      ),
+      (
+        'landscape forward bottom-tilt p=0.5',
+        const Size(800, 600),
+        true,
+        0.5,
+        const Offset(760, 600),
+      ),
+      (
+        'landscape backward top-tilt p=0.5',
+        const Size(800, 600),
+        false,
+        0.5,
+        const Offset(40, 0),
+      ),
+      (
+        'landscape backward bottom-tilt p=0.5',
+        const Size(800, 600),
+        false,
+        0.5,
+        const Offset(40, 600),
+      ),
+      (
+        'portrait forward top-tilt p=0.45',
+        const Size(480, 900),
+        true,
+        0.45,
+        const Offset(460, 0),
+      ),
+      (
+        'wide backward bottom-tilt p=0.55',
+        const Size(1100, 520),
+        false,
+        0.55,
+        const Offset(40, 520),
+      ),
+    ];
+
+    for (final (name, size, isForward, p, touch) in cases) {
+      testWidgets(name, (tester) async {
+        final rise = await maxBladeRise(
+          tester,
+          isForward: isForward,
+          dragProgress: p,
+          touch: touch,
+          canvasSize: size,
+          isDoubleSpread: true,
+        );
+        expect(
+          rise,
+          lessThanOrEqualTo(6),
+          reason: 'A bright sliver (rise=$rise) appeared in double-spread '
+              'mode at size=$size.',
         );
       });
     }

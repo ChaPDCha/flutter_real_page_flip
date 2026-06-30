@@ -363,14 +363,15 @@ class PageFlipPainter extends CustomPainter {
           // overlay's alpha snap off in one frame at the settle boundary — a
           // visible flicker at the binding edge near the end of the swipe.
           // Default opacity 1.0 leaves existing behaviour intact.
-          final backDim = (!isDoubleSpread && singlePageBackContentOpacity < 1.0)
-              ? singlePageBackDim(
-                  normalizedProgress,
-                  backOpacity: singlePageBackContentOpacity.clamp(0.0, 1.0),
-                  revealStart: flapContentRevealStart,
-                  revealEnd: flapContentRevealEnd,
-                )
-              : 1.0;
+          final backDim =
+              (!isDoubleSpread && singlePageBackContentOpacity < 1.0)
+                  ? singlePageBackDim(
+                      normalizedProgress,
+                      backOpacity: singlePageBackContentOpacity.clamp(0.0, 1.0),
+                      revealStart: flapContentRevealStart,
+                      revealEnd: flapContentRevealEnd,
+                    )
+                  : 1.0;
           final effectiveReveal = contentReveal * backDim;
           final fadeAlpha = (1.0 - effectiveReveal).clamp(0.0, 1.0);
           if (fadeAlpha > 0.005) {
@@ -629,12 +630,19 @@ class PageFlipPainter extends CustomPainter {
       final stationaryWidth = _kStationaryShadowWidth * g.shadowIntensity;
       final stationaryAlpha = 0.05 * g.shadowIntensity;
       if (stationaryAlpha > 0.01 && stationaryWidth > 1) {
-        final stationaryRect = Rect.fromLTWH(
-          g.foldX - g.flapVisibleWidth - stationaryWidth,
-          0,
-          stationaryWidth,
-          size.height,
-        );
+        final stationaryRect = g.flapRightOfFold
+            ? Rect.fromLTWH(
+                g.freeEdgeX,
+                0,
+                stationaryWidth,
+                size.height,
+              )
+            : Rect.fromLTWH(
+                g.freeEdgeX - stationaryWidth,
+                0,
+                stationaryWidth,
+                size.height,
+              );
         if (performanceProfile == DevicePerformanceProfile.low) {
           canvas.drawRect(
             stationaryRect,
@@ -642,12 +650,16 @@ class PageFlipPainter extends CustomPainter {
               ..color = Colors.black.withValues(alpha: stationaryAlpha * 0.5),
           );
         } else {
+          final darkEdgeAlign =
+              g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+          final fadeAlign =
+              g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
           canvas.drawRect(
             stationaryRect,
             Paint()
               ..shader = LinearGradient(
-                begin: Alignment.centerRight,
-                end: Alignment.centerLeft,
+                begin: darkEdgeAlign,
+                end: fadeAlign,
                 colors: [
                   Colors.black.withValues(alpha: stationaryAlpha),
                   Colors.transparent,
@@ -665,8 +677,9 @@ class PageFlipPainter extends CustomPainter {
       const spineShadowWidth = 18.0;
       canvas.save();
       canvas.clipRect(flipSideShadowClipRect(g));
+      final spineLeft = g.isForward ? g.spineX : g.spineX - spineShadowWidth;
       final spineRect = Rect.fromLTWH(
-        g.spineX,
+        spineLeft,
         0,
         spineShadowWidth,
         size.height,
@@ -684,6 +697,8 @@ class PageFlipPainter extends CustomPainter {
           Paint()
             ..blendMode = BlendMode.multiply
             ..shader = LinearGradient(
+              begin: g.isForward ? Alignment.centerLeft : Alignment.centerRight,
+              end: g.isForward ? Alignment.centerRight : Alignment.centerLeft,
               colors: [
                 Colors.black.withValues(alpha: 0.09 * g.shadowIntensity),
                 Colors.transparent,
@@ -718,6 +733,7 @@ class PageFlipPainter extends CustomPainter {
       oldDelegate.flapBackImage != flapBackImage ||
       oldDelegate.flapBackSrcRect != flapBackSrcRect ||
       oldDelegate.flapBackStrength != flapBackStrength ||
-      oldDelegate.singlePageBackContentOpacity != singlePageBackContentOpacity ||
+      oldDelegate.singlePageBackContentOpacity !=
+          singlePageBackContentOpacity ||
       oldDelegate.performanceProfile != performanceProfile;
 }

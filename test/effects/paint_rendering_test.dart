@@ -772,7 +772,7 @@ void main() {
       );
     });
 
-    test('backward double-spread edge-fade rect at flapLeft', () {
+    test('backward double-spread edge-fade rect at free edge', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -784,12 +784,12 @@ void main() {
         isForward: false,
       ).paint(canvas, size);
 
-      // At progress=0.5, size=800x600, double backward: foldX=200, flapVisibleWidth≈140
-      // flapLeft = foldX - flapVisibleWidth ≈ 60
+      // At progress=0.5, size=800x600, double backward: flap extends to the
+      // right of foldX, so the edge mask sits near freeEdgeX - maskWidth.
       expect(
-        canvas.hasDrawRectNearX(60, 40),
+        canvas.hasDrawRectNearX(332, 20),
         isTrue,
-        reason: 'Edge-fade rect should start near flapLeft',
+        reason: 'Edge-fade rect should start near the right-side free edge',
       );
     });
 

@@ -192,6 +192,36 @@ void main() {
       expect(geo0.angle, closeTo(0, 0.001));
       expect(geo1.angle, closeTo(0, 0.001));
     });
+
+    test('offscreen vertical touch is clamped to viewport angle range', () {
+      final topEdge = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        size: const Size(400, 600),
+      );
+      final farAbove = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(0, -1000000),
+        size: const Size(400, 600),
+      );
+      final bottomEdge = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(0, 600),
+        size: const Size(400, 600),
+      );
+      final farBelow = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(0, 1000000),
+        size: const Size(400, 600),
+      );
+
+      expect(farAbove.angle, closeTo(topEdge.angle, 0.001));
+      expect(farBelow.angle, closeTo(bottomEdge.angle, 0.001));
+    });
   });
 
   group('PageFlipGeometry fold line endpoints', () {
@@ -244,6 +274,74 @@ void main() {
       final maxX = math.max(geo.foldLineTop.dx, geo.foldLineBottom.dx);
       expect(geo.foldX, greaterThanOrEqualTo(minX - 0.5));
       expect(geo.foldX, lessThanOrEqualTo(maxX + 0.5));
+    });
+
+    test('foldNormal is finite, unit length, and perpendicular to fold line',
+        () {
+      final geo = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(200, 50),
+        size: const Size(400, 600),
+      );
+
+      final foldVector = geo.foldLineBottom - geo.foldLineTop;
+      final dot =
+          foldVector.dx * geo.foldNormal.dx + foldVector.dy * geo.foldNormal.dy;
+
+      expect(geo.foldNormal.dx.isFinite, isTrue);
+      expect(geo.foldNormal.dy.isFinite, isTrue);
+      expect(geo.foldNormal.distance, closeTo(1, 0.001));
+      expect(dot.abs(), lessThan(0.001));
+    });
+
+    test('shadow guide edges stay parallel to fold across aspect ratios', () {
+      final cases = <(Size, Offset)>[
+        (const Size(360, 780), const Offset(320, 20)),
+        (const Size(800, 600), const Offset(720, 580)),
+        (const Size(1200, 500), const Offset(1100, 80)),
+        (const Size(900, 1600), const Offset(820, 1400)),
+      ];
+
+      double cross(Offset a, Offset b) => a.dx * b.dy - a.dy * b.dx;
+
+      for (final (size, touch) in cases) {
+        final geo = PageFlipGeometry(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: touch,
+          size: size,
+        );
+
+        final foldVector = geo.foldLineBottom - geo.foldLineTop;
+        final revealedShadowEdge = MatrixUtils.transformPoint(
+              geo.transform,
+              Offset(geo.foldX, size.height),
+            ) -
+            MatrixUtils.transformPoint(
+              geo.transform,
+              Offset(geo.foldX, 0),
+            );
+        final stationaryShadowEdge = MatrixUtils.transformPoint(
+              geo.transform,
+              Offset(geo.freeEdgeX, size.height),
+            ) -
+            MatrixUtils.transformPoint(
+              geo.transform,
+              Offset(geo.freeEdgeX, 0),
+            );
+
+        expect(
+          cross(foldVector, revealedShadowEdge).abs(),
+          lessThan(0.001),
+          reason: 'revealed shadow edge drifted at size=$size touch=$touch',
+        );
+        expect(
+          cross(foldVector, stationaryShadowEdge).abs(),
+          lessThan(0.001),
+          reason: 'stationary shadow edge drifted at size=$size touch=$touch',
+        );
+      }
     });
   });
 

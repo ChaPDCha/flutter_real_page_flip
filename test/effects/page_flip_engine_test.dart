@@ -299,7 +299,11 @@ void main() {
         'backward flip', () {
       // At backward progress=0, p=1.0 → reveal phase → 1.0.
       expect(
-        flapFrontContentRevealOpacity(0, isForward: false, isDoubleSpread: true),
+        flapFrontContentRevealOpacity(
+          0,
+          isForward: false,
+          isDoubleSpread: true,
+        ),
         closeTo(1, 0.001),
       );
       // At backward progress=0.5 (mid-flip), p=0.5 → mid-fold → 0.0.
@@ -313,7 +317,11 @@ void main() {
       );
       // At backward progress=1.0, p=0.0 → start → 1.0.
       expect(
-        flapFrontContentRevealOpacity(1, isForward: false, isDoubleSpread: true),
+        flapFrontContentRevealOpacity(
+          1,
+          isForward: false,
+          isDoubleSpread: true,
+        ),
         closeTo(1, 0.001),
       );
     });
@@ -482,7 +490,8 @@ void main() {
       expect(atMid, greaterThan(0.5));
     });
 
-    test('stays fully opaque when thin paper is disabled (no show-through)', () {
+    test('stays fully opaque when thin paper is disabled (no show-through)',
+        () {
       // Single-page mode disables the thin-paper show-through by passing
       // thinPaperStrength: 0, so the flap stays fully opaque the whole flip.
       for (final p in [0.1, 0.5, 0.9]) {
@@ -599,6 +608,17 @@ void main() {
       // 3.25 - 1.5 = 1.75 → snap to 2.0
       expect(result.dx, closeTo(2.0, 0.001));
       expect(result.dy, closeTo(4.0, 0.001));
+    });
+
+    test('overlapAxis shifts along fold normal before snapping', () {
+      final result = snapClipPoint(
+        const Offset(10, 10),
+        overlapShift: 2,
+        overlapAxis: const Offset(0, 1),
+      );
+
+      expect(result.dx, closeTo(10, 0.001));
+      expect(result.dy, closeTo(12, 0.001));
     });
 
     test('zero overlapShift is no-op', () {
@@ -904,6 +924,23 @@ void main() {
       final rect = flipSideShadowClipRect(geo);
       expect(rect.left, closeTo(400, 0.001)); // spineX
       expect(rect.right, closeTo(800, 0.001));
+      expect(rect.top, closeTo(0, 0.001));
+      expect(rect.bottom, closeTo(600, 0.001));
+    });
+
+    test('backward double-spread returns active left half', () {
+      final geo = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        size: const Size(800, 600),
+        isDoubleSpread: true,
+        isForward: false,
+      );
+      final rect = flipSideShadowClipRect(geo);
+
+      expect(rect.left, closeTo(0, 0.001));
+      expect(rect.right, closeTo(400, 0.001));
       expect(rect.top, closeTo(0, 0.001));
       expect(rect.bottom, closeTo(600, 0.001));
     });

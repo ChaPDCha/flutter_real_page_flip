@@ -5,7 +5,8 @@ part of 'page_flip_engine.dart';
 // ---------------------------------------------------------------------------
 
 /// Scales the vertical touch offset to the fold rotation angle.
-/// ~0.30 rad ≈ 17° max tilt — tuned empirically for natural paper-feel.
+/// 0.30 rad is the full top-to-bottom angle range; with viewport-clamped touch
+/// input the edge tilt is ±0.15 rad (≈8.6°), tuned for natural paper-feel.
 const double _kAngleScale = 0.30;
 
 /// Base multiplier for visible flap width during foreshortening.
@@ -82,6 +83,7 @@ class PageFlipGeometry {
     final clampedProgress = progress.clamp(0.0, 1.0);
     final width = size.width;
     final height = size.height;
+    final safeHeight = height > 0 ? height : 1.0;
 
     final spineX = isDoubleSpread ? width / 2 : 0.0;
 
@@ -112,9 +114,10 @@ class PageFlipGeometry {
 
     final angleT = math.pow(clampedProgress, 0.82).toDouble();
     final angleProfile = math.sin(angleT * math.pi);
-    final baseAngle = height <= 0
-        ? 0.0
-        : (touchOffset.dy / height - 0.5) * _kAngleScale * angleProfile;
+    final normalizedTouchY = height <= 0
+        ? 0.5
+        : (touchOffset.dy / height).clamp(0.0, 1.0).toDouble();
+    final baseAngle = (normalizedTouchY - 0.5) * _kAngleScale * angleProfile;
 
     // Limit angle so the flap stays within page bounds.
     // flapSideWidth: width on the flap side of foldX.
@@ -123,8 +126,15 @@ class PageFlipGeometry {
     final revealedSideWidth = isForward
         ? (foldX - spineX).clamp(0.0, double.infinity)
         : (pageWidth - foldX).clamp(0.0, double.infinity);
-    final limitFlap = math.atan2(flapSideWidth, height / 2);
-    final limitRevealed = math.atan2(revealedSideWidth, height / 2);
+    double angleLimitForSide(double sideWidth) {
+      final halfHeight = safeHeight / 2;
+      if (halfHeight <= 0) return 0;
+      final ratio = (sideWidth / halfHeight).clamp(0.0, 1.0).toDouble();
+      return math.asin(ratio);
+    }
+
+    final limitFlap = angleLimitForSide(flapSideWidth);
+    final limitRevealed = angleLimitForSide(revealedSideWidth);
     final absLimit = math.max(0, math.min(limitFlap, limitRevealed)).toDouble();
 
     // Invert angle when flap is on the right so top-touch lifts the flap top
@@ -139,6 +149,17 @@ class PageFlipGeometry {
       ..multiply(Matrix4.translationValues(foldX, height / 2, 0))
       ..rotateZ(-angle)
       ..multiply(Matrix4.translationValues(-foldX, -height / 2, 0));
+
+    final hingeCenter = Offset(foldX, height / 2);
+    final transformedHingeCenter =
+        MatrixUtils.transformPoint(transform, hingeCenter);
+    final transformedLocalRight =
+        MatrixUtils.transformPoint(transform, Offset(foldX + 1, height / 2));
+    var foldNormal = transformedLocalRight - transformedHingeCenter;
+    final normalLength = foldNormal.distance;
+    foldNormal = !normalLength.isFinite || normalLength <= 1e-9
+        ? const Offset(1, 0)
+        : foldNormal / normalLength;
 
     // ── Fold line endpoints ─────────────────────────────────────────────────
     final foldLineTop =
@@ -197,6 +218,7 @@ class PageFlipGeometry {
       spineX: spineX,
       foldX: foldX,
       angle: angle,
+      foldNormal: foldNormal,
       transform: transform,
       foldLineTop: foldLineTop,
       foldLineBottom: foldLineBottom,
@@ -225,6 +247,7 @@ class PageFlipGeometry {
     required this.spineX,
     required this.foldX,
     required this.angle,
+    required this.foldNormal,
     required this.transform,
     required this.foldLineTop,
     required this.foldLineBottom,
@@ -267,6 +290,13 @@ class PageFlipGeometry {
 
   /// Fold rotation angle in radians.
   final double angle;
+
+  /// Unit vector perpendicular to the fold line, matching transformed local +X.
+  ///
+  /// Every screen-space clip bleed and shadow-side offset should use this
+  /// vector instead of raw X-axis shifts so angled drags remain geometrically
+  /// parallel to the fold on every viewport aspect ratio.
+  final Offset foldNormal;
 
   /// Transformation matrix for the flipping flap.
   final Matrix4 transform;

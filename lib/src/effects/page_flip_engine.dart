@@ -309,40 +309,57 @@ const double kSpineRevealOverlapPx = 1.5;
 @visibleForTesting
 double snapClipCoord(double value) => (value * 2).round() / 2;
 
-/// Applies [snapClipCoord] to a point, optionally shifting X by [overlapShift].
+/// Applies [snapClipCoord] to a point, optionally shifting along [overlapAxis].
+///
+/// [overlapAxis] defaults to the screen X axis for backwards-compatible tests
+/// and helpers. Fold clips pass [PageFlipGeometry.foldNormal] so anti-alias
+/// bleed is applied perpendicular to the tilted fold instead of horizontally.
 @visibleForTesting
-Offset snapClipPoint(Offset point, {double overlapShift = 0}) => Offset(
-      snapClipCoord(point.dx + overlapShift),
-      snapClipCoord(point.dy),
+Offset snapClipPoint(
+  Offset point, {
+  double overlapShift = 0,
+  Offset overlapAxis = const Offset(1, 0),
+}) =>
+    Offset(
+      snapClipCoord(point.dx + overlapAxis.dx * overlapShift),
+      snapClipCoord(point.dy + overlapAxis.dy * overlapShift),
     );
 
 /// Appends the global fold-line boundary to [path] (caller must [Path.moveTo] first).
 ///
-/// [overlapShift] moves the boundary along +X (stationary layer uses positive
-/// bleed; open/revealed layer uses negative bleed so both layers overlap).
+/// [overlapShift] moves the boundary along [PageFlipGeometry.foldNormal]
+/// (stationary layer uses positive bleed; open/revealed layer uses negative
+/// bleed so both layers overlap perpendicular to the tilted fold).
 @visibleForTesting
 void appendFoldLineBoundary(
   Path path,
   PageFlipGeometry geo, {
   double overlapShift = 0,
 }) {
-  final top = snapClipPoint(geo.foldLineTop, overlapShift: overlapShift);
+  final top = snapClipPoint(
+    geo.foldLineTop,
+    overlapShift: overlapShift,
+    overlapAxis: geo.foldNormal,
+  );
   path.lineTo(top.dx, top.dy);
 
   if (geo.curvatureAmount > 0.001) {
     final control = snapClipPoint(
       geo.foldCurveControl,
       overlapShift: overlapShift,
+      overlapAxis: geo.foldNormal,
     );
     final bottom = snapClipPoint(
       geo.foldLineBottom,
       overlapShift: overlapShift,
+      overlapAxis: geo.foldNormal,
     );
     path.quadraticBezierTo(control.dx, control.dy, bottom.dx, bottom.dy);
   } else {
     final bottom = snapClipPoint(
       geo.foldLineBottom,
       overlapShift: overlapShift,
+      overlapAxis: geo.foldNormal,
     );
     path.lineTo(bottom.dx, bottom.dy);
   }
@@ -570,20 +587,25 @@ ui.Vertices buildFlapContentMesh({
 
 /// Clip rect for flap-side drop shadows in [PageFlipPainter].
 ///
-/// Double-spread: right half only. Single-page: region to the right of the fold
-/// so shadows are not painted over the stationary middle layer (layer 2).
+/// Double-spread: the active turning half. Single-page: the side of the fold
+/// occupied by the turning flap.
 @visibleForTesting
 Rect flipSideShadowClipRect(PageFlipGeometry geo) {
   if (geo.isDoubleSpread) {
-    return Rect.fromLTWH(
-      geo.spineX,
-      0,
-      geo.size.width - geo.spineX,
-      geo.size.height,
-    );
+    return geo.isForward
+        ? Rect.fromLTWH(
+            geo.spineX,
+            0,
+            geo.size.width - geo.spineX,
+            geo.size.height,
+          )
+        : Rect.fromLTWH(0, 0, geo.spineX, geo.size.height);
   }
-  final left = geo.foldX.clamp(0.0, geo.size.width);
-  return Rect.fromLTWH(left, 0, geo.size.width - left, geo.size.height);
+  final fold = geo.foldX.clamp(0.0, geo.size.width);
+  if (geo.flapRightOfFold) {
+    return Rect.fromLTWH(0, 0, fold, geo.size.height);
+  }
+  return Rect.fromLTWH(fold, 0, geo.size.width - fold, geo.size.height);
 }
 
 /// Clips [child] to the left or right half when [child] already spans the
@@ -684,17 +706,26 @@ Path buildFlapScreenClipPath(
   } else {
     // Flap spans RIGHT of foldX.
     // Path: fold line (left) → free edge (right) → bottom → back to fold line.
-    final foldLineTop =
-        snapClipPoint(geo.foldLineTop, overlapShift: -foldEdgeBleedPx);
-    final foldLineBottom =
-        snapClipPoint(geo.foldLineBottom, overlapShift: -foldEdgeBleedPx);
+    final foldLineTop = snapClipPoint(
+      geo.foldLineTop,
+      overlapShift: -foldEdgeBleedPx,
+      overlapAxis: geo.foldNormal,
+    );
+    final foldLineBottom = snapClipPoint(
+      geo.foldLineBottom,
+      overlapShift: -foldEdgeBleedPx,
+      overlapAxis: geo.foldNormal,
+    );
     path.moveTo(foldLineTop.dx, foldLineTop.dy);
     path.lineTo(flapEdgeTop.dx, flapEdgeTop.dy);
     path.lineTo(flapEdgeBottom.dx, flapEdgeBottom.dy);
     path.lineTo(foldLineBottom.dx, foldLineBottom.dy);
     if (geo.curvatureAmount > 0.001) {
-      final control =
-          snapClipPoint(geo.foldCurveControl, overlapShift: -foldEdgeBleedPx);
+      final control = snapClipPoint(
+        geo.foldCurveControl,
+        overlapShift: -foldEdgeBleedPx,
+        overlapAxis: geo.foldNormal,
+      );
       path.quadraticBezierTo(
         control.dx,
         control.dy,
