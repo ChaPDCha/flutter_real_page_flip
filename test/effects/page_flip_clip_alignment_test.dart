@@ -132,9 +132,9 @@ void main() {
       final statPath = buildStationaryPageClipPath(canvasSize, g);
       final flapPath = buildOpenPageClipPath(canvasSize, g);
 
-      // We check that the bounding boxes of the two clips meet exactly at foldX.
-      // The open path bounding left edge should be the stationary path bounding right edge.
-      // Note: Due to curve and bleed, they might overlap by exactly kSpineRevealOverlapPx * 2
+      // We check that the bounding boxes around the fold overlap. The exact
+      // left bound can move with the conservative angle cap and curved fold,
+      // but a gap between the stationary/open clips is never acceptable.
       final statBounds = statPath.getBounds();
       final flapBounds = flapPath.getBounds();
 
@@ -144,15 +144,10 @@ void main() {
       final expectedStatRight = snapClipCoord(g.foldX + kSpineRevealOverlapPx);
       expect(statBounds.right, greaterThanOrEqualTo(expectedStatRight));
 
-      // The left boundary of open clip depends on flapLeft and overlap.
-      // It should mathematically cover the right side starting from the seam.
-      final expectedOpenLeft = math.min(
-        snapClipCoord(g.flapLeft),
-        snapClipCoord(g.foldX - kSpineRevealOverlapPx),
+      expect(
+        statBounds.right - flapBounds.left,
+        greaterThanOrEqualTo(kSpineRevealOverlapPx * 2),
       );
-      // Because of the bezier curve for the page curl, getBounds().left
-      // might be slightly inward from the theoretical flapLeft.
-      expect(flapBounds.left, closeTo(expectedOpenLeft, 15.0));
     });
   });
 
@@ -184,5 +179,53 @@ void main() {
         expect(openPath.getBounds().right, greaterThanOrEqualTo(size.width));
       });
     }
+
+    bool pathsOverlapAtY(Path a, Path b, Size size, double y) {
+      final step = math.max(1, size.width / 900);
+      for (var x = 0.0; x <= size.width; x += step) {
+        final point = Offset(x, y);
+        if (a.contains(point) && b.contains(point)) return true;
+      }
+      return false;
+    }
+
+    test('edge-drag flap clips overlap fold-side clips on extreme ratios', () {
+      final cases = <(Size, bool, double, Offset)>[
+        (const Size(360, 1600), true, 0.5, const Offset(340, 0)),
+        (const Size(360, 1600), true, 0.5, const Offset(340, 1600)),
+        (const Size(360, 1600), false, 0.5, const Offset(20, 0)),
+        (const Size(360, 1600), false, 0.5, const Offset(20, 1600)),
+        (const Size(2200, 700), true, 0.42, const Offset(2100, 0)),
+        (const Size(2200, 700), false, 0.58, const Offset(100, 700)),
+      ];
+
+      for (final (size, isForward, progress, touch) in cases) {
+        final g = PageFlipGeometry(
+          progress: progress,
+          isRightToLeft: true,
+          touchOffset: touch,
+          size: size,
+          isDoubleSpread: true,
+          isForward: isForward,
+        );
+        final foldSidePath = isForward
+            ? buildStationaryPageClipPath(size, g)
+            : buildOpenPageClipPath(size, g);
+        final flapPath = buildFlapScreenClipPath(g);
+
+        for (final y in [
+          size.height * 0.15,
+          size.height * 0.5,
+          size.height * 0.85,
+        ]) {
+          expect(
+            pathsOverlapAtY(foldSidePath, flapPath, size, y),
+            isTrue,
+            reason:
+                'No fold/flap overlap at size=$size forward=$isForward y=$y',
+          );
+        }
+      }
+    });
   });
 }

@@ -5,9 +5,20 @@ part of 'page_flip_engine.dart';
 // ---------------------------------------------------------------------------
 
 /// Scales the vertical touch offset to the fold rotation angle.
-/// 0.30 rad is the full top-to-bottom angle range; with viewport-clamped touch
-/// input the edge tilt is ±0.15 rad (≈8.6°), tuned for natural paper-feel.
-const double _kAngleScale = 0.30;
+/// 0.24 rad is the full top-to-bottom input range; with viewport-clamped touch
+/// input the edge tilt is ±0.12 rad (≈6.9°) before layout safety limits.
+///
+/// A page flip can look acceptable with a larger raw angle, but the shadow,
+/// screen clip, flap mesh, and spine/revealed layers all need enough room to
+/// agree on the same tilted fold. Keeping this intentionally conservative
+/// prevents edge-drag artifacts on tall, narrow, and double-spread viewports.
+const double _kAngleScale = 0.24;
+
+/// Absolute fold-angle cap shared by every layer derived from [PageFlipGeometry].
+const double _kMaxFoldAngle = 0.12;
+
+/// Worst-case curl control-point reservation, as a fraction of one page width.
+const double _kAngleCurveGuardFactor = 0.04;
 
 /// Base multiplier for visible flap width during foreshortening.
 const double _kFlapWidthBase = 1;
@@ -126,16 +137,12 @@ class PageFlipGeometry {
     final revealedSideWidth = isForward
         ? (foldX - spineX).clamp(0.0, double.infinity)
         : (pageWidth - foldX).clamp(0.0, double.infinity);
-    double angleLimitForSide(double sideWidth) {
-      final halfHeight = safeHeight / 2;
-      if (halfHeight <= 0) return 0;
-      final ratio = (sideWidth / halfHeight).clamp(0.0, 1.0).toDouble();
-      return math.asin(ratio);
-    }
-
-    final limitFlap = angleLimitForSide(flapSideWidth);
-    final limitRevealed = angleLimitForSide(revealedSideWidth);
-    final absLimit = math.max(0, math.min(limitFlap, limitRevealed)).toDouble();
+    final absLimit = conservativeFoldAngleLimit(
+      flapSideWidth: flapSideWidth,
+      revealedSideWidth: revealedSideWidth,
+      pageWidth: pageWidth,
+      height: safeHeight,
+    );
 
     // Invert angle when flap is on the right so top-touch lifts the flap top
     // consistently regardless of which side of foldX the flap sits on.
@@ -339,4 +346,41 @@ class PageFlipGeometry {
 
   /// Bezier control point for the curved flap edge in global space.
   final Offset flapCurveControl;
+}
+
+/// Returns the maximum fold rotation every rendering layer can safely share.
+///
+/// The limit reserves room for the largest shadow band, seam overlap, and the
+/// maximum fold-curve bulge before projecting the angle against the viewport
+/// height. This is stricter than only checking the visible flap width, but it
+/// keeps clipping, shadows, and mesh edges parallel when the user's finger
+/// moves near the top or bottom edge on unusual aspect ratios.
+@visibleForTesting
+double conservativeFoldAngleLimit({
+  required double flapSideWidth,
+  required double revealedSideWidth,
+  required double pageWidth,
+  required double height,
+}) {
+  final safeHeight = height > 0 ? height : 1.0;
+  final halfHeight = safeHeight / 2;
+  if (halfHeight <= 0) return 0;
+
+  final curveGuard = pageWidth.abs() * _kAngleCurveGuardFactor;
+  final sideGuard = math.max(_kRevealedShadowWidth, _kStationaryShadowWidth) +
+      kSpineRevealOverlapPx * 2 +
+      curveGuard;
+
+  double angleLimitForSide(double sideWidth) {
+    final safeSideWidth =
+        (sideWidth - sideGuard).clamp(0.0, double.infinity).toDouble();
+    final ratio = (safeSideWidth / halfHeight).clamp(0.0, 1.0).toDouble();
+    return math.asin(ratio);
+  }
+
+  final layoutLimit = math.min(
+    angleLimitForSide(flapSideWidth),
+    angleLimitForSide(revealedSideWidth),
+  );
+  return math.min(_kMaxFoldAngle, math.max(0, layoutLimit)).toDouble();
 }

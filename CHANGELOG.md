@@ -4,6 +4,10 @@ All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
 ## [Unreleased]
+### Fixed
+- Tightened the shared fold-angle limit so shadows, clipping paths, flap mesh,
+  and double-spread layers keep the same conservative tilt boundary when users
+  drag near the top or bottom edge on extreme viewport aspect ratios.
 
 ## [1.12.2] - 2026-06-30
 ### Performance
