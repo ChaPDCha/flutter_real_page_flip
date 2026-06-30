@@ -104,8 +104,9 @@ The user turns the left page over to the right side.
 ## 3. Mathematical Calculations & Hinge Transform
 
 ### 3.1 Angle Calculation & Limits
-To simulate the tilt of the page as the user drags up or down, a rotation angle $\theta$ (in radians) is calculated based on the vertical position of the touch relative to the viewport height $H$, scaled by an empirical constant $k_{angle} = 0.30$ (approx. $17^\circ$ max tilt):
-$$\theta_{base}(p) = \left(\frac{T_y}{H} - 0.5\right) \cdot k_{angle} \cdot \sin(p^{0.82} \cdot \pi)$$
+To simulate the tilt of the page as the user drags up or down, a rotation angle $\theta$ (in radians) is calculated based on the vertical position of the touch relative to the viewport height $H$, scaled by an empirical constant $k_{angle} = 0.30$. This value is the full top-to-bottom angle range; with viewport-clamped touch input, the edge tilt is $\pm 0.15$ rad (approx. $\pm 8.6^\circ$). The touch coordinate is first clamped into the viewport so offscreen vertical movement cannot over-rotate the fold:
+$$t_y = \text{clamp}\left(\frac{T_y}{H}, 0, 1\right)$$
+$$\theta_{base}(p) = \left(t_y - 0.5\right) \cdot k_{angle} \cdot \sin(p^{0.82} \cdot \pi)$$
 
 To prevent the flap from breaking physical boundaries (clipping outside the viewport or crossing the spine incorrectly), the rotation angle $\theta$ is clamped using Trigonometric limit bounds:
 * Let $w_{flap} = W_{material}(p)$ (width of the flap).
@@ -114,8 +115,9 @@ To prevent the flap from breaking physical boundaries (clipping outside the view
         \max(0, X_{fold} - X_{spine}) & \text{if } isForward \text{ is true} \\
         \max(0, W_{page} - X_{fold}) & \text{if } isForward \text{ is false}
      \end{cases}$$
-* The angle boundary limits are derived from the right triangle formed by the fold line and the page corners:
-  $$\theta_{limit} = \max\left(0, \min\left( \arctan2(w_{flap}, \frac{H}{2}), \arctan2(w_{reveal}, \frac{H}{2}) \right)\right)$$
+* The angle boundary limits are derived from the exact horizontal projection of a rotated vertical fold line. With half-height $h=\frac{H}{2}$, the fold's maximum horizontal displacement is $h \cdot \sin(\theta)$, so each side limit is:
+  $$L(w) = \arcsin\left(\text{clamp}\left(\frac{w}{h}, 0, 1\right)\right)$$
+  $$\theta_{limit} = \max\left(0, \min\left( L(w_{flap}), L(w_{reveal}) \right)\right)$$
 * The final clamped angle $\theta$ is:
   $$\theta = \begin{cases} 
         0.0 & \text{if } p \le 0.0 \text{ or } p \ge 1.0 \\
@@ -131,6 +133,8 @@ where $T(\Delta x, \Delta y)$ is the translation matrix and $R(\phi)$ is the 2D 
 Using this transform $M$, the top and bottom endpoints of the fold line and flap free edge are projected from their straight local space coordinates:
 $$\mathbf{P}_{fold\_top} = M \cdot \begin{bmatrix} X_{fold} \\ -H \end{bmatrix}, \quad \mathbf{P}_{fold\_bottom} = M \cdot \begin{bmatrix} X_{fold} \\ 2H \end{bmatrix}$$
 $$\mathbf{P}_{flap\_top} = M \cdot \begin{bmatrix} X_{free} \\ -H \end{bmatrix}, \quad \mathbf{P}_{flap\_bottom} = M \cdot \begin{bmatrix} X_{free} \\ 2H \end{bmatrix}$$
+
+The transformed local +X direction is stored as the unit fold normal $\mathbf{n}_{fold}$. All screen-space clip bleeds and shadow-side offsets are applied along this normal, not along the raw screen X axis, so angled folds stay parallel to their shadows on every viewport aspect ratio.
 
 ---
 
@@ -165,10 +169,10 @@ To render the page-flip without visual seams or overlaps, the screen is split in
   * Clipped to the region between the fold line and the flap edge.
 
 ### Overlapping Bleed ($d_{bleed} = 1.5\text{ px}$)
-Due to anti-aliasing in rasterization engines, placing two clipped paths edge-to-edge results in a 1-pixel semi-transparent gap (white seam). The engine fixes this by shifting the clip boundaries along the X-axis:
-* Layer 2 (Stationary) uses positive shift: $X'_{fold\_top} = X_{fold\_top} + d_{bleed}$
-* Layer 1 (Open/Revealed) uses negative shift: $X'_{fold\_top} = X_{fold\_top} - d_{bleed}$
-This causes Layer 1 and Layer 2 to overlap by exactly $3\text{ px}$ along the fold line seam, eliminating rendering gaps.
+Due to anti-aliasing in rasterization engines, placing two clipped paths edge-to-edge results in a 1-pixel semi-transparent gap (white seam). The engine fixes this by shifting the clip boundaries along the fold normal $\mathbf{n}_{fold}$:
+* Layer 2 (Stationary) uses positive shift: $\mathbf{P}'_{fold} = \mathbf{P}_{fold} + d_{bleed} \cdot \mathbf{n}_{fold}$
+* Layer 1 (Open/Revealed) uses negative shift: $\mathbf{P}'_{fold} = \mathbf{P}_{fold} - d_{bleed} \cdot \mathbf{n}_{fold}$
+This causes Layer 1 and Layer 2 to overlap by exactly $3\text{ px}$ perpendicular to the fold line, eliminating rendering gaps without changing the apparent shadow angle.
 
 ---
 
@@ -185,15 +189,15 @@ When submitting these files to another AI for validation, ask it to analyze and 
    * Specifically, verify if the coordinate calculations for $X_{fold}$ and the direction of the flap ($flapRightOfFold$) result in an identical speed profile and mirror-image trajectory.
 
 3. **Angle Clamping and Trigonometric Bounds**:
-   * Verify the formula: $\theta_{limit} = \max(0, \min( \arctan2(w_{flap}, \frac{H}{2}), \arctan2(w_{reveal}, \frac{H}{2}) ))$. 
+   * Verify the formula: $\theta_{limit} = \max(0, \min( L(w_{flap}), L(w_{reveal}) ))$, where $L(w)=\arcsin(\text{clamp}(w / (H/2), 0, 1))$.
    * Does this physically prevent the flap corner points from clipping outside the viewport boundaries or crossing over the spine boundary?
-   * Does using $\frac{H}{2}$ inside $\arctan2$ correctly assume the maximum vertical distance from the center hinge to the top/bottom boundary?
+   * Does using $\frac{H}{2}$ inside the sine projection correctly assume the maximum vertical distance from the center hinge to the top/bottom boundary?
 
 4. **Curvature Offset Signs**:
    * Verify if the sign of $\delta_{curve}$ (derived from $d_{dir}$) is correct for all four cases (1단/2단 $\times$ 이전/다음). Does the curl bend *away* from the destination page in all scenarios, or does it bend inwards (imploding the page)?
 
 5. **Overlap and Clipper Match**:
-   * Verify the overlap logic in Section 5. Does the choice of sign ($+d_{bleed}$ for stationary, $-d_{bleed}$ for open) guarantee an overlap regardless of whether the flap is on the left or right of the fold? Or does it depend on $isForward$?
+   * Verify the overlap logic in Section 5. Does shifting by $\pm d_{bleed} \cdot \mathbf{n}_{fold}$ guarantee an overlap regardless of whether the flap is on the left or right of the fold? Or does it depend on $isForward$?
 
 ---
 

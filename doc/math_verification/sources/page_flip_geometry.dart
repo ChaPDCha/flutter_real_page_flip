@@ -5,7 +5,8 @@ part of 'page_flip_engine.dart';
 // ---------------------------------------------------------------------------
 
 /// Scales the vertical touch offset to the fold rotation angle.
-/// ~0.30 rad ≈ 17° max tilt — tuned empirically for natural paper-feel.
+/// 0.30 rad is the full top-to-bottom angle range; with viewport-clamped touch
+/// input the edge tilt is ±0.15 rad (≈8.6°), tuned for natural paper-feel.
 const double _kAngleScale = 0.30;
 
 /// Base multiplier for visible flap width during foreshortening.
@@ -70,66 +71,53 @@ class TapFlipCurve extends Curve {
 class PageFlipGeometry {
   /// Creates a [PageFlipGeometry] instance that computes all derived
   /// fold, flap, and shadow values from the input parameters.
-  PageFlipGeometry({
-    /// Normalised flip progress from 0.0 to 1.0.
+  factory PageFlipGeometry({
     required double progress,
-
-    /// Whether the flip direction is right-to-left.
-    required this.isRightToLeft,
-
-    /// Touch offset used to compute the fold angle.
-    required this.touchOffset,
-
-    /// Size of the widget area being flipped.
-    required this.size,
-
-    /// True if the layout is double-spread with a central spine
-    this.isDoubleSpread = false,
-
-    /// True if we are flipping forward (right-to-left), false if backward
-    this.isForward = true,
-  })  : assert(!progress.isNaN, 'PageFlipGeometry: progress must not be NaN'),
-        progress = progress.clamp(0.0, 1.0) {
+    required bool isRightToLeft,
+    required Offset touchOffset,
+    required Size size,
+    bool isDoubleSpread = false,
+    bool isForward = true,
+  }) {
+    assert(!progress.isNaN, 'PageFlipGeometry: progress must not be NaN');
+    final clampedProgress = progress.clamp(0.0, 1.0);
     final width = size.width;
     final height = size.height;
-    spineX = isDoubleSpread ? width / 2 : 0.0;
+    final safeHeight = height > 0 ? height : 1.0;
+
+    final spineX = isDoubleSpread ? width / 2 : 0.0;
 
     final pageWidth = isDoubleSpread ? width / 2 : width;
 
     // Flap direction is determined solely by animation direction:
     // forward → flap extends LEFT of foldX (peeling away from right edge)
     // backward → flap extends RIGHT of foldX (growing from spine)
-    if (isDoubleSpread) {
-      flapRightOfFold = !isForward;
-    } else {
-      // 1단보기에서는 이전/다음페이지 모두 플랩이 접힌 선(foldX)의 왼쪽에 위치합니다.
-      flapRightOfFold = false;
-    }
+    final flapRightOfFold = !isForward;
 
     // ── Fold line position ──────────────────────────────────────────────────
     // Double-spread: foldX moves across the spread between the edges/spine.
     // Single forward: foldX moves right→left (crease).
     // Single backward: foldX moves left→right (crease).
-    if (isDoubleSpread && !isForward) {
-      foldX = pageWidth * (1.0 - progress);
+    final double foldX;
+    if (!isForward) {
+      foldX = pageWidth * (1.0 - clampedProgress);
     } else {
-      foldX = width - (pageWidth * progress);
+      foldX = width - (pageWidth * clampedProgress);
     }
 
     // ── Rotation angle ──────────────────────────────────────────────────────
     // Compute flap material width early — needed for both angle limits and flaps.
     // Double: flapMaterialWidth is the distance from foldX to the page edge.
-    // Single: flapMaterialWidth represents how much of the page is visible.
-    //         Forward (progress=0→1): 0 → pageWidth (flap grows as page turns).
-    //         Backward (progress=0→1): pageWidth → 0 (flap shrinks as page lands).
-    final flapMaterialWidth = (isDoubleSpread && !isForward)
-        ? pageWidth * (1.0 - this.progress)
-        : pageWidth * this.progress;
+    final flapMaterialWidth = !isForward
+        ? pageWidth * (1.0 - clampedProgress)
+        : pageWidth * clampedProgress;
 
-    final angleT = math.pow(this.progress, 0.82).toDouble();
+    final angleT = math.pow(clampedProgress, 0.82).toDouble();
     final angleProfile = math.sin(angleT * math.pi);
-    final baseAngle =
-        (touchOffset.dy / height - 0.5) * _kAngleScale * angleProfile;
+    final normalizedTouchY = height <= 0
+        ? 0.5
+        : (touchOffset.dy / height).clamp(0.0, 1.0).toDouble();
+    final baseAngle = (normalizedTouchY - 0.5) * _kAngleScale * angleProfile;
 
     // Limit angle so the flap stays within page bounds.
     // flapSideWidth: width on the flap side of foldX.
@@ -138,41 +126,59 @@ class PageFlipGeometry {
     final revealedSideWidth = isForward
         ? (foldX - spineX).clamp(0.0, double.infinity)
         : (pageWidth - foldX).clamp(0.0, double.infinity);
-    final limitFlap = math.atan2(flapSideWidth, height / 2);
-    final limitRevealed = math.atan2(revealedSideWidth, height / 2);
+    double angleLimitForSide(double sideWidth) {
+      final halfHeight = safeHeight / 2;
+      if (halfHeight <= 0) return 0;
+      final ratio = (sideWidth / halfHeight).clamp(0.0, 1.0).toDouble();
+      return math.asin(ratio);
+    }
+
+    final limitFlap = angleLimitForSide(flapSideWidth);
+    final limitRevealed = angleLimitForSide(revealedSideWidth);
     final absLimit = math.max(0, math.min(limitFlap, limitRevealed)).toDouble();
 
     // Invert angle when flap is on the right so top-touch lifts the flap top
     // consistently regardless of which side of foldX the flap sits on.
     final rawAngle = flapRightOfFold ? -baseAngle : baseAngle;
-    angle = this.progress <= 0.0 || this.progress >= 1.0
+    final angle = clampedProgress <= 0.0 || clampedProgress >= 1.0
         ? 0.0
         : rawAngle.clamp(-absLimit, absLimit);
 
     // Transformation matrix: hinge at foldX.
-    transform = Matrix4.identity()
+    final transform = Matrix4.identity()
       ..multiply(Matrix4.translationValues(foldX, height / 2, 0))
       ..rotateZ(-angle)
       ..multiply(Matrix4.translationValues(-foldX, -height / 2, 0));
 
+    final hingeCenter = Offset(foldX, height / 2);
+    final transformedHingeCenter =
+        MatrixUtils.transformPoint(transform, hingeCenter);
+    final transformedLocalRight =
+        MatrixUtils.transformPoint(transform, Offset(foldX + 1, height / 2));
+    var foldNormal = transformedLocalRight - transformedHingeCenter;
+    final normalLength = foldNormal.distance;
+    foldNormal = !normalLength.isFinite || normalLength <= 1e-9
+        ? const Offset(1, 0)
+        : foldNormal / normalLength;
+
     // ── Fold line endpoints ─────────────────────────────────────────────────
-    foldLineTop = MatrixUtils.transformPoint(transform, Offset(foldX, -height));
-    foldLineBottom = MatrixUtils.transformPoint(
-      transform,
-      Offset(foldX, height * 2),
-    );
+    final foldLineTop =
+        MatrixUtils.transformPoint(transform, Offset(foldX, -height));
+    final foldLineBottom =
+        MatrixUtils.transformPoint(transform, Offset(foldX, height * 2));
 
     // ── Shadow intensity ────────────────────────────────────────────────────
-    shadowIntensity = math.sin(this.progress * math.pi);
+    final shadowIntensity = math.sin(clampedProgress * math.pi);
 
     // ── Flap dimensions ─────────────────────────────────────────────────────
-    // flapMaterialWidth is computed above (before angle limits).
-    flapVisibleWidth = flapMaterialWidth *
+    final flapVisibleWidth = flapMaterialWidth *
         (_kFlapWidthBase -
-            _kFlapWidthModulation * math.sin(this.progress * math.pi));
+            _kFlapWidthModulation * math.sin(clampedProgress * math.pi));
 
     // flapLeft = leftmost x of the visible flap region.
     // freeEdgeX = x of the lifted page edge (the one the user "holds").
+    final double flapLeft;
+    final double freeEdgeX;
     if (flapRightOfFold) {
       // Flap extends RIGHT from foldX.
       flapLeft = foldX;
@@ -184,28 +190,79 @@ class PageFlipGeometry {
     }
 
     // Flap edge endpoints (screen-space positions of the free edge).
-    flapEdgeTop = MatrixUtils.transformPoint(
-      transform,
-      Offset(freeEdgeX, -height),
-    );
-    flapEdgeBottom = MatrixUtils.transformPoint(
-      transform,
-      Offset(freeEdgeX, height * 2),
-    );
+    final flapEdgeTop =
+        MatrixUtils.transformPoint(transform, Offset(freeEdgeX, -height));
+    final flapEdgeBottom =
+        MatrixUtils.transformPoint(transform, Offset(freeEdgeX, height * 2));
 
     // ── Fold curvature ──────────────────────────────────────────────────────
-    curvatureAmount = math.sin(this.progress * math.pi);
+    final curvatureAmount = math.sin(clampedProgress * math.pi);
     final curveDirection = flapRightOfFold ? -1.0 : 1.0;
-    curveOffset = curvatureAmount * pageWidth * 0.04 * curveDirection;
-    foldCurveControl = MatrixUtils.transformPoint(
+    final curveOffset = curvatureAmount * pageWidth * 0.04 * curveDirection;
+    final foldCurveControl = MatrixUtils.transformPoint(
       transform,
       Offset(foldX - curveOffset, height / 2),
     );
-    flapCurveControl = MatrixUtils.transformPoint(
+    final flapCurveControl = MatrixUtils.transformPoint(
       transform,
       Offset(freeEdgeX - curveOffset, height / 2),
     );
+
+    return PageFlipGeometry._(
+      progress: clampedProgress,
+      isRightToLeft: isRightToLeft,
+      touchOffset: touchOffset,
+      size: size,
+      isDoubleSpread: isDoubleSpread,
+      isForward: isForward,
+      spineX: spineX,
+      foldX: foldX,
+      angle: angle,
+      foldNormal: foldNormal,
+      transform: transform,
+      foldLineTop: foldLineTop,
+      foldLineBottom: foldLineBottom,
+      shadowIntensity: shadowIntensity,
+      flapVisibleWidth: flapVisibleWidth,
+      flapRightOfFold: flapRightOfFold,
+      flapLeft: flapLeft,
+      freeEdgeX: freeEdgeX,
+      flapEdgeTop: flapEdgeTop,
+      flapEdgeBottom: flapEdgeBottom,
+      curvatureAmount: curvatureAmount,
+      curveOffset: curveOffset,
+      foldCurveControl: foldCurveControl,
+      flapCurveControl: flapCurveControl,
+    );
   }
+
+  /// Private constructor that receives all pre-computed values from [PageFlipGeometry].
+  PageFlipGeometry._({
+    required this.progress,
+    required this.isRightToLeft,
+    required this.touchOffset,
+    required this.size,
+    required this.isDoubleSpread,
+    required this.isForward,
+    required this.spineX,
+    required this.foldX,
+    required this.angle,
+    required this.foldNormal,
+    required this.transform,
+    required this.foldLineTop,
+    required this.foldLineBottom,
+    required this.shadowIntensity,
+    required this.flapVisibleWidth,
+    required this.flapRightOfFold,
+    required this.flapLeft,
+    required this.freeEdgeX,
+    required this.flapEdgeTop,
+    required this.flapEdgeBottom,
+    required this.curvatureAmount,
+    required this.curveOffset,
+    required this.foldCurveControl,
+    required this.flapCurveControl,
+  });
 
   /// Normalised flip progress from 0.0 to 1.0.
   final double progress;
@@ -226,53 +283,60 @@ class PageFlipGeometry {
   final bool isForward;
 
   /// X-coordinate of the paper fold hinge limit (Spine)
-  late final double spineX;
+  final double spineX;
 
   /// X-coordinate of the paper fold hinge.
-  late final double foldX;
+  final double foldX;
 
   /// Fold rotation angle in radians.
-  late final double angle;
+  final double angle;
+
+  /// Unit vector perpendicular to the fold line, matching transformed local +X.
+  ///
+  /// Every screen-space clip bleed and shadow-side offset should use this
+  /// vector instead of raw X-axis shifts so angled drags remain geometrically
+  /// parallel to the fold on every viewport aspect ratio.
+  final Offset foldNormal;
 
   /// Transformation matrix for the flipping flap.
-  late final Matrix4 transform;
+  final Matrix4 transform;
 
   /// Top endpoint of the fold line (extended for clean clipping).
-  late final Offset foldLineTop;
+  final Offset foldLineTop;
 
   /// Bottom endpoint of the fold line (extended for clean clipping).
-  late final Offset foldLineBottom;
+  final Offset foldLineBottom;
 
   /// Shadow intensity (0.0 to 1.0), peaking mid-animation.
-  late final double shadowIntensity;
+  final double shadowIntensity;
 
   /// Visible width of the flap after foreshortening.
-  late final double flapVisibleWidth;
+  final double flapVisibleWidth;
 
   /// Whether the flap extends to the RIGHT of foldX (true) or LEFT (false).
-  late final bool flapRightOfFold;
+  final bool flapRightOfFold;
 
   /// Left edge X-coordinate of the flap.
-  late final double flapLeft;
+  final double flapLeft;
 
   /// Free edge X-coordinate of the flap (the lifted page edge).
-  late final double freeEdgeX;
+  final double freeEdgeX;
 
   /// Top endpoint of the flap edge.
-  late final Offset flapEdgeTop;
+  final Offset flapEdgeTop;
 
   /// Bottom endpoint of the flap edge.
-  late final Offset flapEdgeBottom;
+  final Offset flapEdgeBottom;
 
   /// Normalised amount of 2D curvature applied (0.0 to 1.0).
-  late final double curvatureAmount;
+  final double curvatureAmount;
 
   /// Local space horizontal offset for the bezier control points.
-  late final double curveOffset;
+  final double curveOffset;
 
   /// Bezier control point for the curved fold line in global space.
-  late final Offset foldCurveControl;
+  final Offset foldCurveControl;
 
   /// Bezier control point for the curved flap edge in global space.
-  late final Offset flapCurveControl;
+  final Offset flapCurveControl;
 }
