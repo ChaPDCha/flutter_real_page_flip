@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -16,6 +17,16 @@ class PreRenderManager {
 
   /// Cached snapshots of the current spread (used for flap front texture).
   final Map<int, ui.Image> spreadSnapshots = {};
+
+  /// Maximum pixels per captured snapshot before the manager downscales.
+  ///
+  /// A 4K-class tablet at DPR 3 can otherwise request tens of millions of
+  /// pixels for each current/adjacent page capture. The flip can fall back to a
+  /// slightly softer snapshot; it must not pressure GPU memory unboundedly.
+  @visibleForTesting
+  static const int maxSnapshotPixels = 8000000;
+
+  static const double _minSnapshotPixelRatio = 0.25;
 
   /// Returns indices to capture for the given [currentIndex].
   ///
@@ -154,6 +165,31 @@ class PreRenderManager {
 
   /// Returns true if a spread snapshot exists for the given [index].
   bool hasSpreadSnapshot(int index) => spreadSnapshots.containsKey(index);
+
+  /// Caps requested snapshot scale to the package's memory budget.
+  @visibleForTesting
+  double effectiveSnapshotPixelRatio(
+    Size logicalSize,
+    double requestedPixelRatio,
+  ) {
+    final safeRequested =
+        requestedPixelRatio.isFinite && requestedPixelRatio > 0
+            ? requestedPixelRatio
+            : 1.0;
+    if (!logicalSize.width.isFinite ||
+        !logicalSize.height.isFinite ||
+        logicalSize.width <= 0 ||
+        logicalSize.height <= 0) {
+      return safeRequested;
+    }
+
+    final logicalPixels = logicalSize.width * logicalSize.height;
+    if (logicalPixels <= 0) return safeRequested;
+
+    final maxRatio = math.sqrt(maxSnapshotPixels / logicalPixels);
+    final cappedRatio = math.min(safeRequested, maxRatio);
+    return math.max(_minSnapshotPixelRatio, cappedRatio);
+  }
 
   /// True when [index] is queued or actively being captured.
   @visibleForTesting
@@ -310,7 +346,11 @@ class PreRenderManager {
 
         // Logical-pixel capture scaled by the device pixel ratio so the snapshot
         // matches the layout constraints and avoids visual sharpness Snap/Flicker.
-        final image = await boundary.toImage(pixelRatio: pixelRatio);
+        final effectivePixelRatio = effectiveSnapshotPixelRatio(
+          boundary.size,
+          pixelRatio,
+        );
+        final image = await boundary.toImage(pixelRatio: effectivePixelRatio);
         _activeCaptures.remove(index);
         _captureRetryCounts.remove(index);
         _pendingRetryIndices.remove(index);
@@ -492,7 +532,11 @@ class PreRenderManager {
 
     final ui.Image image;
     try {
-      image = boundary.toImageSync(pixelRatio: pixelRatio);
+      final effectivePixelRatio = effectiveSnapshotPixelRatio(
+        boundary.size,
+        pixelRatio,
+      );
+      image = boundary.toImageSync(pixelRatio: effectivePixelRatio);
     } on Object {
       return;
     }

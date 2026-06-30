@@ -299,4 +299,90 @@ void main() {
       }
     });
   });
+
+  group('PageFlipConfig normalization', () {
+    test('returns the same instance when values are already safe', () {
+      const config = PageFlipConfig();
+
+      expect(identical(config.normalized, config), isTrue);
+    });
+
+    test('replaces unsafe duration values with bounded safe durations', () {
+      expect(
+        const PageFlipConfig(duration: Duration.zero).normalized.duration,
+        PageFlipConfig.defaultSettings.duration,
+      );
+      expect(
+        const PageFlipConfig(duration: Duration(days: 1)).normalized.duration,
+        const Duration(seconds: 10),
+      );
+    });
+
+    test('clamps gesture and visual strength values into safe ranges', () {
+      const config = PageFlipConfig(
+        cutoffForward: double.nan,
+        cutoffPrevious: double.infinity,
+        sensitivity: -4,
+        edgeTapWidthRatio: 2,
+        paperOpacity: -1,
+        thinPaperStrength: 4,
+        endRevealStrength: double.negativeInfinity,
+        flapBackStrength: 8,
+        singlePageBackContentOpacity: -2,
+      );
+
+      final normalized = config.normalized;
+
+      expect(
+        normalized.cutoffForward,
+        PageFlipConfig.defaultSettings.cutoffForward,
+      );
+      expect(
+        normalized.cutoffPrevious,
+        PageFlipConfig.defaultSettings.cutoffPrevious,
+      );
+      expect(normalized.sensitivity, 0.0);
+      expect(normalized.edgeTapWidthRatio, 0.5);
+      expect(normalized.paperOpacity, 0.0);
+      expect(normalized.thinPaperStrength, 1.0);
+      expect(
+        normalized.endRevealStrength,
+        PageFlipConfig.defaultSettings.endRevealStrength,
+      );
+      expect(normalized.flapBackStrength, 1.0);
+      expect(normalized.singlePageBackContentOpacity, 0.0);
+    });
+
+    test('orders flap reveal thresholds so phase math stays valid', () {
+      const config = PageFlipConfig(
+        flapContentFadeOutEnd: 0.9,
+        flapContentRevealStart: 0.4,
+        flapContentRevealEnd: 0.2,
+      );
+
+      final normalized = config.normalized;
+
+      expect(normalized.flapContentFadeOutEnd, 0.4);
+      expect(normalized.flapContentRevealStart, 0.4);
+      expect(normalized.flapContentRevealEnd, 0.4);
+    });
+
+    test('preserves non-numeric callbacks and labels', () {
+      String labelBuilder(int index, int total) => '$index/$total';
+      const handler = _TestEffectHandler();
+      final config = PageFlipConfig(
+        semanticBuilder: labelBuilder,
+        effectHandler: handler,
+        edgeTapPreviousLabel: 'Back',
+        edgeTapNextLabel: 'Next',
+      );
+
+      final normalized = config.normalized;
+
+      expect(normalized.semanticBuilder, same(labelBuilder));
+      expect(normalized.effectHandler, same(handler));
+      expect(normalized.edgeTapPreviousLabel, 'Back');
+      expect(normalized.edgeTapNextLabel, 'Next');
+    });
+  });
 }

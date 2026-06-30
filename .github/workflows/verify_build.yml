@@ -38,4 +38,6 @@ jobs:
           flutter analyze
 
       - name: Build web (package only)
-        run: flutter build web --no-pub
+        run: |
+          cd example
+          flutter build web --no-pub

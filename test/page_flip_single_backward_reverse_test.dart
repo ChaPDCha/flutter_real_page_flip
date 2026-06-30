@@ -152,7 +152,8 @@ void main() {
     expect(
       dist(rgb, nextColor) < dist(rgb, currColor),
       isTrue,
-      reason: 'right-of-fold should show the revealed next page (green). rgb=$rgb',
+      reason:
+          'right-of-fold should show the revealed next page (green). rgb=$rgb',
     );
   });
 }
