@@ -148,14 +148,16 @@ class PageFlipConfig {
   /// the back-facing side mid-flip (0.0–1.0).
   ///
   /// In single-page mode each page is single-sided, so the engine keeps the
-  /// flipping page's content fully visible for the whole turn. At the default
-  /// `1.0` the peeled side therefore reads as crisp, fully-printed text.
+  /// flipping page's content visible across the fold only on the high-fidelity
+  /// profile. Medium/low profiles render the back-facing flap as blank paper
+  /// through the main fold for lower GPU cost and to avoid reverse-text
+  /// exposure.
   ///
-  /// Lowering this dims the peeled content toward the paper colour during the
-  /// peel (but NOT during the late settle reveal of the destination page),
-  /// simulating thin Bible (India) paper where the reverse text bleeds through
-  /// only faintly — as if a sheet of paper were laid over the back. A value
-  /// around `0.35` gives a subtle "thin paper" bleed-through.
+  /// On the high profile, lowering this dims the peeled content toward the
+  /// paper colour during the peel (but NOT during the late settle reveal of the
+  /// destination page), simulating thin Bible (India) paper where the reverse
+  /// text bleeds through only faintly — as if a sheet of paper were laid over
+  /// the back. A value around `0.35` gives a subtle "thin paper" bleed-through.
   ///
   /// Has no effect in double-spread mode (see [flapBackStrength]).
   final double singlePageBackContentOpacity;
@@ -304,6 +306,114 @@ class PageFlipConfig {
         performanceProfile: performanceProfile ?? this.performanceProfile,
         hapticTexturePreset: hapticTexturePreset ?? this.hapticTexturePreset,
       );
+
+  /// Runtime-safe view of this configuration.
+  ///
+  /// The public constructor stays permissive and const-friendly, but the engine
+  /// must not let NaN, infinity, negative durations, or out-of-range opacity and
+  /// gesture values enter animation and rendering math. Host apps still retain
+  /// their original config object; widgets use this normalized copy internally.
+  PageFlipConfig get normalized {
+    var safeFadeOutEnd = _safeUnitInterval(
+      flapContentFadeOutEnd,
+      defaultSettings.flapContentFadeOutEnd,
+    );
+    final safeRevealStart = _safeUnitInterval(
+      flapContentRevealStart,
+      defaultSettings.flapContentRevealStart,
+    );
+    var safeRevealEnd = _safeUnitInterval(
+      flapContentRevealEnd,
+      defaultSettings.flapContentRevealEnd,
+    );
+
+    safeFadeOutEnd = safeFadeOutEnd.clamp(0.0, safeRevealStart).toDouble();
+    if (safeRevealEnd < safeRevealStart) {
+      safeRevealEnd = safeRevealStart;
+    }
+
+    final normalizedConfig = PageFlipConfig(
+      duration: _safeDuration(duration),
+      cutoffForward: _safeUnitInterval(
+        cutoffForward,
+        defaultSettings.cutoffForward,
+      ),
+      cutoffPrevious: _safeUnitInterval(
+        cutoffPrevious,
+        defaultSettings.cutoffPrevious,
+      ),
+      backgroundColor: backgroundColor,
+      isRightSwipe: isRightSwipe,
+      enableSwipe: enableSwipe,
+      sensitivity: _safeUnitInterval(
+        sensitivity,
+        defaultSettings.sensitivity,
+      ),
+      edgeTapWidthRatio: _safeRange(
+        edgeTapWidthRatio,
+        0,
+        0.5,
+        defaultSettings.edgeTapWidthRatio,
+      ),
+      skipTapAnimation: skipTapAnimation,
+      semanticBuilder: semanticBuilder,
+      edgeTapPreviousLabel: edgeTapPreviousLabel,
+      edgeTapNextLabel: edgeTapNextLabel,
+      edgeTapPreviousHint: edgeTapPreviousHint,
+      edgeTapNextHint: edgeTapNextHint,
+      enableHaptics: enableHaptics,
+      enableSound: enableSound,
+      effectHandler: effectHandler,
+      paperOpacity: _safeUnitInterval(
+        paperOpacity,
+        defaultSettings.paperOpacity,
+      ),
+      thinPaperStrength: _safeUnitInterval(
+        thinPaperStrength,
+        defaultSettings.thinPaperStrength,
+      ),
+      endRevealStrength: _safeUnitInterval(
+        endRevealStrength,
+        defaultSettings.endRevealStrength,
+      ),
+      flapContentFadeOutEnd: safeFadeOutEnd,
+      flapContentRevealStart: safeRevealStart,
+      flapContentRevealEnd: safeRevealEnd,
+      flapBackStrength: _safeUnitInterval(
+        flapBackStrength,
+        defaultSettings.flapBackStrength,
+      ),
+      singlePageBackContentOpacity: _safeUnitInterval(
+        singlePageBackContentOpacity,
+        defaultSettings.singlePageBackContentOpacity,
+      ),
+      performanceProfile: performanceProfile,
+      hapticTexturePreset: hapticTexturePreset,
+    );
+
+    return normalizedConfig == this ? this : normalizedConfig;
+  }
+
+  static const Duration _maxAnimationDuration = Duration(seconds: 10);
+
+  static Duration _safeDuration(Duration value) {
+    if (value.inMicroseconds <= 0) return defaultSettings.duration;
+    if (value > _maxAnimationDuration) return _maxAnimationDuration;
+    return value;
+  }
+
+  static double _safeUnitInterval(double value, double fallback) =>
+      _safeRange(value, 0, 1, fallback);
+
+  static double _safeRange(
+    double value,
+    double min,
+    double max,
+    double fallback,
+  ) {
+    final safeValue = value.isFinite ? value : fallback;
+    return safeValue.clamp(min, max).toDouble();
+  }
 
   /// Default configuration.
   static const PageFlipConfig defaultSettings = PageFlipConfig();

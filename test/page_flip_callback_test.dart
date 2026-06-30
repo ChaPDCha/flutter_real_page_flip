@@ -151,6 +151,37 @@ void main() {
     });
 
     testWidgets(
+        'animated programmatic flip fires lifecycle callbacks exactly once',
+        (tester) async {
+      var startCount = 0;
+      var endCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 5,
+            itemBuilder: (context, index) => Text('Page $index'),
+            onFlipStart: () => startCount++,
+            onFlipEnd: () => endCount++,
+            config: const PageFlipConfig(
+              skipTapAnimation: false,
+              effectHandler: NoOpEffectHandler(),
+            ),
+          ),
+        ),
+      );
+
+      final state = tester.state<PageFlipWidgetState>(
+        find.byType(PageFlipWidget),
+      );
+      state.nextPage();
+      await tester.pumpAndSettle();
+
+      expect(startCount, equals(1));
+      expect(endCount, equals(1));
+    });
+
+    testWidgets(
         'onFlipStart and onFlipEnd fire during a programmatically cancelled flip (snapback)',
         (tester) async {
       var startCount = 0;
@@ -232,6 +263,39 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(capturedEvent, isNotNull);
+    });
+
+    testWidgets('onEffectError reports custom effect handler failures',
+        (tester) async {
+      final reportedEffects = <PageFlipEvent>[];
+      final reportedErrors = <Object>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 5,
+            itemBuilder: (context, index) => Text('Page $index'),
+            onHandleEffect: (effect, {intensity, volume, texture, resistance}) {
+              throw StateError('effect failed');
+            },
+            onEffectError: (effect, error, stackTrace) {
+              reportedEffects.add(effect);
+              reportedErrors.add(error);
+            },
+            config: const PageFlipConfig(skipTapAnimation: false),
+          ),
+        ),
+      );
+
+      final state = tester.state<PageFlipWidgetState>(
+        find.byType(PageFlipWidget),
+      );
+      state.nextPage();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(reportedEffects, isNotEmpty);
+      expect(reportedErrors.whereType<StateError>(), isNotEmpty);
     });
 
     testWidgets('onPageChanged does not fire on insufficient drag (snap-back)',
