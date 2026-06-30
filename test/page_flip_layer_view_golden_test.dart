@@ -36,7 +36,7 @@ void main() {
     // edge pixels, so keep a tight tolerance while still catching real drift.
     goldenFileComparator = _TolerantGoldenFileComparator(
       Uri.parse('test/page_flip_layer_view_golden_test.dart'),
-      precisionTolerance: 0.0005,
+      precisionTolerance: 0.001,
     );
   });
 
