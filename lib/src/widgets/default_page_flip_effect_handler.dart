@@ -108,7 +108,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         }
         break;
       case PageFlipEvent.sound:
-        unawaited(AdvancedHapticEngine.playSystemLight());
         _playSound(volume ?? 1.0);
         break;
     }

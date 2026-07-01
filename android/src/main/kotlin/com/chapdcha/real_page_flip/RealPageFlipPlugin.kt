@@ -75,7 +75,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun playTransient(intensity: Double, sharpness: Double) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val scale = (intensity * 1.0).toFloat().coerceIn(0.0f, 1.0f)
+            val scale = (intensity * 1.0).toFloat().coerceIn(0.15f, 1.0f)
             val primitive = if (sharpness > 0.6) VibrationEffect.Composition.PRIMITIVE_CLICK else VibrationEffect.Composition.PRIMITIVE_TICK
             try {
                 val effect = VibrationEffect.startComposition()
