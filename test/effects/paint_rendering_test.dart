@@ -678,6 +678,46 @@ void main() {
       );
     });
 
+    test('extreme vertical drag paints flap underlay beyond viewport height',
+        () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(400, -2000),
+        paperBackColor: Colors.white,
+      ).paint(canvas, size);
+
+      final paperRecord = canvas.records.firstWhere(
+        (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader == null,
+      );
+      final paperRect = paperRecord.args[0]! as Rect;
+
+      expect(paperRect.top, lessThan(0));
+      expect(paperRect.bottom, greaterThan(size.height));
+    });
+
+    test('flap opacity layer uses screen-space bounds for angled drags', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(400, 2600),
+        paperBackColor: Colors.white,
+        thinPaperStrength: 0.2,
+      ).paint(canvas, size);
+
+      final saveLayerRecord = canvas.records.firstWhere(
+        (r) => r.method == 'saveLayer',
+      );
+      final bounds = saveLayerRecord.args[0]! as Rect;
+
+      expect(bounds.top, lessThanOrEqualTo(0));
+      expect(bounds.bottom, greaterThanOrEqualTo(size.height));
+    });
+
     test('drawVertices comes before gradient draws', () {
       final canvas = RecordingCanvas();
 

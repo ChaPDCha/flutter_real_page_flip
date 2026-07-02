@@ -7,6 +7,32 @@ import 'package:real_page_flip/src/models/page_flip_config.dart';
 // LAYOUT GATE: constrainedSize + _wrapWithConstraints for Offstage/current/flip pages.
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
 
+/// Keeps gesture-driven fold steering inside the painted viewport.
+///
+/// Raw pointer events keep reporting local positions after the finger leaves
+/// the widget. The flip geometry intentionally supports angled drags, but
+/// feeding unbounded or non-finite coordinates into every clipper/painter makes
+/// delegates churn on values that all collapse to the same visual edge angle.
+@visibleForTesting
+Offset clampFlipTouchPosition(Offset position, Size viewportSize) {
+  final maxX = viewportSize.width.isFinite && viewportSize.width > 0
+      ? viewportSize.width
+      : 0.0;
+  final maxY = viewportSize.height.isFinite && viewportSize.height > 0
+      ? viewportSize.height
+      : 0.0;
+
+  double clampAxis(double value, double max) {
+    if (!value.isFinite) return max / 2;
+    return value.clamp(0.0, max).toDouble();
+  }
+
+  return Offset(
+    clampAxis(position.dx, maxX),
+    clampAxis(position.dy, maxY),
+  );
+}
+
 /// Renders the page layers (Bottom, Middle, Flap) based on the current drag state.
 class PageFlipLayerView extends StatelessWidget {
   /// Creates a [PageFlipLayerView].
@@ -222,6 +248,10 @@ class PageFlipLayerView extends StatelessWidget {
     List<Widget> backgroundWidgets,
   ) {
     final floatProgress = isForward ? dragProgress : 1.0 - dragProgress;
+    final visualTouchPosition = clampFlipTouchPosition(
+      touchPosition,
+      constrainedSize,
+    );
 
     // Single-page mode renders the BACKWARD (previous-page) flip as a true
     // time-reverse of the FORWARD flip: identical fold geometry (crease on the
@@ -321,7 +351,7 @@ class PageFlipLayerView extends StatelessWidget {
     final geo = PageFlipGeometry(
       progress: floatProgress,
       isRightToLeft: true,
-      touchOffset: touchPosition,
+      touchOffset: visualTouchPosition,
       size: constrainedSize,
       isDoubleSpread: isDoubleSpread,
       isForward: renderForward,
@@ -332,7 +362,7 @@ class PageFlipLayerView extends StatelessWidget {
       bottomClipper = PageFlipClipper(
         progress: floatProgress,
         isRightToLeft: true,
-        touchOffset: touchPosition,
+        touchOffset: visualTouchPosition,
         isDoubleSpread: isDoubleSpread,
         isForward: renderForward,
         geo: geo,
@@ -341,7 +371,7 @@ class PageFlipLayerView extends StatelessWidget {
       bottomClipper = PageFlipOpenClipper(
         progress: floatProgress,
         isRightToLeft: true,
-        touchOffset: touchPosition,
+        touchOffset: visualTouchPosition,
         isDoubleSpread: isDoubleSpread,
         isForward: renderForward,
         geo: geo,
@@ -399,6 +429,7 @@ class PageFlipLayerView extends StatelessWidget {
           middleLayerContent: middleLayerContent,
           floatProgress: floatProgress,
           renderForward: renderForward,
+          visualTouchPosition: visualTouchPosition,
         ),
         // Layer 3: Flap shadow & highlight effects
         IgnorePointer(
@@ -407,7 +438,7 @@ class PageFlipLayerView extends StatelessWidget {
             painter: PageFlipPainter(
               progress: floatProgress,
               isRightToLeft: true,
-              touchOffset: touchPosition,
+              touchOffset: visualTouchPosition,
               paperBackColor:
                   paperFlapColor ?? Theme.of(context).scaffoldBackgroundColor,
               isDoubleSpread: isDoubleSpread,
@@ -527,6 +558,7 @@ class PageFlipLayerView extends StatelessWidget {
     required Widget middleLayerContent,
     required double floatProgress,
     required bool renderForward,
+    required Offset visualTouchPosition,
   }) {
     if (!isDoubleSpread) {
       // Opacity is keyed on the REAL flip direction, not [renderForward]:
@@ -546,7 +578,7 @@ class PageFlipLayerView extends StatelessWidget {
         clipper: PageFlipClipper(
           progress: floatProgress,
           isRightToLeft: true,
-          touchOffset: touchPosition,
+          touchOffset: visualTouchPosition,
           isForward: renderForward,
           geo: geo,
         ),
@@ -579,7 +611,7 @@ class PageFlipLayerView extends StatelessWidget {
         clipper: PageFlipClipper(
           progress: floatProgress,
           isRightToLeft: true,
-          touchOffset: touchPosition,
+          touchOffset: visualTouchPosition,
           isDoubleSpread: true,
           geo: geo,
         ),
@@ -593,7 +625,7 @@ class PageFlipLayerView extends StatelessWidget {
       clipper: PageFlipOpenClipper(
         progress: floatProgress,
         isRightToLeft: true,
-        touchOffset: touchPosition,
+        touchOffset: visualTouchPosition,
         isDoubleSpread: true,
         isForward: false,
         geo: geo,

@@ -10,6 +10,35 @@ import 'package:real_page_flip/src/page_flip_layer_view.dart';
 void main() {
   const canvasSize = Size(400, 300);
 
+  group('clampFlipTouchPosition', () {
+    test('clamps offscreen gesture positions into the viewport', () {
+      expect(
+        clampFlipTouchPosition(
+          const Offset(1200, -900),
+          canvasSize,
+        ),
+        const Offset(400, 0),
+      );
+      expect(
+        clampFlipTouchPosition(
+          const Offset(-1200, 900),
+          canvasSize,
+        ),
+        const Offset(0, 300),
+      );
+    });
+
+    test('falls back to viewport center for non-finite coordinates', () {
+      expect(
+        clampFlipTouchPosition(
+          const Offset(double.nan, double.infinity),
+          canvasSize,
+        ),
+        const Offset(200, 150),
+      );
+    });
+  });
+
   Widget pumpLayerView({
     required double dragProgress,
     required bool isForward,

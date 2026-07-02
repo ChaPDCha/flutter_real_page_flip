@@ -181,20 +181,24 @@ class PageFlipPainter extends CustomPainter {
     // Determine dark mode from paper luminance.
     final luminance = paperBackColor.computeLuminance();
     final isPaperDark = luminance < 0.20; // catches dark mode backgrounds
+    final verticalPaintBleed =
+        g.angle.abs() > 0.0001 && size.height > 0 ? size.height : 0.0;
 
     canvas.save();
+    if (verticalPaintBleed > 0) {
+      canvas.clipRect(Offset.zero & size);
+    }
 
     // Clip to flap region in SCREEN space (before canvas transform) so the
     // clip exactly matches Layer 2's stationary clip along the same fold line,
     // preventing the seam where wrong content shows through.
-    final flapRect = Rect.fromLTWH(
-      g.flapLeft,
-      0,
-      g.flapVisibleWidth + kSpineRevealOverlapPx,
-      size.height,
+    final flapPaintRect = buildFlapPaintBoundsLocal(
+      g,
+      verticalBleed: verticalPaintBleed,
     );
+    final flapClipPath = buildFlapScreenClipPath(g);
 
-    canvas.clipPath(buildFlapScreenClipPath(g));
+    canvas.clipPath(flapClipPath);
 
     // Overall flap opacity modulation (thin paper + end reveal).
     // saveLayer composites everything inside at reduced opacity so the
@@ -206,11 +210,16 @@ class PageFlipPainter extends CustomPainter {
       isForward: isForward,
     );
     final needsLayer = flapAlpha < 0.995;
+    var didSaveLayer = false;
     if (needsLayer) {
+      final screenBounds = Offset.zero & size;
+      final layerBounds =
+          flapClipPath.getBounds().intersect(screenBounds).inflate(2);
       canvas.saveLayer(
-        flapRect,
+        layerBounds,
         Paint()..color = Colors.white.withValues(alpha: flapAlpha),
       );
+      didSaveLayer = true;
     }
 
     canvas.transform(g.transform.storage);
@@ -222,7 +231,7 @@ class PageFlipPainter extends CustomPainter {
             ? 1.0
             : (isPaperDark ? paperOpacity * 1.1 : paperOpacity).clamp(0.0, 1.0),
       );
-    canvas.drawRect(flapRect, paperPaint);
+    canvas.drawRect(flapPaintRect, paperPaint);
 
     final normalizedProgress =
         normalizedFlapProgress(progress, isForward: isForward);
@@ -275,7 +284,7 @@ class PageFlipPainter extends CustomPainter {
       final backFadeAlpha = 1.0 - effectiveFlapBackStrength;
       if (backFadeAlpha > 0.005) {
         canvas.drawRect(
-          flapRect,
+          flapPaintRect,
           Paint()
             ..blendMode = BlendMode.srcOver
             ..color = paperBackColor.withValues(alpha: backFadeAlpha),
@@ -365,7 +374,7 @@ class PageFlipPainter extends CustomPainter {
           final fadeAlpha = (1.0 - effectiveReveal).clamp(0.0, 1.0);
           if (fadeAlpha > 0.005) {
             canvas.drawRect(
-              flapRect,
+              flapPaintRect,
               Paint()
                 ..blendMode = BlendMode.srcOver
                 ..color = paperBackColor.withValues(alpha: fadeAlpha),
@@ -409,7 +418,7 @@ class PageFlipPainter extends CustomPainter {
       final highlightMid =
           flapHighlightMidBase(isPaperDark: isPaperDark) * bendStrength;
       canvas.drawRect(
-        flapRect,
+        flapPaintRect,
         Paint()
           ..blendMode = BlendMode.screen
           ..shader = LinearGradient(
@@ -422,7 +431,7 @@ class PageFlipPainter extends CustomPainter {
               Colors.transparent,
             ],
             stops: const [0.0, 0.40, 0.72, 1.0],
-          ).createShader(flapRect),
+          ).createShader(flapPaintRect),
       );
     }
 
@@ -445,11 +454,16 @@ class PageFlipPainter extends CustomPainter {
     final edgeFadeRect = g.flapRightOfFold
         ? Rect.fromLTWH(
             g.freeEdgeX - edgeFadeWidth,
-            0,
+            -verticalPaintBleed,
             edgeFadeWidth,
-            size.height,
+            size.height + verticalPaintBleed * 2,
           )
-        : Rect.fromLTWH(g.flapLeft, 0, edgeFadeWidth, size.height);
+        : Rect.fromLTWH(
+            g.flapLeft,
+            -verticalPaintBleed,
+            edgeFadeWidth,
+            size.height + verticalPaintBleed * 2,
+          );
     final edgeFadeBegin =
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
     final edgeFadeEnd =
@@ -473,8 +487,18 @@ class PageFlipPainter extends CustomPainter {
     // transparent softens the fold boundary edge.
     final foldFadeWidth = foldMaskWidth(isPaperDark: isPaperDark);
     final foldFadeRect = g.flapRightOfFold
-        ? Rect.fromLTWH(g.foldX, 0, foldFadeWidth, size.height)
-        : Rect.fromLTWH(g.foldX - foldFadeWidth, 0, foldFadeWidth, size.height);
+        ? Rect.fromLTWH(
+            g.foldX,
+            -verticalPaintBleed,
+            foldFadeWidth,
+            size.height + verticalPaintBleed * 2,
+          )
+        : Rect.fromLTWH(
+            g.foldX - foldFadeWidth,
+            -verticalPaintBleed,
+            foldFadeWidth,
+            size.height + verticalPaintBleed * 2,
+          );
     final foldFadeBegin =
         g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
     final foldFadeEnd =
@@ -509,7 +533,7 @@ class PageFlipPainter extends CustomPainter {
       // dark stroke (the "cartoon outline").
       final foldShadow = (isPaperDark ? 0.07 : 0.09) * bendStrength;
       canvas.drawRect(
-        flapRect,
+        flapPaintRect,
         Paint()
           ..blendMode = BlendMode.multiply
           ..shader = LinearGradient(
@@ -520,11 +544,11 @@ class PageFlipPainter extends CustomPainter {
               Colors.transparent,
             ],
             stops: const [0.0, 0.45],
-          ).createShader(flapRect),
+          ).createShader(flapPaintRect),
       );
     }
 
-    if (needsLayer) canvas.restore();
+    if (didSaveLayer) canvas.restore();
 
     canvas.restore();
 
@@ -601,15 +625,15 @@ class PageFlipPainter extends CustomPainter {
         final stationaryRect = g.flapRightOfFold
             ? Rect.fromLTWH(
                 g.freeEdgeX,
-                0,
+                -verticalPaintBleed,
                 stationaryWidth,
-                size.height,
+                size.height + verticalPaintBleed * 2,
               )
             : Rect.fromLTWH(
                 g.freeEdgeX - stationaryWidth,
-                0,
+                -verticalPaintBleed,
                 stationaryWidth,
-                size.height,
+                size.height + verticalPaintBleed * 2,
               );
         if (performanceProfile == DevicePerformanceProfile.low) {
           canvas.drawRect(

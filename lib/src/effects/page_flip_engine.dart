@@ -518,6 +518,30 @@ Path buildFlapClipPathLocal(
   return path;
 }
 
+/// Local paint bounds for flap overlays that must cover the full screen-space
+/// flap clip after rotation.
+///
+/// The flap clip extends fold/free-edge boundaries above and below the
+/// viewport so angled drags do not leave anti-aliased holes at the top or
+/// bottom. Paper underlays, fade overlays, masks, and shading need the same
+/// vertical bleed; otherwise an extreme upward/downward gesture can expose a
+/// narrow unpainted strip between clipped layers.
+@visibleForTesting
+Rect buildFlapPaintBoundsLocal(
+  PageFlipGeometry geo, {
+  double? verticalBleed,
+  double foldEdgeBleedPx = kSpineRevealOverlapPx,
+}) {
+  final height = geo.size.height;
+  final bleed = verticalBleed ?? (height > 0 ? height : 0.0);
+  return Rect.fromLTRB(
+    geo.flapLeft,
+    -bleed,
+    geo.flapLeft + geo.flapVisibleWidth + foldEdgeBleedPx,
+    height + bleed,
+  );
+}
+
 @visibleForTesting
 ({int segments, int columns}) flapMeshDensityForPerformance(
   DevicePerformanceProfile profile,

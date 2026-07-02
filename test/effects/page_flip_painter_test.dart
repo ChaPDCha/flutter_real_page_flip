@@ -765,7 +765,7 @@ void main() {
 
       tearDown(() => dualToneImage.dispose());
 
-      Future<({int maxR, int maxG})> scanPeakChannels(
+      Future<({int redPixels, int greenPixels})> scanTexturePixels(
         PageFlipPainter painter,
       ) async {
         final recorder = ui.PictureRecorder();
@@ -777,20 +777,22 @@ void main() {
         final byteData = await image.toByteData();
         expect(byteData, isNotNull);
 
-        var maxR = 0;
-        var maxG = 0;
+        var redPixels = 0;
+        var greenPixels = 0;
         for (var i = 0; i < byteData!.lengthInBytes; i += 4) {
           final r = byteData.getUint8(i);
           final g = byteData.getUint8(i + 1);
-          if (r > maxR) maxR = r;
-          if (g > maxG) maxG = g;
+          final b = byteData.getUint8(i + 2);
+          if (r > 240 && g > 240 && b > 240) continue;
+          if (r > 180 && r > g + 80 && r > b + 80) redPixels++;
+          if (g > 180 && g > r + 80 && g > b + 80) greenPixels++;
         }
         image.dispose();
-        return (maxR: maxR, maxG: maxG);
+        return (redPixels: redPixels, greenPixels: greenPixels);
       }
 
       test('settle phase renders settle snapshot color in flap mesh', () async {
-        final peaks = await scanPeakChannels(
+        final pixels = await scanTexturePixels(
           PageFlipPainter(
             progress: 0.92,
             isRightToLeft: true,
@@ -805,13 +807,13 @@ void main() {
           ),
         );
 
-        expect(peaks.maxG, greaterThan(200));
-        expect(peaks.maxG, greaterThan(peaks.maxR));
+        expect(pixels.greenPixels, greaterThan(0));
+        expect(pixels.greenPixels, greaterThan(pixels.redPixels));
       });
 
       test('pre-settle phase renders flapFront snapshot color in flap mesh',
           () async {
-        final peaks = await scanPeakChannels(
+        final pixels = await scanTexturePixels(
           PageFlipPainter(
             progress: 0.10,
             isRightToLeft: true,
@@ -826,13 +828,13 @@ void main() {
           ),
         );
 
-        expect(peaks.maxR, greaterThan(200));
-        expect(peaks.maxR, greaterThan(peaks.maxG));
+        expect(pixels.redPixels, greaterThan(0));
+        expect(pixels.redPixels, greaterThan(pixels.greenPixels));
       });
 
       test('settle phase falls back to flapFront snapshot when settle missing',
           () async {
-        final peaks = await scanPeakChannels(
+        final pixels = await scanTexturePixels(
           PageFlipPainter(
             progress: 0.92,
             isRightToLeft: true,
@@ -845,8 +847,8 @@ void main() {
           ),
         );
 
-        expect(peaks.maxR, greaterThan(200));
-        expect(peaks.maxR, greaterThan(peaks.maxG));
+        expect(pixels.redPixels, greaterThan(0));
+        expect(pixels.redPixels, greaterThan(pixels.greenPixels));
       });
     });
   });
