@@ -240,36 +240,6 @@ class PageFlipLayerView extends StatelessWidget {
       itemCount: itemCount,
     );
 
-    final canvasSize = constrainedSize ?? Size.zero;
-    final geo = PageFlipGeometry(
-      progress: floatProgress,
-      isRightToLeft: true,
-      touchOffset: touchPosition,
-      size: canvasSize,
-      isDoubleSpread: isDoubleSpread,
-      isForward: renderForward,
-    );
-    final isSettlePhase = isFlapSettlePhase(
-      floatProgress,
-      isForward: renderForward,
-      revealStart: flapContentRevealStart,
-    );
-    final skipEarlyTextureMesh = isDoubleSpread &&
-        performanceProfile != DevicePerformanceProfile.high &&
-        !isSettlePhase;
-    final canDrawTextureMesh =
-        geo.flapVisibleWidth >= 8.0 && !skipEarlyTextureMesh;
-    final frontRevealOpacity = flapFrontContentRevealOpacity(
-      floatProgress,
-      fadeOutEnd: flapContentFadeOutEnd,
-      revealStart: flapContentRevealStart,
-      revealEnd: flapContentRevealEnd,
-      isForward: renderForward,
-      isDoubleSpread: isDoubleSpread,
-    );
-    final wantsFlapFrontTexture =
-        frontRevealOpacity > 0.001 && canDrawTextureMesh;
-
     // Bottom layer: content revealed behind the fold
     final Widget bottomLayerContent;
     final bottomHalf = policy.bottomSpreadHalf;
@@ -295,10 +265,10 @@ class PageFlipLayerView extends StatelessWidget {
       middleLayerContent = _buildOpaquePaperUnderlay(context);
     }
 
-    final flapSpreadIndex =
-        wantsFlapFrontTexture ? policy.flapSnapshotSpreadIndex : null;
+    final flapSpreadIndex = policy.flapSnapshotSpreadIndex;
     final flapFrontImage =
         flapSpreadIndex != null ? spreadSnapshots[flapSpreadIndex] : null;
+    final canvasSize = constrainedSize ?? Size.zero;
     final flapFrontSrcRect = flapFrontImage != null
         ? flapFrontSourceRect(
             imageSize: Size(
@@ -311,8 +281,7 @@ class PageFlipLayerView extends StatelessWidget {
             floatProgress: isDoubleSpread ? null : floatProgress,
           )
         : null;
-    final resolvedFlapDestRect = wantsFlapFrontTexture &&
-            flapFrontSrcRect != null &&
+    final resolvedFlapDestRect = flapFrontSrcRect != null &&
             canvasSize.width > 0 &&
             canvasSize.height > 0
         ? flapFrontDestRect(
@@ -324,9 +293,7 @@ class PageFlipLayerView extends StatelessWidget {
 
     // Settle-phase flap content: shows the DESTINATION page instead of the
     // peeled page during Phase 3 (progress 0.85-0.95).
-    final flapSettleSpreadIndex = isSettlePhase && wantsFlapFrontTexture
-        ? policy.flapSettleSnapshotSpreadIndex
-        : null;
+    final flapSettleSpreadIndex = policy.flapSettleSnapshotSpreadIndex;
     final flapFrontSettleImage = flapSettleSpreadIndex != null
         ? spreadSnapshots[flapSettleSpreadIndex]
         : null;
@@ -344,8 +311,7 @@ class PageFlipLayerView extends StatelessWidget {
 
     // 2.5D page back content is opt-in. When disabled, avoid resolving the
     // adjacent image/rect so the painter has no back mesh work to do.
-    final wantsFlapBack =
-        isDoubleSpread && flapBackStrength > 0.005 && canDrawTextureMesh;
+    final wantsFlapBack = isDoubleSpread && flapBackStrength > 0.005;
     final flapBackSpreadIndex =
         wantsFlapBack ? policy.flapBackSnapshotSpreadIndex : null;
     final flapBackImage = flapBackSpreadIndex != null
@@ -361,6 +327,15 @@ class PageFlipLayerView extends StatelessWidget {
             isForward: renderForward,
           )
         : null;
+
+    final geo = PageFlipGeometry(
+      progress: floatProgress,
+      isRightToLeft: true,
+      touchOffset: touchPosition,
+      size: canvasSize,
+      isDoubleSpread: isDoubleSpread,
+      isForward: renderForward,
+    );
 
     final CustomClipper<Path> bottomClipper;
     if (isDoubleSpread && !isForward) {

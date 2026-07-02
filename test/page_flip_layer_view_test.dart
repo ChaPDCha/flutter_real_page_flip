@@ -316,79 +316,7 @@ void main() {
     });
 
     testWidgets(
-      'mid-fold double-spread does not prepare hidden flap textures',
-      (tester) async {
-        Future<ui.Image> spreadImage(Color left, Color right) async {
-          final recorder = ui.PictureRecorder();
-          final canvas = Canvas(recorder);
-          final halfW = canvasSize.width / 2;
-          canvas.drawRect(
-            Rect.fromLTWH(0, 0, halfW, canvasSize.height),
-            Paint()..color = left,
-          );
-          canvas.drawRect(
-            Rect.fromLTWH(halfW, 0, halfW, canvasSize.height),
-            Paint()..color = right,
-          );
-          return recorder.endRecording().toImage(
-                canvasSize.width.toInt(),
-                canvasSize.height.toInt(),
-              );
-        }
-
-        final currentSpread = await spreadImage(
-          const Color(0xFFE53935),
-          const Color(0xFF1E88E5),
-        );
-        final nextSpread = await spreadImage(
-          const Color(0xFF43A047),
-          const Color(0xFFFFB300),
-        );
-        addTearDown(currentSpread.dispose);
-        addTearDown(nextSpread.dispose);
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: SizedBox.fromSize(
-                size: canvasSize,
-                child: PageFlipLayerView(
-                  itemCount: 3,
-                  currentIndex: 1,
-                  dragProgress: 0.5,
-                  isDragging: true,
-                  isForward: true,
-                  touchPosition: const Offset(350, 150),
-                  pageSnapshots: const {},
-                  spreadSnapshots: {1: currentSpread, 2: nextSpread},
-                  pageKeys: {
-                    for (var i = 0; i < 3; i++) i: GlobalKey(),
-                  },
-                  constrainedSize: canvasSize,
-                  isDoubleSpread: true,
-                  flapBackStrength: 0.3,
-                  itemBuilder: (context, index) => Text('Spread $index'),
-                ),
-              ),
-            ),
-          ),
-        );
-
-        final paintFinder = find.byWidgetPredicate(
-          (w) => w is CustomPaint && w.painter is PageFlipPainter,
-        );
-        expect(paintFinder, findsOneWidget);
-
-        final painter =
-            tester.widget<CustomPaint>(paintFinder).painter! as PageFlipPainter;
-        expect(painter.flapFrontImage, isNull);
-        expect(painter.flapFrontSettleImage, isNull);
-        expect(painter.flapBackImage, isNull);
-      },
-    );
-
-    testWidgets(
-      'settle double-spread prepares visible flap textures only in phase',
+      'does not suppress flap textures when constrainedSize is omitted',
       (tester) async {
         Future<ui.Image> spreadImage(Color left, Color right) async {
           final recorder = ui.PictureRecorder();
@@ -436,7 +364,6 @@ void main() {
                   pageKeys: {
                     for (var i = 0; i < 3; i++) i: GlobalKey(),
                   },
-                  constrainedSize: canvasSize,
                   isDoubleSpread: true,
                   flapBackStrength: 0.3,
                   itemBuilder: (context, index) => Text('Spread $index'),
@@ -456,78 +383,6 @@ void main() {
         expect(painter.flapFrontImage, same(currentSpread));
         expect(painter.flapFrontSettleImage, same(nextSpread));
         expect(painter.flapBackImage, same(nextSpread));
-      },
-    );
-
-    testWidgets(
-      'backward double-spread uses normalized progress before resolving textures',
-      (tester) async {
-        Future<ui.Image> spreadImage(Color left, Color right) async {
-          final recorder = ui.PictureRecorder();
-          final canvas = Canvas(recorder);
-          final halfW = canvasSize.width / 2;
-          canvas.drawRect(
-            Rect.fromLTWH(0, 0, halfW, canvasSize.height),
-            Paint()..color = left,
-          );
-          canvas.drawRect(
-            Rect.fromLTWH(halfW, 0, halfW, canvasSize.height),
-            Paint()..color = right,
-          );
-          return recorder.endRecording().toImage(
-                canvasSize.width.toInt(),
-                canvasSize.height.toInt(),
-              );
-        }
-
-        final previousSpread = await spreadImage(
-          const Color(0xFF8E24AA),
-          const Color(0xFF6D4C41),
-        );
-        final currentSpread = await spreadImage(
-          const Color(0xFFE53935),
-          const Color(0xFF1E88E5),
-        );
-        addTearDown(previousSpread.dispose);
-        addTearDown(currentSpread.dispose);
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: SizedBox.fromSize(
-                size: canvasSize,
-                child: PageFlipLayerView(
-                  itemCount: 3,
-                  currentIndex: 1,
-                  dragProgress: 0.2,
-                  isDragging: true,
-                  isForward: false,
-                  touchPosition: const Offset(50, 150),
-                  pageSnapshots: const {},
-                  spreadSnapshots: {0: previousSpread, 1: currentSpread},
-                  pageKeys: {
-                    for (var i = 0; i < 3; i++) i: GlobalKey(),
-                  },
-                  constrainedSize: canvasSize,
-                  isDoubleSpread: true,
-                  flapBackStrength: 0.3,
-                  itemBuilder: (context, index) => Text('Spread $index'),
-                ),
-              ),
-            ),
-          ),
-        );
-
-        final paintFinder = find.byWidgetPredicate(
-          (w) => w is CustomPaint && w.painter is PageFlipPainter,
-        );
-        expect(paintFinder, findsOneWidget);
-
-        final painter =
-            tester.widget<CustomPaint>(paintFinder).painter! as PageFlipPainter;
-        expect(painter.flapFrontImage, isNull);
-        expect(painter.flapFrontSettleImage, isNull);
-        expect(painter.flapBackImage, isNull);
       },
     );
 

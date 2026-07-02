@@ -585,6 +585,14 @@ ui.Vertices buildFlapContentMesh({
   final height = size.height;
   final totalCols = safeColumns + 2; // fold + interior + flap edge columns
   final rows = safeSegments + 1;
+  final vertexCount = rows * totalCols;
+  if (vertexCount > 0x10000) {
+    throw ArgumentError.value(
+      vertexCount,
+      'segments/columns',
+      'Flap mesh exceeds Uint16 index capacity',
+    );
+  }
 
   // -----------------------------------------------------------------------
   // 1. Build vertex grid [rows] × [totalCols] in a flat array.
@@ -600,7 +608,6 @@ ui.Vertices buildFlapContentMesh({
   //    │  ╲  │     │     │     │  ╱  │
   //    ┼─────┼─────┼─────┼─────┼─────┼   ← row N (bottom)
   // -----------------------------------------------------------------------
-  final vertexCount = rows * totalCols;
   final positions = Float32List(vertexCount * 2);
   final texCoords = Float32List(vertexCount * 2);
 

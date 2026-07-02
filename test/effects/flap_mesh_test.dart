@@ -129,6 +129,21 @@ void main() {
       );
       expect(mesh, isNotNull);
     });
+
+    test('oversized mesh fails before Uint16 indices overflow', () {
+      expect(
+        () => buildFlapContentMesh(
+          size: size,
+          foldX: 200,
+          flapLeft: 50,
+          curveOffset: 16,
+          srcRect: srcRect,
+          segments: 400,
+          columns: 200,
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 
   group('buildFlapContentMesh pixel verification', () {
