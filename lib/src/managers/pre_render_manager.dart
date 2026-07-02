@@ -488,7 +488,12 @@ class PreRenderManager {
     if (key == null) return;
 
     final boundary = _findRepaintBoundary(key);
-    if (boundary == null || boundary.debugNeedsPaint) return;
+    if (boundary == null) return;
+    try {
+      if (boundary.debugNeedsPaint) return;
+    } on Object {
+      return;
+    }
 
     final ui.Image image;
     try {
