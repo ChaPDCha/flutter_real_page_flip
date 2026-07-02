@@ -523,6 +523,361 @@ void main() {
         expect(painter1.shouldRepaint(painter2), isTrue);
       });
     });
+
+    group('skipEarlyMesh performance gating (double-spread)', () {
+      const earlyFadeProgress = 0.10;
+      const settleProgress = 0.90;
+      const midFoldProgress = 0.50;
+      const canvasSize = Size(800, 600);
+      const frontSrc = Rect.fromLTWH(400, 0, 400, 600);
+      const frontDest = Rect.fromLTWH(400, 0, 400, 600);
+
+      void paintWithProfile({
+        required TrackingShaderCanvas canvas,
+        required double progress,
+        required DevicePerformanceProfile profile,
+        bool isForward = true,
+        double flapBackStrength = 0.0,
+      }) {
+        PageFlipPainter(
+          progress: progress,
+          isRightToLeft: isForward,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: testImage,
+          flapFrontSrcRect: frontSrc,
+          flapFrontDestRect: frontDest,
+          flapBackImage: testImage,
+          flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+          flapBackStrength: flapBackStrength,
+          isDoubleSpread: true,
+          isForward: isForward,
+          performanceProfile: profile,
+        ).paint(canvas, canvasSize);
+      }
+
+      test('early fade: low/medium skip front mesh, high draws mesh', () {
+        final lowCanvas = TrackingShaderCanvas();
+        final mediumCanvas = TrackingShaderCanvas();
+        final highCanvas = TrackingShaderCanvas();
+
+        paintWithProfile(
+          canvas: lowCanvas,
+          progress: earlyFadeProgress,
+          profile: DevicePerformanceProfile.low,
+        );
+        paintWithProfile(
+          canvas: mediumCanvas,
+          progress: earlyFadeProgress,
+          profile: DevicePerformanceProfile.medium,
+        );
+        paintWithProfile(
+          canvas: highCanvas,
+          progress: earlyFadeProgress,
+          profile: DevicePerformanceProfile.high,
+        );
+
+        expect(
+          flapFrontContentRevealOpacity(
+            earlyFadeProgress,
+            isDoubleSpread: true,
+          ),
+          greaterThan(0.001),
+          reason: 'early fade window must have visible content reveal',
+        );
+        expect(lowCanvas.drawVerticesCount, equals(0));
+        expect(mediumCanvas.drawVerticesCount, equals(0));
+        expect(highCanvas.drawVerticesCount, greaterThan(0));
+      });
+
+      test('settle phase: medium profile draws front mesh', () {
+        final canvas = TrackingShaderCanvas();
+
+        paintWithProfile(
+          canvas: canvas,
+          progress: settleProgress,
+          profile: DevicePerformanceProfile.medium,
+        );
+
+        expect(
+          isFlapSettlePhase(settleProgress, isForward: true),
+          isTrue,
+        );
+        expect(canvas.drawVerticesCount, greaterThan(0));
+      });
+
+      test('mid-fold hides mesh via zero content reveal (all profiles)', () {
+        for (final profile in DevicePerformanceProfile.values) {
+          final canvas = TrackingShaderCanvas();
+          paintWithProfile(
+            canvas: canvas,
+            progress: midFoldProgress,
+            profile: profile,
+          );
+
+          expect(
+            flapFrontContentRevealOpacity(
+              midFoldProgress,
+              isDoubleSpread: true,
+            ),
+            closeTo(0, 0.001),
+          );
+          expect(
+            canvas.drawVerticesCount,
+            equals(0),
+            reason: 'profile=$profile',
+          );
+        }
+      });
+
+      test('backward early gesture maps to settle phase on medium', () {
+        final canvas = TrackingShaderCanvas();
+
+        paintWithProfile(
+          canvas: canvas,
+          progress: earlyFadeProgress,
+          profile: DevicePerformanceProfile.medium,
+          isForward: false,
+        );
+
+        expect(
+          normalizedFlapProgress(earlyFadeProgress, isForward: false),
+          closeTo(0.90, 0.001),
+        );
+        expect(
+          isFlapSettlePhase(earlyFadeProgress, isForward: false),
+          isTrue,
+        );
+        expect(canvas.drawVerticesCount, greaterThan(0));
+      });
+
+      test('backward mid-fold skips mesh on medium', () {
+        final canvas = TrackingShaderCanvas();
+
+        paintWithProfile(
+          canvas: canvas,
+          progress: midFoldProgress,
+          profile: DevicePerformanceProfile.medium,
+          isForward: false,
+        );
+
+        expect(
+          normalizedFlapProgress(midFoldProgress, isForward: false),
+          closeTo(0.50, 0.001),
+        );
+        expect(
+          isFlapSettlePhase(midFoldProgress, isForward: false),
+          isFalse,
+        );
+        expect(canvas.drawVerticesCount, equals(0));
+      });
+
+      test('early fade: medium skips back mesh, settle draws back mesh', () {
+        final earlyCanvas = TrackingShaderCanvas();
+        final settleCanvas = TrackingShaderCanvas();
+
+        paintWithProfile(
+          canvas: earlyCanvas,
+          progress: earlyFadeProgress,
+          profile: DevicePerformanceProfile.medium,
+          flapBackStrength: 0.3,
+        );
+        paintWithProfile(
+          canvas: settleCanvas,
+          progress: settleProgress,
+          profile: DevicePerformanceProfile.medium,
+          flapBackStrength: 0.3,
+        );
+
+        expect(earlyCanvas.drawVerticesCount, equals(0));
+        expect(settleCanvas.drawVerticesCount, greaterThanOrEqualTo(2));
+      });
+
+      test('custom revealStart gates skipEarlyMesh on medium profile', () {
+        const customRevealStart = 0.75;
+        final earlyCanvas = TrackingShaderCanvas();
+        final settleCanvas = TrackingShaderCanvas();
+
+        PageFlipPainter(
+          progress: 0.10,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: testImage,
+          flapFrontSrcRect: frontSrc,
+          flapFrontDestRect: frontDest,
+          isDoubleSpread: true,
+          flapContentRevealStart: customRevealStart,
+        ).paint(earlyCanvas, canvasSize);
+
+        PageFlipPainter(
+          progress: 0.80,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: testImage,
+          flapFrontSrcRect: frontSrc,
+          flapFrontDestRect: frontDest,
+          isDoubleSpread: true,
+          flapContentRevealStart: customRevealStart,
+        ).paint(settleCanvas, canvasSize);
+
+        expect(
+          isFlapSettlePhase(0.10, isForward: true, revealStart: customRevealStart),
+          isFalse,
+        );
+        expect(
+          isFlapSettlePhase(0.80, isForward: true, revealStart: customRevealStart),
+          isTrue,
+        );
+        expect(earlyCanvas.drawVerticesCount, equals(0));
+        expect(settleCanvas.drawVerticesCount, greaterThan(0));
+      });
+
+      test('narrow flap skips mesh even when content reveal is active', () {
+        const narrowProgress = 0.005;
+        final geo = PageFlipGeometry(
+          progress: narrowProgress,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          size: canvasSize,
+          isDoubleSpread: true,
+          isForward: true,
+        );
+        expect(geo.flapVisibleWidth, lessThan(8.0));
+
+        final canvas = TrackingShaderCanvas();
+        PageFlipPainter(
+          progress: narrowProgress,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: testImage,
+          flapFrontSrcRect: frontSrc,
+          flapFrontDestRect: frontDest,
+          isDoubleSpread: true,
+          geo: geo,
+          performanceProfile: DevicePerformanceProfile.high,
+        ).paint(canvas, canvasSize);
+
+        expect(
+          flapFrontContentRevealOpacity(
+            narrowProgress,
+            isDoubleSpread: true,
+          ),
+          greaterThan(0.001),
+        );
+        expect(canvas.drawVerticesCount, equals(0));
+      });
+    });
+
+    group('settle-phase texture selection', () {
+      late ui.Image dualToneImage;
+      const canvasSize = Size(800, 600);
+
+      setUp(() async {
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        canvas.drawRect(
+          const Rect.fromLTWH(0, 0, 100, 100),
+          Paint()..color = const Color(0xFFFF0000),
+        );
+        canvas.drawRect(
+          const Rect.fromLTWH(100, 0, 100, 100),
+          Paint()..color = const Color(0xFF00FF00),
+        );
+        dualToneImage = await recorder.endRecording().toImage(200, 100);
+      });
+
+      tearDown(() => dualToneImage.dispose());
+
+      Future<({int maxR, int maxG})> scanPeakChannels(
+        PageFlipPainter painter,
+      ) async {
+        final recorder = ui.PictureRecorder();
+        painter.paint(Canvas(recorder), canvasSize);
+        final image = await recorder.endRecording().toImage(
+              canvasSize.width.toInt(),
+              canvasSize.height.toInt(),
+            );
+        final byteData = await image.toByteData();
+        expect(byteData, isNotNull);
+
+        var maxR = 0;
+        var maxG = 0;
+        for (var i = 0; i < byteData!.lengthInBytes; i += 4) {
+          final r = byteData.getUint8(i);
+          final g = byteData.getUint8(i + 1);
+          if (r > maxR) maxR = r;
+          if (g > maxG) maxG = g;
+        }
+        image.dispose();
+        return (maxR: maxR, maxG: maxG);
+      }
+
+      test('settle phase renders settle snapshot color in flap mesh', () async {
+        final peaks = await scanPeakChannels(
+          PageFlipPainter(
+            progress: 0.92,
+            isRightToLeft: true,
+            touchOffset: Offset.zero,
+            paperBackColor: Colors.white,
+            flapFrontImage: dualToneImage,
+            flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
+            flapFrontSettleImage: dualToneImage,
+            flapFrontSettleSrcRect: const Rect.fromLTWH(100, 0, 100, 100),
+            flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
+            isDoubleSpread: true,
+            performanceProfile: DevicePerformanceProfile.high,
+          ),
+        );
+
+        expect(peaks.maxG, greaterThan(200));
+        expect(peaks.maxG, greaterThan(peaks.maxR));
+      });
+
+      test('pre-settle phase renders flapFront snapshot color in flap mesh',
+          () async {
+        final peaks = await scanPeakChannels(
+          PageFlipPainter(
+            progress: 0.10,
+            isRightToLeft: true,
+            touchOffset: Offset.zero,
+            paperBackColor: Colors.white,
+            flapFrontImage: dualToneImage,
+            flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
+            flapFrontSettleImage: dualToneImage,
+            flapFrontSettleSrcRect: const Rect.fromLTWH(100, 0, 100, 100),
+            flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
+            isDoubleSpread: true,
+            performanceProfile: DevicePerformanceProfile.high,
+          ),
+        );
+
+        expect(peaks.maxR, greaterThan(200));
+        expect(peaks.maxR, greaterThan(peaks.maxG));
+      });
+
+      test('settle phase falls back to flapFront snapshot when settle missing',
+          () async {
+        final peaks = await scanPeakChannels(
+          PageFlipPainter(
+            progress: 0.92,
+            isRightToLeft: true,
+            touchOffset: Offset.zero,
+            paperBackColor: Colors.white,
+            flapFrontImage: dualToneImage,
+            flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
+            flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
+            isDoubleSpread: true,
+            performanceProfile: DevicePerformanceProfile.high,
+          ),
+        );
+
+        expect(peaks.maxR, greaterThan(200));
+        expect(peaks.maxR, greaterThan(peaks.maxG));
+      });
+    });
   });
 }
 
@@ -562,6 +917,9 @@ class TrackingShaderCanvas extends Fake implements Canvas {
 
   @override
   void save() {}
+
+  @override
+  void saveLayer(Rect? bounds, Paint paint) {}
 
   @override
   void restore() {}

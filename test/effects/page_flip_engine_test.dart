@@ -241,6 +241,40 @@ void main() {
       );
     });
 
+    test('identity at flip endpoints', () {
+      expect(
+        normalizedFlapProgress(0, isForward: true),
+        closeTo(0, 0.001),
+      );
+      expect(
+        normalizedFlapProgress(1, isForward: true),
+        closeTo(1, 0.001),
+      );
+      expect(
+        normalizedFlapProgress(0, isForward: false),
+        closeTo(1, 0.001),
+      );
+      expect(
+        normalizedFlapProgress(1, isForward: false),
+        closeTo(0, 0.001),
+      );
+    });
+
+    test('does not clamp out-of-range progress (caller contract)', () {
+      expect(
+        normalizedFlapProgress(-0.1, isForward: true),
+        closeTo(-0.1, 0.001),
+      );
+      expect(
+        normalizedFlapProgress(1.1, isForward: true),
+        closeTo(1.1, 0.001),
+      );
+      expect(
+        normalizedFlapProgress(-0.1, isForward: false),
+        closeTo(1.1, 0.001),
+      );
+    });
+
     test('settle phase follows normalized progress', () {
       expect(
         isFlapSettlePhase(
@@ -253,6 +287,60 @@ void main() {
         isFlapSettlePhase(
           0.10,
           isForward: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('settle phase boundary at default revealStart (0.85)', () {
+      expect(
+        isFlapSettlePhase(0.849, isForward: true),
+        isFalse,
+      );
+      expect(
+        isFlapSettlePhase(0.85, isForward: true),
+        isTrue,
+      );
+      expect(
+        isFlapSettlePhase(0.151, isForward: false),
+        isFalse,
+      );
+      expect(
+        isFlapSettlePhase(0.15, isForward: false),
+        isTrue,
+      );
+    });
+
+    test('settle phase respects custom revealStart', () {
+      expect(
+        isFlapSettlePhase(
+          0.74,
+          isForward: true,
+          revealStart: 0.75,
+        ),
+        isFalse,
+      );
+      expect(
+        isFlapSettlePhase(
+          0.75,
+          isForward: true,
+          revealStart: 0.75,
+        ),
+        isTrue,
+      );
+      expect(
+        isFlapSettlePhase(
+          0.26,
+          isForward: false,
+          revealStart: 0.75,
+        ),
+        isFalse,
+      );
+      expect(
+        isFlapSettlePhase(
+          0.25,
+          isForward: false,
+          revealStart: 0.75,
         ),
         isTrue,
       );

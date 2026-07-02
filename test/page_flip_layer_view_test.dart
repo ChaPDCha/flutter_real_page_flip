@@ -316,6 +316,78 @@ void main() {
     });
 
     testWidgets(
+      'mid-fold double-spread always prepares flap textures for painter',
+      (tester) async {
+        Future<ui.Image> spreadImage(Color left, Color right) async {
+          final recorder = ui.PictureRecorder();
+          final canvas = Canvas(recorder);
+          final halfW = canvasSize.width / 2;
+          canvas.drawRect(
+            Rect.fromLTWH(0, 0, halfW, canvasSize.height),
+            Paint()..color = left,
+          );
+          canvas.drawRect(
+            Rect.fromLTWH(halfW, 0, halfW, canvasSize.height),
+            Paint()..color = right,
+          );
+          return recorder.endRecording().toImage(
+                canvasSize.width.toInt(),
+                canvasSize.height.toInt(),
+              );
+        }
+
+        final currentSpread = await spreadImage(
+          const Color(0xFFE53935),
+          const Color(0xFF1E88E5),
+        );
+        final nextSpread = await spreadImage(
+          const Color(0xFF43A047),
+          const Color(0xFFFFB300),
+        );
+        addTearDown(currentSpread.dispose);
+        addTearDown(nextSpread.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox.fromSize(
+                size: canvasSize,
+                child: PageFlipLayerView(
+                  itemCount: 3,
+                  currentIndex: 1,
+                  dragProgress: 0.5,
+                  isDragging: true,
+                  isForward: true,
+                  touchPosition: const Offset(350, 150),
+                  pageSnapshots: const {},
+                  spreadSnapshots: {1: currentSpread, 2: nextSpread},
+                  pageKeys: {
+                    for (var i = 0; i < 3; i++) i: GlobalKey(),
+                  },
+                  constrainedSize: canvasSize,
+                  isDoubleSpread: true,
+                  flapBackStrength: 0.3,
+                  itemBuilder: (context, index) => Text('Spread $index'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        final paintFinder = find.byWidgetPredicate(
+          (w) => w is CustomPaint && w.painter is PageFlipPainter,
+        );
+        expect(paintFinder, findsOneWidget);
+
+        final painter =
+            tester.widget<CustomPaint>(paintFinder).painter! as PageFlipPainter;
+        expect(painter.flapFrontImage, same(currentSpread));
+        expect(painter.flapFrontSettleImage, same(nextSpread));
+        expect(painter.flapBackImage, same(nextSpread));
+      },
+    );
+
+    testWidgets(
       'does not suppress flap textures when constrainedSize is omitted',
       (tester) async {
         Future<ui.Image> spreadImage(Color left, Color right) async {

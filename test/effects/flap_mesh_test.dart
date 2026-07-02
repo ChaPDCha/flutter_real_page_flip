@@ -144,6 +144,85 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('empty srcRect returns zero-length vertex buffer', () {
+      final mesh = buildFlapContentMesh(
+        size: size,
+        foldX: 200,
+        flapLeft: 50,
+        curveOffset: 16,
+        srcRect: Rect.zero,
+      );
+      expect(mesh, isNotNull);
+    });
+
+    test('zero height size returns zero-length vertex buffer', () {
+      final mesh = buildFlapContentMesh(
+        size: const Size(400, 0),
+        foldX: 200,
+        flapLeft: 50,
+        curveOffset: 16,
+        srcRect: srcRect,
+      );
+      expect(mesh, isNotNull);
+    });
+
+    test('negative segments are clamped to zero rows', () {
+      final mesh = buildFlapContentMesh(
+        size: size,
+        foldX: 200,
+        flapLeft: 50,
+        curveOffset: 16,
+        srcRect: srcRect,
+        segments: -4,
+      );
+      expect(mesh, isNotNull);
+    });
+
+    test('profile mesh densities produce valid renderable meshes', () {
+      for (final profile in DevicePerformanceProfile.values) {
+        final density = flapMeshDensityForPerformance(profile);
+        final mesh = buildFlapContentMesh(
+          size: size,
+          foldX: 200,
+          flapLeft: 50,
+          curveOffset: 16,
+          srcRect: srcRect,
+          segments: density.segments,
+          columns: density.columns,
+        );
+        expect(mesh, isNotNull, reason: 'profile=$profile');
+      }
+    });
+
+    test('empty srcRect mesh paints no visible pixels', () async {
+      final mesh = buildFlapContentMesh(
+        size: size,
+        foldX: 200,
+        flapLeft: 50,
+        curveOffset: 16,
+        srcRect: Rect.zero,
+      );
+
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawVertices(
+        mesh,
+        BlendMode.srcOver,
+        Paint()..color = const Color(0xFFFF0000),
+      );
+      final image = await recorder.endRecording().toImage(
+            size.width.toInt(),
+            size.height.toInt(),
+          );
+
+      final byteData = await image.toByteData();
+      expect(byteData, isNotNull);
+      final stride = size.width.toInt() * 4;
+      final offset = (size.height ~/ 2) * stride + (size.width ~/ 2) * 4;
+      expect(byteData!.getUint8(offset), equals(0));
+      image.dispose();
+    });
   });
 
   group('buildFlapContentMesh pixel verification', () {

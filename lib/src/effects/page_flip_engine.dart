@@ -197,8 +197,8 @@ double flapHighlightMidBase({required bool isPaperDark}) =>
 ///
 /// Double-spread backward flips animate geometry in reverse, so paint-time
 /// progress runs 1 -> 0 while the user gesture advances 0 -> 1. Normalize it
-/// once and share the result between painter and layer preparation so hidden
-/// textures are not resolved for frames the painter cannot draw.
+/// once and share the result between [PageFlipPainter] and opacity helpers so
+/// phase decisions stay consistent across the render pipeline.
 double normalizedFlapProgress(
   double progress, {
   required bool isForward,
