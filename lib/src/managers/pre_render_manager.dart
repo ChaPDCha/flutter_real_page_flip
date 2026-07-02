@@ -293,7 +293,7 @@ class PreRenderManager {
 
       try {
         final boundary = _findRepaintBoundary(key);
-        if (boundary == null || boundary.debugNeedsPaint) {
+        if (boundary == null) {
           _activeCaptures.remove(index);
           _scheduleCaptureRetry(
             index,
@@ -481,7 +481,11 @@ class PreRenderManager {
   ///
   /// Refreshes both [spreadSnapshots] and [pageSnapshots] when an entry exists
   /// (the current index is normally stored only as a spread snapshot). No-ops
-  /// safely when the boundary is missing, unpainted, or rasterization fails.
+  /// safely when the boundary is missing or rasterization fails.
+  ///
+  /// NOTE: debugNeedsPaint is deliberately NOT checked here — it uses a late+assert
+  /// pattern that throws LateInitializationError in release/profile builds.
+  /// toImageSync forces synchronous paint internally, so the check is redundant.
   void refreshIndexSync(int index, {double pixelRatio = 1.0}) {
     if (_isDisposed) return;
     final key = pageKeys[index];
@@ -489,11 +493,6 @@ class PreRenderManager {
 
     final boundary = _findRepaintBoundary(key);
     if (boundary == null) return;
-    try {
-      if (boundary.debugNeedsPaint) return;
-    } on Object {
-      return;
-    }
 
     final ui.Image image;
     try {
