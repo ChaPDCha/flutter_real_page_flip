@@ -5,6 +5,18 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 
 ## [Unreleased]
 
+## [1.12.4] - 2026-07-03
+### Performance
+- Reduced hidden page-flip rendering work by using indexed flap meshes and skipping low-value double-spread mesh draws on low and medium performance profiles outside the settle phase.
+
+### Fixed
+- Hardened `PageFlipLayerView` to require a finite viewport size, removing hidden zero-size and infinite-size paint fallback paths.
+- Removed unused flap destination mapping from the painter/render pipeline to avoid dead API surface and misleading test coverage.
+- Kept unsafe texture gating out of the layer view, so omitted sizing cannot silently suppress flap textures.
+
+### Tests
+- Added regression coverage for `skipEarlyMesh`, settle-phase rendering, mesh edge cases, viewport size contracts, painter behavior, and visual goldens.
+
 ## [1.12.3] - 2026-07-02
 ### Fixed
 - Removed release/profile `debugNeedsPaint` calls from snapshot refresh paths to prevent `LateInitializationError` crashes during page flips.
