@@ -393,6 +393,95 @@ Path buildOpenPageClipPath(Size size, PageFlipGeometry geo) {
   return path;
 }
 
+/// Maximum visible horizontal offset of the quadratic fold curve.
+///
+/// The fold path uses a quadratic bezier with straight endpoints and one
+/// horizontally shifted control point, so the actual midpoint bulge is half of
+/// [PageFlipGeometry.curveOffset]. Treating the control-point shift as the
+/// visible bulge makes the crease shadow twice as wide as the paper geometry.
+@visibleForTesting
+double foldCurveMaxBulge(PageFlipGeometry geo) =>
+    geo.curvatureAmount > 0.001 ? geo.curveOffset.abs() * 0.5 : 0.0;
+
+/// Local-space x coordinate of the curved fold at [localY].
+///
+/// This mirrors [appendFoldLineBoundary], which extends the fold endpoints
+/// beyond the viewport to avoid clipping artifacts at the top and bottom.
+@visibleForTesting
+double foldCurveXAt(PageFlipGeometry geo, double localY) {
+  if (geo.curvatureAmount <= 0.001) return geo.foldX;
+
+  final height = geo.size.height;
+  if (height <= 0) return geo.foldX;
+
+  final t = ((localY + height) / (height * 3)).clamp(0.0, 1.0).toDouble();
+  final bulge = 2 * (1 - t) * t;
+  return geo.foldX - geo.curveOffset * bulge;
+}
+
+/// Local-space shadow band following the same curved fold boundary as the flap.
+///
+/// [isForward] determines which side of the fold receives the revealed-page
+/// shadow. Forward flips reveal to the positive-X side; backward flips reveal
+/// to the negative-X side. A small fold-side bleed keeps anti-aliased clip
+/// edges covered without making the whole band visually thick.
+@visibleForTesting
+Path buildCurvedFoldShadowPath(
+  PageFlipGeometry geo, {
+  required bool isForward,
+  required double shadowWidth,
+  double foldEdgeBleedPx = kSpineRevealOverlapPx,
+}) {
+  final height = geo.size.height;
+  final topY = -height;
+  final midY = height / 2;
+  final bottomY = height * 2;
+  final shadowSide = isForward ? 1.0 : -1.0;
+  final innerShift = -shadowSide * foldEdgeBleedPx;
+  final outerShift = shadowSide * shadowWidth;
+
+  Offset point(double shift, double y) => Offset(geo.foldX + shift, y);
+  Offset control(double shift) =>
+      Offset(geo.foldX - geo.curveOffset + shift, midY);
+
+  final outerTop = point(outerShift, topY);
+  final path = Path()..moveTo(outerTop.dx, outerTop.dy);
+
+  if (geo.curvatureAmount > 0.001) {
+    final outerControl = control(outerShift);
+    final outerBottom = point(outerShift, bottomY);
+    path.quadraticBezierTo(
+      outerControl.dx,
+      outerControl.dy,
+      outerBottom.dx,
+      outerBottom.dy,
+    );
+  } else {
+    final outerBottom = point(outerShift, bottomY);
+    path.lineTo(outerBottom.dx, outerBottom.dy);
+  }
+
+  final innerBottom = point(innerShift, bottomY);
+  path.lineTo(innerBottom.dx, innerBottom.dy);
+
+  if (geo.curvatureAmount > 0.001) {
+    final innerControl = control(innerShift);
+    final innerTop = point(innerShift, topY);
+    path.quadraticBezierTo(
+      innerControl.dx,
+      innerControl.dy,
+      innerTop.dx,
+      innerTop.dy,
+    );
+  } else {
+    final innerTop = point(innerShift, topY);
+    path.lineTo(innerTop.dx, innerTop.dy);
+  }
+
+  path.close();
+  return path;
+}
+
 /// Local-space flap region clip used by [PageFlipPainter] (matches fold seam).
 @visibleForTesting
 Path buildFlapClipPathLocal(

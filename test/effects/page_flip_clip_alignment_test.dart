@@ -60,6 +60,66 @@ void main() {
     });
   });
 
+  group('curved fold shadow band', () {
+    test('uses quadratic midpoint bulge instead of full control offset', () {
+      final g = geo(progress: 0.5);
+
+      expect(
+        foldCurveMaxBulge(g),
+        closeTo(g.curveOffset.abs() * 0.5, 0.001),
+      );
+      expect(
+        foldCurveMaxBulge(g),
+        lessThan(g.curveOffset.abs()),
+        reason: 'The shadow cover should not reserve the full bezier control '
+            'offset; that makes the crease band visibly too thick.',
+      );
+    });
+
+    test('forward shadow path hugs the curved fold without a straight slab',
+        () {
+      final g = geo(progress: 0.5, isDoubleSpread: false);
+      const shadowWidth = 22.0;
+      final path = buildCurvedFoldShadowPath(
+        g,
+        isForward: true,
+        shadowWidth: shadowWidth,
+      );
+      final midY = g.size.height / 2;
+      final foldAtMid = foldCurveXAt(g, midY);
+
+      expect(path.contains(Offset(foldAtMid + 1, midY)), isTrue);
+      expect(
+        path.contains(Offset(foldAtMid - kSpineRevealOverlapPx - 2, midY)),
+        isFalse,
+      );
+      expect(path.contains(Offset(foldAtMid + shadowWidth + 2, midY)), isFalse);
+    });
+
+    test('backward shadow path hugs the curved fold on the opposite side', () {
+      final g = geo(
+        progress: 0.5,
+        isDoubleSpread: false,
+        isForward: false,
+      );
+      const shadowWidth = 22.0;
+      final path = buildCurvedFoldShadowPath(
+        g,
+        isForward: false,
+        shadowWidth: shadowWidth,
+      );
+      final midY = g.size.height / 2;
+      final foldAtMid = foldCurveXAt(g, midY);
+
+      expect(path.contains(Offset(foldAtMid - 1, midY)), isTrue);
+      expect(
+        path.contains(Offset(foldAtMid + kSpineRevealOverlapPx + 2, midY)),
+        isFalse,
+      );
+      expect(path.contains(Offset(foldAtMid - shadowWidth - 2, midY)), isFalse);
+    });
+  });
+
   group('clippers delegate to shared builders', () {
     test('PageFlipClipper matches buildStationaryPageClipPath', () {
       final g = geo(progress: 0.85);

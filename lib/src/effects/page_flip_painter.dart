@@ -565,63 +565,42 @@ class PageFlipPainter extends CustomPainter {
     canvas.transform(g.transform.storage);
 
     final shadowWidth = _kRevealedShadowWidth * g.shadowIntensity;
-    final revealedAlpha = 0.11 * g.shadowIntensity;
+    final revealedAlpha = 0.075 * g.shadowIntensity;
     if (revealedAlpha > 0.01 && shadowWidth > 1) {
-      // The flap's fold boundary is a curved bezier that bulges ~curveOffset/2
-      // toward the revealed side at mid-height, so the flap content ends short
-      // of the straight foldX line and the revealed page peeks through in a
-      // crescent. Extend the shadow past foldX by the bulge and hold it at full
-      // strength up to foldX (a dark "plateau"), so the crescent stays shaded
-      // instead of showing a bright sliver / diagonal blade. The screen-space
-      // curved clip above trims any overshoot back onto the flap.
-      final creaseBulge = g.curveOffset.abs();
-      final revealedRect = isForward
-          ? Rect.fromLTWH(
-              g.foldX - creaseBulge,
-              0,
-              creaseBulge + shadowWidth,
-              size.height,
-            )
-          : Rect.fromLTWH(
-              g.foldX - shadowWidth,
-              0,
-              shadowWidth + creaseBulge,
-              size.height,
-            );
+      // Follow the same curved fold boundary as the flap. A straight shadow
+      // rect stays angle-aligned after transform, but its dark edge remains a
+      // straight line while the paper edge is quadratic, which makes the crease
+      // look like two competing layers. The path below shares the fold curve
+      // and only bleeds a little across it to cover antialiasing.
+      final shadowPath = buildCurvedFoldShadowPath(
+        g,
+        isForward: isForward,
+        shadowWidth: shadowWidth,
+      );
+      final shadowBounds = shadowPath.getBounds();
 
-      // Gradient direction must match the shadow side (darkest at the fold line)
       final beginAlign =
           isForward ? Alignment.centerLeft : Alignment.centerRight;
       final endAlign = isForward ? Alignment.centerRight : Alignment.centerLeft;
 
-      // Fraction of the band occupied by the full-strength plateau (crescent).
-      final plateau = revealedRect.width <= 0
-          ? 0.0
-          : (creaseBulge / revealedRect.width).clamp(0.0, 0.95);
-
       if (performanceProfile == DevicePerformanceProfile.low) {
-        canvas.drawRect(
-          revealedRect,
-          Paint()..color = Colors.black.withValues(alpha: revealedAlpha * 0.5),
+        canvas.drawPath(
+          shadowPath,
+          Paint()..color = Colors.black.withValues(alpha: revealedAlpha * 0.42),
         );
       } else {
-        canvas.drawRect(
-          revealedRect,
+        canvas.drawPath(
+          shadowPath,
           Paint()
             ..shader = LinearGradient(
               begin: beginAlign,
               end: endAlign,
               colors: [
-                // Crescent (flap-side of foldX): a gentle ramp UP to the fold
-                // rather than a flat full-strength band, so the crease reads as
-                // a soft gradient instead of a thick drawn line — while still
-                // staying shaded enough that the bright "blade" never reappears.
-                Colors.black.withValues(alpha: revealedAlpha * 0.45),
                 Colors.black.withValues(alpha: revealedAlpha),
                 Colors.transparent,
               ],
-              stops: [0.0, plateau, 1.0],
-            ).createShader(revealedRect),
+              stops: const [0.0, 1.0],
+            ).createShader(shadowBounds),
         );
       }
     }
@@ -635,7 +614,7 @@ class PageFlipPainter extends CustomPainter {
       canvas.transform(g.transform.storage);
 
       final stationaryWidth = _kStationaryShadowWidth * g.shadowIntensity;
-      final stationaryAlpha = 0.05 * g.shadowIntensity;
+      final stationaryAlpha = 0.035 * g.shadowIntensity;
       if (stationaryAlpha > 0.01 && stationaryWidth > 1) {
         final stationaryRect = g.flapRightOfFold
             ? Rect.fromLTWH(

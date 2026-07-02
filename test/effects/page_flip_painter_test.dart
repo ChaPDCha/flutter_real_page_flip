@@ -558,6 +558,9 @@ class TrackingShaderCanvas extends Fake implements Canvas {
   }
 
   @override
+  void drawPath(Path path, Paint paint) {}
+
+  @override
   void save() {}
 
   @override
@@ -591,6 +594,9 @@ class MockCanvas extends Fake implements Canvas {
     didDrawRect = true;
     drawRectCount++;
   }
+
+  @override
+  void drawPath(Path path, Paint paint) {}
 
   @override
   void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {

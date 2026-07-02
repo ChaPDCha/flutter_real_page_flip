@@ -18,7 +18,14 @@ class _SolidRectTrackingCanvas extends Fake implements Canvas {
   }
 
   @override
-  void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {}
+  void drawPath(Path path, Paint paint) {}
+
+  @override
+  void drawVertices(
+    ui.Vertices vertices,
+    ui.BlendMode blendMode,
+    Paint paint,
+  ) {}
 
   @override
   void save() {}

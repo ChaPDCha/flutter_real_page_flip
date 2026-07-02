@@ -18,10 +18,10 @@ const double _kFlapWidthBase = 1;
 const double _kFlapWidthModulation = 0.30;
 
 /// Maximum width (px) of the drop shadow cast by the revealed (new) page.
-const double _kRevealedShadowWidth = 30;
+const double _kRevealedShadowWidth = 22;
 
 /// Maximum width (px) of the shadow on the stationary page edge.
-const double _kStationaryShadowWidth = 20;
+const double _kStationaryShadowWidth = 14;
 
 /// Pre-computed identity matrix storage for [ui.ImageShader] transforms.
 /// Avoids allocating a new [Matrix4] + extracting storage every paint frame.

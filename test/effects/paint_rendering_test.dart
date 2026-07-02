@@ -52,6 +52,10 @@ class RecordingCanvas extends Fake implements Canvas {
       records.add(_Record('drawRect', [rect, paint]));
 
   @override
+  void drawPath(Path path, Paint paint) =>
+      records.add(_Record('drawPath', [path, paint]));
+
+  @override
   void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {
     records.add(_Record('drawVertices', [vertices, blendMode, paint]));
   }
@@ -64,15 +68,16 @@ class RecordingCanvas extends Fake implements Canvas {
   int get clipRectCount => records.where((r) => r.method == 'clipRect').length;
   int get clipPathCount => records.where((r) => r.method == 'clipPath').length;
   int get drawRectCount => records.where((r) => r.method == 'drawRect').length;
+  int get drawPathCount => records.where((r) => r.method == 'drawPath').length;
   int get drawVerticesCount =>
       records.where((r) => r.method == 'drawVertices').length;
 
-  int drawRectCountWhere({
+  int shadedDrawCountWhere({
     BlendMode? blendMode,
     bool? hasShader,
   }) =>
       records.where((r) {
-        if (r.method != 'drawRect') return false;
+        if (r.method != 'drawRect' && r.method != 'drawPath') return false;
         final paint = r.args[1]! as Paint;
         if (blendMode != null && paint.blendMode != blendMode) return false;
         if (hasShader != null) {
@@ -83,7 +88,28 @@ class RecordingCanvas extends Fake implements Canvas {
       }).length;
 
   bool hasDrawRectWith({BlendMode? blendMode, bool? hasShader}) =>
-      drawRectCountWhere(blendMode: blendMode, hasShader: hasShader) > 0;
+      records.where((r) {
+        if (r.method != 'drawRect') return false;
+        final paint = r.args[1]! as Paint;
+        if (blendMode != null && paint.blendMode != blendMode) return false;
+        if (hasShader != null) {
+          if (hasShader && paint.shader == null) return false;
+          if (!hasShader && paint.shader != null) return false;
+        }
+        return true;
+      }).isNotEmpty;
+
+  bool hasDrawPathWith({BlendMode? blendMode, bool? hasShader}) =>
+      records.where((r) {
+        if (r.method != 'drawPath') return false;
+        final paint = r.args[1]! as Paint;
+        if (blendMode != null && paint.blendMode != blendMode) return false;
+        if (hasShader != null) {
+          if (hasShader && paint.shader == null) return false;
+          if (!hasShader && paint.shader != null) return false;
+        }
+        return true;
+      }).isNotEmpty;
 
   bool hasDrawRectNearX(double expectedX, double tolerance) => records.any((r) {
         if (r.method != 'drawRect') return false;
@@ -175,7 +201,7 @@ void main() {
       // Edge-fade: Rect at flapLeft, 8px wide → has Gradient shader
       // Fold-fade: Rect at foldX-6, 6px wide → has Gradient shader
       // Both use createShader (Gradient) so paint.shader != null
-      final gradientDraws = canvas.drawRectCountWhere(hasShader: true);
+      final gradientDraws = canvas.shadedDrawCountWhere(hasShader: true);
       // At minimum: bend highlight (screen) + bend shadow (multiply) +
       //             edge-fade + fold-fade
       // Without bend: edge-fade + fold-fade = 2 gradient draws
@@ -359,21 +385,20 @@ void main() {
         paperBackColor: Colors.white,
       ).paint(canvas, size);
 
-      // Shadow drawRect: uses shader, sits after flap restore.
-      // The shadow paint has a gradient shader with black colors.
-      // We can verify at least one non-flap drawRect with shader exists.
+      // Revealed shadow uses a gradient shader and is drawn as a curved path
+      // after the flap restore.
       // At progress=0.5, revealedAlpha = 0.075 > 0.01 and shadowWidth > 1
       // → shadow IS drawn
-      final allShaderDraws = canvas.records
-          .where(
-            (r) =>
-                r.method == 'drawRect' && (r.args[1]! as Paint).shader != null,
-          )
-          .length;
+      final allShaderDraws = canvas.shadedDrawCountWhere(hasShader: true);
       // Must be >= 4: bend highlight + bend shadow + edge-fade + fold-fade + revealed shadow
       // At progress=0.5 with single-page, no stationary shadow, no spine.
       // So: highlight(1) + shadow(2) + edge-fade(3) + fold-fade(4) + revealed-shadow(5)
       expect(allShaderDraws, greaterThanOrEqualTo(4));
+      expect(
+        canvas.hasDrawPathWith(hasShader: true),
+        isTrue,
+        reason: 'Revealed page shadow should be a curved path, not a rect.',
+      );
     });
 
     test(
