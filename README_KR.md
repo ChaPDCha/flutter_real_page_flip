@@ -46,7 +46,7 @@
 
 ```yaml
 dependencies:
-  real_page_flip: ^1.4.0
+  real_page_flip: ^1.12.3
 ```
 
 ## 라이선스
