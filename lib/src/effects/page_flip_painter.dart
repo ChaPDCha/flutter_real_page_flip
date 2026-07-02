@@ -58,9 +58,6 @@ class PageFlipPainter extends CustomPainter {
     /// Source rect within [flapFrontSettleImage] for settle-phase content.
     this.flapFrontSettleSrcRect,
 
-    /// Destination rect for [flapFrontSrcRect] on the canvas (defaults to right page).
-    this.flapFrontDestRect,
-
     /// Pre-captured snapshot for 2.5D page back content (double-spread only).
     this.flapBackImage,
 
@@ -129,9 +126,6 @@ class PageFlipPainter extends CustomPainter {
 
   /// Source rect within [flapFrontSettleImage] for settle-phase content.
   final Rect? flapFrontSettleSrcRect;
-
-  /// Destination rect for flap front texture (null = legacy right-page mapping).
-  final Rect? flapFrontDestRect;
 
   /// Pre-captured snapshot for 2.5D page back content (double-spread only).
   final ui.Image? flapBackImage;
@@ -703,7 +697,6 @@ class PageFlipPainter extends CustomPainter {
       oldDelegate.flapFrontSrcRect != flapFrontSrcRect ||
       oldDelegate.flapFrontSettleImage != flapFrontSettleImage ||
       oldDelegate.flapFrontSettleSrcRect != flapFrontSettleSrcRect ||
-      oldDelegate.flapFrontDestRect != flapFrontDestRect ||
       oldDelegate.flapBackImage != flapBackImage ||
       oldDelegate.flapBackSrcRect != flapBackSrcRect ||
       oldDelegate.flapBackStrength != flapBackStrength ||

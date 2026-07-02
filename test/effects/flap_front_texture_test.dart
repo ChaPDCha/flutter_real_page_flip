@@ -114,49 +114,6 @@ void main() {
     });
   });
 
-  group('flapFrontDestRect', () {
-    const size = Size(800, 600);
-
-    test('double spread forward maps to right half', () {
-      final rect = flapFrontDestRect(
-        size: size,
-        isDoubleSpread: true,
-        isForward: true,
-      );
-
-      expect(rect, equals(const Rect.fromLTWH(400, 0, 400, 600)));
-    });
-
-    test('double spread backward maps to left half', () {
-      final rect = flapFrontDestRect(
-        size: size,
-        isDoubleSpread: true,
-        isForward: false,
-      );
-
-      expect(rect, equals(const Rect.fromLTWH(0, 0, 400, 600)));
-    });
-
-    test('single page uses full canvas', () {
-      expect(
-        flapFrontDestRect(
-          size: size,
-          isDoubleSpread: false,
-          isForward: true,
-        ),
-        equals(const Rect.fromLTWH(0, 0, 800, 600)),
-      );
-      expect(
-        flapFrontDestRect(
-          size: size,
-          isDoubleSpread: false,
-          isForward: false,
-        ),
-        equals(const Rect.fromLTWH(0, 0, 800, 600)),
-      );
-    });
-  });
-
   group('flapFrontContentRevealOpacity', () {
     test('single-page keeps content visible throughout the flip', () {
       for (final p in <double>[0.1, 0.25, 0.5, 0.84, 0.9]) {
@@ -165,7 +122,10 @@ void main() {
     });
 
     test('double: starts visible and fades out quickly during early drag', () {
-      expect(flapFrontContentRevealOpacity(0, isDoubleSpread: true), equals(1.0));
+      expect(
+        flapFrontContentRevealOpacity(0, isDoubleSpread: true),
+        equals(1.0),
+      );
       expect(
         flapFrontContentRevealOpacity(0.10, isDoubleSpread: true),
         closeTo(0.5, 0.01),

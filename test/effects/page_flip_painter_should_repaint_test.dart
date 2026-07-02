@@ -213,17 +213,6 @@ void main() {
       );
       expect(base.shouldRepaint(diff), isTrue);
     });
-
-    test('flapFrontDestRect change returns true', () {
-      final diff = PageFlipPainter(
-        progress: 0.5,
-        isRightToLeft: true,
-        touchOffset: Offset.zero,
-        paperBackColor: Colors.white,
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 200, 300),
-      );
-      expect(base.shouldRepaint(diff), isTrue);
-    });
   });
 }
 

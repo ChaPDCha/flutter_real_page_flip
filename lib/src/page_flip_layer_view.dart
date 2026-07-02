@@ -38,6 +38,9 @@ class PageFlipLayerView extends StatelessWidget {
     /// GlobalKeys for tracking rendered pages.
     required this.pageKeys,
 
+    /// Explicit viewport size used to constrain children and paint layers.
+    required this.constrainedSize,
+
     /// Builder for page widgets.
     this.itemBuilder,
 
@@ -67,9 +70,6 @@ class PageFlipLayerView extends StatelessWidget {
 
     /// Single-page only: opacity of the peeled page's own content mid-flip.
     this.singlePageBackContentOpacity = 1.0,
-
-    /// Optional explicit size to constrain children.
-    this.constrainedSize,
 
     /// True if rendering for a dual spread book
     this.isDoubleSpread = false,
@@ -140,8 +140,11 @@ class PageFlipLayerView extends StatelessWidget {
   /// (1.0 = crisp, lower = faint thin-paper bleed-through).
   final double singlePageBackContentOpacity;
 
-  /// Optional explicit size to constrain children (prevents infinite height from Stack).
-  final Size? constrainedSize;
+  /// Explicit viewport size to constrain children and paint layers.
+  ///
+  /// The parent widget is the single layout gate and always passes a finite size.
+  /// Keeping this non-null prevents hidden zero/infinite paint paths.
+  final Size constrainedSize;
 
   /// True if rendering for a dual spread book
   final bool isDoubleSpread;
@@ -153,16 +156,13 @@ class PageFlipLayerView extends StatelessWidget {
   /// Used by [FadeTransition] instead of [Opacity] for better compositing.
   final Animation<double>? flipAnimation;
 
-  /// Wraps a widget with SizedBox if constrainedSize is provided.
+  /// Wraps a widget with the resolved viewport size.
   /// Prevents infinite height propagation from Stack(fit: StackFit.expand).
-  Widget _wrapWithConstraints(Widget child) {
-    if (constrainedSize == null) return child;
-    return SizedBox(
-      width: constrainedSize!.width,
-      height: constrainedSize!.height,
-      child: child,
-    );
-  }
+  Widget _wrapWithConstraints(Widget child) => SizedBox(
+        width: constrainedSize.width,
+        height: constrainedSize.height,
+        child: child,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -268,7 +268,6 @@ class PageFlipLayerView extends StatelessWidget {
     final flapSpreadIndex = policy.flapSnapshotSpreadIndex;
     final flapFrontImage =
         flapSpreadIndex != null ? spreadSnapshots[flapSpreadIndex] : null;
-    final canvasSize = constrainedSize ?? Size.zero;
     final flapFrontSrcRect = flapFrontImage != null
         ? flapFrontSourceRect(
             imageSize: Size(
@@ -279,15 +278,6 @@ class PageFlipLayerView extends StatelessWidget {
             isForward: renderForward,
             // Single-page only: map the lifted strip, not the whole page.
             floatProgress: isDoubleSpread ? null : floatProgress,
-          )
-        : null;
-    final resolvedFlapDestRect = flapFrontSrcRect != null &&
-            canvasSize.width > 0 &&
-            canvasSize.height > 0
-        ? flapFrontDestRect(
-            size: canvasSize,
-            isDoubleSpread: isDoubleSpread,
-            isForward: renderForward,
           )
         : null;
 
@@ -332,7 +322,7 @@ class PageFlipLayerView extends StatelessWidget {
       progress: floatProgress,
       isRightToLeft: true,
       touchOffset: touchPosition,
-      size: canvasSize,
+      size: constrainedSize,
       isDoubleSpread: isDoubleSpread,
       isForward: renderForward,
     );
@@ -413,7 +403,7 @@ class PageFlipLayerView extends StatelessWidget {
         // Layer 3: Flap shadow & highlight effects
         IgnorePointer(
           child: CustomPaint(
-            size: constrainedSize ?? Size.infinite,
+            size: constrainedSize,
             painter: PageFlipPainter(
               progress: floatProgress,
               isRightToLeft: true,
@@ -432,7 +422,6 @@ class PageFlipLayerView extends StatelessWidget {
               flapFrontSrcRect: flapFrontSrcRect,
               flapFrontSettleImage: flapFrontSettleImage,
               flapFrontSettleSrcRect: flapFrontSettleSrcRect,
-              flapFrontDestRect: resolvedFlapDestRect,
               flapBackImage: flapBackImage,
               flapBackSrcRect: flapBackSrcRect,
               flapBackStrength: flapBackStrength,
@@ -473,16 +462,10 @@ class PageFlipLayerView extends StatelessWidget {
   }
 
   /// Renders a captured snapshot at [constrainedSize] (logical viewport).
-  Widget _buildSnapshotImage(ui.Image image) {
-    final viewport = constrainedSize ?? Size.zero;
-    final snapshot = buildViewportSnapshotImage(
-      image,
-      viewportSize: viewport,
-    );
-    return viewport.width > 0 && viewport.height > 0
-        ? snapshot
-        : _wrapWithConstraints(snapshot);
-  }
+  Widget _buildSnapshotImage(ui.Image image) => buildViewportSnapshotImage(
+        image,
+        viewportSize: constrainedSize,
+      );
 
   /// Opaque paper underlay for the stationary strip (matches [PageFlipPainter] paper back).
   Widget _buildOpaquePaperUnderlay(BuildContext context) {

@@ -388,7 +388,7 @@ void main() {
     );
 
     testWidgets(
-      'does not suppress flap textures when constrainedSize is omitted',
+      'uses viewport size without suppressing flap textures',
       (tester) async {
         Future<ui.Image> spreadImage(Color left, Color right) async {
           final recorder = ui.PictureRecorder();
@@ -436,6 +436,7 @@ void main() {
                   pageKeys: {
                     for (var i = 0; i < 3; i++) i: GlobalKey(),
                   },
+                  constrainedSize: canvasSize,
                   isDoubleSpread: true,
                   flapBackStrength: 0.3,
                   itemBuilder: (context, index) => Text('Spread $index'),

@@ -132,23 +132,6 @@ Rect? flapFrontSettleSourceRect({
   return Rect.fromLTWH(0, 0, imageSize.width, imageSize.height);
 }
 
-/// Destination rect on the canvas for mapping [flapFrontSourceRect] onto the flap.
-Rect flapFrontDestRect({
-  required Size size,
-  required bool isDoubleSpread,
-  required bool isForward,
-}) {
-  if (isDoubleSpread) {
-    final halfWidth = size.width / 2;
-    if (isForward) {
-      return Rect.fromLTWH(halfWidth, 0, halfWidth, size.height);
-    }
-    return Rect.fromLTWH(0, 0, halfWidth, size.height);
-  }
-
-  return Rect.fromLTWH(0, 0, size.width, size.height);
-}
-
 /// Peak opacity of the free-edge / fold texture masks (the narrow paper-colour
 /// gradients that hide crushed mesh fragments at the flap boundaries).
 ///

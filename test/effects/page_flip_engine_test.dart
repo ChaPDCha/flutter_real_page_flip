@@ -5,7 +5,7 @@ import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 
 void main() {
   // ===========================================================================
-  // flapFrontSourceRect / flapBackSourceRect / flapFrontSettleSourceRect / flapFrontDestRect
+  // flapFrontSourceRect / flapBackSourceRect / flapFrontSettleSourceRect
   // ===========================================================================
   group('flapFrontSourceRect', () {
     test('forward double-spread returns right half', () {
@@ -191,35 +191,6 @@ void main() {
         floatProgress: 0.5,
       );
       expect(result, const Rect.fromLTWH(200, 0, 200, 600));
-    });
-  });
-
-  group('flapFrontDestRect', () {
-    test('forward double-spread returns right half', () {
-      final result = flapFrontDestRect(
-        size: const Size(800, 600),
-        isDoubleSpread: true,
-        isForward: true,
-      );
-      expect(result, const Rect.fromLTWH(400, 0, 400, 600));
-    });
-
-    test('backward double-spread returns left half', () {
-      final result = flapFrontDestRect(
-        size: const Size(800, 600),
-        isDoubleSpread: true,
-        isForward: false,
-      );
-      expect(result, const Rect.fromLTWH(0, 0, 400, 600));
-    });
-
-    test('single-page returns full rect', () {
-      final result = flapFrontDestRect(
-        size: const Size(400, 600),
-        isDoubleSpread: false,
-        isForward: true,
-      );
-      expect(result, const Rect.fromLTWH(0, 0, 400, 600));
     });
   });
 

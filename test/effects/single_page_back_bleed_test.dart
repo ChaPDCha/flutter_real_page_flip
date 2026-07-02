@@ -89,7 +89,6 @@ void main() {
         paperBackColor: Colors.white,
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
       ).paint(canvas, const Size(800, 600));
 
       expect(
@@ -112,7 +111,6 @@ void main() {
         paperBackColor: Colors.white,
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
         singlePageBackContentOpacity: 0.35,
       ).paint(canvas, const Size(800, 600));
 
@@ -153,7 +151,6 @@ void main() {
           // the exact condition that used to kill the overlay abruptly.
           flapFrontSettleImage: testImage,
           flapFrontSettleSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-          flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
           singlePageBackContentOpacity: 0.35,
         ).paint(canvas, const Size(800, 600));
         final overlays = canvas.solidRects.where(_isFaintPaperOverlay).toList();

@@ -105,24 +105,6 @@ void main() {
       expect(painter1.shouldRepaint(painter2), isTrue);
     });
 
-    test('shouldRepaint returns true when flapFrontDestRect changes', () {
-      final painter1 = PageFlipPainter(
-        progress: 0.5,
-        isRightToLeft: true,
-        touchOffset: Offset.zero,
-        paperBackColor: Colors.white,
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 400, 600),
-      );
-      final painter2 = PageFlipPainter(
-        progress: 0.5,
-        isRightToLeft: true,
-        touchOffset: Offset.zero,
-        paperBackColor: Colors.white,
-        flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
-      );
-      expect(painter1.shouldRepaint(painter2), isTrue);
-    });
-
     test('shouldRepaint returns true when flapFrontSrcRect changes', () {
       final painter1 = PageFlipPainter(
         progress: 0.5,
@@ -278,7 +260,6 @@ void main() {
         paperBackColor: Colors.white,
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
         isDoubleSpread: true,
       ).paint(canvas, const Size(800, 600));
 
@@ -297,7 +278,6 @@ void main() {
         paperBackColor: Colors.white,
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
       ).paint(canvas, const Size(800, 600));
 
       // Single-sided pages keep their content visible while flipping, so the
@@ -315,7 +295,6 @@ void main() {
         paperBackColor: Colors.white,
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-        flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
         isDoubleSpread: true,
       ).paint(canvas, const Size(800, 600));
 
@@ -333,7 +312,6 @@ void main() {
         paperBackColor: Colors.white,
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
-        flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
         isDoubleSpread: true,
         performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, const Size(800, 600));
@@ -351,7 +329,6 @@ void main() {
         paperBackColor: Colors.white,
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 400, 600),
         isDoubleSpread: true,
         isForward: false,
         performanceProfile: DevicePerformanceProfile.high,
@@ -386,7 +363,6 @@ void main() {
         paperBackColor: Colors.white,
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-        flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
       ).paint(canvas, const Size(800, 600));
 
       expect(canvas.stationaryShadowDrawCount, equals(0));
@@ -405,7 +381,6 @@ void main() {
           paperBackColor: Colors.white,
           flapFrontImage: testImage,
           flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
-          flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
           flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
           flapBackStrength: 0.3,
@@ -429,7 +404,6 @@ void main() {
           paperBackColor: Colors.white,
           flapFrontImage: testImage,
           flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
-          flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
           flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
           isDoubleSpread: true,
@@ -470,7 +444,6 @@ void main() {
           paperBackColor: Colors.white,
           flapFrontImage: testImage,
           flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
-          flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
           flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
           flapBackStrength: 0.3,
@@ -494,7 +467,6 @@ void main() {
           paperBackColor: Colors.white,
           flapFrontImage: testImage,
           flapFrontSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
-          flapFrontDestRect: const Rect.fromLTWH(0, 0, 800, 600),
           flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
           isDoubleSpread: true,
@@ -530,7 +502,6 @@ void main() {
       const midFoldProgress = 0.50;
       const canvasSize = Size(800, 600);
       const frontSrc = Rect.fromLTWH(400, 0, 400, 600);
-      const frontDest = Rect.fromLTWH(400, 0, 400, 600);
 
       void paintWithProfile({
         required TrackingShaderCanvas canvas,
@@ -546,7 +517,6 @@ void main() {
           paperBackColor: Colors.white,
           flapFrontImage: testImage,
           flapFrontSrcRect: frontSrc,
-          flapFrontDestRect: frontDest,
           flapBackImage: testImage,
           flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
           flapBackStrength: flapBackStrength,
@@ -705,7 +675,6 @@ void main() {
           paperBackColor: Colors.white,
           flapFrontImage: testImage,
           flapFrontSrcRect: frontSrc,
-          flapFrontDestRect: frontDest,
           isDoubleSpread: true,
           flapContentRevealStart: customRevealStart,
         ).paint(earlyCanvas, canvasSize);
@@ -717,17 +686,24 @@ void main() {
           paperBackColor: Colors.white,
           flapFrontImage: testImage,
           flapFrontSrcRect: frontSrc,
-          flapFrontDestRect: frontDest,
           isDoubleSpread: true,
           flapContentRevealStart: customRevealStart,
         ).paint(settleCanvas, canvasSize);
 
         expect(
-          isFlapSettlePhase(0.10, isForward: true, revealStart: customRevealStart),
+          isFlapSettlePhase(
+            0.10,
+            isForward: true,
+            revealStart: customRevealStart,
+          ),
           isFalse,
         );
         expect(
-          isFlapSettlePhase(0.80, isForward: true, revealStart: customRevealStart),
+          isFlapSettlePhase(
+            0.80,
+            isForward: true,
+            revealStart: customRevealStart,
+          ),
           isTrue,
         );
         expect(earlyCanvas.drawVerticesCount, equals(0));
@@ -742,7 +718,6 @@ void main() {
           touchOffset: Offset.zero,
           size: canvasSize,
           isDoubleSpread: true,
-          isForward: true,
         );
         expect(geo.flapVisibleWidth, lessThan(8.0));
 
@@ -754,7 +729,6 @@ void main() {
           paperBackColor: Colors.white,
           flapFrontImage: testImage,
           flapFrontSrcRect: frontSrc,
-          flapFrontDestRect: frontDest,
           isDoubleSpread: true,
           geo: geo,
           performanceProfile: DevicePerformanceProfile.high,
@@ -826,7 +800,6 @@ void main() {
             flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
             flapFrontSettleImage: dualToneImage,
             flapFrontSettleSrcRect: const Rect.fromLTWH(100, 0, 100, 100),
-            flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
             isDoubleSpread: true,
             performanceProfile: DevicePerformanceProfile.high,
           ),
@@ -848,7 +821,6 @@ void main() {
             flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
             flapFrontSettleImage: dualToneImage,
             flapFrontSettleSrcRect: const Rect.fromLTWH(100, 0, 100, 100),
-            flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
             isDoubleSpread: true,
             performanceProfile: DevicePerformanceProfile.high,
           ),
@@ -868,7 +840,6 @@ void main() {
             paperBackColor: Colors.white,
             flapFrontImage: dualToneImage,
             flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-            flapFrontDestRect: const Rect.fromLTWH(400, 0, 400, 600),
             isDoubleSpread: true,
             performanceProfile: DevicePerformanceProfile.high,
           ),
