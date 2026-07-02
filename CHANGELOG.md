@@ -5,6 +5,15 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 
 ## [Unreleased]
 
+## [1.12.5] - 2026-07-03
+### Fixed
+- Clamped offscreen drag positions before flip geometry reaches layer clippers and painters, keeping extreme vertical swipes on a stable viewport-bound fold angle.
+- Extended flap paper, mask, fade, and shadow paint bounds only on angled folds so the screen-space flap clip cannot expose gaps at the top or bottom of the viewport.
+- Kept zero-angle horizontal drag rendering visually unchanged while protecting angled drags from clipped shadows and layer seams.
+
+### Tests
+- Added extreme vertical drag regression coverage for viewport seam overlap, angled flap paint bounds, viewport touch clamping, and host-app LTR/RTL text-direction scenarios across phone, tablet, desktop, and rotated aspect ratios.
+
 ## [1.12.4] - 2026-07-03
 ### Performance
 - Reduced hidden page-flip rendering work by using indexed flap meshes and skipping low-value double-spread mesh draws on low and medium performance profiles outside the settle phase.
