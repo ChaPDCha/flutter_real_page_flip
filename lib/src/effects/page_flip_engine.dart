@@ -193,13 +193,32 @@ double flapHighlightPeakBase({required bool isPaperDark}) =>
 double flapHighlightMidBase({required bool isPaperDark}) =>
     isPaperDark ? 0.02 : 0.03;
 
+/// Direction-normalized progress used by the flap's phased content effects.
+///
+/// Double-spread backward flips animate geometry in reverse, so paint-time
+/// progress runs 1 -> 0 while the user gesture advances 0 -> 1. Normalize it
+/// once and share the result between painter and layer preparation so hidden
+/// textures are not resolved for frames the painter cannot draw.
+double normalizedFlapProgress(
+  double progress, {
+  required bool isForward,
+}) =>
+    isForward ? progress : (1.0 - progress);
+
+/// Returns true once the flap may use destination/settle content.
+bool isFlapSettlePhase(
+  double progress, {
+  required bool isForward,
+  double revealStart = 0.85,
+}) =>
+    normalizedFlapProgress(progress, isForward: isForward) >= revealStart;
+
 /// Opacity of flap-front page content (0 = paper back only, 1 = full texture).
 ///
 /// Three-phase curve to hide distorted text during the bend:
 /// 1. Early drag (0 → [fadeOutEnd]): brief visibility, fast fade-out.
 /// 2. Mid fold ([fadeOutEnd] → [revealStart]): paper back only.
 /// 3. Late settle ([revealStart] → [revealEnd]): gentle content reveal.
-@visibleForTesting
 double flapFrontContentRevealOpacity(
   double progress, {
   double fadeOutEnd = 0.20,
@@ -215,9 +234,7 @@ double flapFrontContentRevealOpacity(
   if (!isDoubleSpread) return 1;
 
   // Normalize progress so p always goes 0→1 from flip-start to flip-end.
-  // Invert p for backward flips because their geometry is a reverse animation (progress goes 1→0).
-  final invertProgress = !isForward;
-  final p = invertProgress ? (1.0 - progress) : progress;
+  final p = normalizedFlapProgress(progress, isForward: isForward);
 
   // Double-spread two-sided paper model below:
   // Phase 1: brief early visibility → fast hide as fold begins.
@@ -518,6 +535,16 @@ Path buildFlapClipPathLocal(
   return path;
 }
 
+@visibleForTesting
+({int segments, int columns}) flapMeshDensityForPerformance(
+  DevicePerformanceProfile profile,
+) =>
+    switch (profile) {
+      DevicePerformanceProfile.low => (segments: 8, columns: 1),
+      DevicePerformanceProfile.medium => (segments: 12, columns: 2),
+      DevicePerformanceProfile.high => (segments: 16, columns: 4),
+    };
+
 /// Builds a triangle mesh that curves the flap texture along the fold and
 /// flap-edge bezier curves so text and images bend with the paper.
 ///
@@ -529,7 +556,7 @@ Path buildFlapClipPathLocal(
 /// With [columns] >= 1, interior vertex columns are added between the fold
 /// and flap edge. Each interior column has an amplified bezier offset (bulge)
 /// that peaks at the midpoint, creating a convex 3D surface curvature effect.
-/// Without this bulge the surface is a flat ruled plane between two curves —
+/// Without this bulge the surface is a flat ruled plane between two curves -
 /// text appears stiff rather than printed on curling paper.
 ///
 /// [segments] vertical subdivisions (higher = smoother, default 16).
@@ -545,16 +572,26 @@ ui.Vertices buildFlapContentMesh({
   int columns = 4,
   bool flipHorizontal = false,
 }) {
+  final safeSegments = math.max(segments, 0);
+  final safeColumns = math.max(columns, 0);
+  if (safeSegments == 0 || size.height <= 0 || srcRect.isEmpty) {
+    return ui.Vertices.raw(
+      ui.VertexMode.triangles,
+      Float32List(0),
+      textureCoordinates: Float32List(0),
+    );
+  }
+
   final height = size.height;
-  final totalCols = columns + 2; // fold + interior + flap edge columns
-  final rows = segments + 1;
+  final totalCols = safeColumns + 2; // fold + interior + flap edge columns
+  final rows = safeSegments + 1;
 
   // -----------------------------------------------------------------------
   // 1. Build vertex grid [rows] × [totalCols] in a flat array.
   //
-  // Pre-sized flat arrays avoid per-frame allocation of 4 × List<Float64List>
-  // (previously 68+ small objects per call at default params). At 60fps this
-  // eliminates ~24,000 micro-allocations/sec and the resulting GC pauses.
+  // Store each grid point once, then reference it from Uint16 indices below.
+  // At the default density this keeps 102 positions/UVs instead of expanding
+  // the same coordinates into 160 duplicated triangle vertices per mesh.
   //
   //   fold  col1  col2  col3  col4  flap
   //    ┼─────┼─────┼─────┼─────┼─────┼   ← row 0 (top)
@@ -563,11 +600,9 @@ ui.Vertices buildFlapContentMesh({
   //    │  ╲  │     │     │     │  ╱  │
   //    ┼─────┼─────┼─────┼─────┼─────┼   ← row N (bottom)
   // -----------------------------------------------------------------------
-  final gridSize = rows * totalCols;
-  final gridX = Float64List(gridSize);
-  final gridY = Float64List(gridSize);
-  final gridU = Float64List(gridSize);
-  final gridV = Float64List(gridSize);
+  final vertexCount = rows * totalCols;
+  final positions = Float32List(vertexCount * 2);
+  final texCoords = Float32List(vertexCount * 2);
 
   // Surface bulge factor: how much extra curvature interior columns get.
   // 30% additional bezier offset at the midpoint column creates visible
@@ -576,7 +611,7 @@ ui.Vertices buildFlapContentMesh({
   final colScale = 1.0 / (totalCols - 1);
 
   for (var i = 0; i < rows; i++) {
-    final t = i / segments;
+    final t = i / safeSegments;
     final y = height * t;
     // Vertical quadratic bezier blend: 2(1-t)t — peak at t=0.5, zero at ends.
     final b = 2 * (1 - t) * t;
@@ -588,7 +623,7 @@ ui.Vertices buildFlapContentMesh({
       // Interior columns get amplified bezier offset → surface bulge.
       // sin(s*pi) peaks at s=0.5 and is zero at both edges, so the bulge
       // smoothly blends to the existing fold/flap edge positions.
-      final bulgeScale = columns > 0 ? math.sin(s * math.pi) : 0.0;
+      final bulgeScale = safeColumns > 0 ? math.sin(s * math.pi) : 0.0;
       final colCurveScale = 1.0 + kBulgeStrength * bulgeScale;
       final colOffset = curveOffset * colCurveScale;
 
@@ -597,15 +632,16 @@ ui.Vertices buildFlapContentMesh({
       final flapAtY = flapLeft - colOffset * b;
 
       final idx = rowBase + j;
+      final coord = idx * 2;
       // Interpolate X between fold and flap edge for this column.
-      gridX[idx] = foldAtY + (flapAtY - foldAtY) * s;
-      gridY[idx] = y;
+      positions[coord] = foldAtY + (flapAtY - foldAtY) * s;
+      positions[coord + 1] = y;
       // UV: right→left from srcRect.right (fold) to srcRect.left (flap edge).
       // flipHorizontal for mirrored 2.5D back content on double-spread.
-      gridU[idx] = flipHorizontal
+      texCoords[coord] = flipHorizontal
           ? srcRect.left + s * srcRect.width
           : srcRect.right - s * srcRect.width;
-      gridV[idx] = srcRect.top + t * srcRect.height;
+      texCoords[coord + 1] = srcRect.top + t * srcRect.height;
     }
   }
 
@@ -620,15 +656,15 @@ ui.Vertices buildFlapContentMesh({
   // T1: (i,j), (i+1,j), (i,j+1)
   // T2: (i,j+1), (i+1,j), (i+1,j+1)
   //
-  // Pre-sized output arrays: 2 triangles × 3 vertices × 2 coords per quad,
-  // total quads = segments × (totalCols - 1).
+  // Indexed vertices keep each grid point once and reference it from triangle
+  // pairs. This preserves the exact mesh topology while avoiding duplicated
+  // position/UV payload for every triangle.
   // -----------------------------------------------------------------------
-  final triCount = segments * (totalCols - 1) * 2;
-  final positions = Float32List(triCount * 6);
-  final texCoords = Float32List(triCount * 6);
+  final indexCount = safeSegments * (totalCols - 1) * 6;
+  final indices = Uint16List(indexCount);
   var offset = 0;
 
-  for (var i = 0; i < segments; i++) {
+  for (var i = 0; i < safeSegments; i++) {
     final row0 = i * totalCols;
     final row1 = (i + 1) * totalCols;
     for (var j = 0; j < totalCols - 1; j++) {
@@ -638,32 +674,14 @@ ui.Vertices buildFlapContentMesh({
       final i1j1 = row1 + j + 1;
 
       // Triangle 1: (i,j), (i+1,j), (i,j+1)
-      positions[offset] = gridX[i0j0];
-      texCoords[offset++] = gridU[i0j0];
-      positions[offset] = gridY[i0j0];
-      texCoords[offset++] = gridV[i0j0];
-      positions[offset] = gridX[i1j0];
-      texCoords[offset++] = gridU[i1j0];
-      positions[offset] = gridY[i1j0];
-      texCoords[offset++] = gridV[i1j0];
-      positions[offset] = gridX[i0j1];
-      texCoords[offset++] = gridU[i0j1];
-      positions[offset] = gridY[i0j1];
-      texCoords[offset++] = gridV[i0j1];
+      indices[offset++] = i0j0;
+      indices[offset++] = i1j0;
+      indices[offset++] = i0j1;
 
       // Triangle 2: (i,j+1), (i+1,j), (i+1,j+1)
-      positions[offset] = gridX[i0j1];
-      texCoords[offset++] = gridU[i0j1];
-      positions[offset] = gridY[i0j1];
-      texCoords[offset++] = gridV[i0j1];
-      positions[offset] = gridX[i1j0];
-      texCoords[offset++] = gridU[i1j0];
-      positions[offset] = gridY[i1j0];
-      texCoords[offset++] = gridV[i1j0];
-      positions[offset] = gridX[i1j1];
-      texCoords[offset++] = gridU[i1j1];
-      positions[offset] = gridY[i1j1];
-      texCoords[offset++] = gridV[i1j1];
+      indices[offset++] = i0j1;
+      indices[offset++] = i1j0;
+      indices[offset++] = i1j1;
     }
   }
 
@@ -671,6 +689,7 @@ ui.Vertices buildFlapContentMesh({
     ui.VertexMode.triangles,
     positions,
     textureCoordinates: texCoords,
+    indices: indices,
   );
 }
 

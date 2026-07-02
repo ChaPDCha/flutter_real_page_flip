@@ -2,10 +2,28 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 void main() {
   const size = Size(400, 600);
   const srcRect = Rect.fromLTWH(0, 0, 400, 600);
+
+  group('flapMeshDensityForPerformance', () {
+    test('keeps profile mesh densities stable', () {
+      expect(
+        flapMeshDensityForPerformance(DevicePerformanceProfile.low),
+        equals((segments: 8, columns: 1)),
+      );
+      expect(
+        flapMeshDensityForPerformance(DevicePerformanceProfile.medium),
+        equals((segments: 12, columns: 2)),
+      );
+      expect(
+        flapMeshDensityForPerformance(DevicePerformanceProfile.high),
+        equals((segments: 16, columns: 4)),
+      );
+    });
+  });
 
   group('buildFlapContentMesh structural integrity', () {
     test('returns non-null Vertices with default params', () {
@@ -20,12 +38,10 @@ void main() {
     });
 
     test('default params produce 16 segments × 6 columns (17×7 grid)', () {
-      // grid = (segments+1) × (totalCols) = 17 × 7 = 119 vertices
+      // grid = (segments+1) × (totalCols) = 17 × 6 = 102 vertices
       // Each quad has 2 triangles × 3 vertices = 6
-      // Number of quads = segments × (totalCols - 1) = 16 × 6 = 96
-      // Triangles = 96 × 2 = 192
-      // Each triangle has 3 positions with 2 coordinates = 6 floats
-      // Total floats = 192 × 6 = 1152
+      // Number of quads = segments × (totalCols - 1) = 16 × 5 = 80
+      // Triangles = 80 × 2 = 160, referenced through Uint16 indices.
       final mesh = buildFlapContentMesh(
         size: size,
         foldX: 200,

@@ -230,9 +230,13 @@ class PageFlipPainter extends CustomPainter {
       );
     canvas.drawRect(flapRect, paperPaint);
 
-    final invertProgress = !isForward;
-    final normalizedProgress = invertProgress ? (1.0 - progress) : progress;
-    final isSettlePhase = normalizedProgress >= flapContentRevealStart;
+    final normalizedProgress =
+        normalizedFlapProgress(progress, isForward: isForward);
+    final isSettlePhase = isFlapSettlePhase(
+      progress,
+      isForward: isForward,
+      revealStart: flapContentRevealStart,
+    );
     final skipEarlyMesh = isDoubleSpread &&
         (performanceProfile != DevicePerformanceProfile.high) &&
         !isSettlePhase;
@@ -247,15 +251,7 @@ class PageFlipPainter extends CustomPainter {
             flapBackSrcRect != null &&
             isDoubleSpread;
     if (hasFlapBack && g.flapVisibleWidth >= 8.0 && !skipEarlyMesh) {
-      var segments = 16;
-      var columns = 4;
-      if (performanceProfile == DevicePerformanceProfile.low) {
-        segments = 8;
-        columns = 1;
-      } else if (performanceProfile == DevicePerformanceProfile.medium) {
-        segments = 12;
-        columns = 2;
-      }
+      final density = flapMeshDensityForPerformance(performanceProfile);
 
       final backMesh = buildFlapContentMesh(
         size: size,
@@ -263,8 +259,8 @@ class PageFlipPainter extends CustomPainter {
         flapLeft: g.freeEdgeX,
         curveOffset: g.curveOffset,
         srcRect: flapBackSrcRect!,
-        segments: segments,
-        columns: columns,
+        segments: density.segments,
+        columns: density.columns,
         flipHorizontal: true,
       );
       canvas.drawVertices(
@@ -321,15 +317,7 @@ class PageFlipPainter extends CustomPainter {
           // images appear to bend with the paper — not a flat board tilting.
           // 16 vertical segments × 6 horizontal columns (4 interior) with
           // surface bulge creates a convex 3D paper curl effect.
-          var segments = 16;
-          var columns = 4;
-          if (performanceProfile == DevicePerformanceProfile.low) {
-            segments = 8;
-            columns = 1;
-          } else if (performanceProfile == DevicePerformanceProfile.medium) {
-            segments = 12;
-            columns = 2;
-          }
+          final density = flapMeshDensityForPerformance(performanceProfile);
 
           final mesh = buildFlapContentMesh(
             size: size,
@@ -337,8 +325,8 @@ class PageFlipPainter extends CustomPainter {
             flapLeft: g.freeEdgeX,
             curveOffset: g.curveOffset,
             srcRect: srcRect,
-            segments: segments,
-            columns: columns,
+            segments: density.segments,
+            columns: density.columns,
             // Single-page: srcRect is the right-anchored lifted strip. Mirror
             // the UV so the crease edge stays continuous with the page beneath
             // (folded paper reads as a mirror of its front). Double-spread keeps

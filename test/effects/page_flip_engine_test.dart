@@ -226,6 +226,39 @@ void main() {
   // ===========================================================================
   // flapFrontContentRevealOpacity
   // ===========================================================================
+  group('normalizedFlapProgress / isFlapSettlePhase', () {
+    test('forward progress is used as-is', () {
+      expect(
+        normalizedFlapProgress(0.25, isForward: true),
+        closeTo(0.25, 0.001),
+      );
+    });
+
+    test('backward progress is inverted for phase decisions', () {
+      expect(
+        normalizedFlapProgress(0.25, isForward: false),
+        closeTo(0.75, 0.001),
+      );
+    });
+
+    test('settle phase follows normalized progress', () {
+      expect(
+        isFlapSettlePhase(
+          0.80,
+          isForward: false,
+        ),
+        isFalse,
+      );
+      expect(
+        isFlapSettlePhase(
+          0.10,
+          isForward: false,
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('flapFrontContentRevealOpacity', () {
     // ── Single-page: content stays visible (no blank paper-back) ──
     // Single-sided digital pages: the flipping page shows its own content
