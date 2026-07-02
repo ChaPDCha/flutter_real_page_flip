@@ -5,6 +5,15 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 
 ## [Unreleased]
 
+## [1.12.3] - 2026-07-02
+### Fixed
+- Removed release/profile `debugNeedsPaint` calls from snapshot refresh paths to prevent `LateInitializationError` crashes during page flips.
+- Changed the revealed-page shadow from a straight rectangular band to a curved fold-aligned path, matching the paper edge curve instead of fighting it visually.
+- Reduced revealed and stationary shadow weight so the fold reads as thinner, softer paper instead of a heavy slab.
+
+### Tests
+- Added curved fold shadow band regression coverage and updated single-page reveal goldens for the softer curved shadow.
+
 ## [1.12.2] - 2026-06-30
 ### Performance
 - Changed the default reader profile from `high` to `medium` to reduce mesh density and high-DPI snapshot cost while preserving the full page flip effect.
