@@ -199,6 +199,18 @@ void main() {
     });
   });
 
+  group('PageFlipEngine Constants', () {
+    test('flapHighlightPeakBase returns expected strengthened values', () {
+      expect(flapHighlightPeakBase(isPaperDark: false), equals(0.10));
+      expect(flapHighlightPeakBase(isPaperDark: true), equals(0.07));
+    });
+
+    test('flapHighlightMidBase returns expected strengthened values', () {
+      expect(flapHighlightMidBase(isPaperDark: false), equals(0.06));
+      expect(flapHighlightMidBase(isPaperDark: true), equals(0.04));
+    });
+  });
+
   group('PageFlipPainter Texture Mapping Behavior', () {
     test('shouldRepaint returns true when isRightToLeft changes', () {
       final painter1 = PageFlipPainter(

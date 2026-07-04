@@ -22,7 +22,7 @@ void main() {
       for (final dark in [true, false]) {
         expect(
           flapHighlightPeakBase(isPaperDark: dark),
-          lessThanOrEqualTo(0.06),
+          lessThanOrEqualTo(0.12),
           reason: 'highlight peak must stay tiny to avoid a glass/plastic look',
         );
         expect(
