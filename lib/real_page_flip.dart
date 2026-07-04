@@ -15,3 +15,4 @@ export 'src/physics/paper_physics_config.dart' show PaperPhysicsConfig;
 export 'src/physics/paper_physics_frame.dart' show PaperPhysicsFrame;
 export 'src/widgets/default_page_flip_effect_handler.dart'
     show DefaultPageFlipEffectHandler;
+export 'src/effects/page_flip_engine.dart' show clipSpreadPageHalf;

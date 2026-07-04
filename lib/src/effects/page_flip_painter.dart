@@ -240,6 +240,9 @@ class PageFlipPainter extends CustomPainter {
       isForward: isForward,
       revealStart: flapContentRevealStart,
     );
+    final usesLightweightBackFace =
+        performanceProfile != DevicePerformanceProfile.high;
+    final skipBackFacingMesh = usesLightweightBackFace && !isSettlePhase;
     final skipEarlyMesh = isDoubleSpread &&
         (performanceProfile != DevicePerformanceProfile.high) &&
         !isSettlePhase;
@@ -248,11 +251,11 @@ class PageFlipPainter extends CustomPainter {
     // Shows the destination page content horizontally mirrored at low opacity,
     // creating the illusion of seeing through thin paper to the back side.
     final effectiveFlapBackStrength = flapBackStrength.clamp(0.0, 1.0);
-    final hasFlapBack =
+    final hasFlapBack = performanceProfile == DevicePerformanceProfile.high &&
         effectiveFlapBackStrength > _kVisibleFlapBackThreshold &&
-            flapBackImage != null &&
-            flapBackSrcRect != null &&
-            isDoubleSpread;
+        flapBackImage != null &&
+        flapBackSrcRect != null &&
+        isDoubleSpread;
     if (hasFlapBack && g.flapVisibleWidth >= 8.0 && !skipEarlyMesh) {
       final density = flapMeshDensityForPerformance(performanceProfile);
 
@@ -301,6 +304,8 @@ class PageFlipPainter extends CustomPainter {
         revealEnd: flapContentRevealEnd,
         isForward: isForward,
         isDoubleSpread: isDoubleSpread,
+        keepSinglePageContentVisible:
+            performanceProfile == DevicePerformanceProfile.high,
       );
       if (contentReveal > 0.001) {
         // Determine which image/rect to use: settle content for Phase 3,
@@ -315,7 +320,9 @@ class PageFlipPainter extends CustomPainter {
         // page texture into garbage. Paper underlay + fade overlay handle
         // this scale — skip the mesh entirely.
         // Mesh rendering is also skipped early in the flip on low/medium devices.
-        if (g.flapVisibleWidth >= 8.0 && !skipEarlyMesh) {
+        if (g.flapVisibleWidth >= 8.0 &&
+            !skipEarlyMesh &&
+            !skipBackFacingMesh) {
           // Build a triangle mesh that follows the bezier curves so text and
           // images appear to bend with the paper — not a flat board tilting.
           // 16 vertical segments × 6 horizontal columns (4 interior) with
@@ -639,9 +646,16 @@ class PageFlipPainter extends CustomPainter {
 
     // Stationary Page Shadow (double-spread only; single-page stationary layer is
     // left of the fold and must not receive transformed shadows from the flip side).
+    //
+    // Clip along the curved fold boundary (perpendicular bleed via foldNormal),
+    // not an axis-aligned rect — otherwise extreme vertical drags leave the shadow
+    // band misaligned with the tilted crease on the stationary half.
     if (isRightToLeft && isDoubleSpread) {
       canvas.save();
-      canvas.clipRect(flipSideShadowClipRect(g));
+      final stationaryShadowClip = isForward
+          ? buildStationaryPageClipPath(size, g)
+          : buildOpenPageClipPath(size, g);
+      canvas.clipPath(stationaryShadowClip);
       canvas.transform(g.transform.storage);
 
       final stationaryWidth = _kStationaryShadowWidth * g.shadowIntensity;

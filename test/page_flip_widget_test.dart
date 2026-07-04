@@ -167,6 +167,45 @@ void main() {
       // (config.edgeTapWidthRatio > 0 is still true but enableSwipe=false guards)
     });
 
+    testWidgets(
+        'normalizes hostile config values before layout and gesture use',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: PageFlipWidget(
+              itemCount: 2,
+              itemBuilder: (context, index) => Text('Page $index'),
+              config: const PageFlipConfig(
+                duration: Duration.zero,
+                cutoffForward: double.nan,
+                cutoffPrevious: double.infinity,
+                sensitivity: double.nan,
+                edgeTapWidthRatio: double.infinity,
+                paperOpacity: double.nan,
+                thinPaperStrength: double.infinity,
+                endRevealStrength: double.negativeInfinity,
+                flapContentFadeOutEnd: 2,
+                flapContentRevealStart: 0.7,
+                flapContentRevealEnd: 0.4,
+                flapBackStrength: double.infinity,
+                singlePageBackContentOpacity: double.nan,
+                effectHandler: NoOpEffectHandler(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Page 0'), findsOneWidget);
+      expect(find.byType(PageFlipGestureLayer), findsOneWidget);
+    });
+
     testWidgets('onFlipStart and onFlipEnd fire for programmatic navigation',
         (tester) async {
       var startCount = 0;

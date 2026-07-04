@@ -319,9 +319,9 @@ void main() {
   });
 
   group('flapFrontContentRevealOpacity', () {
-    // ── Single-page: content stays visible (no blank paper-back) ──
-    // Single-sided digital pages: the flipping page shows its own content
-    // curling with the paper for the whole turn, so the flap is never blank.
+    // ── Single-page high-fidelity path: content stays visible ──
+    // Single-sided digital pages may show their own content curling with the
+    // paper for the whole turn when the high profile opts into that detail.
     test('single-page: content stays fully visible across the whole flip', () {
       for (final p in <double>[0.05, 0.2, 0.35, 0.5, 0.7, 0.85, 0.95]) {
         expect(
@@ -344,6 +344,23 @@ void main() {
           closeTo(1, 0.001),
         );
       }
+    });
+
+    test('single-page lightweight path keeps mid-fold back face blank', () {
+      expect(
+        flapFrontContentRevealOpacity(
+          0.5,
+          keepSinglePageContentVisible: false,
+        ),
+        equals(0.0),
+      );
+      expect(
+        flapFrontContentRevealOpacity(
+          0.9,
+          keepSinglePageContentVisible: false,
+        ),
+        greaterThan(0.0),
+      );
     });
 
     // ── Double-spread: physical two-sided paper-back reveal model ──

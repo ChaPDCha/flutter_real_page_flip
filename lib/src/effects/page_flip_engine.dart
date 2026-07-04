@@ -209,12 +209,14 @@ double flapFrontContentRevealOpacity(
   double revealEnd = 0.95,
   bool isForward = true,
   bool isDoubleSpread = false,
+  bool keepSinglePageContentVisible = true,
 }) {
   // Single-page mode: pages are single-sided, so the flipping page shows its
-  // OWN content curling with the paper for the entire turn. There is no blank
-  // "paper back" to reveal — keeping content visible avoids an empty flap
-  // (the previous phased model left the flap blank through most of the flip).
-  if (!isDoubleSpread) return 1;
+  // own content curling with the paper for the entire turn only when the
+  // high-fidelity path opts into it. Medium/low profiles intentionally use the
+  // same paper-back reveal curve as double-spread so the back-facing flap stays
+  // blank during the main fold and avoids extra mesh work.
+  if (!isDoubleSpread && keepSinglePageContentVisible) return 1;
 
   // Normalize progress so p always goes 0→1 from flip-start to flip-end.
   final p = normalizedFlapProgress(progress, isForward: isForward);

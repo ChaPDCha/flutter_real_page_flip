@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/page_flip_layer_view.dart';
 
 void main() {
@@ -71,6 +72,51 @@ void main() {
           ),
         ),
       );
+
+  group('OffscreenPreRenderer', () {
+    testWidgets('disables ticker mode while preserving the subtree', (
+      tester,
+    ) async {
+      bool? tickerEnabled;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: OffscreenPreRenderer(
+            isOffscreen: true,
+            child: Builder(
+              builder: (context) {
+                tickerEnabled = TickerMode.of(context);
+                return const SizedBox(width: 10, height: 10);
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(tickerEnabled, isFalse);
+      expect(find.byType(SizedBox), findsOneWidget);
+    });
+
+    testWidgets('leaves ticker mode unchanged when onscreen', (tester) async {
+      bool? tickerEnabled;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: OffscreenPreRenderer(
+            isOffscreen: false,
+            child: Builder(
+              builder: (context) {
+                tickerEnabled = TickerMode.of(context);
+                return const SizedBox(width: 10, height: 10);
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(tickerEnabled, isTrue);
+    });
+  });
 
   group('PageFlipLayerView single-page mode', () {
     Widget pumpSinglePageLayerView({
@@ -396,6 +442,7 @@ void main() {
                   constrainedSize: canvasSize,
                   isDoubleSpread: true,
                   flapBackStrength: 0.3,
+                  performanceProfile: DevicePerformanceProfile.high,
                   itemBuilder: (context, index) => Text('Spread $index'),
                 ),
               ),
@@ -468,6 +515,7 @@ void main() {
                   constrainedSize: canvasSize,
                   isDoubleSpread: true,
                   flapBackStrength: 0.3,
+                  performanceProfile: DevicePerformanceProfile.high,
                   itemBuilder: (context, index) => Text('Spread $index'),
                 ),
               ),

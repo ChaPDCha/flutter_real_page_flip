@@ -3,7 +3,14 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
-## [Unreleased]
+## [1.12.8] - 2026-07-05
+### Added
+- **clipSpreadPageHalf utility**: Exported `clipSpreadPageHalf` helper function for host applications to align local layout calculations with double-spread page boundaries.
+
+### Fixed
+- **Stationary Page Shadow**: Resolved extreme vertical drag misalignment in double-spread mode by replacing the axis-aligned `clipRect` with a fold-aligned, normal-projected `clipPath` for the stationary shadow.
+- **Angle Clamping**: Tightened the shared fold-angle limit conservatively across shadows, clipping paths, flap meshes, and double-spread layers to prevent edge-corner clipping on extreme aspect ratios.
+- **Haptics**: Resolved conflicts between sound fallback playbacks and native textured vibration composition.
 
 ## [1.12.7] - 2026-07-04
 ### Fixed

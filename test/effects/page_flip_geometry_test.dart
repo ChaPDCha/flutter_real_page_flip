@@ -222,6 +222,75 @@ void main() {
       expect(farAbove.angle, closeTo(topEdge.angle, 0.001));
       expect(farBelow.angle, closeTo(bottomEdge.angle, 0.001));
     });
+
+    test('conservative cap limits edge drags on tall double-spread pages', () {
+      const size = Size(360, 1600);
+      const progress = 0.5;
+      final topEdge = PageFlipGeometry(
+        progress: progress,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        size: size,
+        isDoubleSpread: true,
+      );
+      final bottomEdge = PageFlipGeometry(
+        progress: progress,
+        isRightToLeft: true,
+        touchOffset: Offset(0, size.height),
+        size: size,
+        isDoubleSpread: true,
+      );
+      final expectedLimit = conservativeFoldAngleLimit(
+        flapSideWidth: size.width / 4,
+        revealedSideWidth: size.width / 4,
+        pageWidth: size.width / 2,
+        height: size.height,
+      );
+
+      expect(expectedLimit, lessThan(0.075));
+      expect(topEdge.angle.abs(), lessThanOrEqualTo(expectedLimit + 1e-9));
+      expect(bottomEdge.angle.abs(), lessThanOrEqualTo(expectedLimit + 1e-9));
+      expect(topEdge.angle, closeTo(-bottomEdge.angle, 0.001));
+    });
+
+    test('conservative limit reserves room for all layer overhangs', () {
+      final cases = <(Size, double, bool)>[
+        (const Size(360, 1600), 0.5, true),
+        (const Size(320, 1400), 0.35, true),
+        (const Size(1200, 480), 0.5, true),
+        (const Size(420, 840), 0.5, false),
+      ];
+
+      for (final (size, progress, isDoubleSpread) in cases) {
+        final pageWidth = isDoubleSpread ? size.width / 2 : size.width;
+        final foldX = size.width - pageWidth * progress;
+        final flapSideWidth = pageWidth * progress;
+        final revealedSideWidth = isDoubleSpread
+            ? (foldX - size.width / 2).clamp(0.0, double.infinity).toDouble()
+            : foldX.clamp(0.0, double.infinity).toDouble();
+
+        final limit = conservativeFoldAngleLimit(
+          flapSideWidth: flapSideWidth,
+          revealedSideWidth: revealedSideWidth,
+          pageWidth: pageWidth,
+          height: size.height,
+        );
+        final geo = PageFlipGeometry(
+          progress: progress,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          size: size,
+          isDoubleSpread: isDoubleSpread,
+        );
+
+        expect(limit, lessThanOrEqualTo(0.12));
+        expect(
+          geo.angle.abs(),
+          lessThanOrEqualTo(limit + 1e-9),
+          reason: 'size=$size progress=$progress double=$isDoubleSpread',
+        );
+      }
+    });
   });
 
   group('PageFlipGeometry fold line endpoints', () {
@@ -301,6 +370,10 @@ void main() {
         (const Size(800, 600), const Offset(720, 580)),
         (const Size(1200, 500), const Offset(1100, 80)),
         (const Size(900, 1600), const Offset(820, 1400)),
+        (const Size(360, 1600), const Offset(340, 0)),
+        (const Size(360, 1600), const Offset(340, 1600)),
+        (const Size(2200, 700), const Offset(2100, 0)),
+        (const Size(420, 900), const Offset(390, 900)),
       ];
 
       double cross(Offset a, Offset b) => a.dx * b.dy - a.dy * b.dx;

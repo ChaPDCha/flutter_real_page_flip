@@ -114,7 +114,7 @@ void main() {
 
     test('inequality with different slipVelocityThreshold', () {
       const a = PaperPhysicsConfig();
-      const b = PaperPhysicsConfig(slipVelocityThreshold: 0.05);
+      const b = PaperPhysicsConfig(slipVelocityThreshold: 0.08);
       expect(a, isNot(equals(b)));
     });
 
@@ -143,7 +143,7 @@ void main() {
         original.copyWith(throttleIntervalMs: 30),
         original.copyWith(minDurationMs: 15),
         original.copyWith(maxDurationMs: 200),
-        original.copyWith(stationaryThresholdMs: 100),
+        original.copyWith(stationaryThresholdMs: 120),
         original.copyWith(slipVelocityThreshold: 0.08),
       ]) {
         expect(field, isNot(equals(original)));

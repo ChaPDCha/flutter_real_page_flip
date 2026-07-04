@@ -115,10 +115,20 @@ void main() {
   });
 
   group('flapFrontContentRevealOpacity', () {
-    test('single-page keeps content visible throughout the flip', () {
+    test('single-page high-fidelity path keeps content visible', () {
       for (final p in <double>[0.1, 0.25, 0.5, 0.84, 0.9]) {
         expect(flapFrontContentRevealOpacity(p), equals(1.0));
       }
+    });
+
+    test('single-page lightweight path uses blank paper during mid fold', () {
+      expect(
+        flapFrontContentRevealOpacity(
+          0.5,
+          keepSinglePageContentVisible: false,
+        ),
+        equals(0.0),
+      );
     });
 
     test('double: starts visible and fades out quickly during early drag', () {

@@ -57,10 +57,19 @@ class PageFlipWidget extends StatefulWidget {
     this.onFlipEnd,
     this.onPageChanged,
     this.onHandleEffect,
+    this.onEffectError,
   })  : spreadMode = spreadMode ??
             PageFlipSpreadModeCompat.fromIsDoubleSpread(
               isDoubleSpread: isDoubleSpread,
             ),
+        assert(
+          itemCount >= 0,
+          'itemCount cannot be negative',
+        ),
+        assert(
+          initialIndex >= 0,
+          'initialIndex cannot be negative',
+        ),
         assert(
           itemCount == 0 || initialIndex < itemCount,
           'initialIndex cannot be greater than itemCount',
@@ -119,6 +128,17 @@ class PageFlipWidget extends StatefulWidget {
     double? resistance,
   })? onHandleEffect;
 
+  /// Called when an effect handler throws or completes with an error.
+  ///
+  /// The engine keeps page navigation alive after haptic/audio failures, but
+  /// production apps can use this callback to log or surface integration issues
+  /// instead of losing them in debug output.
+  final void Function(
+    PageFlipEvent effect,
+    Object error,
+    StackTrace stackTrace,
+  )? onEffectError;
+
   @override
   PageFlipWidgetState createState() => PageFlipWidgetState();
 }
@@ -132,7 +152,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   bool _isInternalEffectHandler = false;
   bool _pendingLayoutCallback = false;
 
-  int get _totalPages => widget.itemCount;
+  int get _totalPages => widget.itemCount < 0 ? 0 : widget.itemCount;
+
+  PageFlipConfig get _config => widget.config.normalized;
 
   /// Exposes the internal state controller for advanced programmatic interaction.
   PageFlipStateController get controller => _controller;
@@ -141,12 +163,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   void initState() {
     super.initState();
     widget.controller?._state = this;
+    final config = _config;
 
     _controller = PageFlipStateController(
       vsync: this,
-      animationDuration: widget.config.duration,
-      cutoffForward: widget.config.cutoffForward,
-      cutoffPrevious: widget.config.cutoffPrevious,
+      animationDuration: config.duration,
+      cutoffForward: config.cutoffForward,
+      cutoffPrevious: config.cutoffPrevious,
       onUpdate: () {
         if (mounted) setState(() {});
       },
@@ -158,11 +181,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _controller.setIndex(widget.initialIndex, _totalPages);
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
     // Initialize Effect Handler
-    _isInternalEffectHandler = widget.config.effectHandler == null;
-    _effectHandler = widget.config.effectHandler ??
+    _isInternalEffectHandler = config.effectHandler == null;
+    _effectHandler = config.effectHandler ??
         DefaultPageFlipEffectHandler(
-          performanceProfile: widget.config.performanceProfile,
-          hapticTexturePreset: widget.config.hapticTexturePreset,
+          performanceProfile: config.performanceProfile,
+          hapticTexturePreset: config.hapticTexturePreset,
         );
 
     // Warm snapshots immediately after first frame. Using immediate capture
@@ -237,6 +260,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       oldWidget.controller?._state = null;
     }
     widget.controller?._state = this;
+    final config = _config;
+    final oldConfig = oldWidget.config.normalized;
 
     // Bump version so ValueListenableBuilder key changes on parent rebuild,
     // forcing the flip layers to rebuild with fresh itemBuilder output.
@@ -245,22 +270,22 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // Update effect handler if changed in config, or if we are using the default
     // handler and the performance profile or texture preset has changed.
     final effectHandlerChanged =
-        widget.config.effectHandler != oldWidget.config.effectHandler;
+        config.effectHandler != oldConfig.effectHandler;
     final profileChanged =
-        widget.config.performanceProfile != oldWidget.config.performanceProfile;
-    final texturePresetChanged = widget.config.hapticTexturePreset !=
-        oldWidget.config.hapticTexturePreset;
+        config.performanceProfile != oldConfig.performanceProfile;
+    final texturePresetChanged =
+        config.hapticTexturePreset != oldConfig.hapticTexturePreset;
     if (effectHandlerChanged ||
-        (widget.config.effectHandler == null &&
+        (config.effectHandler == null &&
             (profileChanged || texturePresetChanged))) {
       if (_isInternalEffectHandler) {
         _effectHandler.dispose();
       }
-      _isInternalEffectHandler = widget.config.effectHandler == null;
-      _effectHandler = widget.config.effectHandler ??
+      _isInternalEffectHandler = config.effectHandler == null;
+      _effectHandler = config.effectHandler ??
           DefaultPageFlipEffectHandler(
-            performanceProfile: widget.config.performanceProfile,
-            hapticTexturePreset: widget.config.hapticTexturePreset,
+            performanceProfile: config.performanceProfile,
+            hapticTexturePreset: config.hapticTexturePreset,
           );
     }
 
@@ -329,7 +354,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   double _capturePixelRatio() {
     final mediaQuery = MediaQuery.maybeOf(context);
     final pixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
-    return switch (widget.config.performanceProfile) {
+    return switch (_config.performanceProfile) {
       DevicePerformanceProfile.low => pixelRatio.clamp(1.0, 1.25),
       DevicePerformanceProfile.medium => pixelRatio.clamp(1.0, 2.0),
       DevicePerformanceProfile.high => pixelRatio,
@@ -360,18 +385,25 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     double? texture,
     double? resistance,
   }) {
+    final config = _config;
     if (widget.onHandleEffect != null) {
-      final result = widget.onHandleEffect!(
-        effect,
-        intensity: intensity,
-        volume: volume,
-        texture: texture,
-        resistance: resistance,
-      );
-      if (result is Future) {
-        result.catchError((Object e) {
-          debugPrint('PageFlip onHandleEffect error: $e');
-        });
+      try {
+        final result = widget.onHandleEffect!(
+          effect,
+          intensity: intensity,
+          volume: volume,
+          texture: texture,
+          resistance: resistance,
+        );
+        if (result is Future) {
+          unawaited(
+            result.catchError((Object error, StackTrace stackTrace) {
+              _reportEffectError(effect, error, stackTrace, 'onHandleEffect');
+            }),
+          );
+        }
+      } on Object catch (error, stackTrace) {
+        _reportEffectError(effect, error, stackTrace, 'onHandleEffect');
       }
       return;
     }
@@ -387,28 +419,45 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         true,
       _ => false,
     };
-    if (isHaptic && !widget.config.enableHaptics) return;
-    if (effect == PageFlipEvent.sound && !widget.config.enableSound) return;
+    if (isHaptic && !config.enableHaptics) return;
+    if (effect == PageFlipEvent.sound && !config.enableSound) return;
 
-    final handlerResult = _effectHandler.onHandleEffect(
-      effect,
-      pageIndex: _controller.currentIndex,
-      intensity: intensity,
-      volume: volume,
-      texture: texture,
-      resistance: resistance,
-    );
-    if (handlerResult is Future) {
-      handlerResult.catchError((Object e) {
-        debugPrint('PageFlip effectHandler error: $e');
-      });
+    try {
+      final handlerResult = _effectHandler.onHandleEffect(
+        effect,
+        pageIndex: _controller.currentIndex,
+        intensity: intensity,
+        volume: volume,
+        texture: texture,
+        resistance: resistance,
+      );
+      if (handlerResult is Future) {
+        unawaited(
+          handlerResult.catchError((Object error, StackTrace stackTrace) {
+            _reportEffectError(effect, error, stackTrace, 'effectHandler');
+          }),
+        );
+      }
+    } on Object catch (error, stackTrace) {
+      _reportEffectError(effect, error, stackTrace, 'effectHandler');
     }
+  }
+
+  void _reportEffectError(
+    PageFlipEvent effect,
+    Object error,
+    StackTrace stackTrace,
+    String source,
+  ) {
+    widget.onEffectError?.call(effect, error, stackTrace);
+    debugPrint('PageFlip $source error: $error');
   }
 
   /// Navigates to the next page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
   void nextPage() {
-    _onFlipStart();
-    if (widget.config.skipTapAnimation) {
+    final config = _config;
+    if (config.skipTapAnimation) {
+      _onFlipStart();
       goToPage(_controller.currentIndex + 1);
       _onFlipEnd();
     } else {
@@ -418,8 +467,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   /// Navigates to the previous page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
   void previousPage() {
-    _onFlipStart();
-    if (widget.config.skipTapAnimation) {
+    final config = _config;
+    if (config.skipTapAnimation) {
+      _onFlipStart();
       goToPage(_controller.currentIndex - 1);
       _onFlipEnd();
     } else {
@@ -452,6 +502,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   @override
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
+          final config = _config;
           // Single constraint gate: prevent unbounded height/width from propagating
           // (e.g. Scaffold body first frame, Stack without bounded parent).
           // All descendants (including Offstage pages) then receive finite constraints.
@@ -506,19 +557,18 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               pageSnapshots: _preRenderManager.pageSnapshots,
               spreadSnapshots: _preRenderManager.spreadSnapshots,
               pageKeys: _preRenderManager.pageKeys,
-              paperFlapColor: widget.config.backgroundColor,
-              paperOpacity: widget.config.paperOpacity,
-              flapContentFadeOutEnd: widget.config.flapContentFadeOutEnd,
-              thinPaperStrength: widget.config.thinPaperStrength,
-              endRevealStrength: widget.config.endRevealStrength,
-              flapContentRevealStart: widget.config.flapContentRevealStart,
-              flapContentRevealEnd: widget.config.flapContentRevealEnd,
-              flapBackStrength: widget.config.flapBackStrength,
-              singlePageBackContentOpacity:
-                  widget.config.singlePageBackContentOpacity,
+              paperFlapColor: config.backgroundColor,
+              paperOpacity: config.paperOpacity,
+              flapContentFadeOutEnd: config.flapContentFadeOutEnd,
+              thinPaperStrength: config.thinPaperStrength,
+              endRevealStrength: config.endRevealStrength,
+              flapContentRevealStart: config.flapContentRevealStart,
+              flapContentRevealEnd: config.flapContentRevealEnd,
+              flapBackStrength: config.flapBackStrength,
+              singlePageBackContentOpacity: config.singlePageBackContentOpacity,
               constrainedSize: constrainedSize,
               isDoubleSpread: widget.spreadMode.isDoubleSpread,
-              performanceProfile: widget.config.performanceProfile,
+              performanceProfile: config.performanceProfile,
               flipAnimation: _controller.animationController,
             ),
           );
@@ -531,13 +581,12 @@ class PageFlipWidgetState extends State<PageFlipWidget>
                 child: animatedFlipLayer,
               ),
               // Left Edge Tap (Previous Page)
-              if (widget.config.edgeTapWidthRatio > 0 &&
-                  widget.config.enableSwipe)
+              if (config.edgeTapWidthRatio > 0 && config.enableSwipe)
                 EdgeTapFeedback(
                   isLeftEdge: true,
-                  width: effectiveWidth * widget.config.edgeTapWidthRatio,
-                  label: widget.config.edgeTapPreviousLabel ?? 'Previous page',
-                  hint: widget.config.edgeTapPreviousHint ??
+                  width: effectiveWidth * config.edgeTapWidthRatio,
+                  label: config.edgeTapPreviousLabel ?? 'Previous page',
+                  hint: config.edgeTapPreviousHint ??
                       'Tap to go to previous page',
                   onTap: () {
                     if (_controller.currentIndex > 0) {
@@ -546,14 +595,12 @@ class PageFlipWidgetState extends State<PageFlipWidget>
                   },
                 ),
               // Right Edge Tap (Next Page)
-              if (widget.config.edgeTapWidthRatio > 0 &&
-                  widget.config.enableSwipe)
+              if (config.edgeTapWidthRatio > 0 && config.enableSwipe)
                 EdgeTapFeedback(
                   isLeftEdge: false,
-                  width: effectiveWidth * widget.config.edgeTapWidthRatio,
-                  label: widget.config.edgeTapNextLabel ?? 'Next page',
-                  hint:
-                      widget.config.edgeTapNextHint ?? 'Tap to go to next page',
+                  width: effectiveWidth * config.edgeTapWidthRatio,
+                  label: config.edgeTapNextLabel ?? 'Next page',
+                  hint: config.edgeTapNextHint ?? 'Tap to go to next page',
                   onTap: () {
                     if (_controller.currentIndex < _totalPages - 1) {
                       nextPage();
@@ -561,17 +608,17 @@ class PageFlipWidgetState extends State<PageFlipWidget>
                   },
                 ),
               // Last in stack (center): raw pointer flip above selectable content.
-              if (widget.config.enableSwipe)
+              if (config.enableSwipe)
                 PageFlipGestureLayer(
                   controller: _controller,
-                  sensitivity: widget.config.sensitivity,
+                  sensitivity: config.sensitivity,
                   totalPages: _totalPages,
                 ),
             ],
           );
 
           final semantics = Semantics(
-            label: widget.config.semanticBuilder?.call(
+            label: config.semanticBuilder?.call(
                   _controller.currentIndex + 1,
                   _totalPages,
                 ) ??

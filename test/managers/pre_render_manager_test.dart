@@ -112,6 +112,27 @@ void main() {
       expect(mgr.getSpreadCaptureIndices(5, 10), isEmpty);
     });
 
+    test('effectiveSnapshotPixelRatio caps extreme snapshot requests', () {
+      final mgr = PreRenderManager();
+
+      expect(
+        mgr.effectiveSnapshotPixelRatio(const Size(1000, 1000), 4),
+        closeTo(2.8284, 0.0001),
+      );
+      expect(
+        mgr.effectiveSnapshotPixelRatio(const Size(10000, 10000), 3),
+        closeTo(0.2828, 0.0001),
+      );
+      expect(
+        mgr.effectiveSnapshotPixelRatio(const Size(1000, 1000), double.nan),
+        equals(1.0),
+      );
+      expect(
+        mgr.effectiveSnapshotPixelRatio(Size.zero, double.infinity),
+        equals(1.0),
+      );
+    });
+
     test('cleanup disposes shared page and spread snapshots once', () async {
       final mgr = PreRenderManager();
       final shared = await _createTestImage();

@@ -279,8 +279,7 @@ void main() {
       expect(canvas.didDrawRect, isTrue);
     });
 
-    test('single-page mid fold draws texture (content curls with the paper)',
-        () {
+    test('single-page medium mid fold keeps the back-facing flap blank', () {
       final canvas = MockCanvas();
 
       PageFlipPainter(
@@ -292,8 +291,25 @@ void main() {
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
       ).paint(canvas, const Size(800, 600));
 
-      // Single-sided pages keep their content visible while flipping, so the
-      // textured mesh must be drawn even mid-fold (not blank paper).
+      // Medium is the default lightweight profile: the back-facing flap should
+      // be blank paper through the main fold, not a textured page back.
+      expect(canvas.didDrawVertices, isFalse);
+      expect(canvas.didDrawRect, isTrue);
+    });
+
+    test('single-page high mid fold may draw the curling page texture', () {
+      final canvas = MockCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        flapFrontImage: testImage,
+        flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
+        performanceProfile: DevicePerformanceProfile.high,
+      ).paint(canvas, const Size(800, 600));
+
       expect(canvas.didDrawVertices, isTrue);
     });
 
@@ -383,7 +399,31 @@ void main() {
     // ── 2.5D back content tests ─────────────────────────────────
 
     group('2.5D back content rendering', () {
-      test('draws back mesh when flapBackImage and srcRect provided', () {
+      test('high draws back mesh when flapBackImage and srcRect provided', () {
+        final canvas = TrackingShaderCanvas();
+
+        PageFlipPainter(
+          progress: 0.96,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: testImage,
+          flapFrontSrcRect: const Rect.fromLTWH(400, 0, 400, 600),
+          flapBackImage: testImage,
+          flapBackSrcRect: const Rect.fromLTWH(0, 0, 400, 600),
+          flapBackStrength: 0.3,
+          isDoubleSpread: true,
+          performanceProfile: DevicePerformanceProfile.high,
+        ).paint(canvas, const Size(800, 600));
+
+        // At progress=0.96, front content is fully revealed AND back content is drawn.
+        // Front mesh (1) + Back mesh (1) = 2 drawVertices calls.
+        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+        // Should have drawn fade overlay rects.
+        expect(canvas.drawRectCount, greaterThan(0));
+      });
+
+      test('medium skips back mesh even when flapBackStrength is enabled', () {
         final canvas = TrackingShaderCanvas();
 
         PageFlipPainter(
@@ -399,11 +439,9 @@ void main() {
           isDoubleSpread: true,
         ).paint(canvas, const Size(800, 600));
 
-        // At progress=0.96, front content is fully revealed AND back content is drawn.
-        // Front mesh (1) + Back mesh (1) = 2 drawVertices calls.
-        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
-        // Should have drawn fade overlay rects.
-        expect(canvas.drawRectCount, greaterThan(0));
+        // Medium may draw the late-settle front texture, but never the 2.5D
+        // opposite-page back mesh.
+        expect(canvas.drawVerticesCount, equals(1));
       });
 
       test('skips back mesh when flipBackStrength is 0', () {
@@ -654,26 +692,6 @@ void main() {
         expect(canvas.drawVerticesCount, equals(0));
       });
 
-      test('early fade: medium skips back mesh, settle draws back mesh', () {
-        final earlyCanvas = TrackingShaderCanvas();
-        final settleCanvas = TrackingShaderCanvas();
-
-        paintWithProfile(
-          canvas: earlyCanvas,
-          progress: earlyFadeProgress,
-          profile: DevicePerformanceProfile.medium,
-          flapBackStrength: 0.3,
-        );
-        paintWithProfile(
-          canvas: settleCanvas,
-          progress: settleProgress,
-          profile: DevicePerformanceProfile.medium,
-          flapBackStrength: 0.3,
-        );
-
-        expect(earlyCanvas.drawVerticesCount, equals(0));
-        expect(settleCanvas.drawVerticesCount, greaterThanOrEqualTo(2));
-      });
 
       test('custom revealStart gates skipEarlyMesh on medium profile', () {
         const customRevealStart = 0.75;
