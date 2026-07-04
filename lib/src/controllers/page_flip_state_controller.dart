@@ -279,13 +279,13 @@ class PageFlipStateController {
         // 종이를 넘길 때 손가락이 느끼는 마찰 저항을 시뮬레이션
         _hapticFrameCounter++;
 
-        // 프레임 스킵: 60fps 기준 매 프레임마다 진동하면 오버헤드 발생
-        // 2프레임마다 1회 (30Hz) 진동으로 최적화
-        if (_hapticFrameCounter.isEven) {
+        // 프레임 스킵: 60fps 기준 3프레임마다 1회 (~20Hz) — 촘촘한 진동은
+        // Android composition을 겹치며 용수철 같은 튕김으로 느껴짐.
+        if (_hapticFrameCounter % 3 == 0) {
           final currentSpeed = delta.abs();
           _smoothedSpeed = (_smoothedSpeed * 0.5) + (currentSpeed * 0.5);
 
-          if (_smoothedSpeed > 0.3) {
+          if (_smoothedSpeed > 0.5) {
             // [1] Continuous Pseudo-noise for Paper Fiber Texture
             // 실제 종이 섬유의 불규칙한 저항감 시뮬레이션
             // _noisePhase를 드래그 거리에 따라 진행시켜 일관된 텍스쳐 생성
@@ -321,12 +321,12 @@ class PageFlipStateController {
             final combinedResistance = edgeResistance * 0.4 + speedFactor * 0.6;
 
             // 강도 계산: 기본 강도 + 텍스쳐 변조
-            final baseIntensity = (_smoothedSpeed * 6).clamp(30, 180).toInt();
-            final textureModulation = (textureNoise * 60).toInt();
-            final resistanceBoost = (edgeResistance * 50).toInt();
+            final baseIntensity = (_smoothedSpeed * 4.5).clamp(24, 110).toInt();
+            final textureModulation = (textureNoise * 32).toInt();
+            final resistanceBoost = (edgeResistance * 22).toInt();
             final finalIntensity =
                 (baseIntensity + textureModulation + resistanceBoost)
-                    .clamp(40, 255);
+                    .clamp(28, 140);
 
             onEffectTrigger(
               PageFlipEvent.texturedHaptic,

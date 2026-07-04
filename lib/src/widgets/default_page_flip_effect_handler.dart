@@ -25,6 +25,8 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   set viewportWidth(double width) {}
 
   static const int _audioPoolSize = 3;
+  static const int _minPaperTickGapMs = 48;
+
   final List<AudioPlayer> _audioPool = List.generate(
     _audioPoolSize,
     (_) => AudioPlayer(),
@@ -34,6 +36,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   Source? _audioSource;
 
   DateTime _lastTextureTick = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastPaperTick = DateTime.fromMillisecondsSinceEpoch(0);
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
 
   Future<void> _initAudio() async {
@@ -68,6 +71,24 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     _audioReady = atLeastOneSuccess;
   }
 
+  bool _tryEmitPaperTick({
+    required double intensity,
+    required double sharpness,
+  }) {
+    final now = DateTime.now();
+    if (now.difference(_lastPaperTick).inMilliseconds < _minPaperTickGapMs) {
+      return false;
+    }
+    _lastPaperTick = now;
+    unawaited(
+      AdvancedHapticEngine.playTransient(
+        intensity: intensity.clamp(0.08, 0.55),
+        sharpness: sharpness.clamp(0.15, 0.45),
+      ),
+    );
+    return true;
+  }
+
   @override
   FutureOr<void> onHandleEffect(
     PageFlipEvent event, {
@@ -79,20 +100,23 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }) {
     switch (event) {
       case PageFlipEvent.startHaptic:
-        unawaited(AdvancedHapticEngine.playSystemMedium());
+        // Drag texture handles ongoing feedback; a medium pulse here reads as a
+        // separate "tap" before the paper scrape begins.
         break;
       case PageFlipEvent.stopHaptic:
+        unawaited(AdvancedHapticEngine.cancel());
         if (pageIndex != null) {
           _physicsEngines[pageIndex]?.reset();
-          // Retain only the current page engine and keep a small window (±2)
-          // so rapid sequential flips reuse existing engines without reallocation.
           _physicsEngines.removeWhere(
             (key, _) => (key - pageIndex).abs() > 2,
           );
         }
         break;
       case PageFlipEvent.impulseHaptic:
-        unawaited(AdvancedHapticEngine.playThud(intensity: 0.8));
+        _tryEmitPaperTick(
+          intensity: 0.38,
+          sharpness: 0.28,
+        );
         break;
       case PageFlipEvent.continuousHaptic:
       case PageFlipEvent.texturedHaptic:
@@ -103,12 +127,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
             texture: texture,
             resistance: resistance ?? 0.5,
           );
-        } else {
-          unawaited(AdvancedHapticEngine.playSystemMedium());
         }
         break;
       case PageFlipEvent.sound:
-        unawaited(AdvancedHapticEngine.playSystemLight());
         _playSound(volume ?? 1.0);
         break;
     }
@@ -135,53 +156,53 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
     if (stickSlip != null) {
       if (stickSlip.type == StickSlipEventType.slipRelease) {
-        unawaited(
-          AdvancedHapticEngine.playThud(
-            intensity: (stickSlip.intensity * _textureConfig.stiffness * 1.5)
-                .clamp(0.0, 1.0),
-          ),
+        // THUD reads as a spring rebound on Android; use a short tick instead.
+        _tryEmitPaperTick(
+          intensity:
+              (stickSlip.intensity * _textureConfig.friction * 0.55 + 0.12)
+                  .clamp(0.12, 0.42),
+          sharpness: 0.32,
         );
         return;
       } else if (stickSlip.type == StickSlipEventType.microSlip) {
-        unawaited(
-          AdvancedHapticEngine.playTransient(
-            intensity:
-                (stickSlip.intensity * _textureConfig.friction).clamp(0.0, 1.0),
-            sharpness: (_textureConfig.baseSharpness *
-                    (1.0 + _textureConfig.roughness * 0.5))
-                .clamp(0.0, 1.0),
-          ),
+        _tryEmitPaperTick(
+          intensity:
+              (stickSlip.intensity * _textureConfig.friction * 0.7 + 0.08)
+                  .clamp(0.08, 0.35),
+          sharpness: 0.28,
         );
         return;
       }
     }
 
     final normalizedSpeed = (velocityIntensity / 255.0).clamp(0.1, 1.0);
-    final baseThrottleMs =
-        performanceProfile == DevicePerformanceProfile.low ? 150 : 40;
+    final baseThrottleMs = switch (performanceProfile) {
+      DevicePerformanceProfile.low => 180,
+      DevicePerformanceProfile.high => 55,
+      DevicePerformanceProfile.medium => 72,
+    };
     final throttleMs =
         (baseThrottleMs / (normalizedSpeed * (1.0 + _textureConfig.roughness)))
             .round()
-            .clamp(10, 200);
+            .clamp(35, 140);
 
     final now = DateTime.now();
-    if (now.difference(_lastTextureTick).inMilliseconds > throttleMs) {
-      _lastTextureTick = now;
-
-      final dynamicIntensity = (_textureConfig.friction * normalizedSpeed +
-              _textureConfig.stiffness * resistance * 0.5)
-          .clamp(0.0, 1.0);
-      final dynamicSharpness = (_textureConfig.baseSharpness *
-              (1.0 + _textureConfig.roughness * frame.rawTexture))
-          .clamp(0.0, 1.0);
-
-      unawaited(
-        AdvancedHapticEngine.playTransient(
-          intensity: dynamicIntensity,
-          sharpness: dynamicSharpness,
-        ),
-      );
+    if (now.difference(_lastTextureTick).inMilliseconds <= throttleMs) {
+      return;
     }
+    _lastTextureTick = now;
+
+    final dynamicIntensity = (_textureConfig.friction * normalizedSpeed * 0.85 +
+            _textureConfig.stiffness * resistance * 0.25)
+        .clamp(0.0, 1.0);
+    final dynamicSharpness = (_textureConfig.baseSharpness * 0.55 +
+            _textureConfig.roughness * frame.rawTexture * 0.2)
+        .clamp(0.0, 1.0);
+
+    _tryEmitPaperTick(
+      intensity: dynamicIntensity,
+      sharpness: dynamicSharpness,
+    );
   }
 
   Future<void> _playOnPlayer(AudioPlayer player, double volume) async {
@@ -198,15 +219,11 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   void _playSound(double volume) {
     if (!_audioReady || _audioSource == null) return;
 
-    // Limit max volume and scale dynamically based on gesture speed (velocity/volume)
     final cappedVolume = (volume * 0.4).clamp(0.05, 0.35);
 
     final player = _audioPool[_audioPoolIndex];
     _audioPoolIndex = (_audioPoolIndex + 1) % _audioPoolSize;
 
-    // stop() + seek() + resume() avoids setSource() on every flip.
-    // setSource() involves asset I/O and causes race conditions when the
-    // pool cycles back to a player whose previous play() hasn't finished.
     unawaited(_playOnPlayer(player, cappedVolume));
   }
 

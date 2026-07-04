@@ -2,6 +2,7 @@ package com.chapdcha.real_page_flip
 
 import android.content.Context
 import android.os.Build
+import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -16,6 +17,8 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     private var vibrator: Vibrator? = null
     private var isVibratorAvailable = false
     private var hasAmplitudeControl = false
+    private var lastVibrateAt = 0L
+    private val minVibrateGapMs = 45L
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.chapdcha.real_page_flip/haptics")
@@ -37,7 +40,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
-        if (!isVibratorAvailable) {
+        if (!isVibratorAvailable && call.method != "cancel") {
             result.error("VIBRATOR_UNAVAILABLE", "Device has no vibrator", null)
             return
         }
@@ -56,30 +59,65 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
                     result.success(null)
                 }
                 "playSystemMedium" -> {
-                    playFallback(40, 180)
+                    playPaperTick(0.28)
                     result.success(null)
                 }
                 "playSystemLight" -> {
-                    playFallback(20, 100)
+                    playPaperTick(0.18)
+                    result.success(null)
+                }
+                "cancel" -> {
+                    cancelVibration()
                     result.success(null)
                 }
                 else -> result.notImplemented()
             }
         } catch (e: SecurityException) {
-            // VIBRATE permission missing — report error so Dart side falls back to HapticFeedback
             result.error("VIBRATE_PERMISSION_MISSING", e.message, null)
         } catch (e: Exception) {
             result.error("HAPTIC_ERROR", e.message, null)
         }
     }
 
-    private fun playTransient(intensity: Double, sharpness: Double) {
+    private fun cancelVibration() {
+        vibrator?.cancel()
+        lastVibrateAt = 0L
+    }
+
+    private fun shouldEmitVibration(): Boolean {
+        val now = SystemClock.uptimeMillis()
+        if (now - lastVibrateAt < minVibrateGapMs) {
+            return false
+        }
+        lastVibrateAt = now
+        return true
+    }
+
+    private fun playPaperTick(scale: Double) {
+        if (!shouldEmitVibration()) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val scale = (intensity * 1.0).toFloat().coerceIn(0.0f, 1.0f)
-            val primitive = if (sharpness > 0.6) VibrationEffect.Composition.PRIMITIVE_CLICK else VibrationEffect.Composition.PRIMITIVE_TICK
+            val clamped = scale.toFloat().coerceIn(0.05f, 0.55f)
             try {
                 val effect = VibrationEffect.startComposition()
-                    .addPrimitive(primitive, scale)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, clamped)
+                    .compose()
+                vibrator?.vibrate(effect)
+                return
+            } catch (e: Exception) {
+                // fallback
+            }
+        }
+        playFallback(8, (scale * 180).toInt().coerceIn(20, 140))
+    }
+
+    private fun playTransient(intensity: Double, sharpness: Double) {
+        if (!shouldEmitVibration()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val scale = (intensity * 0.85).toFloat().coerceIn(0.05f, 0.55f)
+            try {
+                // Paper scrape uses short ticks; CLICK reads as a sharp tap.
+                val effect = VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, scale)
                     .compose()
                 vibrator?.vibrate(effect)
                 return
@@ -88,14 +126,15 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
             }
         }
 
-        val amp = (intensity * 255).toInt().coerceIn(10, 255)
-        val dur = (10 + (sharpness * 15)).toLong()
+        val amp = (intensity * 180).toInt().coerceIn(12, 160)
+        val dur = (6 + (sharpness * 8)).toLong()
         playFallback(dur, amp)
     }
 
     private fun playThud(intensity: Double) {
+        if (!shouldEmitVibration()) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val scale = (intensity * 1.0).toFloat().coerceIn(0.0f, 1.0f)
+            val scale = (intensity * 0.55).toFloat().coerceIn(0.08f, 0.5f)
             try {
                 val effect = VibrationEffect.startComposition()
                     .addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, scale)
@@ -107,8 +146,8 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
             }
         }
 
-        val amp = (intensity * 255).toInt().coerceIn(50, 255)
-        playFallback(40, amp)
+        val amp = (intensity * 180).toInt().coerceIn(40, 180)
+        playFallback(24, amp)
     }
 
     private fun playFallback(duration: Long, amplitude: Int) {

@@ -45,10 +45,10 @@ class PaperPhysicsConfig {
     this.maxDurationMs = 120,
 
     /// Time (ms) a page must be stationary to accumulate stick energy.
-    this.stationaryThresholdMs = 50,
+    this.stationaryThresholdMs = 100,
 
     /// Velocity threshold below which the page is considered stationary.
-    this.slipVelocityThreshold = 0.02,
+    this.slipVelocityThreshold = 0.05,
   });
 
   /// Sigmoid curve steepness for resistance model.

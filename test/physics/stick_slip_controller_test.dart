@@ -156,7 +156,7 @@ void main() {
 
       // velocity exactly at threshold — should NOT release
       fakeNow = fakeNow.add(const Duration(milliseconds: 10));
-      final exactEvent = ctrl.update(0.02);
+      final exactEvent = ctrl.update(0.05);
       expect(exactEvent.type, equals(StickSlipEventType.none));
 
       // Now directly from stationary, just above threshold
@@ -168,7 +168,7 @@ void main() {
       fakeNow = fakeNow.add(const Duration(milliseconds: 10));
       ctrl2.update(0); // stationary build
       fakeNow = fakeNow.add(const Duration(milliseconds: 10));
-      final release = ctrl2.update(0.021); // just above threshold
+      final release = ctrl2.update(0.051); // just above threshold
       expect(release.type, equals(StickSlipEventType.slipRelease));
     });
 

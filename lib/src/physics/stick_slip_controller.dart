@@ -43,10 +43,10 @@ class StickSlipController {
   /// testing. Defaults to [DateTime.now].
   StickSlipController({
     /// Time (ms) the page must be stationary before accumulating stick energy.
-    int stationaryThresholdMs = 50,
+    int stationaryThresholdMs = 100,
 
     /// Velocity threshold below which the page is considered stationary.
-    double slipVelocityThreshold = 0.02,
+    double slipVelocityThreshold = 0.05,
 
     /// Clock function for time-based calculations. Override for testing.
     DateTime Function() now = DateTime.now,
@@ -122,8 +122,8 @@ class StickSlipController {
     _lastVelocity = velocity;
     _lastMoveTime = now;
 
-    if (accel > 0.15) {
-      return StickSlipEvent.microSlip(intensity: (accel * 2).clamp(0.0, 0.6));
+    if (accel > 0.28) {
+      return StickSlipEvent.microSlip(intensity: (accel * 1.4).clamp(0.0, 0.45));
     }
 
     return StickSlipEvent.none;

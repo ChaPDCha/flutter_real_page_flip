@@ -5,6 +5,11 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 
 ## [Unreleased]
 
+## [1.12.7] - 2026-07-04
+### Fixed
+- Paper-like haptic feedback: replace stick-slip THUD bursts with short TICK textures, debounce native vibration calls, and cancel residual motor output on drag end.
+- Reduce drag haptic frequency and intensity ranges to avoid springy, stuttering vibration on Android.
+
 ## [1.12.6] - 2026-07-04
 ### Added
 - Dynamic depth rendering: Switches from shadows to reflective highlights on dark background paper (`isPaperDark == true`) for superior visual contrast and depth.

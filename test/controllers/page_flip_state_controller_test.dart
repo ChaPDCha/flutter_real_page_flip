@@ -272,7 +272,7 @@ void main() {
       effectController.dispose();
     });
 
-    test('texturedHaptic intensity in valid range (40-255)', () {
+    test('texturedHaptic intensity in valid range (28-140)', () {
       final intensities = <int>[];
       final effectController = PageFlipStateController(
         vsync: const TestVSync(),
@@ -338,7 +338,7 @@ void main() {
 
       expect(intensities.length, greaterThanOrEqualTo(1));
       for (final i in intensities) {
-        expect(i, inInclusiveRange(40, 255));
+        expect(i, inInclusiveRange(28, 140));
       }
       effectController.dispose();
     });

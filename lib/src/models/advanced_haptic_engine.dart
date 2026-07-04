@@ -69,4 +69,15 @@ class AdvancedHapticEngine {
       unawaited(HapticFeedback.lightImpact());
     }
   }
+
+  /// Stops any in-flight composition so drag-end does not leave a springy tail.
+  static Future<void> cancel() async {
+    try {
+      await _channel.invokeMethod('cancel');
+    } on MissingPluginException {
+      // No-op on platforms without the custom channel.
+    } on PlatformException {
+      // Ignore cancel failures.
+    }
+  }
 }
