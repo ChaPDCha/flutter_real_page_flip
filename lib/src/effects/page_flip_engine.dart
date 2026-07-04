@@ -169,12 +169,12 @@ Color flapHighlightTone({required bool isPaperDark}) => isPaperDark
 /// streak would read as glass/plastic. Dark paper is dimmer still.
 @visibleForTesting
 double flapHighlightPeakBase({required bool isPaperDark}) =>
-    isPaperDark ? 0.04 : 0.05;
+    isPaperDark ? 0.07 : 0.10;
 
 /// Base mid-band alpha of the centre highlight (before shadow-intensity).
 @visibleForTesting
 double flapHighlightMidBase({required bool isPaperDark}) =>
-    isPaperDark ? 0.02 : 0.03;
+    isPaperDark ? 0.04 : 0.06;
 
 /// Direction-normalized progress used by the flap's phased content effects.
 ///

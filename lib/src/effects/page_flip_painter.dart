@@ -531,7 +531,7 @@ class PageFlipPainter extends CustomPainter {
       // Softer, wider crease darkening: a lower peak spread over a larger
       // falloff reads as gentle paper shading near the fold instead of a hard
       // dark stroke (the "cartoon outline").
-      final foldShadow = (isPaperDark ? 0.07 : 0.09) * bendStrength;
+      final foldShadow = (isPaperDark ? 0.11 : 0.16) * bendStrength;
       canvas.drawRect(
         flapPaintRect,
         Paint()
@@ -543,7 +543,7 @@ class PageFlipPainter extends CustomPainter {
               Colors.black.withValues(alpha: foldShadow),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.45],
+            stops: const [0.0, 0.55],
           ).createShader(flapPaintRect),
       );
     }
@@ -571,7 +571,7 @@ class PageFlipPainter extends CustomPainter {
     canvas.transform(g.transform.storage);
 
     final shadowWidth = _kRevealedShadowWidth * g.shadowIntensity;
-    final revealedAlpha = 0.075 * g.shadowIntensity;
+    final revealedAlpha = 0.15 * g.shadowIntensity;
     if (revealedAlpha > 0.01 && shadowWidth > 1) {
       // Follow the same curved fold boundary as the flap. A straight shadow
       // rect stays angle-aligned after transform, but its dark edge remains a
@@ -589,12 +589,15 @@ class PageFlipPainter extends CustomPainter {
           isForward ? Alignment.centerLeft : Alignment.centerRight;
       final endAlign = isForward ? Alignment.centerRight : Alignment.centerLeft;
 
+      final shadowColor = isPaperDark ? Colors.white : Colors.black;
+
       if (performanceProfile == DevicePerformanceProfile.low) {
         canvas.drawPath(
           shadowPath,
-          Paint()..color = Colors.black.withValues(alpha: revealedAlpha * 0.42),
+          Paint()..color = shadowColor.withValues(alpha: revealedAlpha * 0.42),
         );
       } else {
+        // Inner stronger drop shadow
         canvas.drawPath(
           shadowPath,
           Paint()
@@ -602,11 +605,33 @@ class PageFlipPainter extends CustomPainter {
               begin: beginAlign,
               end: endAlign,
               colors: [
-                Colors.black.withValues(alpha: revealedAlpha),
+                shadowColor.withValues(alpha: revealedAlpha),
                 Colors.transparent,
               ],
               stops: const [0.0, 1.0],
             ).createShader(shadowBounds),
+        );
+
+        // Outer softer ambient band for natural falloff
+        final ambientWidth = shadowWidth * 1.6;
+        final ambientPath = buildCurvedFoldShadowPath(
+          g,
+          isForward: isForward,
+          shadowWidth: ambientWidth,
+        );
+        final ambientAlpha = (isPaperDark ? 0.025 : 0.04) * g.shadowIntensity;
+        canvas.drawPath(
+          ambientPath,
+          Paint()
+            ..shader = LinearGradient(
+              begin: beginAlign,
+              end: endAlign,
+              colors: [
+                shadowColor.withValues(alpha: ambientAlpha),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 1.0],
+            ).createShader(ambientPath.getBounds()),
         );
       }
     }
@@ -620,40 +645,46 @@ class PageFlipPainter extends CustomPainter {
       canvas.transform(g.transform.storage);
 
       final stationaryWidth = _kStationaryShadowWidth * g.shadowIntensity;
-      final stationaryAlpha = 0.035 * g.shadowIntensity;
+      final stationaryAlpha = 0.06 * g.shadowIntensity;
       if (stationaryAlpha > 0.01 && stationaryWidth > 1) {
         final stationaryRect = g.flapRightOfFold
             ? Rect.fromLTWH(
-                g.freeEdgeX,
+                g.foldX,
                 -verticalPaintBleed,
                 stationaryWidth,
                 size.height + verticalPaintBleed * 2,
               )
             : Rect.fromLTWH(
-                g.freeEdgeX - stationaryWidth,
+                g.foldX - stationaryWidth,
                 -verticalPaintBleed,
                 stationaryWidth,
                 size.height + verticalPaintBleed * 2,
               );
+        final stationaryBegin =
+            g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+        final stationaryEnd =
+            g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
+
+        final shadowColor = isPaperDark ? Colors.white : Colors.black;
+        final shadowBlend = isPaperDark ? BlendMode.srcOver : BlendMode.multiply;
+
         if (performanceProfile == DevicePerformanceProfile.low) {
           canvas.drawRect(
             stationaryRect,
             Paint()
-              ..color = Colors.black.withValues(alpha: stationaryAlpha * 0.5),
+              ..blendMode = shadowBlend
+              ..color = shadowColor.withValues(alpha: stationaryAlpha * 0.42),
           );
         } else {
-          final darkEdgeAlign =
-              g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
-          final fadeAlign =
-              g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
           canvas.drawRect(
             stationaryRect,
             Paint()
+              ..blendMode = shadowBlend
               ..shader = LinearGradient(
-                begin: darkEdgeAlign,
-                end: fadeAlign,
+                begin: stationaryBegin,
+                end: stationaryEnd,
                 colors: [
-                  Colors.black.withValues(alpha: stationaryAlpha),
+                  shadowColor.withValues(alpha: stationaryAlpha),
                   Colors.transparent,
                 ],
               ).createShader(stationaryRect),
@@ -666,33 +697,37 @@ class PageFlipPainter extends CustomPainter {
     // Center spine groove (double-spread): keep on the flip side so layer 2
     // stationary halves are not darkened.
     if (isDoubleSpread && progress > 0) {
-      const spineShadowWidth = 18.0;
+      const spineWidth = 18.0;
       canvas.save();
       canvas.clipRect(flipSideShadowClipRect(g));
-      final spineLeft = g.isForward ? g.spineX : g.spineX - spineShadowWidth;
+      final spineLeft = g.isForward ? g.spineX : g.spineX - spineWidth;
       final spineRect = Rect.fromLTWH(
         spineLeft,
         0,
-        spineShadowWidth,
+        spineWidth,
         size.height,
       );
+
+      final shadowColor = isPaperDark ? Colors.white : Colors.black;
+      final shadowBlend = isPaperDark ? BlendMode.srcOver : BlendMode.multiply;
+
       if (performanceProfile == DevicePerformanceProfile.low) {
         canvas.drawRect(
           spineRect,
           Paint()
-            ..blendMode = BlendMode.multiply
-            ..color = Colors.black.withValues(alpha: 0.04 * g.shadowIntensity),
+            ..blendMode = shadowBlend
+            ..color = shadowColor.withValues(alpha: 0.06 * g.shadowIntensity),
         );
       } else {
         canvas.drawRect(
           spineRect,
           Paint()
-            ..blendMode = BlendMode.multiply
+            ..blendMode = shadowBlend
             ..shader = LinearGradient(
               begin: g.isForward ? Alignment.centerLeft : Alignment.centerRight,
               end: g.isForward ? Alignment.centerRight : Alignment.centerLeft,
               colors: [
-                Colors.black.withValues(alpha: 0.09 * g.shadowIntensity),
+                shadowColor.withValues(alpha: 0.13 * g.shadowIntensity),
                 Colors.transparent,
               ],
             ).createShader(spineRect),

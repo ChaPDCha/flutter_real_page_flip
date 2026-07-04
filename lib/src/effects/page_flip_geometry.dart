@@ -18,7 +18,7 @@ const double _kFlapWidthBase = 1;
 const double _kFlapWidthModulation = 0.30;
 
 /// Maximum width (px) of the drop shadow cast by the revealed (new) page.
-const double _kRevealedShadowWidth = 22;
+const double _kRevealedShadowWidth = 36;
 
 /// Maximum width (px) of the shadow on the stationary page edge.
 const double _kStationaryShadowWidth = 14;
