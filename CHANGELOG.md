@@ -5,6 +5,15 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 
 ## [Unreleased]
 
+## [1.12.6] - 2026-07-04
+### Added
+- Dynamic depth rendering: Switches from shadows to reflective highlights on dark background paper (`isPaperDark == true`) for superior visual contrast and depth.
+- Double-spread ambient depth: Strengthened stationary edge shadow and spine groove with automated srcOver blending fallback when drawing glowing highlights on dark paper.
+
+### Changed
+- Flap Curvature Shading: Strengthened matte highlight sheen (~2x peak) and deepened fold crease darkening with a broader gradient stop (0.55) for a smoother 3D bend.
+- Revealed-Page Drop Shadow: Doubled peak alpha and widened drop shadow falloff (36px). Introduced a secondary soft ambient band (1.6x width) for high/medium performance profiles.
+
 ## [1.12.5] - 2026-07-03
 ### Fixed
 - Clamped offscreen drag positions before flip geometry reaches layer clippers and painters, keeping extreme vertical swipes on a stable viewport-bound fold angle.
