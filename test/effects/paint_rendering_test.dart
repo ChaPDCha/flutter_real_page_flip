@@ -186,6 +186,22 @@ void main() {
       expect(canvas.saveLayerCount, equals(1));
     });
 
+    test('no saveLayer on low performance profile even when thin-paper is enabled', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        thinPaperStrength: 0.15,
+        performanceProfile: DevicePerformanceProfile.low,
+      ).paint(canvas, size);
+
+      // Low profile forces thinPaperStrength to 0.0, flapAlpha = 1.0 -> no saveLayer
+      expect(canvas.saveLayerCount, equals(0));
+    });
+
     // ── Edge-fade and fold-fade ────────────────────────────────
 
     test('edge-fade and fold-fade gradients always drawn', () {
@@ -345,11 +361,11 @@ void main() {
         paperBackColor: const Color(0xFF111111), // dark (luminance < 0.20)
       ).paint(canvas, size);
 
-      // Still should have bend shading with darker shadow.
+      // Still should have bend shading with screen blend mode.
       expect(
-        canvas.hasDrawRectWith(blendMode: BlendMode.multiply, hasShader: true),
+        canvas.hasDrawRectWith(blendMode: BlendMode.screen, hasShader: true),
         isTrue,
-        reason: 'Dark mode bend shadow uses darker foldEdge alpha',
+        reason: 'Dark mode bend shadow uses screen blend mode',
       );
     });
 

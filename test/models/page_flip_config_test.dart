@@ -41,7 +41,15 @@ void main() {
       const config = PageFlipConfig();
 
       expect(config.flapBackStrength, equals(0.0));
+      expect(config.doubleSpreadMidFoldBleed, equals(0.15));
       expect(config.performanceProfile, DevicePerformanceProfile.medium);
+    });
+
+    test('equality respects doubleSpreadMidFoldBleed', () {
+      const a = PageFlipConfig();
+      const b = PageFlipConfig(doubleSpreadMidFoldBleed: 0.5);
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
     });
 
     test('equality respects enableHaptics', () {

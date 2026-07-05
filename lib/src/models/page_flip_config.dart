@@ -100,6 +100,7 @@ class PageFlipConfig {
     this.flapContentRevealStart = 0.85,
     this.flapContentRevealEnd = 0.95,
     this.flapBackStrength = 0.0,
+    this.doubleSpreadMidFoldBleed = 0.15,
     this.singlePageBackContentOpacity = 1.0,
     this.performanceProfile = DevicePerformanceProfile.medium,
     this.hapticTexturePreset = PaperTexturePreset.standard,
@@ -143,6 +144,13 @@ class PageFlipConfig {
   /// readability and performance. Use about 0.3 for a subtle opt-in
   /// through-paper effect; 1.0 is a fully visible mirror.
   final double flapBackStrength;
+
+  /// Double-spread only: opacity floor of destination page content visible
+  /// through the paper flap during mid-fold (0.0–1.0).
+  ///
+  /// Defaults to 0.15 for a subtle thin-paper translucency; 0.0 disables.
+  /// High performance profile only.
+  final double doubleSpreadMidFoldBleed;
 
   /// Single-page only: opacity of the flipping page's own content while it is
   /// the back-facing side mid-flip (0.0–1.0).
@@ -262,6 +270,7 @@ class PageFlipConfig {
     double? flapContentRevealStart,
     double? flapContentRevealEnd,
     double? flapBackStrength,
+    double? doubleSpreadMidFoldBleed,
     double? singlePageBackContentOpacity,
     DevicePerformanceProfile? performanceProfile,
     PaperTexturePreset? hapticTexturePreset,
@@ -301,6 +310,8 @@ class PageFlipConfig {
             flapContentRevealStart ?? this.flapContentRevealStart,
         flapContentRevealEnd: flapContentRevealEnd ?? this.flapContentRevealEnd,
         flapBackStrength: flapBackStrength ?? this.flapBackStrength,
+        doubleSpreadMidFoldBleed:
+            doubleSpreadMidFoldBleed ?? this.doubleSpreadMidFoldBleed,
         singlePageBackContentOpacity:
             singlePageBackContentOpacity ?? this.singlePageBackContentOpacity,
         performanceProfile: performanceProfile ?? this.performanceProfile,
@@ -383,6 +394,10 @@ class PageFlipConfig {
         flapBackStrength,
         defaultSettings.flapBackStrength,
       ),
+      doubleSpreadMidFoldBleed: _safeUnitInterval(
+        doubleSpreadMidFoldBleed,
+        defaultSettings.doubleSpreadMidFoldBleed,
+      ),
       singlePageBackContentOpacity: _safeUnitInterval(
         singlePageBackContentOpacity,
         defaultSettings.singlePageBackContentOpacity,
@@ -444,6 +459,7 @@ class PageFlipConfig {
           flapContentRevealStart == other.flapContentRevealStart &&
           flapContentRevealEnd == other.flapContentRevealEnd &&
           flapBackStrength == other.flapBackStrength &&
+          doubleSpreadMidFoldBleed == other.doubleSpreadMidFoldBleed &&
           singlePageBackContentOpacity == other.singlePageBackContentOpacity &&
           performanceProfile == other.performanceProfile &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
@@ -474,6 +490,7 @@ class PageFlipConfig {
         flapContentRevealStart,
         flapContentRevealEnd,
         flapBackStrength,
+        doubleSpreadMidFoldBleed,
         singlePageBackContentOpacity,
         performanceProfile,
         edgeTapPreviousLabel,

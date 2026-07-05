@@ -3,6 +3,20 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.12.10] - 2026-07-06
+### Added
+- **Slip Burst & Settle Thud**: Added native platform haptic playbacks on Android/iOS for page release slippage and heavy settle thuds.
+- **Logarithmic Tactile Scaling**: Implemented Weber-Fechner Law gamma correction for slow drags, magnifying subtle friction textures.
+
+### Changed
+- **Adaptive Settle Durations**: Fold animation speed scales dynamically based on release gesture velocity (80ms to 450ms).
+- **Neutral Color Temperature**: Refined dark-mode highlights (0xFFE8E8F0) to eliminate glassy blue sheen on OLED screens.
+
+### Fixed
+- **Extreme Gesture Artifacts**: Aligned all painter and clipper guards to a shared `kFlipProgressEpsilon` to prevent frame gaps, and raised minimum mesh width to 12px.
+- **Dark Mode Shading**: Replaced multiply-black with screen-white for fold creases on dark paper to ensure depth visibility.
+- **Low Profile saveLayer Bypass**: Suppressed translucency layers entirely on low performance profiles, saving 2-3ms per frame.
+
 ## [1.12.9] - 2026-07-05
 ### Added
 - **High-DPI Support**: Edge and fold masks automatically widen by 25% on high-DPI displays (≥ 2.0) to prevent sub-pixel rendering artifacts and anti-aliasing bleeds.

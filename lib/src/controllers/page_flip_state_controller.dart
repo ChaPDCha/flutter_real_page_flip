@@ -371,10 +371,22 @@ class PageFlipStateController {
     // Sync animation value to current drag progress to prevent jumps
     animationController.value = _dragProgress;
 
+    // Adaptive duration: scale inversely with release velocity so fast flicks
+    // complete quickly (80-150ms) while slow releases use full duration (450ms).
+    // Only the remaining progress distance is animated, keeping velocity smooth.
+    final remainingProgress =
+        isSuccess ? (1.0 - _dragProgress) : _dragProgress;
+    final velocityScale =
+        (_lastReleaseVelocity / 1000.0).clamp(0.5, 3.0);
+    final maxMs = animationDuration.inMilliseconds;
+    final adaptiveMs = (maxMs * remainingProgress / velocityScale)
+        .clamp(math.min(80, maxMs), maxMs)
+        .toInt();
+
     animationController
         .animateTo(
           isSuccess ? 1 : 0,
-          duration: animationDuration,
+          duration: Duration(milliseconds: adaptiveMs),
           curve: const PaperFlipCurve(),
         )
         .then((_) => _finalizePageChange(isSuccess, totalPages));
@@ -389,9 +401,15 @@ class PageFlipStateController {
       return;
     }
     animationController.value = _dragProgress;
+    // Snap-back: scale duration by remaining progress so near-zero drags
+    // snap back almost instantly.
+    final cancelMaxMs = animationDuration.inMilliseconds;
+    final cancelMs = (cancelMaxMs * _dragProgress)
+        .clamp(math.min(80, cancelMaxMs), cancelMaxMs)
+        .toInt();
     animationController.animateTo(
       0,
-      duration: animationDuration,
+      duration: Duration(milliseconds: cancelMs),
       curve: const PaperFlipCurve(),
     );
     _finalizePageChange(false, totalPages);
@@ -413,6 +431,10 @@ class PageFlipStateController {
     _isDragging = true;
     _dragProgress = 0.0;
     _hasPlayedSound = false;
+    // Tap flips have no drag start, so set touch position to page vertical
+    // centre for a neutral (zero) fold angle instead of inheriting stale
+    // coordinates from a previous drag gesture.
+    _touchPosition = Offset(0, _cachedWidth);
 
     onFlipStart?.call();
 

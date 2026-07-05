@@ -160,7 +160,7 @@ double foldMaskWidth({required bool isPaperDark, double devicePixelRatio = 1.0})
 /// paper gets a warm paper-white sheen.
 @visibleForTesting
 Color flapHighlightTone({required bool isPaperDark}) => isPaperDark
-    ? const Color(0xFFEAF1FF) // faint cool ambient
+    ? const Color(0xFFE8E8F0) // neutral off-white with minimal blue
     : const Color(0xFFFFF4E0); // warm paper white
 
 /// Base peak alpha of the centre highlight (before shadow-intensity scaling).
@@ -210,6 +210,7 @@ double flapFrontContentRevealOpacity(
   bool isForward = true,
   bool isDoubleSpread = false,
   bool keepSinglePageContentVisible = true,
+  double doubleSpreadMidFoldBleed = 0.0,
 }) {
   // Single-page mode: pages are single-sided, so the flipping page shows its
   // own content curling with the paper for the entire turn only when the
@@ -220,22 +221,25 @@ double flapFrontContentRevealOpacity(
 
   // Normalize progress so p always goes 0→1 from flip-start to flip-end.
   final p = normalizedFlapProgress(progress, isForward: isForward);
+  final bleed = isDoubleSpread ? doubleSpreadMidFoldBleed.clamp(0.0, 1.0) : 0.0;
 
   // Double-spread two-sided paper model below:
-  // Phase 1: brief early visibility → fast hide as fold begins.
+  // Phase 1: brief early visibility → fast hide to bleed floor as fold begins.
   if (p <= fadeOutEnd) {
-    if (fadeOutEnd <= 0) return 0;
+    if (fadeOutEnd <= 0) return bleed;
     final t = 1.0 - p / fadeOutEnd;
-    return t * t * (3 - 2 * t);
+    final earlyFade = t * t * (3 - 2 * t);
+    return bleed + (1.0 - bleed) * earlyFade;
   }
 
-  // Phase 2: mid fold — paper back only (longest phase).
-  if (p < revealStart) return 0;
+  // Phase 2: mid fold — bleed floor (subtle thin-paper translucency).
+  if (p < revealStart) return bleed;
 
-  // Phase 3: late settle reveal.
+  // Phase 3: late settle reveal from bleed floor up to 1.0.
   if (p >= revealEnd) return 1;
   final t = (p - revealStart) / (revealEnd - revealStart);
-  return t * t * (3 - 2 * t);
+  final smoothed = t * t * (3 - 2 * t);
+  return bleed + (1.0 - bleed) * smoothed;
 }
 
 /// Opacity of the stationary middle layer in single-page mode.
@@ -300,6 +304,13 @@ double singlePageBackDim(
   final eased = t * t * (3 - 2 * t);
   return backOpacity + (1.0 - backOpacity) * eased;
 }
+
+/// Shared progress epsilon below which the flip is visually invisible.
+///
+/// [PageFlipPainter], [PageFlipClipper], and [PageFlipOpenClipper] all use
+/// this as their early-return / full-rect guard so there is no frame gap
+/// where clippers clip but the painter does not paint (or vice-versa).
+const double kFlipProgressEpsilon = 0.001;
 
 /// Sub-pixel overlap (px) at layer seams (fold line, flap edge, spine reveal).
 ///

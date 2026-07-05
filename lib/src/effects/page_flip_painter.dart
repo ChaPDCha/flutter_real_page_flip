@@ -74,6 +74,10 @@ class PageFlipPainter extends CustomPainter {
     /// 0 = disabled, 0.3 = subtle mirror-through-paper effect.
     this.flapBackStrength = 0.0,
 
+    /// Double-spread only: minimum opacity of destination page content visible
+    /// through the paper during mid-fold (0.0–1.0). High profile only.
+    this.doubleSpreadMidFoldBleed = 0.0,
+
     /// Single-page only: opacity of the peeled page's own content while it is
     /// the back-facing side mid-flip (1.0 = crisp, lower = faint bleed-through).
     this.singlePageBackContentOpacity = 1.0,
@@ -148,6 +152,10 @@ class PageFlipPainter extends CustomPainter {
   /// How visible the back content is (0.0–1.0, default 0.3).
   final double flapBackStrength;
 
+  /// Double-spread only: minimum opacity of destination page content visible
+  /// through the paper during mid-fold (0.0–1.0). High profile only.
+  final double doubleSpreadMidFoldBleed;
+
   /// Single-page only: opacity of the peeled page's own content while it is the
   /// back-facing side mid-flip.
   ///
@@ -174,7 +182,8 @@ class PageFlipPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (progress <= 0.001 || progress >= 0.999) {
+    if (progress <= kFlipProgressEpsilon ||
+        progress >= 1.0 - kFlipProgressEpsilon) {
       return;
     }
 
@@ -215,10 +224,11 @@ class PageFlipPainter extends CustomPainter {
     // Overall flap opacity modulation (thin paper + end reveal).
     // saveLayer composites everything inside at reduced opacity so the
     // underlying page content shows through — like real translucent paper.
+    final isLowProfile = performanceProfile == DevicePerformanceProfile.low;
     final flapAlpha = flapOpacityModulator(
       progress,
-      thinPaperStrength: thinPaperStrength,
-      endRevealStrength: endRevealStrength,
+      thinPaperStrength: isLowProfile ? 0.0 : thinPaperStrength,
+      endRevealStrength: isLowProfile ? 0.0 : endRevealStrength,
       isForward: isActualForward,
     );
     final needsLayer = flapAlpha < 0.995;
@@ -270,7 +280,7 @@ class PageFlipPainter extends CustomPainter {
         flapBackImage != null &&
         flapBackSrcRect != null &&
         isDoubleSpread;
-    if (hasFlapBack && g.flapVisibleWidth >= 8.0 && !skipEarlyMesh) {
+    if (hasFlapBack && g.flapVisibleWidth >= 12.0 && !skipEarlyMesh) {
       final density = flapMeshDensityForPerformance(performanceProfile);
 
       final backMesh = buildFlapContentMesh(
@@ -311,6 +321,10 @@ class PageFlipPainter extends CustomPainter {
 
     final hasFlapTexture = flapFrontImage != null && flapFrontSrcRect != null;
     if (hasFlapTexture) {
+      final effectiveDoubleSpreadBleed = (isDoubleSpread &&
+              performanceProfile == DevicePerformanceProfile.high)
+          ? doubleSpreadMidFoldBleed
+          : 0.0;
       final contentReveal = flapFrontContentRevealOpacity(
         progress,
         fadeOutEnd: flapContentFadeOutEnd,
@@ -320,21 +334,26 @@ class PageFlipPainter extends CustomPainter {
         isDoubleSpread: isDoubleSpread,
         keepSinglePageContentVisible:
             performanceProfile == DevicePerformanceProfile.high,
+        doubleSpreadMidFoldBleed: effectiveDoubleSpreadBleed,
       );
       if (contentReveal > 0.001) {
-        // Determine which image/rect to use: settle content for Phase 3,
+        // Determine which image/rect to use: settle content for Phase 3
+        // or mid-fold bleed in high-profile double-spread mode,
         // regular flap content for Phase 1 (early drag).
-        final useSettle = isSettlePhase &&
+        final wantsSettleForBleed = isDoubleSpread &&
+            performanceProfile == DevicePerformanceProfile.high &&
+            effectiveDoubleSpreadBleed > 0.005;
+        final useSettle = (isSettlePhase || wantsSettleForBleed) &&
             flapFrontSettleImage != null &&
             flapFrontSettleSrcRect != null;
         final srcImage = useSettle ? flapFrontSettleImage! : flapFrontImage!;
         final srcRect = useSettle ? flapFrontSettleSrcRect! : flapFrontSrcRect!;
 
-        // Minimum width guard: flap narrower than 8 px compresses the full
-        // page texture into garbage. Paper underlay + fade overlay handle
+        // Minimum width guard: flap narrower than 12 px compresses the full
+        // page texture into visible noise. Paper underlay + fade overlay handle
         // this scale — skip the mesh entirely.
         // Mesh rendering is also skipped early in the flip on low/medium devices.
-        if (g.flapVisibleWidth >= 8.0 &&
+        if (g.flapVisibleWidth >= 12.0 &&
             !skipEarlyMesh &&
             !skipBackFacingMesh) {
           // Build a triangle mesh that follows the bezier curves so text and
@@ -552,16 +571,18 @@ class PageFlipPainter extends CustomPainter {
       // Softer, wider crease darkening: a lower peak spread over a larger
       // falloff reads as gentle paper shading near the fold instead of a hard
       // dark stroke (the "cartoon outline").
-      final foldShadow = (isPaperDark ? 0.11 : 0.16) * bendStrength;
+      final foldDarkenBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
+      final foldDarkenColor = isPaperDark ? Colors.white : Colors.black;
+      final foldShadow = (isPaperDark ? 0.06 : 0.16) * bendStrength;
       canvas.drawRect(
         flapPaintRect,
         Paint()
-          ..blendMode = BlendMode.multiply
+          ..blendMode = foldDarkenBlend
           ..shader = LinearGradient(
             begin: foldDarkenAlign,
             end: freeDarkenAlign,
             colors: [
-              Colors.black.withValues(alpha: foldShadow),
+              foldDarkenColor.withValues(alpha: foldShadow),
               Colors.transparent,
             ],
             stops: const [0.0, 0.55],
@@ -592,7 +613,7 @@ class PageFlipPainter extends CustomPainter {
     canvas.transform(g.transform.storage);
 
     final shadowWidth = _kRevealedShadowWidth * g.shadowIntensity;
-    final revealedAlpha = 0.15 * g.shadowIntensity;
+    final revealedAlpha = (isPaperDark ? 0.08 : 0.15) * g.shadowIntensity;
     if (revealedAlpha > 0.01 && shadowWidth > 1) {
       // Follow the same curved fold boundary as the flap. A straight shadow
       // rect stays angle-aligned after transform, but its dark edge remains a
@@ -789,6 +810,7 @@ class PageFlipPainter extends CustomPainter {
       oldDelegate.flapBackImage != flapBackImage ||
       oldDelegate.flapBackSrcRect != flapBackSrcRect ||
       oldDelegate.flapBackStrength != flapBackStrength ||
+      oldDelegate.doubleSpreadMidFoldBleed != doubleSpreadMidFoldBleed ||
       oldDelegate.singlePageBackContentOpacity !=
           singlePageBackContentOpacity ||
       oldDelegate.performanceProfile != performanceProfile;

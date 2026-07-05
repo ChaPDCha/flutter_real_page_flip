@@ -403,6 +403,37 @@ void main() {
       expect(atEndReveal, closeTo(1, 0.001));
     });
 
+    test('double: doubleSpreadMidFoldBleed maintains bleed floor during mid-fold', () {
+      final result = flapFrontContentRevealOpacity(
+        0.5,
+        isDoubleSpread: true,
+        doubleSpreadMidFoldBleed: 0.15,
+      );
+      expect(result, closeTo(0.15, 0.001));
+    });
+
+    test('double: doubleSpreadMidFoldBleed smoothly transitions to 1.0 during reveal phase', () {
+      final atBleed = flapFrontContentRevealOpacity(
+        0.85,
+        isDoubleSpread: true,
+        doubleSpreadMidFoldBleed: 0.15,
+      );
+      final atMid = flapFrontContentRevealOpacity(
+        0.90,
+        isDoubleSpread: true,
+        doubleSpreadMidFoldBleed: 0.15,
+      );
+      final atEnd = flapFrontContentRevealOpacity(
+        0.95,
+        isDoubleSpread: true,
+        doubleSpreadMidFoldBleed: 0.15,
+      );
+      expect(atBleed, closeTo(0.15, 0.001));
+      expect(atMid, greaterThan(0.15));
+      expect(atMid, lessThan(1.0));
+      expect(atEnd, closeTo(1.0, 0.001));
+    });
+
     test(
         'double backward: progress is inverted so content reveals at end of '
         'backward flip', () {

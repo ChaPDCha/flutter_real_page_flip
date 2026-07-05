@@ -565,6 +565,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               flapContentRevealStart: config.flapContentRevealStart,
               flapContentRevealEnd: config.flapContentRevealEnd,
               flapBackStrength: config.flapBackStrength,
+              doubleSpreadMidFoldBleed: config.doubleSpreadMidFoldBleed,
               singlePageBackContentOpacity: config.singlePageBackContentOpacity,
               constrainedSize: constrainedSize,
               isDoubleSpread: widget.spreadMode.isDoubleSpread,

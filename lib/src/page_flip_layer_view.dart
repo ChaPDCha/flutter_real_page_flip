@@ -94,6 +94,10 @@ class PageFlipLayerView extends StatelessWidget {
     /// How visible the 2.5D page back content is (0.0–1.0, double-spread only).
     this.flapBackStrength = 0.0,
 
+    /// Double-spread only: minimum opacity of destination page content visible
+    /// through the paper during mid-fold (0.0–1.0).
+    this.doubleSpreadMidFoldBleed = 0.0,
+
     /// Single-page only: opacity of the peeled page's own content mid-flip.
     this.singlePageBackContentOpacity = 1.0,
 
@@ -161,6 +165,10 @@ class PageFlipLayerView extends StatelessWidget {
 
   /// How visible the 2.5D page back content is (0.0–1.0, double-spread only).
   final double flapBackStrength;
+
+  /// Double-spread only: minimum opacity of destination page content visible
+  /// through the paper during mid-fold (0.0–1.0).
+  final double doubleSpreadMidFoldBleed;
 
   /// Single-page only: opacity of the peeled page's own content mid-flip
   /// (1.0 = crisp, lower = faint thin-paper bleed-through).
@@ -460,6 +468,7 @@ class PageFlipLayerView extends StatelessWidget {
               flapBackImage: flapBackImage,
               flapBackSrcRect: flapBackSrcRect,
               flapBackStrength: flapBackStrength,
+              doubleSpreadMidFoldBleed: doubleSpreadMidFoldBleed,
               singlePageBackContentOpacity: singlePageBackContentOpacity,
               geo: geo,
               performanceProfile: performanceProfile,

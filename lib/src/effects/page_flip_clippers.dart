@@ -55,10 +55,10 @@ class PageFlipClipper extends CustomClipper<Path> {
           isForward: isForward,
         );
 
-    if (g.progress <= 0) {
+    if (g.progress <= kFlipProgressEpsilon) {
       return Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     }
-    if (g.progress >= 1) {
+    if (g.progress >= 1.0 - kFlipProgressEpsilon) {
       return Path();
     }
 
@@ -130,7 +130,8 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
           isForward: isForward,
         );
 
-    if (g.progress <= 0 || g.progress >= 1) {
+    if (g.progress <= kFlipProgressEpsilon ||
+        g.progress >= 1.0 - kFlipProgressEpsilon) {
       return Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     }
 
