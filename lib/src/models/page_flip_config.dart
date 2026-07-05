@@ -452,31 +452,33 @@ class PageFlipConfig {
           edgeTapNextHint == other.edgeTapNextHint;
 
   @override
-  int get hashCode =>
-      duration.hashCode ^
-      cutoffForward.hashCode ^
-      cutoffPrevious.hashCode ^
-      backgroundColor.hashCode ^
-      isRightSwipe.hashCode ^
-      enableSwipe.hashCode ^
-      sensitivity.hashCode ^
-      edgeTapWidthRatio.hashCode ^
-      skipTapAnimation.hashCode ^
-      enableHaptics.hashCode ^
-      enableSound.hashCode ^
-      hapticTexturePreset.hashCode ^
-      effectHandler.hashCode ^
-      paperOpacity.hashCode ^
-      thinPaperStrength.hashCode ^
-      endRevealStrength.hashCode ^
-      flapContentFadeOutEnd.hashCode ^
-      flapContentRevealStart.hashCode ^
-      flapContentRevealEnd.hashCode ^
-      flapBackStrength.hashCode ^
-      singlePageBackContentOpacity.hashCode ^
-      performanceProfile.hashCode ^
-      edgeTapPreviousLabel.hashCode ^
-      edgeTapNextLabel.hashCode ^
-      edgeTapPreviousHint.hashCode ^
-      edgeTapNextHint.hashCode;
+  int get hashCode => Object.hashAll([
+        duration,
+        cutoffForward,
+        cutoffPrevious,
+        backgroundColor,
+        isRightSwipe,
+        enableSwipe,
+        sensitivity,
+        edgeTapWidthRatio,
+        skipTapAnimation,
+        semanticBuilder,
+        enableHaptics,
+        enableSound,
+        hapticTexturePreset,
+        effectHandler,
+        paperOpacity,
+        thinPaperStrength,
+        endRevealStrength,
+        flapContentFadeOutEnd,
+        flapContentRevealStart,
+        flapContentRevealEnd,
+        flapBackStrength,
+        singlePageBackContentOpacity,
+        performanceProfile,
+        edgeTapPreviousLabel,
+        edgeTapNextLabel,
+        edgeTapPreviousHint,
+        edgeTapNextHint,
+      ]);
 }

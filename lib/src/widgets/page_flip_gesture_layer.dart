@@ -52,7 +52,8 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
   Offset _localPosition(Offset global) {
     if (!mounted) return global;
     final box = context.findRenderObject() as RenderBox?;
-    return box?.globalToLocal(global) ?? global;
+    if (box == null || !box.attached) return global;
+    return box.globalToLocal(global);
   }
 
   void _onPointerDown(PointerDownEvent event) {
