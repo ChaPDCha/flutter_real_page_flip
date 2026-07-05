@@ -3,6 +3,17 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.12.9] - 2026-07-05
+### Added
+- **High-DPI Support**: Edge and fold masks automatically widen by 25% on high-DPI displays (≥ 2.0) to prevent sub-pixel rendering artifacts and anti-aliasing bleeds.
+
+### Changed
+- **Texture Refining**: Clamped thin paper visibility threshold from 0.2 down to 0.05, allowing lighter translucent pages for subtle effects without disappearing.
+
+### Fixed
+- **Gesture Reliability**: Added rigorous checks for detached `RenderBox` instances during tap position mapping, preventing rare lifecycle crashes.
+- **Config Hashing**: Optimized `PageFlipConfig` equality checks to use `Object.hashAll()`.
+
 ## [1.12.8] - 2026-07-05
 ### Added
 - **clipSpreadPageHalf utility**: Exported `clipSpreadPageHalf` helper function for host applications to align local layout calculations with double-spread page boundaries.

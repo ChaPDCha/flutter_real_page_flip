@@ -28,8 +28,14 @@ class PageFlipPainter extends CustomPainter {
     /// True if rendering for a dual spread book.
     this.isDoubleSpread = false,
 
-    /// True if we are flipping forward.
+    /// True if we are flipping forward (renders geometry).
     this.isForward = true,
+
+    /// True if the actual transition is forward (for correct opacity/shading).
+    bool? isActualForward,
+
+    /// The device pixel ratio for scaling masks.
+    this.devicePixelRatio = 1.0,
 
     /// The opacity of the paper flap back side.
     this.paperOpacity = 1.0,
@@ -77,7 +83,7 @@ class PageFlipPainter extends CustomPainter {
 
     /// Performance profile to control mesh density and shadows.
     this.performanceProfile = DevicePerformanceProfile.medium,
-  });
+  }) : isActualForward = isActualForward ?? isForward;
 
   /// Normalised flip progress from 0.0 to 1.0.
   final double progress;
@@ -100,8 +106,14 @@ class PageFlipPainter extends CustomPainter {
   /// True if rendering for a dual spread book.
   final bool isDoubleSpread;
 
-  /// True if we are flipping forward.
+  /// True if we are flipping forward (geometry direction).
   final bool isForward;
+
+  /// True if the actual transition is forward.
+  final bool isActualForward;
+
+  /// The device pixel ratio for scaling masks.
+  final double devicePixelRatio;
 
   /// The opacity of the paper flap back side.
   final double paperOpacity;
@@ -207,14 +219,16 @@ class PageFlipPainter extends CustomPainter {
       progress,
       thinPaperStrength: thinPaperStrength,
       endRevealStrength: endRevealStrength,
-      isForward: isForward,
+      isForward: isActualForward,
     );
     final needsLayer = flapAlpha < 0.995;
     var didSaveLayer = false;
     if (needsLayer) {
       final screenBounds = Offset.zero & size;
-      final layerBounds =
-          flapClipPath.getBounds().intersect(screenBounds).inflate(2);
+      final intersection = flapClipPath.getBounds().intersect(screenBounds);
+      final layerBounds = intersection.isEmpty
+          ? screenBounds
+          : intersection.inflate(2);
       canvas.saveLayer(
         layerBounds,
         Paint()..color = Colors.white.withValues(alpha: flapAlpha),
@@ -234,10 +248,10 @@ class PageFlipPainter extends CustomPainter {
     canvas.drawRect(flapPaintRect, paperPaint);
 
     final normalizedProgress =
-        normalizedFlapProgress(progress, isForward: isForward);
+        normalizedFlapProgress(progress, isForward: isActualForward);
     final isSettlePhase = isFlapSettlePhase(
       progress,
-      isForward: isForward,
+      isForward: isActualForward,
       revealStart: flapContentRevealStart,
     );
     final usesLightweightBackFace =
@@ -302,7 +316,7 @@ class PageFlipPainter extends CustomPainter {
         fadeOutEnd: flapContentFadeOutEnd,
         revealStart: flapContentRevealStart,
         revealEnd: flapContentRevealEnd,
-        isForward: isForward,
+        isForward: isActualForward,
         isDoubleSpread: isDoubleSpread,
         keepSinglePageContentVisible:
             performanceProfile == DevicePerformanceProfile.high,
@@ -457,7 +471,7 @@ class PageFlipPainter extends CustomPainter {
     final maskPeak = edgeMaskPeakOpacity(isPaperDark: isPaperDark);
 
     // Edge-fade: mask partial-text artifacts at the flap's free edge.
-    final edgeFadeWidth = edgeMaskWidth(isPaperDark: isPaperDark);
+    final edgeFadeWidth = edgeMaskWidth(isPaperDark: isPaperDark, devicePixelRatio: devicePixelRatio);
     final edgeFadeRect = g.flapRightOfFold
         ? Rect.fromLTWH(
             g.freeEdgeX - edgeFadeWidth,
@@ -492,7 +506,7 @@ class PageFlipPainter extends CustomPainter {
     // As the flap narrows near the fold line, texture pixels compress and
     // create visible fragments. This narrow gradient from paperBackColor →
     // transparent softens the fold boundary edge.
-    final foldFadeWidth = foldMaskWidth(isPaperDark: isPaperDark);
+    final foldFadeWidth = foldMaskWidth(isPaperDark: isPaperDark, devicePixelRatio: devicePixelRatio);
     final foldFadeRect = g.flapRightOfFold
         ? Rect.fromLTWH(
             g.foldX,
@@ -760,6 +774,8 @@ class PageFlipPainter extends CustomPainter {
       oldDelegate.paperBackColor != paperBackColor ||
       oldDelegate.isDoubleSpread != isDoubleSpread ||
       oldDelegate.isForward != isForward ||
+      oldDelegate.isActualForward != isActualForward ||
+      oldDelegate.devicePixelRatio != devicePixelRatio ||
       oldDelegate.paperOpacity != paperOpacity ||
       oldDelegate.flapContentFadeOutEnd != flapContentFadeOutEnd ||
       oldDelegate.thinPaperStrength != thinPaperStrength ||

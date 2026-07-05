@@ -646,12 +646,12 @@ void main() {
       );
     });
 
-    test('result is clamped to minimum 0.2', () {
+    test('result is clamped to minimum 0.05', () {
       final result = flapOpacityModulator(
         0.5,
-        thinPaperStrength: 0.8,
+        thinPaperStrength: 2.0,
       );
-      expect(result, greaterThanOrEqualTo(0.2));
+      expect(result, greaterThanOrEqualTo(0.05));
     });
   });
 

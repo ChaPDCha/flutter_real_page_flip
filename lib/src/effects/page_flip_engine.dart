@@ -144,14 +144,14 @@ Rect? flapFrontSettleSourceRect({
 double edgeMaskPeakOpacity({required bool isPaperDark}) =>
     isPaperDark ? 0.7 : 1.0;
 
-/// Width (px) of the free-edge texture mask. Narrower on dark paper so any
-/// residual band stays thin; wider on light paper to fully cover the crush.
 @visibleForTesting
-double edgeMaskWidth({required bool isPaperDark}) => isPaperDark ? 5.0 : 8.0;
+double edgeMaskWidth({required bool isPaperDark, double devicePixelRatio = 1.0}) =>
+    (isPaperDark ? 5.0 : 8.0) * (devicePixelRatio >= 2.0 ? 1.25 : 1.0);
 
 /// Width (px) of the fold-crease texture mask. See [edgeMaskWidth].
 @visibleForTesting
-double foldMaskWidth({required bool isPaperDark}) => isPaperDark ? 4.0 : 6.0;
+double foldMaskWidth({required bool isPaperDark, double devicePixelRatio = 1.0}) =>
+    (isPaperDark ? 4.0 : 6.0) * (devicePixelRatio >= 2.0 ? 1.25 : 1.0);
 
 /// Tint of the soft centre highlight that catches light on the curling paper.
 ///
@@ -898,5 +898,5 @@ double flapOpacityModulator(
       ((p - endRevealStart) / (1.0 - endRevealStart)).clamp(0.0, 1.0);
   final endFactor = (revealT * revealT * (3 - 2 * revealT)) * endRevealStrength;
 
-  return (1.0 - thinFactor - endFactor).clamp(0.2, 1.0);
+  return (1.0 - thinFactor - endFactor).clamp(0.05, 1.0);
 }

@@ -77,18 +77,18 @@ void main() {
       expect(curve.transform(1), closeTo(1.0, 0.001));
     });
 
-    test('ease-in-out-quart: slow start, faster mid, slow end', () {
+    test('ease-in-out-cubic: slow start, faster mid, slow end', () {
       const curve = TapFlipCurve();
-      // At t=0.25, ease-in-out-quart = 4 * 0.25^3 = 4 * 0.015625 = 0.0625
+      // At t=0.25, ease-in-out-cubic = 4 * 0.25^3 = 4 * 0.015625 = 0.0625
       // Slower start compared to linear 0.25.
       expect(curve.transform(0.25), lessThan(0.25));
-      // At t=0.5, ease-in-out-quart = 0.5 (symmetric midpoint).
+      // At t=0.5, ease-in-out-cubic = 0.5 (symmetric midpoint).
       expect(curve.transform(0.5), closeTo(0.5, 0.01));
-      // At t=0.75, ease-in-out-quart = 1 - 4*0.25^3/2 = ~0.9375
+      // At t=0.75, ease-in-out-cubic = 1 - 4*0.25^3/2 = ~0.9375
       expect(curve.transform(0.75), greaterThan(0.75));
     });
 
-    test('exact ease-in-out-quart values', () {
+    test('exact ease-in-out-cubic values', () {
       const curve = TapFlipCurve();
       // t < 0.5: 4*t^3
       expect(curve.transform(0), closeTo(0.0, 0.001));

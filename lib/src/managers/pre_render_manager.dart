@@ -531,36 +531,36 @@ class PreRenderManager {
     final key = pageKeys[index];
     if (key == null) return;
 
-    final boundary = _findRepaintBoundary(key);
-    if (boundary == null) return;
-
-    final ui.Image image;
     try {
+      final boundary = _findRepaintBoundary(key);
+      if (boundary == null) return;
+
+      final ui.Image image;
       final effectivePixelRatio = effectiveSnapshotPixelRatio(
         boundary.size,
         pixelRatio,
       );
       image = boundary.toImageSync(pixelRatio: effectivePixelRatio);
+
+      final toDispose = <ui.Image>{};
+      if (spreadSnapshots.containsKey(index)) {
+        final old = spreadSnapshots[index];
+        spreadSnapshots[index] = image;
+        if (old != null) toDispose.add(old);
+        if (pageSnapshots.containsKey(index)) {
+          final oldPage = pageSnapshots[index];
+          pageSnapshots[index] = image.clone();
+          if (oldPage != null) toDispose.add(oldPage);
+        }
+      } else {
+        final old = pageSnapshots[index];
+        pageSnapshots[index] = image;
+        if (old != null) toDispose.add(old);
+      }
+      _disposeImagesOnce(toDispose);
     } on Object {
       return;
     }
-
-    final toDispose = <ui.Image>{};
-    if (spreadSnapshots.containsKey(index)) {
-      final old = spreadSnapshots[index];
-      spreadSnapshots[index] = image;
-      if (old != null) toDispose.add(old);
-      if (pageSnapshots.containsKey(index)) {
-        final oldPage = pageSnapshots[index];
-        pageSnapshots[index] = image.clone();
-        if (oldPage != null) toDispose.add(oldPage);
-      }
-    } else {
-      final old = pageSnapshots[index];
-      pageSnapshots[index] = image;
-      if (old != null) toDispose.add(old);
-    }
-    _disposeImagesOnce(toDispose);
   }
 
   /// Disposes all cached snapshots and clears the snapshot maps.

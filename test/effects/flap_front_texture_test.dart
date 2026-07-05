@@ -361,10 +361,10 @@ void main() {
 
     // ── Clamping ────────────────────────────────────────────
 
-    test('clamped to minimum 0.2 even with extreme strength', () {
+    test('clamped to minimum 0.05 even with extreme strength', () {
       expect(
         flapOpacityModulator(0.5, thinPaperStrength: 10),
-        closeTo(0.2, 0.001),
+        closeTo(0.05, 0.001),
       );
     });
 

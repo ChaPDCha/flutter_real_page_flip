@@ -445,6 +445,8 @@ class PageFlipLayerView extends StatelessWidget {
                   paperFlapColor ?? Theme.of(context).scaffoldBackgroundColor,
               isDoubleSpread: isDoubleSpread,
               isForward: renderForward,
+              isActualForward: isForward,
+              devicePixelRatio: MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0,
               paperOpacity: paperOpacity,
               flapContentFadeOutEnd: flapContentFadeOutEnd,
               thinPaperStrength: thinPaperStrength,

@@ -36,7 +36,8 @@ const double _kStationaryShadowWidth = 14;
 
 /// Pre-computed identity matrix storage for [ui.ImageShader] transforms.
 /// Avoids allocating a new [Matrix4] + extracting storage every paint frame.
-final Float64List _identityMatrixStorage = Matrix4.identity().storage;
+final Float64List _identityMatrixStorage =
+    Float64List.fromList(Matrix4.identity().storage);
 
 /// Animation curve that models real paper page-turning physics.
 ///
@@ -70,7 +71,7 @@ class TapFlipCurve extends Curve {
 
   @override
   double transformInternal(double t) =>
-      // Softer bell: ease-in-out-quart profile.
+      // Softer bell: ease-in-out-cubic profile.
       // Slower start (no user momentum), smooth mid, gentle settle.
       t < 0.5
           ? 4.0 * t * t * t
@@ -346,6 +347,28 @@ class PageFlipGeometry {
 
   /// Bezier control point for the curved flap edge in global space.
   final Offset flapCurveControl;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PageFlipGeometry &&
+          runtimeType == other.runtimeType &&
+          progress == other.progress &&
+          isRightToLeft == other.isRightToLeft &&
+          touchOffset == other.touchOffset &&
+          size == other.size &&
+          isDoubleSpread == other.isDoubleSpread &&
+          isForward == other.isForward;
+
+  @override
+  int get hashCode => Object.hash(
+        progress,
+        isRightToLeft,
+        touchOffset,
+        size,
+        isDoubleSpread,
+        isForward,
+      );
 }
 
 /// Returns the maximum fold rotation every rendering layer can safely share.
