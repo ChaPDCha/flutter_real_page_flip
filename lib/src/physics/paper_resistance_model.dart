@@ -58,15 +58,20 @@ abstract class PaperResistanceModel {
     /// Resistance value from [resistance].
     required double resistance,
   }) {
-    final velocityComponent = velocity * 0.4;
-    final frictionComponent = friction * 0.25;
-    final textureComponent = texture * 0.2;
+    final velocityComponent = velocity * 0.35;
+    final frictionComponent = friction * 0.32;
+    final textureComponent = texture * 0.25;
     final resistanceBoost = resistance > 0.75 ? (resistance - 0.75) * 0.4 : 0.0;
+    
     final raw = velocityComponent +
         frictionComponent +
         textureComponent +
         resistanceBoost;
-    return raw.clamp(0.05, 1.0);
+        
+    // Gamma correction (pow 0.7) simulates logarithmic human tactile perception (Weber-Fechner Law),
+    // boosting micro-textures at slow drag speeds and smoothing high-speed saturation.
+    final corrected = pow(raw.clamp(0.0, 1.0), 0.7).toDouble();
+    return corrected.clamp(0.05, 1.0);
   }
 
   /// Calculates the haptic vibration duration from resistance and friction.

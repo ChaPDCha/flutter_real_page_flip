@@ -91,13 +91,13 @@ class StickSlipController {
     if (velocity < _slipVelocityThreshold) {
       if (_wasStationary) {
         // If already stationary, accumulate energy smoothly on every frame.
-        _stickEnergy = (_stickEnergy + dt * 0.001).clamp(0.0, 1.0);
+        _stickEnergy = (_stickEnergy + dt * 0.0015).clamp(0.0, 1.0);
       } else {
         // Accumulate time until the threshold is crossed.
         _accumulatedStationaryTime += dt;
         if (_accumulatedStationaryTime > _stationaryThresholdMs) {
           _wasStationary = true;
-          _stickEnergy = (_accumulatedStationaryTime * 0.001).clamp(0.0, 1.0);
+          _stickEnergy = (_accumulatedStationaryTime * 0.0015).clamp(0.0, 1.0);
         }
       }
       _lastVelocity = velocity;
@@ -122,7 +122,7 @@ class StickSlipController {
     _lastVelocity = velocity;
     _lastMoveTime = now;
 
-    if (accel > 0.28) {
+    if (accel > 0.22) {
       return StickSlipEvent.microSlip(intensity: (accel * 1.4).clamp(0.0, 0.45));
     }
 

@@ -252,17 +252,17 @@ void main() {
 
       // Advance time by 50 ms (well past stationaryThresholdMs)
       fakeNow = fakeNow.add(const Duration(milliseconds: 50));
-      ctrl.update(0); // accumulates stick energy: 50 * 0.001 = 0.05
+      ctrl.update(0); // accumulates stick energy: 50 * 0.0015 = 0.075
 
       // Advance time again
       fakeNow = fakeNow.add(const Duration(milliseconds: 50));
-      ctrl.update(0); // more energy: 0.05 + 50 * 0.001 = 0.10
+      ctrl.update(0); // more energy: 0.075 + 50 * 0.0015 = 0.15
 
       // Move above threshold — should trigger slipRelease with deterministic energy
       fakeNow = fakeNow.add(const Duration(milliseconds: 1));
       final event = ctrl.update(0.5);
       expect(event.type, equals(StickSlipEventType.slipRelease));
-      expect(event.intensity, closeTo(0.1, 0.001));
+      expect(event.intensity, closeTo(0.15, 0.001));
     });
   });
 }

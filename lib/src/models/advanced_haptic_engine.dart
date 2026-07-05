@@ -49,6 +49,32 @@ class AdvancedHapticEngine {
     }
   }
 
+  /// 스틱슬립(Friction slip) 해제 시 빠른 다중 transient 진동
+  static Future<void> playSlipBurst({required double intensity}) async {
+    try {
+      await _channel.invokeMethod('playSlipBurst', {
+        'intensity': intensity.clamp(0.0, 1.0),
+      });
+    } on MissingPluginException {
+      unawaited(HapticFeedback.mediumImpact());
+    } on PlatformException {
+      unawaited(HapticFeedback.mediumImpact());
+    }
+  }
+
+  /// 페이지가 착지할 때 묵직하고 만족스러운 안착 진동
+  static Future<void> playSettleThud({required double intensity}) async {
+    try {
+      await _channel.invokeMethod('playSettleThud', {
+        'intensity': intensity.clamp(0.0, 1.0),
+      });
+    } on MissingPluginException {
+      unawaited(HapticFeedback.heavyImpact());
+    } on PlatformException {
+      unawaited(HapticFeedback.heavyImpact());
+    }
+  }
+
   /// 시작/경미한 이벤트 처리 (표준 시스템 햅틱 활용)
   static Future<void> playSystemMedium() async {
     try {

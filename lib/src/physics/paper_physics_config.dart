@@ -100,9 +100,10 @@ class PaperPhysicsConfig {
   static const thinBible = PaperPhysicsConfig(
     sigmoidK: 7.5,
     bindingStiffness: 0.7,
-    muStatic: 0.5,
+    muStatic: 0.55,
     muKinetic: 0.2,
-    perlinPersistence: 0.35,
+    perlinPersistence: 0.42,
+    perlinOctaves: 5,
     perlinBaseFreq: 0.12,
   );
 

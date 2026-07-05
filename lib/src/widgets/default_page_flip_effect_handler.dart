@@ -113,9 +113,14 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         }
         break;
       case PageFlipEvent.impulseHaptic:
-        _tryEmitPaperTick(
-          intensity: 0.38,
-          sharpness: 0.28,
+        // The controller passes intensity 15-120. We map this to 0.4-0.9 for a satisfying settle thud.
+        // If intensity is null (e.g., tap flips), default to 90 for a solid landing thud.
+        final rawIntensity = (intensity ?? 90) / 120.0;
+        final targetIntensity = (rawIntensity * 0.45 + 0.4).clamp(0.4, 0.9);
+        unawaited(
+          AdvancedHapticEngine.playSettleThud(
+            intensity: targetIntensity,
+          ),
         );
         break;
       case PageFlipEvent.continuousHaptic:
@@ -156,35 +161,40 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
     if (stickSlip != null) {
       if (stickSlip.type == StickSlipEventType.slipRelease) {
-        // THUD reads as a spring rebound on Android; use a short tick instead.
-        _tryEmitPaperTick(
-          intensity:
-              (stickSlip.intensity * _textureConfig.friction * 0.55 + 0.12)
-                  .clamp(0.12, 0.42),
-          sharpness: 0.32,
-        );
+        // Trigger the multi-pulse native slip burst to give a crisp release feel
+        final slipIntensity = (stickSlip.intensity * _textureConfig.friction * 0.65 + 0.15)
+            .clamp(0.15, 0.65);
+        unawaited(AdvancedHapticEngine.playSlipBurst(intensity: slipIntensity));
         return;
       } else if (stickSlip.type == StickSlipEventType.microSlip) {
-        _tryEmitPaperTick(
-          intensity:
-              (stickSlip.intensity * _textureConfig.friction * 0.7 + 0.08)
-                  .clamp(0.08, 0.35),
-          sharpness: 0.28,
+        // Trigger a sharper transient tick immediately for micro slip
+        final microIntensity = (stickSlip.intensity * _textureConfig.friction * 0.75 + 0.10)
+            .clamp(0.10, 0.45);
+        _lastPaperTick = DateTime.now(); // Reset throttle check for immediate feedback
+        unawaited(
+          AdvancedHapticEngine.playTransient(
+            intensity: microIntensity,
+            sharpness: 0.38,
+          ),
         );
         return;
       }
     }
 
     final normalizedSpeed = (velocityIntensity / 255.0).clamp(0.1, 1.0);
+    
+    // Smooth continuous throttle mapping: avoids piece-wise discontinuities.
+    // Base throttle is tuned so that high speed + high roughness achieves ~25ms,
+    // while low speed naturally drops back to >100ms.
     final baseThrottleMs = switch (performanceProfile) {
-      DevicePerformanceProfile.low => 180,
-      DevicePerformanceProfile.high => 55,
-      DevicePerformanceProfile.medium => 72,
+      DevicePerformanceProfile.low => 110,
+      DevicePerformanceProfile.high => 30,
+      DevicePerformanceProfile.medium => 45,
     };
     final throttleMs =
         (baseThrottleMs / (normalizedSpeed * (1.0 + _textureConfig.roughness)))
             .round()
-            .clamp(35, 140);
+            .clamp(25, 120);
 
     final now = DateTime.now();
     if (now.difference(_lastTextureTick).inMilliseconds <= throttleMs) {
@@ -194,10 +204,14 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
     final dynamicIntensity = (_textureConfig.friction * normalizedSpeed * 0.85 +
             _textureConfig.stiffness * resistance * 0.25)
-        .clamp(0.0, 1.0);
-    final dynamicSharpness = (_textureConfig.baseSharpness * 0.55 +
-            _textureConfig.roughness * frame.rawTexture * 0.2)
-        .clamp(0.0, 1.0);
+        .clamp(0.05, 1.0);
+        
+    // Modulate sharpness based on drag velocity: slower drag feels softer/duller, faster feels sharper/crisper
+    final speedSharpnessMod = normalizedSpeed * 0.45;
+    final dynamicSharpness = (_textureConfig.baseSharpness * 0.35 +
+            _textureConfig.roughness * frame.rawTexture * 0.2 +
+            speedSharpnessMod)
+        .clamp(0.15, 0.85);
 
     _tryEmitPaperTick(
       intensity: dynamicIntensity,
