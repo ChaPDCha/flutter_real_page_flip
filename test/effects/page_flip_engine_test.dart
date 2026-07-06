@@ -403,7 +403,9 @@ void main() {
       expect(atEndReveal, closeTo(1, 0.001));
     });
 
-    test('double: doubleSpreadMidFoldBleed maintains bleed floor during mid-fold', () {
+    test(
+        'double: doubleSpreadMidFoldBleed maintains bleed floor during mid-fold',
+        () {
       final result = flapFrontContentRevealOpacity(
         0.5,
         isDoubleSpread: true,
@@ -412,7 +414,9 @@ void main() {
       expect(result, closeTo(0.15, 0.001));
     });
 
-    test('double: doubleSpreadMidFoldBleed smoothly transitions to 1.0 during reveal phase', () {
+    test(
+        'double: doubleSpreadMidFoldBleed smoothly transitions to 1.0 during reveal phase',
+        () {
       final atBleed = flapFrontContentRevealOpacity(
         0.85,
         isDoubleSpread: true,
@@ -1176,6 +1180,37 @@ void main() {
       expect(path, isA<Path>());
       final bounds = path.getBounds();
       expect(bounds.width + bounds.height, greaterThan(0));
+    });
+
+    test('flapRightOfFold curved free edge uses bezier path', () {
+      final geoCurved = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(200, 100),
+        size: const Size(400, 600),
+        isForward: false,
+      );
+
+      expect(geoCurved.curvatureAmount, greaterThan(0.001));
+
+      final pathCurved = buildFlapScreenClipPath(geoCurved);
+
+      double findRightBoundaryX(Path path, double y) {
+        double lastInside = -1;
+        for (double x = 0; x < 400; x += 1.0) {
+          if (path.contains(Offset(x, y))) {
+            lastInside = x;
+          }
+        }
+        return lastInside;
+      }
+
+      final curvedTop = findRightBoundaryX(pathCurved, 0);
+      final curvedMid = findRightBoundaryX(pathCurved, 300);
+      final curvedBottom = findRightBoundaryX(pathCurved, 600);
+
+      final curvedAverage = (curvedTop + curvedBottom) / 2;
+      expect((curvedMid - curvedAverage).abs(), greaterThan(1.0));
     });
   });
 

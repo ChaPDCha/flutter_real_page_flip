@@ -186,7 +186,9 @@ void main() {
       expect(canvas.saveLayerCount, equals(1));
     });
 
-    test('no saveLayer on low performance profile even when thin-paper is enabled', () {
+    test(
+        'no saveLayer on low performance profile even when thin-paper is enabled',
+        () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -350,7 +352,7 @@ void main() {
     });
 
     test('paper back luminance affects shadow intensity', () {
-      // Dark paper: isPaperDark = true → foldShadow uses 0.10 instead of 0.15
+      // Dark paper: isPaperDark = true → foldShadow uses 0.03 instead of 0.08
       // Hard to detect exact alpha in Paint, but the paint should exist.
       final canvas = RecordingCanvas();
 
@@ -413,7 +415,8 @@ void main() {
       expect(
         canvas.drawPathCount,
         greaterThanOrEqualTo(2),
-        reason: 'Revealed page shadow should draw two curved paths (inner + ambient glow).',
+        reason:
+            'Revealed page shadow should draw two curved paths (inner + ambient glow).',
       );
     });
 
@@ -435,7 +438,8 @@ void main() {
       );
     });
 
-    test('revealed page shadow uses white color as highlight on dark paper', () {
+    test('revealed page shadow uses white color as highlight on dark paper',
+        () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -452,11 +456,11 @@ void main() {
       final hasWhiteGlow = pathPaints.any((p) {
         if (p.shader == null) return false;
         // Since it's a shader, we cannot trivially check colors list from Paint object here
-        // as the shader is an opaque native object. 
+        // as the shader is an opaque native object.
         // We'll rely on the RecordingCanvas or just skip deep inspection if not supported.
-        return true; 
+        return true;
       });
-      
+
       expect(hasWhiteGlow, isTrue);
     });
 
