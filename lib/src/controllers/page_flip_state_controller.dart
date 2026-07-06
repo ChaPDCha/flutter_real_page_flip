@@ -374,10 +374,8 @@ class PageFlipStateController {
     // Adaptive duration: scale inversely with release velocity so fast flicks
     // complete quickly (80-150ms) while slow releases use full duration (450ms).
     // Only the remaining progress distance is animated, keeping velocity smooth.
-    final remainingProgress =
-        isSuccess ? (1.0 - _dragProgress) : _dragProgress;
-    final velocityScale =
-        (_lastReleaseVelocity / 1000.0).clamp(0.5, 3.0);
+    final remainingProgress = isSuccess ? (1.0 - _dragProgress) : _dragProgress;
+    final velocityScale = (_lastReleaseVelocity / 1000.0).clamp(0.5, 3.0);
     final maxMs = animationDuration.inMilliseconds;
     final adaptiveMs = (maxMs * remainingProgress / velocityScale)
         .clamp(math.min(80, maxMs), maxMs)

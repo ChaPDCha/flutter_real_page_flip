@@ -162,15 +162,18 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     if (stickSlip != null) {
       if (stickSlip.type == StickSlipEventType.slipRelease) {
         // Trigger the multi-pulse native slip burst to give a crisp release feel
-        final slipIntensity = (stickSlip.intensity * _textureConfig.friction * 0.65 + 0.15)
-            .clamp(0.15, 0.65);
+        final slipIntensity =
+            (stickSlip.intensity * _textureConfig.friction * 0.65 + 0.15)
+                .clamp(0.15, 0.65);
         unawaited(AdvancedHapticEngine.playSlipBurst(intensity: slipIntensity));
         return;
       } else if (stickSlip.type == StickSlipEventType.microSlip) {
         // Trigger a sharper transient tick immediately for micro slip
-        final microIntensity = (stickSlip.intensity * _textureConfig.friction * 0.75 + 0.10)
-            .clamp(0.10, 0.45);
-        _lastPaperTick = DateTime.now(); // Reset throttle check for immediate feedback
+        final microIntensity =
+            (stickSlip.intensity * _textureConfig.friction * 0.75 + 0.10)
+                .clamp(0.10, 0.45);
+        _lastPaperTick =
+            DateTime.now(); // Reset throttle check for immediate feedback
         unawaited(
           AdvancedHapticEngine.playTransient(
             intensity: microIntensity,
@@ -182,7 +185,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     }
 
     final normalizedSpeed = (velocityIntensity / 255.0).clamp(0.1, 1.0);
-    
+
     // Smooth continuous throttle mapping: avoids piece-wise discontinuities.
     // Base throttle is tuned so that high speed + high roughness achieves ~25ms,
     // while low speed naturally drops back to >100ms.
@@ -205,7 +208,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     final dynamicIntensity = (_textureConfig.friction * normalizedSpeed * 0.85 +
             _textureConfig.stiffness * resistance * 0.25)
         .clamp(0.05, 1.0);
-        
+
     // Modulate sharpness based on drag velocity: slower drag feels softer/duller, faster feels sharper/crisper
     final speedSharpnessMod = normalizedSpeed * 0.45;
     final dynamicSharpness = (_textureConfig.baseSharpness * 0.35 +

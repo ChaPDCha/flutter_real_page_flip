@@ -692,7 +692,6 @@ void main() {
         expect(canvas.drawVerticesCount, equals(0));
       });
 
-
       test('custom revealStart gates skipEarlyMesh on medium profile', () {
         const customRevealStart = 0.75;
         final earlyCanvas = TrackingShaderCanvas();

@@ -123,7 +123,8 @@ class StickSlipController {
     _lastMoveTime = now;
 
     if (accel > 0.22) {
-      return StickSlipEvent.microSlip(intensity: (accel * 1.4).clamp(0.0, 0.45));
+      return StickSlipEvent.microSlip(
+          intensity: (accel * 1.4).clamp(0.0, 0.45));
     }
 
     return StickSlipEvent.none;

@@ -38,9 +38,11 @@ void main() {
       );
     });
 
-    test('high-DPI (≥2.0) widens masks by 25% to cover sub-pixel artifacts', () {
+    test('high-DPI (≥2.0) widens masks by 25% to cover sub-pixel artifacts',
+        () {
       final edgeBase = edgeMaskWidth(isPaperDark: false);
-      final edgeHiDpi = edgeMaskWidth(isPaperDark: false, devicePixelRatio: 3.0);
+      final edgeHiDpi =
+          edgeMaskWidth(isPaperDark: false, devicePixelRatio: 3.0);
       expect(edgeHiDpi, closeTo(edgeBase * 1.25, 0.001));
 
       final foldBase = foldMaskWidth(isPaperDark: true);
