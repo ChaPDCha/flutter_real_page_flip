@@ -3,6 +3,13 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.12.12] - 2026-07-07
+### Changed
+- **Crease Shadow Refinement**: Softened fold crease shadow opacity by 50% (light mode: 0.16 -> 0.08, dark mode: 0.06 -> 0.03) and narrowed gradient spread stop to 30% to prevent thick, dark lines.
+
+### Fixed
+- **Curved Page Edge Boundary**: Corrected the reverse/previous-page flip's free edge boundary mask in `buildFlapScreenClipPath` to use a matching `quadraticBezierTo` curve instead of a straight line, aligning the clip edge to the curled page layout.
+
 ## [1.12.11] - 2026-07-06
 ### Added
 - **Slip Burst & Settle Thud**: Added native platform haptic playbacks on Android/iOS for page release slippage and heavy settle thuds.
