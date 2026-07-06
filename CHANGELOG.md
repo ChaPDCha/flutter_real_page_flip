@@ -3,7 +3,7 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
-## [1.12.10] - 2026-07-06
+## [1.12.11] - 2026-07-06
 ### Added
 - **Slip Burst & Settle Thud**: Added native platform haptic playbacks on Android/iOS for page release slippage and heavy settle thuds.
 - **Logarithmic Tactile Scaling**: Implemented Weber-Fechner Law gamma correction for slow drags, magnifying subtle friction textures.
