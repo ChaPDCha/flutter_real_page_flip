@@ -236,9 +236,8 @@ class PageFlipPainter extends CustomPainter {
     if (needsLayer) {
       final screenBounds = Offset.zero & size;
       final intersection = flapClipPath.getBounds().intersect(screenBounds);
-      final layerBounds = intersection.isEmpty
-          ? screenBounds
-          : intersection.inflate(2);
+      final layerBounds =
+          intersection.isEmpty ? screenBounds : intersection.inflate(2);
       canvas.saveLayer(
         layerBounds,
         Paint()..color = Colors.white.withValues(alpha: flapAlpha),
@@ -490,7 +489,8 @@ class PageFlipPainter extends CustomPainter {
     final maskPeak = edgeMaskPeakOpacity(isPaperDark: isPaperDark);
 
     // Edge-fade: mask partial-text artifacts at the flap's free edge.
-    final edgeFadeWidth = edgeMaskWidth(isPaperDark: isPaperDark, devicePixelRatio: devicePixelRatio);
+    final edgeFadeWidth = edgeMaskWidth(
+        isPaperDark: isPaperDark, devicePixelRatio: devicePixelRatio);
     final edgeFadeRect = g.flapRightOfFold
         ? Rect.fromLTWH(
             g.freeEdgeX - edgeFadeWidth,
@@ -525,7 +525,8 @@ class PageFlipPainter extends CustomPainter {
     // As the flap narrows near the fold line, texture pixels compress and
     // create visible fragments. This narrow gradient from paperBackColor →
     // transparent softens the fold boundary edge.
-    final foldFadeWidth = foldMaskWidth(isPaperDark: isPaperDark, devicePixelRatio: devicePixelRatio);
+    final foldFadeWidth = foldMaskWidth(
+        isPaperDark: isPaperDark, devicePixelRatio: devicePixelRatio);
     final foldFadeRect = g.flapRightOfFold
         ? Rect.fromLTWH(
             g.foldX,
@@ -571,9 +572,10 @@ class PageFlipPainter extends CustomPainter {
       // Softer, wider crease darkening: a lower peak spread over a larger
       // falloff reads as gentle paper shading near the fold instead of a hard
       // dark stroke (the "cartoon outline").
-      final foldDarkenBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
+      final foldDarkenBlend =
+          isPaperDark ? BlendMode.screen : BlendMode.multiply;
       final foldDarkenColor = isPaperDark ? Colors.white : Colors.black;
-      final foldShadow = (isPaperDark ? 0.06 : 0.16) * bendStrength;
+      final foldShadow = (isPaperDark ? 0.03 : 0.08) * bendStrength;
       canvas.drawRect(
         flapPaintRect,
         Paint()
@@ -585,7 +587,7 @@ class PageFlipPainter extends CustomPainter {
               foldDarkenColor.withValues(alpha: foldShadow),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.55],
+            stops: const [0.0, 0.30],
           ).createShader(flapPaintRect),
       );
     }
@@ -715,7 +717,8 @@ class PageFlipPainter extends CustomPainter {
             g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
 
         final shadowColor = isPaperDark ? Colors.white : Colors.black;
-        final shadowBlend = isPaperDark ? BlendMode.srcOver : BlendMode.multiply;
+        final shadowBlend =
+            isPaperDark ? BlendMode.srcOver : BlendMode.multiply;
 
         if (performanceProfile == DevicePerformanceProfile.low) {
           canvas.drawRect(

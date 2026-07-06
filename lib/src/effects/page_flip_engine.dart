@@ -145,12 +145,14 @@ double edgeMaskPeakOpacity({required bool isPaperDark}) =>
     isPaperDark ? 0.7 : 1.0;
 
 @visibleForTesting
-double edgeMaskWidth({required bool isPaperDark, double devicePixelRatio = 1.0}) =>
+double edgeMaskWidth(
+        {required bool isPaperDark, double devicePixelRatio = 1.0}) =>
     (isPaperDark ? 5.0 : 8.0) * (devicePixelRatio >= 2.0 ? 1.25 : 1.0);
 
 /// Width (px) of the fold-crease texture mask. See [edgeMaskWidth].
 @visibleForTesting
-double foldMaskWidth({required bool isPaperDark, double devicePixelRatio = 1.0}) =>
+double foldMaskWidth(
+        {required bool isPaperDark, double devicePixelRatio = 1.0}) =>
     (isPaperDark ? 4.0 : 6.0) * (devicePixelRatio >= 2.0 ? 1.25 : 1.0);
 
 /// Tint of the soft centre highlight that catches light on the curling paper.
@@ -853,7 +855,17 @@ Path buildFlapScreenClipPath(
     );
     path.moveTo(foldLineTop.dx, foldLineTop.dy);
     path.lineTo(flapEdgeTop.dx, flapEdgeTop.dy);
-    path.lineTo(flapEdgeBottom.dx, flapEdgeBottom.dy);
+    if (geo.curvatureAmount > 0.001) {
+      final flapControl = snapClipPoint(geo.flapCurveControl);
+      path.quadraticBezierTo(
+        flapControl.dx,
+        flapControl.dy,
+        flapEdgeBottom.dx,
+        flapEdgeBottom.dy,
+      );
+    } else {
+      path.lineTo(flapEdgeBottom.dx, flapEdgeBottom.dy);
+    }
     path.lineTo(foldLineBottom.dx, foldLineBottom.dy);
     if (geo.curvatureAmount > 0.001) {
       final control = snapClipPoint(
