@@ -72,9 +72,7 @@ void main() {
     });
 
     test('continuous motion does not trigger events after initial', () {
-      final ctrl = StickSlipController(
-        stationaryThresholdMs: 100,
-      );
+      final ctrl = StickSlipController();
 
       // Initialize + move continuously
       var event = ctrl.update(0); // init → none
@@ -186,7 +184,6 @@ void main() {
     test('setter updates threshold mid-operation', () {
       var fakeNow = DateTime(2024);
       final ctrl = StickSlipController(
-        stationaryThresholdMs: 100,
         now: () => fakeNow,
       );
 

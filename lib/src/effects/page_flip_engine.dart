@@ -145,14 +145,18 @@ double edgeMaskPeakOpacity({required bool isPaperDark}) =>
     isPaperDark ? 0.7 : 1.0;
 
 @visibleForTesting
-double edgeMaskWidth(
-        {required bool isPaperDark, double devicePixelRatio = 1.0}) =>
+double edgeMaskWidth({
+  required bool isPaperDark,
+  double devicePixelRatio = 1.0,
+}) =>
     (isPaperDark ? 5.0 : 8.0) * (devicePixelRatio >= 2.0 ? 1.25 : 1.0);
 
 /// Width (px) of the fold-crease texture mask. See [edgeMaskWidth].
 @visibleForTesting
-double foldMaskWidth(
-        {required bool isPaperDark, double devicePixelRatio = 1.0}) =>
+double foldMaskWidth({
+  required bool isPaperDark,
+  double devicePixelRatio = 1.0,
+}) =>
     (isPaperDark ? 4.0 : 6.0) * (devicePixelRatio >= 2.0 ? 1.25 : 1.0);
 
 /// Tint of the soft centre highlight that catches light on the curling paper.
@@ -432,6 +436,95 @@ double foldCurveXAt(PageFlipGeometry geo, double localY) {
   final t = ((localY + height) / (height * 3)).clamp(0.0, 1.0).toDouble();
   final bulge = 2 * (1 - t) * t;
   return geo.foldX - geo.curveOffset * bulge;
+}
+
+/// Local-space x coordinate of the curved flap free edge at [localY].
+///
+/// This matches the edge column produced by [buildFlapContentMesh]. Masks and
+/// crease shading must use the same curve; otherwise the paper curls but its
+/// edge shadow remains a straight strip.
+@visibleForTesting
+double flapEdgeCurveXAt(PageFlipGeometry geo, double localY) {
+  if (geo.curvatureAmount <= 0.001) return geo.freeEdgeX;
+
+  final height = geo.size.height;
+  if (height <= 0) return geo.freeEdgeX;
+
+  final t = ((localY + height) / (height * 3)).clamp(0.0, 1.0).toDouble();
+  final bulge = 2 * (1 - t) * t;
+  return geo.freeEdgeX - geo.curveOffset * bulge;
+}
+
+/// Curved local strip along either the fold crease or lifted free edge.
+///
+/// The strip extends from the selected boundary into the visible flap. It is
+/// used for paper-colour masks and fold darkening so their hard edge follows
+/// the same quadratic curve as the actual curled mesh.
+@visibleForTesting
+Path buildCurvedFlapBoundaryStripPath(
+  PageFlipGeometry geo, {
+  required bool atFold,
+  required double width,
+}) {
+  final safeWidth = width.clamp(0.0, double.infinity).toDouble();
+  final height = geo.size.height;
+  if (safeWidth <= 0 || height <= 0) return Path();
+
+  final topY = -height;
+  final midY = height / 2;
+  final bottomY = height * 2;
+  final edgeX = atFold ? geo.foldX : geo.freeEdgeX;
+  final inward = atFold
+      ? (geo.flapRightOfFold ? 1.0 : -1.0)
+      : (geo.flapRightOfFold ? -1.0 : 1.0);
+  final innerShift = inward * safeWidth;
+
+  Offset point(double shift, double y) {
+    final base = atFold ? foldCurveXAt(geo, y) : flapEdgeCurveXAt(geo, y);
+    return Offset(base + shift, y);
+  }
+
+  Offset control(double shift) => Offset(
+        edgeX - geo.curveOffset + shift,
+        midY,
+      );
+
+  final outerTop = point(0, topY);
+  final path = Path()..moveTo(outerTop.dx, outerTop.dy);
+
+  if (geo.curvatureAmount > 0.001) {
+    final outerControl = control(0);
+    final outerBottom = point(0, bottomY);
+    path.quadraticBezierTo(
+      outerControl.dx,
+      outerControl.dy,
+      outerBottom.dx,
+      outerBottom.dy,
+    );
+  } else {
+    final outerBottom = point(0, bottomY);
+    path.lineTo(outerBottom.dx, outerBottom.dy);
+  }
+
+  final innerBottom = point(innerShift, bottomY);
+  path.lineTo(innerBottom.dx, innerBottom.dy);
+
+  if (geo.curvatureAmount > 0.001) {
+    final innerControl = control(innerShift);
+    final innerTop = point(innerShift, topY);
+    path.quadraticBezierTo(
+      innerControl.dx,
+      innerControl.dy,
+      innerTop.dx,
+      innerTop.dy,
+    );
+  } else {
+    final innerTop = point(innerShift, topY);
+    path.lineTo(innerTop.dx, innerTop.dy);
+  }
+
+  path.close();
+  return path;
 }
 
 /// Local-space shadow band following the same curved fold boundary as the flap.

@@ -490,72 +490,66 @@ class PageFlipPainter extends CustomPainter {
 
     // Edge-fade: mask partial-text artifacts at the flap's free edge.
     final edgeFadeWidth = edgeMaskWidth(
-        isPaperDark: isPaperDark, devicePixelRatio: devicePixelRatio);
-    final edgeFadeRect = g.flapRightOfFold
-        ? Rect.fromLTWH(
-            g.freeEdgeX - edgeFadeWidth,
-            -verticalPaintBleed,
-            edgeFadeWidth,
-            size.height + verticalPaintBleed * 2,
-          )
-        : Rect.fromLTWH(
-            g.flapLeft,
-            -verticalPaintBleed,
-            edgeFadeWidth,
-            size.height + verticalPaintBleed * 2,
-          );
+      isPaperDark: isPaperDark,
+      devicePixelRatio: devicePixelRatio,
+    );
     final edgeFadeBegin =
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
     final edgeFadeEnd =
         g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
-    canvas.drawRect(
-      edgeFadeRect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: edgeFadeBegin,
-          end: edgeFadeEnd,
-          colors: [
-            paperBackColor.withValues(alpha: maskPeak),
-            Colors.transparent,
-          ],
-        ).createShader(edgeFadeRect),
+    final edgeFadePath = buildCurvedFlapBoundaryStripPath(
+      g,
+      atFold: false,
+      width: edgeFadeWidth,
     );
+    final edgeFadeBounds = edgeFadePath.getBounds();
+    if (!edgeFadeBounds.isEmpty) {
+      canvas.drawPath(
+        edgeFadePath,
+        Paint()
+          ..shader = LinearGradient(
+            begin: edgeFadeBegin,
+            end: edgeFadeEnd,
+            colors: [
+              paperBackColor.withValues(alpha: maskPeak),
+              Colors.transparent,
+            ],
+          ).createShader(edgeFadeBounds),
+      );
+    }
 
     // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
     // As the flap narrows near the fold line, texture pixels compress and
     // create visible fragments. This narrow gradient from paperBackColor →
     // transparent softens the fold boundary edge.
     final foldFadeWidth = foldMaskWidth(
-        isPaperDark: isPaperDark, devicePixelRatio: devicePixelRatio);
-    final foldFadeRect = g.flapRightOfFold
-        ? Rect.fromLTWH(
-            g.foldX,
-            -verticalPaintBleed,
-            foldFadeWidth,
-            size.height + verticalPaintBleed * 2,
-          )
-        : Rect.fromLTWH(
-            g.foldX - foldFadeWidth,
-            -verticalPaintBleed,
-            foldFadeWidth,
-            size.height + verticalPaintBleed * 2,
-          );
+      isPaperDark: isPaperDark,
+      devicePixelRatio: devicePixelRatio,
+    );
     final foldFadeBegin =
         g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
     final foldFadeEnd =
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-    canvas.drawRect(
-      foldFadeRect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: foldFadeBegin,
-          end: foldFadeEnd,
-          colors: [
-            paperBackColor.withValues(alpha: maskPeak),
-            Colors.transparent,
-          ],
-        ).createShader(foldFadeRect),
+    final foldFadePath = buildCurvedFlapBoundaryStripPath(
+      g,
+      atFold: true,
+      width: foldFadeWidth,
     );
+    final foldFadeBounds = foldFadePath.getBounds();
+    if (!foldFadeBounds.isEmpty) {
+      canvas.drawPath(
+        foldFadePath,
+        Paint()
+          ..shader = LinearGradient(
+            begin: foldFadeBegin,
+            end: foldFadeEnd,
+            colors: [
+              paperBackColor.withValues(alpha: maskPeak),
+              Colors.transparent,
+            ],
+          ).createShader(foldFadeBounds),
+      );
+    }
 
     // Fold-edge darkening — drawn LAST so the edge-fade / fold-fade paper masks
     // (which paint bright paper over the crease to hide crushed texture) do not
@@ -576,20 +570,34 @@ class PageFlipPainter extends CustomPainter {
           isPaperDark ? BlendMode.screen : BlendMode.multiply;
       final foldDarkenColor = isPaperDark ? Colors.white : Colors.black;
       final foldShadow = (isPaperDark ? 0.03 : 0.08) * bendStrength;
-      canvas.drawRect(
-        flapPaintRect,
-        Paint()
-          ..blendMode = foldDarkenBlend
-          ..shader = LinearGradient(
-            begin: foldDarkenAlign,
-            end: freeDarkenAlign,
-            colors: [
-              foldDarkenColor.withValues(alpha: foldShadow),
-              Colors.transparent,
-            ],
-            stops: const [0.0, 0.30],
-          ).createShader(flapPaintRect),
+      final foldDarkenWidth = math
+          .min(
+            g.flapVisibleWidth,
+            math.max(foldFadeWidth, g.flapVisibleWidth * 0.30),
+          )
+          .toDouble();
+      final foldDarkenPath = buildCurvedFlapBoundaryStripPath(
+        g,
+        atFold: true,
+        width: foldDarkenWidth,
       );
+      final foldDarkenBounds = foldDarkenPath.getBounds();
+      if (!foldDarkenBounds.isEmpty) {
+        canvas.drawPath(
+          foldDarkenPath,
+          Paint()
+            ..blendMode = foldDarkenBlend
+            ..shader = LinearGradient(
+              begin: foldDarkenAlign,
+              end: freeDarkenAlign,
+              colors: [
+                foldDarkenColor.withValues(alpha: foldShadow),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 1.0],
+            ).createShader(foldDarkenBounds),
+        );
+      }
     }
 
     if (didSaveLayer) canvas.restore();

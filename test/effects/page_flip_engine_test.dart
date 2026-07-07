@@ -684,7 +684,7 @@ void main() {
     test('result is clamped to minimum 0.05', () {
       final result = flapOpacityModulator(
         0.5,
-        thinPaperStrength: 2.0,
+        thinPaperStrength: 2,
       );
       expect(result, greaterThanOrEqualTo(0.05));
     });
@@ -1196,7 +1196,7 @@ void main() {
       final pathCurved = buildFlapScreenClipPath(geoCurved);
 
       double findRightBoundaryX(Path path, double y) {
-        double lastInside = -1;
+        var lastInside = -1.0;
         for (double x = 0; x < 400; x += 1.0) {
           if (path.contains(Offset(x, y))) {
             lastInside = x;
@@ -1211,6 +1211,73 @@ void main() {
 
       final curvedAverage = (curvedTop + curvedBottom) / 2;
       expect((curvedMid - curvedAverage).abs(), greaterThan(1.0));
+    });
+
+    test('free-edge curve mirrors fold curve at the lifted page edge', () {
+      final geo = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        size: const Size(400, 600),
+      );
+
+      final topY = -geo.size.height;
+      final midY = geo.size.height / 2;
+      final bottomY = geo.size.height * 2;
+
+      final foldTop = foldCurveXAt(geo, topY);
+      final foldMid = foldCurveXAt(geo, midY);
+      final foldBottom = foldCurveXAt(geo, bottomY);
+      final edgeTop = flapEdgeCurveXAt(geo, topY);
+      final edgeMid = flapEdgeCurveXAt(geo, midY);
+      final edgeBottom = flapEdgeCurveXAt(geo, bottomY);
+
+      expect(foldTop, closeTo(geo.foldX, 0.001));
+      expect(foldBottom, closeTo(geo.foldX, 0.001));
+      expect(edgeTop, closeTo(geo.freeEdgeX, 0.001));
+      expect(edgeBottom, closeTo(geo.freeEdgeX, 0.001));
+
+      expect(
+        (foldMid - ((foldTop + foldBottom) / 2)).abs(),
+        greaterThan(1.0),
+        reason: 'Fold curve must visibly bulge at the midpoint',
+      );
+      expect(
+        (edgeMid - ((edgeTop + edgeBottom) / 2)).abs(),
+        greaterThan(1.0),
+        reason: 'Free-edge curve must visibly bulge at the midpoint',
+      );
+    });
+
+    test('boundary mask strips preserve the same curved edge math', () {
+      final geo = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        size: const Size(400, 600),
+      );
+
+      final foldStrip = buildCurvedFlapBoundaryStripPath(
+        geo,
+        atFold: true,
+        width: 6,
+      );
+      final edgeStrip = buildCurvedFlapBoundaryStripPath(
+        geo,
+        atFold: false,
+        width: 8,
+      );
+
+      expect(foldStrip.getBounds().width, greaterThan(6));
+      expect(edgeStrip.getBounds().width, greaterThan(8));
+      expect(
+        foldStrip.contains(Offset(foldCurveXAt(geo, 300) - 1, 300)),
+        isTrue,
+      );
+      expect(
+        edgeStrip.contains(Offset(flapEdgeCurveXAt(geo, 300) + 1, 300)),
+        isTrue,
+      );
     });
   });
 

@@ -80,6 +80,7 @@ class TapFlipCurve extends Curve {
 
 /// Shared geometry calculations for PageFlipClipper and PageFlipPainter.
 /// This ensures both use IDENTICAL coordinate calculations.
+@immutable
 class PageFlipGeometry {
   /// Creates a [PageFlipGeometry] instance that computes all derived
   /// fold, flap, and shadow values from the input parameters.
@@ -245,7 +246,7 @@ class PageFlipGeometry {
   }
 
   /// Private constructor that receives all pre-computed values from [PageFlipGeometry].
-  PageFlipGeometry._({
+  const PageFlipGeometry._({
     required this.progress,
     required this.isRightToLeft,
     required this.touchOffset,

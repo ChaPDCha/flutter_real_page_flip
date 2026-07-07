@@ -41,18 +41,17 @@ void main() {
     test('high-DPI (≥2.0) widens masks by 25% to cover sub-pixel artifacts',
         () {
       final edgeBase = edgeMaskWidth(isPaperDark: false);
-      final edgeHiDpi =
-          edgeMaskWidth(isPaperDark: false, devicePixelRatio: 3.0);
+      final edgeHiDpi = edgeMaskWidth(isPaperDark: false, devicePixelRatio: 3);
       expect(edgeHiDpi, closeTo(edgeBase * 1.25, 0.001));
 
       final foldBase = foldMaskWidth(isPaperDark: true);
-      final foldHiDpi = foldMaskWidth(isPaperDark: true, devicePixelRatio: 2.0);
+      final foldHiDpi = foldMaskWidth(isPaperDark: true, devicePixelRatio: 2);
       expect(foldHiDpi, closeTo(foldBase * 1.25, 0.001));
     });
 
     test('low-DPI (<2.0) keeps original mask widths', () {
       expect(
-        edgeMaskWidth(isPaperDark: false, devicePixelRatio: 1.0),
+        edgeMaskWidth(isPaperDark: false),
         edgeMaskWidth(isPaperDark: false),
       );
       expect(

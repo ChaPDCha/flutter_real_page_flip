@@ -116,6 +116,25 @@ class RecordingCanvas extends Fake implements Canvas {
         final rect = r.args[0]! as Rect;
         return (rect.left - expectedX).abs() <= tolerance;
       });
+
+  bool hasDrawPathBoundaryNearX(
+    double expectedX,
+    double tolerance, {
+    BlendMode? blendMode,
+    bool? hasShader,
+  }) =>
+      records.any((r) {
+        if (r.method != 'drawPath') return false;
+        final paint = r.args[1]! as Paint;
+        if (blendMode != null && paint.blendMode != blendMode) return false;
+        if (hasShader != null) {
+          if (hasShader && paint.shader == null) return false;
+          if (!hasShader && paint.shader != null) return false;
+        }
+        final bounds = (r.args[0]! as Path).getBounds();
+        return (bounds.left - expectedX).abs() <= tolerance ||
+            (bounds.right - expectedX).abs() <= tolerance;
+      });
 }
 
 void main() {
@@ -216,8 +235,8 @@ void main() {
         paperBackColor: Colors.white,
       ).paint(canvas, size);
 
-      // Edge-fade: Rect at flapLeft, 8px wide → has Gradient shader
-      // Fold-fade: Rect at foldX-6, 6px wide → has Gradient shader
+      // Edge-fade: curved path at the flap free edge → has Gradient shader
+      // Fold-fade: curved path at the fold crease → has Gradient shader
       // Both use createShader (Gradient) so paint.shader != null
       final gradientDraws = canvas.shadedDrawCountWhere(hasShader: true);
       // At minimum: bend highlight (screen) + bend shadow (multiply) +
@@ -226,7 +245,7 @@ void main() {
       expect(gradientDraws, greaterThanOrEqualTo(2));
     });
 
-    test('edge-fade rect is at flapLeft with 8px width (single forward)', () {
+    test('edge-fade follows curved free-edge path (single forward)', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -237,16 +256,15 @@ void main() {
       ).paint(canvas, size);
 
       // Single forward: flap extends LEFT → edge fade at flapLeft.
-      // foldX=200, flapVisibleWidth≈280, flapLeft≈-80? No: flapLeft=foldX-flapVisibleWidth≈200-280=-80. Hmm.
-      // Wait for size=800: foldX=400, flapVisibleWidth≈280, flapLeft=120. Edge fade at 120.
+      // size=800: foldX=400, flapVisibleWidth≈280, flapLeft/freeEdgeX≈120.
       expect(
-        canvas.hasDrawRectNearX(120, 30),
+        canvas.hasDrawPathBoundaryNearX(120, 35, hasShader: true),
         isTrue,
-        reason: 'Edge-fade rect should start near flapLeft',
+        reason: 'Edge-fade must be a curved path near the flap free edge',
       );
     });
 
-    test('fold-fade rect is at foldX-6 with 6px width (single forward)', () {
+    test('fold-fade follows curved crease path (single forward)', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -257,11 +275,11 @@ void main() {
       ).paint(canvas, size);
 
       // Single forward: flapRightOfFold=false → fold fade at foldX-6.
-      // foldX=400, fold fade left ≈ 394.
+      // foldX=400, curved strip reaches the fold boundary.
       expect(
-        canvas.hasDrawRectNearX(394, 20),
+        canvas.hasDrawPathBoundaryNearX(400, 35, hasShader: true),
         isTrue,
-        reason: 'Fold-fade rect should start near foldX - 6',
+        reason: 'Fold-fade must be a curved path near the fold crease',
       );
     });
 
@@ -296,9 +314,10 @@ void main() {
       ).paint(canvas, size);
 
       expect(
-        canvas.hasDrawRectWith(blendMode: BlendMode.multiply, hasShader: true),
+        canvas.hasDrawPathWith(blendMode: BlendMode.multiply, hasShader: true),
         isTrue,
-        reason: 'Bend fold shadow uses BlendMode.multiply with gradient shader',
+        reason:
+            'Bend fold shadow uses a curved path with multiply gradient shader',
       );
     });
 
@@ -431,10 +450,15 @@ void main() {
         performanceProfile: DevicePerformanceProfile.low,
       ).paint(canvas, size);
 
+      final solidPathDraws = canvas.records.where((r) {
+        if (r.method != 'drawPath') return false;
+        return (r.args[1]! as Paint).shader == null;
+      });
       expect(
-        canvas.drawPathCount,
+        solidPathDraws.length,
         equals(1),
-        reason: 'Low profile revealed shadow should draw exactly one path.',
+        reason:
+            'Low profile revealed shadow should draw exactly one non-shader path.',
       );
     });
 
@@ -562,8 +586,11 @@ void main() {
         greaterThanOrEqualTo(3),
         reason: 'Flap + revealed + stationary shadow clipPaths',
       );
-      expect(canvas.clipRectCount, greaterThanOrEqualTo(1),
-          reason: 'Spine groove still uses clipRect');
+      expect(
+        canvas.clipRectCount,
+        greaterThanOrEqualTo(1),
+        reason: 'Spine groove still uses clipRect',
+      );
     });
 
     test(
@@ -576,15 +603,17 @@ void main() {
         touchOffset: const Offset(400, -300),
         paperBackColor: Colors.white,
         isDoubleSpread: true,
-        isForward: true,
       ).paint(canvas, size);
 
       // Revealed + stationary: clipPath before transform; spine: clipRect.
       expect(canvas.clipPathCount, greaterThanOrEqualTo(3));
       final transformCount =
           canvas.records.where((r) => r.method == 'transform').length;
-      expect(transformCount, equals(3),
-          reason: 'Flap + revealed + stationary shadow each use one transform');
+      expect(
+        transformCount,
+        equals(3),
+        reason: 'Flap + revealed + stationary shadow each use one transform',
+      );
     });
 
     test('no stationary shadow in single-page mode', () {
@@ -937,7 +966,7 @@ void main() {
       );
     });
 
-    test('backward double-spread edge-fade rect at free edge', () {
+    test('backward double-spread edge-fade path follows free edge', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -950,11 +979,11 @@ void main() {
       ).paint(canvas, size);
 
       // At progress=0.5, size=800x600, double backward: flap extends to the
-      // right of foldX, so the edge mask sits near freeEdgeX - maskWidth.
+      // right of foldX, so the edge mask follows the curved free edge.
       expect(
-        canvas.hasDrawRectNearX(332, 20),
+        canvas.hasDrawPathBoundaryNearX(340, 25, hasShader: true),
         isTrue,
-        reason: 'Edge-fade rect should start near the right-side free edge',
+        reason: 'Edge-fade path should hug the right-side free edge',
       );
     });
 
