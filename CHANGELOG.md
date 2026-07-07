@@ -3,6 +3,13 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.12.14] - 2026-07-07
+### Fixed
+- **Curved Flap Boundary Shadows**: Replaced straight rectangular edge/fold masks and fold darkening with curved boundary paths so the visible shadow and paper-mask edges follow the same curl geometry as the folded page mesh.
+
+### Tests
+- Added regression coverage for free-edge curve math, curved boundary strip masks, path-based edge/fold fade rendering, and refreshed single-page reveal goldens for the corrected curved boundaries.
+
 ## [1.12.13] - 2026-07-07
 ### Added
 - **Haptic Diagnostic Sweep**: Added an example-only sweep mode for measuring preset routing and cache invalidation with `--dart-define=RPF_HAPTIC_DIAGNOSTIC_SWEEP=true`.
