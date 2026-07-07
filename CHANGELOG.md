@@ -3,6 +3,18 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.12.13] - 2026-07-07
+### Added
+- **Haptic Diagnostic Sweep**: Added an example-only sweep mode for measuring preset routing and cache invalidation with `--dart-define=RPF_HAPTIC_DIAGNOSTIC_SWEEP=true`.
+
+### Changed
+- **Unified Haptic Presets**: Consolidated paper texture preset tuning into `PaperPhysicsConfig`, giving each preset explicit physics, amplitude, sharpness, and duration behavior.
+- **Duration-Aware Native Routing**: Threaded calculated haptic duration through Dart, Android, and iOS transient calls so short ticks and longer pulses can route differently per platform.
+
+### Fixed
+- **Preset Cache Invalidation**: Changing haptic presets now clears cached per-page physics engines so mid-session preset changes take effect immediately.
+- **Android Preset Differentiation**: Smooth paper now remains under the Android primitive-tick threshold, while standard, textured, and kraft route through one-shot pulses with progressively stronger amplitude.
+
 ## [1.12.12] - 2026-07-07
 ### Changed
 - **Crease Shadow Refinement**: Softened fold crease shadow opacity by 50% (light mode: 0.16 -> 0.08, dark mode: 0.06 -> 0.03) and narrowed gradient spread stop to 30% to prevent thick, dark lines.
