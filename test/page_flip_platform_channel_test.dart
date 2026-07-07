@@ -24,12 +24,14 @@ void main() {
       await AdvancedHapticEngine.playTransient(
         intensity: 0.7,
         sharpness: 0.3,
+        durationMs: 32,
       );
 
       expect(calls, hasLength(1));
       expect(calls[0].method, 'playTransient');
       expect(calls[0].arguments['intensity'], closeTo(0.7, 1e-6));
       expect(calls[0].arguments['sharpness'], closeTo(0.3, 1e-6));
+      expect(calls[0].arguments['durationMs'], 32);
     });
 
     test('playTransient clamps intensity to [0, 1]', () async {
@@ -43,11 +45,13 @@ void main() {
       await AdvancedHapticEngine.playTransient(
         intensity: 5,
         sharpness: -1,
+        durationMs: 999,
       );
 
       expect(calls, hasLength(1));
       expect(calls[0].arguments['intensity'], closeTo(1.0, 1e-6));
       expect(calls[0].arguments['sharpness'], closeTo(0.0, 1e-6));
+      expect(calls[0].arguments['durationMs'], 500);
     });
 
     test('playThud sends intensity', () async {
@@ -104,6 +108,7 @@ void main() {
       await AdvancedHapticEngine.playTransient(
         intensity: 0.7,
         sharpness: 0.5,
+        durationMs: 8,
       );
       // If we get here without exception, the fallback worked
     });

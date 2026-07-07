@@ -278,15 +278,25 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     if (effectHandlerChanged ||
         (config.effectHandler == null &&
             (profileChanged || texturePresetChanged))) {
-      if (_isInternalEffectHandler) {
-        _effectHandler.dispose();
+      if (_isInternalEffectHandler &&
+          !effectHandlerChanged &&
+          !profileChanged &&
+          texturePresetChanged &&
+          _effectHandler is DefaultPageFlipEffectHandler) {
+        (_effectHandler as DefaultPageFlipEffectHandler).updateConfig(
+          hapticTexturePreset: config.hapticTexturePreset,
+        );
+      } else {
+        if (_isInternalEffectHandler) {
+          _effectHandler.dispose();
+        }
+        _isInternalEffectHandler = config.effectHandler == null;
+        _effectHandler = config.effectHandler ??
+            DefaultPageFlipEffectHandler(
+              performanceProfile: config.performanceProfile,
+              hapticTexturePreset: config.hapticTexturePreset,
+            );
       }
-      _isInternalEffectHandler = config.effectHandler == null;
-      _effectHandler = config.effectHandler ??
-          DefaultPageFlipEffectHandler(
-            performanceProfile: config.performanceProfile,
-            hapticTexturePreset: config.hapticTexturePreset,
-          );
     }
 
     final indexChangedExternally =

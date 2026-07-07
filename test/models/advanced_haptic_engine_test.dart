@@ -29,6 +29,7 @@ void main() {
         await AdvancedHapticEngine.playTransient(
           intensity: 0.5,
           sharpness: 0.5,
+          durationMs: 8,
         );
 
         expect(capturedMethod, 'playTransient');
@@ -46,6 +47,7 @@ void main() {
         await AdvancedHapticEngine.playTransient(
           intensity: 1.5,
           sharpness: 0.5,
+          durationMs: 8,
         );
         expect(capturedArgs!['intensity'], 1.0);
 
@@ -54,6 +56,7 @@ void main() {
         await AdvancedHapticEngine.playTransient(
           intensity: -0.5,
           sharpness: 0.5,
+          durationMs: 8,
         );
         expect(capturedArgs!['intensity'], 0.0);
 
@@ -62,6 +65,7 @@ void main() {
         await AdvancedHapticEngine.playTransient(
           intensity: 0.7,
           sharpness: 0.5,
+          durationMs: 8,
         );
         expect(capturedArgs!['intensity'], 0.7);
       });
@@ -78,6 +82,7 @@ void main() {
         await AdvancedHapticEngine.playTransient(
           intensity: 0.5,
           sharpness: 1.5,
+          durationMs: 8,
         );
         expect(capturedArgs!['sharpness'], 1.0);
 
@@ -86,6 +91,7 @@ void main() {
         await AdvancedHapticEngine.playTransient(
           intensity: 0.5,
           sharpness: -0.5,
+          durationMs: 8,
         );
         expect(capturedArgs!['sharpness'], 0.0);
 
@@ -94,6 +100,7 @@ void main() {
         await AdvancedHapticEngine.playTransient(
           intensity: 0.5,
           sharpness: 0.3,
+          durationMs: 8,
         );
         expect(capturedArgs!['sharpness'], 0.3);
       });
@@ -109,6 +116,7 @@ void main() {
           await AdvancedHapticEngine.playTransient(
             intensity: 0.5,
             sharpness: 0.5,
+            durationMs: 8,
           );
         },
       );
@@ -120,6 +128,7 @@ void main() {
         await AdvancedHapticEngine.playTransient(
           intensity: 0.5,
           sharpness: 0.5,
+          durationMs: 8,
         );
       });
     });
@@ -254,6 +263,7 @@ void main() {
           await AdvancedHapticEngine.playTransient(
             intensity: 0.8,
             sharpness: 0.5,
+            durationMs: 8,
           );
         },
       );
@@ -269,6 +279,7 @@ void main() {
           await AdvancedHapticEngine.playTransient(
             intensity: 0.3,
             sharpness: 0.5,
+            durationMs: 8,
           );
         },
       );
@@ -284,6 +295,7 @@ void main() {
           await AdvancedHapticEngine.playTransient(
             intensity: 0.6,
             sharpness: 0.5,
+            durationMs: 8,
           );
         },
       );

@@ -14,11 +14,13 @@ class AdvancedHapticEngine {
   static Future<void> playTransient({
     required double intensity,
     required double sharpness,
+    required int durationMs,
   }) async {
     try {
       await _channel.invokeMethod('playTransient', {
         'intensity': intensity.clamp(0.0, 1.0),
         'sharpness': sharpness.clamp(0.0, 1.0),
+        'durationMs': durationMs.clamp(1, 500).toInt(),
       });
     } on MissingPluginException {
       _fallbackTransient(intensity);

@@ -39,6 +39,10 @@ class PremiumDemoScreen extends StatefulWidget {
 
 class _PremiumDemoScreenState extends State<PremiumDemoScreen>
     with SingleTickerProviderStateMixin {
+  static const bool _hapticDiagnosticSweep = bool.fromEnvironment(
+    'RPF_HAPTIC_DIAGNOSTIC_SWEEP',
+  );
+
   // PageFlip Config parameters
   double _sensitivity = 1;
   double _paperOpacity = 0.9;
@@ -75,7 +79,17 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    _startAutoPlay();
+    if (_hapticDiagnosticSweep) {
+      _autoPlay = false;
+      _enableSound = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _runHapticDiagnosticSweep();
+        }
+      });
+    } else {
+      _startAutoPlay();
+    }
   }
 
   Future<void> _simulateHumanDrag(bool isForward) async {
@@ -168,6 +182,52 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
       _autoPlay = false;
     });
     await _controller.goToPage(0);
+  }
+
+  Future<void> _runHapticDiagnosticSweep() async {
+    debugPrint('[HAPTIC_SWEEP] started');
+    await Future.delayed(const Duration(seconds: 1));
+    if (!mounted) return;
+
+    for (final preset in PaperTexturePreset.values) {
+      debugPrint('[HAPTIC_SWEEP] preset_start preset=$preset');
+      setState(() {
+        _hapticPreset = preset;
+        _isDoubleSpread = false;
+      });
+      await Future.delayed(const Duration(milliseconds: 450));
+      if (!mounted) return;
+      await _controller.goToPage(0);
+      await Future.delayed(const Duration(milliseconds: 250));
+      if (!mounted) return;
+      await _simulateHumanDrag(true);
+      await Future.delayed(const Duration(milliseconds: 900));
+      debugPrint('[HAPTIC_SWEEP] preset_end preset=$preset');
+    }
+
+    debugPrint('[HAPTIC_SWEEP] cache_switch_start from=smooth to=kraft');
+    setState(() {
+      _hapticPreset = PaperTexturePreset.smooth;
+    });
+    await Future.delayed(const Duration(milliseconds: 450));
+    if (!mounted) return;
+    await _controller.goToPage(0);
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+    await _simulateHumanDrag(true);
+    await Future.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+    setState(() {
+      _hapticPreset = PaperTexturePreset.kraft;
+    });
+    await Future.delayed(const Duration(milliseconds: 450));
+    if (!mounted) return;
+    await _controller.goToPage(0);
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+    await _simulateHumanDrag(true);
+    debugPrint('[HAPTIC_SWEEP] cache_switch_end from=smooth to=kraft');
+    debugPrint('[HAPTIC_SWEEP] completed');
   }
 
   @override

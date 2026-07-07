@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Intuitive paper texture presets for the haptic engine.
 ///
 /// Each preset maps to a distinct set of vibration parameters that control
@@ -19,8 +21,9 @@ enum PaperTexturePreset {
 
 /// Concrete haptic parameters derived from a [PaperTexturePreset].
 ///
-/// These values are consumed by `DefaultPageFlipEffectHandler` to modulate
-/// the physics engine's output into motor-specific vibration commands.
+/// Prefer `PaperPhysicsConfig.fromTexturePreset` for new internal code. This
+/// class remains available for existing public callers.
+@immutable
 class PaperTextureConfig {
   const PaperTextureConfig({
     required this.friction,
@@ -76,4 +79,21 @@ class PaperTextureConfig {
     roughness: 1.2,
     baseSharpness: 0.4, // 둔탁하고 두꺼운 느낌
   );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PaperTextureConfig &&
+          runtimeType == other.runtimeType &&
+          friction == other.friction &&
+          stiffness == other.stiffness &&
+          roughness == other.roughness &&
+          baseSharpness == other.baseSharpness;
+
+  @override
+  int get hashCode =>
+      friction.hashCode ^
+      stiffness.hashCode ^
+      roughness.hashCode ^
+      baseSharpness.hashCode;
 }

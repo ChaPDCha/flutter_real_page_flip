@@ -103,6 +103,64 @@ void main() {
       });
     });
 
+    group('physics config mapping', () {
+      test(
+          'fromTexturePreset(smooth) uses thin bible physics and smooth scales',
+          () {
+        final config =
+            PaperPhysicsConfig.fromTexturePreset(PaperTexturePreset.smooth);
+
+        expect(config.muStatic, 0.55);
+        expect(config.muKinetic, 0.2);
+        expect(config.perlinBaseFreq, 0.12);
+        expect(config.minDurationMs, 4);
+        expect(config.maxDurationMs, 16);
+        expect(config.frictionScale, 0.1);
+        expect(config.stiffnessScale, 0.2);
+        expect(config.roughnessScale, 0.1);
+        expect(config.baseSharpness, 0.8);
+      });
+
+      test('fromTexturePreset(textured) uses rough antique physics', () {
+        final config =
+            PaperPhysicsConfig.fromTexturePreset(PaperTexturePreset.textured);
+
+        expect(config.muStatic, 0.8);
+        expect(config.muKinetic, 0.4);
+        expect(config.perlinBaseFreq, 0.05);
+        expect(config.maxDurationMs, 180);
+        expect(config.frictionScale, 0.5);
+        expect(config.roughnessScale, 0.8);
+      });
+
+      test('fromTexturePreset(kraft) uses explicit kraft duration range', () {
+        final config =
+            PaperPhysicsConfig.fromTexturePreset(PaperTexturePreset.kraft);
+
+        expect(config.muStatic, 0.85);
+        expect(config.muKinetic, 0.5);
+        expect(config.perlinBaseFreq, 0.04);
+        expect(config.perlinPersistence, 0.7);
+        expect(config.minDurationMs, 12);
+        expect(config.maxDurationMs, 180);
+        expect(config.frictionScale, 0.7);
+        expect(config.stiffnessScale, 0.9);
+        expect(config.roughnessScale, 1.2);
+        expect(config.baseSharpness, 0.4);
+      });
+
+      test('smooth and kraft fall on opposite sides of Android threshold', () {
+        final smooth =
+            PaperPhysicsConfig.fromTexturePreset(PaperTexturePreset.smooth);
+        final kraft =
+            PaperPhysicsConfig.fromTexturePreset(PaperTexturePreset.kraft);
+
+        expect(smooth.maxDurationMs, lessThanOrEqualTo(16));
+        expect(kraft.minDurationMs, greaterThan(8));
+        expect(kraft.maxDurationMs, greaterThan(16));
+      });
+    });
+
     group('custom PaperTextureConfig creation', () {
       test('custom config can be created with all parameters', () {
         const customConfig = PaperTextureConfig(

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 
 /// Configuration for paper physics simulation parameters.
 ///
@@ -49,7 +50,28 @@ class PaperPhysicsConfig {
 
     /// Velocity threshold below which the page is considered stationary.
     this.slipVelocityThreshold = 0.05,
+
+    /// Preset-level friction scale used by the haptic presentation layer.
+    this.frictionScale = 0.2,
+
+    /// Preset-level stiffness scale used by release and resistance haptics.
+    this.stiffnessScale = 0.4,
+
+    /// Preset-level roughness scale used by throttle and sharpness modulation.
+    this.roughnessScale = 0.3,
+
+    /// Preset-level base sharpness used by paper tick haptics.
+    this.baseSharpness = 0.5,
   });
+
+  /// Resolves the public texture preset into the single physics+haptic config.
+  factory PaperPhysicsConfig.fromTexturePreset(PaperTexturePreset preset) =>
+      switch (preset) {
+        PaperTexturePreset.smooth => smoothPreset,
+        PaperTexturePreset.standard => standardPreset,
+        PaperTexturePreset.textured => texturedPreset,
+        PaperTexturePreset.kraft => kraftPreset,
+      };
 
   /// Sigmoid curve steepness for resistance model.
   final double sigmoidK;
@@ -93,6 +115,18 @@ class PaperPhysicsConfig {
   /// Velocity threshold below which the page is considered stationary.
   final double slipVelocityThreshold;
 
+  /// Preset-level friction scale used by the haptic presentation layer.
+  final double frictionScale;
+
+  /// Preset-level stiffness scale used by release and resistance haptics.
+  final double stiffnessScale;
+
+  /// Preset-level roughness scale used by throttle and sharpness modulation.
+  final double roughnessScale;
+
+  /// Preset-level base sharpness used by paper tick haptics.
+  final double baseSharpness;
+
   /// Default standard paper configuration.
   static const standard = PaperPhysicsConfig();
 
@@ -118,6 +152,55 @@ class PaperPhysicsConfig {
     maxDurationMs: 180,
   );
 
+  /// Smooth thin-paper preset: thin bible physics plus smooth texture scales.
+  static const smoothPreset = PaperPhysicsConfig(
+    sigmoidK: 7.5,
+    bindingStiffness: 0.7,
+    muStatic: 0.55,
+    muKinetic: 0.2,
+    perlinPersistence: 0.42,
+    perlinOctaves: 5,
+    perlinBaseFreq: 0.12,
+    minDurationMs: 4,
+    maxDurationMs: 16,
+    frictionScale: 0.1,
+    stiffnessScale: 0.2,
+    roughnessScale: 0.1,
+    baseSharpness: 0.8,
+  );
+
+  /// Standard paper preset: standard physics plus standard texture scales.
+  static const standardPreset = PaperPhysicsConfig();
+
+  /// Textured paper preset: rough antique physics plus textured scales.
+  static const texturedPreset = PaperPhysicsConfig(
+    sigmoidK: 5,
+    bindingStiffness: 0.3,
+    muStatic: 0.8,
+    muKinetic: 0.4,
+    perlinPersistence: 0.6,
+    perlinBaseFreq: 0.05,
+    maxDurationMs: 180,
+    frictionScale: 0.5,
+    stiffnessScale: 0.6,
+    roughnessScale: 0.8,
+    baseSharpness: 0.6,
+  );
+
+  /// Kraft paper preset: heavier friction with long-duration haptic output.
+  static const kraftPreset = PaperPhysicsConfig(
+    muStatic: 0.85,
+    muKinetic: 0.5,
+    perlinBaseFreq: 0.04,
+    perlinPersistence: 0.7,
+    minDurationMs: 12,
+    maxDurationMs: 180,
+    frictionScale: 0.7,
+    stiffnessScale: 0.9,
+    roughnessScale: 1.2,
+    baseSharpness: 0.4,
+  );
+
   /// Returns a copy of this config with the given fields replaced.
   PaperPhysicsConfig copyWith({
     double? sigmoidK,
@@ -134,6 +217,10 @@ class PaperPhysicsConfig {
     int? maxDurationMs,
     int? stationaryThresholdMs,
     double? slipVelocityThreshold,
+    double? frictionScale,
+    double? stiffnessScale,
+    double? roughnessScale,
+    double? baseSharpness,
   }) =>
       PaperPhysicsConfig(
         sigmoidK: sigmoidK ?? this.sigmoidK,
@@ -152,6 +239,10 @@ class PaperPhysicsConfig {
             stationaryThresholdMs ?? this.stationaryThresholdMs,
         slipVelocityThreshold:
             slipVelocityThreshold ?? this.slipVelocityThreshold,
+        frictionScale: frictionScale ?? this.frictionScale,
+        stiffnessScale: stiffnessScale ?? this.stiffnessScale,
+        roughnessScale: roughnessScale ?? this.roughnessScale,
+        baseSharpness: baseSharpness ?? this.baseSharpness,
       );
 
   @override
@@ -172,7 +263,11 @@ class PaperPhysicsConfig {
           minDurationMs == other.minDurationMs &&
           maxDurationMs == other.maxDurationMs &&
           stationaryThresholdMs == other.stationaryThresholdMs &&
-          slipVelocityThreshold == other.slipVelocityThreshold;
+          slipVelocityThreshold == other.slipVelocityThreshold &&
+          frictionScale == other.frictionScale &&
+          stiffnessScale == other.stiffnessScale &&
+          roughnessScale == other.roughnessScale &&
+          baseSharpness == other.baseSharpness;
 
   @override
   int get hashCode =>
@@ -189,5 +284,9 @@ class PaperPhysicsConfig {
       minDurationMs.hashCode ^
       maxDurationMs.hashCode ^
       stationaryThresholdMs.hashCode ^
-      slipVelocityThreshold.hashCode;
+      slipVelocityThreshold.hashCode ^
+      frictionScale.hashCode ^
+      stiffnessScale.hashCode ^
+      roughnessScale.hashCode ^
+      baseSharpness.hashCode;
 }

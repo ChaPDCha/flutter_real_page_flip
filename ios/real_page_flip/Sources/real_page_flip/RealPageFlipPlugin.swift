@@ -31,7 +31,8 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       let args = call.arguments as? [String: Any]
       let intensity = args?["intensity"] as? Double ?? 0.5
       let sharpness = args?["sharpness"] as? Double ?? 0.5
-      playTransient(intensity: Float(intensity), sharpness: Float(sharpness))
+      let durationMs = args?["durationMs"] as? Int ?? 8
+      playTransient(intensity: Float(intensity), sharpness: Float(sharpness), durationMs: durationMs)
       result(nil)
     case "playThud":
       let args = call.arguments as? [String: Any]
@@ -62,7 +63,10 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     }
   }
 
-  private func playTransient(intensity: Float, sharpness: Float) {
+  private func playTransient(intensity: Float, sharpness: Float, durationMs: Int) {
+    let clampedDurationMs = min(max(durationMs, 1), 500)
+    let route = clampedDurationMs <= 25 ? "transient" : "continuous"
+    print("[HAPTIC_DIAGNOSTIC] iOS playTransient: intensity=\(intensity), sharpness=\(sharpness), durationMs=\(clampedDurationMs), route=\(route)")
     guard let engine = hapticEngine else {
       UIImpactFeedbackGenerator(style: .light).impactOccurred()
       return
@@ -73,7 +77,17 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     
     let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
     let sharpnessParam = CHHapticEventParameter(parameterID: .hapticSharpness, value: modulatedSharpness)
-    let event = CHHapticEvent(eventType: .hapticTransient, parameters: [intensityParam, sharpnessParam], relativeTime: 0)
+    let event: CHHapticEvent
+    if clampedDurationMs <= 25 {
+      event = CHHapticEvent(eventType: .hapticTransient, parameters: [intensityParam, sharpnessParam], relativeTime: 0)
+    } else {
+      event = CHHapticEvent(
+        eventType: .hapticContinuous,
+        parameters: [intensityParam, sharpnessParam],
+        relativeTime: 0,
+        duration: Double(clampedDurationMs) / 1000.0
+      )
+    }
     
     do {
       let pattern = try CHHapticPattern(events: [event], parameters: [])
@@ -85,6 +99,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   private func playThud(intensity: Float) {
+    print("[HAPTIC_DIAGNOSTIC] iOS playThud: intensity=\(intensity)")
     guard let engine = hapticEngine else {
       UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
       return
@@ -104,6 +119,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   private func playSlipBurst(intensity: Float) {
+    print("[HAPTIC_DIAGNOSTIC] iOS playSlipBurst: intensity=\(intensity)")
     guard let engine = hapticEngine else {
       UIImpactFeedbackGenerator(style: .medium).impactOccurred()
       return
@@ -132,6 +148,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   private func playSettleThud(intensity: Float) {
+    print("[HAPTIC_DIAGNOSTIC] iOS playSettleThud: intensity=\(intensity)")
     guard let engine = hapticEngine else {
       UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
       return

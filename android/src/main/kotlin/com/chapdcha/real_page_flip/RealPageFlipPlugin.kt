@@ -50,7 +50,8 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
                 "playTransient" -> {
                     val intensity = call.argument<Double>("intensity") ?: 0.5
                     val sharpness = call.argument<Double>("sharpness") ?: 0.5
-                    playTransient(intensity, sharpness)
+                    val durationMs = call.argument<Int>("durationMs") ?: 8
+                    playTransient(intensity, sharpness, durationMs)
                     result.success(null)
                 }
                 "playThud" -> {
@@ -120,8 +121,17 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         playFallback(8, (scale * 180).toInt().coerceIn(20, 140))
     }
 
-    private fun playTransient(intensity: Double, sharpness: Double) {
-        if (!shouldEmitVibration()) return
+    private fun playTransient(intensity: Double, sharpness: Double, durationMs: Int) {
+        val shouldEmit = shouldEmitVibration()
+        val clampedDuration = durationMs.coerceIn(1, 500)
+        val amplitude = (intensity * 255).toInt().coerceIn(1, 255)
+        val route = if (clampedDuration <= 16) "primitive_tick" else "one_shot"
+        android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playTransient: intensity=$intensity, sharpness=$sharpness, durationMs=$clampedDuration, amplitude=$amplitude, route=$route, shouldEmit=$shouldEmit")
+        if (!shouldEmit) return
+        if (clampedDuration > 16) {
+            playFallback(clampedDuration.toLong(), amplitude)
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val scale = (intensity * 0.85).toFloat().coerceIn(0.03f, 0.48f)
             try {
@@ -136,13 +146,13 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
             }
         }
 
-        val amp = (intensity * 180).toInt().coerceIn(12, 160)
-        val dur = (6 + (sharpness * 8)).toLong()
-        playFallback(dur, amp)
+        playFallback(clampedDuration.toLong(), amplitude)
     }
 
     private fun playThud(intensity: Double) {
-        if (!shouldEmitVibration()) return
+        val shouldEmit = shouldEmitVibration()
+        android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playThud: intensity=$intensity, shouldEmit=$shouldEmit")
+        if (!shouldEmit) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val scale = (intensity * 0.55).toFloat().coerceIn(0.08f, 0.5f)
             try {
@@ -161,7 +171,9 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     private fun playSlipBurst(intensity: Double) {
-        if (!shouldEmitVibration(force = true)) return
+        val shouldEmit = shouldEmitVibration(force = true)
+        android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playSlipBurst: intensity=$intensity, shouldEmit=$shouldEmit")
+        if (!shouldEmit) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val scale1 = (intensity * 0.8).toFloat().coerceIn(0.05f, 0.65f)
             val scale2 = (intensity * 0.55).toFloat().coerceIn(0.05f, 0.55f)
@@ -194,7 +206,9 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     private fun playSettleThud(intensity: Double) {
-        if (!shouldEmitVibration(force = true)) return
+        val shouldEmit = shouldEmitVibration(force = true)
+        android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playSettleThud: intensity=$intensity, shouldEmit=$shouldEmit")
+        if (!shouldEmit) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val scaleThud = (intensity * 0.6).toFloat().coerceIn(0.08f, 0.6f)
             val scaleTick = (intensity * 0.35).toFloat().coerceIn(0.05f, 0.45f)
