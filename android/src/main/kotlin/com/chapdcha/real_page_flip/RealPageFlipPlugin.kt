@@ -18,7 +18,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     private var isVibratorAvailable = false
     private var hasAmplitudeControl = false
     private var lastVibrateAt = 0L
-    private val minVibrateGapMs = 28L
+    private val minVibrateGapMs = 16L
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.chapdcha.real_page_flip/haptics")

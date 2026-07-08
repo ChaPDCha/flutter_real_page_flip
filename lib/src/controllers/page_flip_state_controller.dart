@@ -131,9 +131,6 @@ class PageFlipStateController {
   double _cachedWidth = 1;
   double _lastReleaseVelocity = 0;
   double _smoothedSpeed = 0;
-  // 연속 햅틱 타이밍 (프레임 스킵 방지)
-  int _hapticFrameCounter = 0;
-
   /// True while the 1-frame visual transition is pending after a successful flip.
   /// Blocks new drag/tap gestures during this window to prevent re-entrant state.
   bool _isPendingFinalize = false;
@@ -277,15 +274,13 @@ class PageFlipStateController {
       if (_dragProgress != oldProgress) {
         // [Paper Texture Haptic System]
         // 종이를 넘길 때 손가락이 느끼는 마찰 저항을 시뮬레이션
-        _hapticFrameCounter++;
+        // 매 프레임 햅틱 이벤트 전송 (~60Hz). AdvancedHapticEngine의 네이티브
+        // 쓰로틀이 하드웨어 과부하를 방지하므로 컨트롤러 레벨 스킵 불필요.
+        final currentSpeed = delta.abs();
+        _smoothedSpeed = (_smoothedSpeed * 0.5) + (currentSpeed * 0.5);
 
-        // 프레임 스킵: 60fps 기준 3프레임마다 1회 (~20Hz) — 촘촘한 진동은
-        // Android composition을 겹치며 용수철 같은 튕김으로 느껴짐.
-        if (_hapticFrameCounter % 3 == 0) {
-          final currentSpeed = delta.abs();
-          _smoothedSpeed = (_smoothedSpeed * 0.5) + (currentSpeed * 0.5);
-
-          if (_smoothedSpeed > 0.5) {
+        // 매우 느린 드래그에서도 미세한 종이 질감이 전달되도록 임계값 하향
+        if (_smoothedSpeed > 0.12) {
             // [1] Continuous Pseudo-noise for Paper Fiber Texture
             // 실제 종이 섬유의 불규칙한 저항감 시뮬레이션
             // _noisePhase를 드래그 거리에 따라 진행시켜 일관된 텍스쳐 생성
@@ -350,7 +345,6 @@ class PageFlipStateController {
       progressNotifier.value = _dragProgress;
       touchNotifier.value = _touchPosition;
     }
-  }
 
   /// Handles the end of a drag, animating the flip to completion or snap-back.
   void onDragEnd(DragEndDetails details, int totalPages) {

@@ -47,7 +47,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }
 
   static const int _audioPoolSize = 3;
-  static const int _minPaperTickGapMs = 48;
+  static const int _minPaperTickGapMs = 20;
 
   final List<AudioPlayer> _audioPool = List.generate(
     _audioPoolSize,
@@ -241,17 +241,17 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     final normalizedSpeed = (velocityIntensity / 255.0).clamp(0.1, 1.0);
 
     // Smooth continuous throttle mapping: avoids piece-wise discontinuities.
-    // Base throttle is tuned so that high speed + high roughness achieves ~25ms,
-    // while low speed naturally drops back to >100ms.
+    // Base throttle is tuned so that high speed + high roughness achieves ~16ms,
+    // while low speed naturally drops back to >60ms.
     final baseThrottleMs = switch (performanceProfile) {
-      DevicePerformanceProfile.low => 110,
-      DevicePerformanceProfile.high => 30,
-      DevicePerformanceProfile.medium => 45,
+      DevicePerformanceProfile.low => 80,
+      DevicePerformanceProfile.high => 16,
+      DevicePerformanceProfile.medium => 24,
     };
     final throttleMs = (baseThrottleMs /
             (normalizedSpeed * (1.0 + _physicsConfig.roughnessScale)))
         .round()
-        .clamp(25, 120);
+        .clamp(14, 80);
 
     final now = DateTime.now();
     if (now.difference(_lastTextureTick).inMilliseconds <= throttleMs) {

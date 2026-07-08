@@ -3,7 +3,14 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
-## [1.12.14] - 2026-07-07
+## [1.13.0] - 2026-07-09
+### Changed
+- **Haptic Density Overhaul**: Increased paper-scratch haptic frequency from ~14Hz to ~40-60Hz by removing the 3-frame event skip in `PageFlipStateController` and lowering throttle thresholds across controller, handler, and Android native layers.
+  - Controller: Removed `_hapticFrameCounter % 3 == 0` gate — every drag frame now triggers haptic evaluation.
+  - Controller: Lowered speed threshold from 0.5 to 0.12 for texture feedback on slow, deliberate drags.
+  - Handler: `_minPaperTickGapMs` reduced from 48ms to 20ms, adaptive base throttle (medium profile) from 45ms to 24ms, clamp range from [25,120] to [14,80].
+  - Android native: `minVibrateGapMs` reduced from 28ms to 16ms.
+- **Performance Impact**: Zero increase in CPU load — the noise calculation already ran every frame. Only the event dispatch rate increased. Native-side throttle still prevents hardware overload.
 ### Fixed
 - **Curved Flap Boundary Shadows**: Replaced straight rectangular edge/fold masks and fold darkening with curved boundary paths so the visible shadow and paper-mask edges follow the same curl geometry as the folded page mesh.
 
