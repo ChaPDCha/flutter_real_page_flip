@@ -6,11 +6,11 @@ import 'package:real_page_flip/src/models/advanced_haptic_engine.dart';
 /// Accumulates per-frame haptic samples and flushes them as continuous
 /// waveform batches to the native platform.
 ///
-/// Replaces the discrete transient model: instead of calling [playTransient]
+/// Replaces the discrete transient model: instead of calling `AdvancedHapticEngine.playTransient`
 /// 60 times/second (each creating a new native player/pattern), samples are
 /// collected into a buffer at the frame rate and flushed periodically as an
-/// amplitude array. On iOS the array becomes a [CHHapticPattern] parameter
-/// curve; on Android it becomes a [VibrationEffect.createWaveform] amplitude
+/// amplitude array. On iOS the array becomes a `CHHapticPattern` parameter
+/// curve; on Android it becomes a `VibrationEffect.createWaveform` amplitude
 /// array with per-sample timing.
 ///
 /// ## Why this exists
@@ -91,7 +91,7 @@ class ContinuousHapticBuffer {
         totalDurationMs: totalDurationMs,
         sharpness: _lastSharpness,
       );
-    } catch (e) {
+    } on Object catch (e) {
       if (kDebugMode) {
         debugPrint('[ContinuousHapticBuffer] flush error: $e');
       }
@@ -116,7 +116,7 @@ class ContinuousHapticBuffer {
 
     try {
       await AdvancedHapticEngine.stopContinuous();
-    } catch (e) {
+    } on Object catch (e) {
       if (kDebugMode) {
         debugPrint('[ContinuousHapticBuffer] stop error: $e');
       }

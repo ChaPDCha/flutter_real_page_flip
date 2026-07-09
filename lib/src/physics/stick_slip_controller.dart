@@ -84,11 +84,11 @@ class StickSlipController {
   // Continuous state
   // ---------------------------------------------------------------------------
   bool _initialized = false;
-  double _stickEnergy = 0.0; // 0–1, builds while stationary
-  double _decayAccumulator = 0.0; // remaining decay after a slip
+  double _stickEnergy = 0; // 0–1, builds while stationary
+  double _decayAccumulator = 0; // remaining decay after a slip
   bool _wasStationary = true;
-  double _lastVelocity = 0.0;
-  double _accumulatedStationaryTime = 0.0;
+  double _lastVelocity = 0;
+  double _accumulatedStationaryTime = 0;
   StickSlipPhase _phase = StickSlipPhase.none;
 
   /// Updates the controller with the current velocity and returns continuous
