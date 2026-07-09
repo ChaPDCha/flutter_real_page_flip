@@ -30,6 +30,17 @@ enum PageFlipEvent {
   sound
 }
 
+/// Minimum duration (ms) for a snap-back (cancelled/failed) flip animation.
+///
+/// Real paper still takes a visible moment to settle even when barely
+/// lifted. The old code shared an 80ms floor with the fast-completion path,
+/// so a small aborted drag (the common case: user changes their mind after a
+/// short swipe) snapped back almost instantly — reading as an abrupt
+/// "flicker" rather than a smooth paper return. Kept well below the default
+/// [PageFlipStateController.animationDuration] (450ms) so it still feels
+/// responsive, not sluggish.
+const int _kMinSnapBackMs = 180;
+
 /// Manages the state and animation of the PageFlip widget.
 class PageFlipStateController {
   /// Creates a [PageFlipStateController] with the given callbacks and thresholds.
@@ -378,12 +389,17 @@ class PageFlipStateController {
     // Adaptive duration: scale inversely with release velocity so fast flicks
     // complete quickly (80-150ms) while slow releases use full duration (450ms).
     // Only the remaining progress distance is animated, keeping velocity smooth.
+    // The floor differs by outcome: a successful fast flick benefits from a
+    // snappy 80ms finish, but a snap-back (isSuccess=false) uses the higher
+    // [_kMinSnapBackMs] floor so small aborted drags still visibly ease back
+    // like real paper instead of vanishing almost instantly.
     final remainingProgress = isSuccess ? (1.0 - _dragProgress) : _dragProgress;
     final velocityScale = (_lastReleaseVelocity / 1000.0).clamp(0.5, 3.0);
     final maxMs = animationDuration.inMilliseconds;
-    final adaptiveMs = (maxMs * remainingProgress / velocityScale)
-        .clamp(math.min(80, maxMs), maxMs)
-        .toInt();
+    final minMs =
+        isSuccess ? math.min(80, maxMs) : math.min(_kMinSnapBackMs, maxMs);
+    final adaptiveMs =
+        (maxMs * remainingProgress / velocityScale).clamp(minMs, maxMs).toInt();
 
     animationController
         .animateTo(
@@ -403,18 +419,28 @@ class PageFlipStateController {
       return;
     }
     animationController.value = _dragProgress;
-    // Snap-back: scale duration by remaining progress so near-zero drags
-    // snap back almost instantly.
+    // Snap-back: scale duration by remaining progress, floored at
+    // [_kMinSnapBackMs] so small aborted drags still ease back visibly
+    // instead of snapping almost instantly.
     final cancelMaxMs = animationDuration.inMilliseconds;
     final cancelMs = (cancelMaxMs * _dragProgress)
-        .clamp(math.min(80, cancelMaxMs), cancelMaxMs)
+        .clamp(math.min(_kMinSnapBackMs, cancelMaxMs), cancelMaxMs)
         .toInt();
-    animationController.animateTo(
-      0,
-      duration: Duration(milliseconds: cancelMs),
-      curve: const PaperFlipCurve(),
-    );
-    _finalizePageChange(false, totalPages);
+    // Defer finalize until the snap-back animation actually completes —
+    // mirrors onDragEnd's `.then()`. Calling `_finalizePageChange` right here
+    // (the old behaviour) reset `isDragging`/`dragProgress` to their idle
+    // values on the SAME frame the animation started, so the flip layers were
+    // torn down immediately regardless of the animation in flight: a hard
+    // visual cut ("flicker") instead of the intended smooth return. This path
+    // fires whenever the gesture is cancelled mid-drag (e.g. the arbitration
+    // logic yields to vertical scrolling), not just on an explicit release.
+    animationController
+        .animateTo(
+          0,
+          duration: Duration(milliseconds: cancelMs),
+          curve: const PaperFlipCurve(),
+        )
+        .then((_) => _finalizePageChange(false, totalPages));
   }
 
   /// Triggers a programmatic page flip (e.g. from edge tap or controller).

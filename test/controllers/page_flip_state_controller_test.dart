@@ -848,6 +848,73 @@ void main() {
       expect(controller.animationController.isAnimating, isTrue);
     });
 
+    testWidgets(
+        'a small aborted drag still eases back over a perceptible minimum '
+        'duration (no instant-vanish flicker)', (tester) async {
+      // Regression: the snap-back duration used to share an 80ms floor with
+      // the fast-completion path. For a SMALL aborted drag (the common case:
+      // user barely swipes and lets go), the scaled duration collapsed to
+      // that 80ms floor — about 5 frames at 60fps — reading as an abrupt
+      // "flicker" rather than a smooth paper return. The floor for a
+      // snap-back (isSuccess=false) is now higher; 100ms after release the
+      // flip must still be mid-animation, not already finalized.
+      late PageFlipStateController flipController;
+      flipController = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 450),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (
+          _, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {},
+      );
+      flipController.updateCachedWidth(400);
+      flipController.onDragStart(
+        DragStartDetails(localPosition: Offset.zero),
+        5,
+      );
+      // Small drag: progress ~0.05, well below the 0.4 success cutoff.
+      flipController.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -20,
+          delta: const Offset(-20, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+      // Low release velocity so isFastFlip is false and the release fails.
+      flipController.onDragEnd(
+        DragEndDetails(
+          primaryVelocity: 50,
+          velocity: const Velocity(pixelsPerSecond: Offset(50, 0)),
+        ),
+        5,
+      );
+
+      // 100ms is above the OLD 80ms floor (which would already be finalized
+      // by now) but below the new floor — the flip must still be active.
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        flipController.isDragging,
+        isTrue,
+        reason: 'A small aborted drag must still be easing back at 100ms, '
+            'not already snapped to idle',
+      );
+
+      // Let the animation actually finish.
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(flipController.isDragging, isFalse);
+      expect(flipController.dragProgress, 0.0);
+      flipController.dispose();
+    });
+
     test('onDragEnd when not dragging ends capture and fires onFlipEnd', () {
       var flipEnded = false;
       final local = PageFlipStateController(
@@ -936,6 +1003,79 @@ void main() {
       local.onDragCancel(5);
       expect(flipEnded, isTrue);
       local.dispose();
+    });
+
+    testWidgets(
+        'onDragCancel snaps back smoothly instead of tearing down the flip '
+        'layer on the same frame', (tester) async {
+      // Regression: onDragCancel used to call `_finalizePageChange` right
+      // after starting the snap-back `animateTo`, resetting isDragging/
+      // dragProgress to their idle values on the SAME frame the animation
+      // began. `PageFlipLayerView` reads `dragProgress > 0 && isDragging` to
+      // decide whether to render the flip layers, so that hard reset made the
+      // flip visuals disappear instantly instead of easing back — a
+      // "flicker" rather than a smooth paper return. This exercises the path
+      // triggered when a drag is cancelled mid-gesture (e.g. the arbitration
+      // logic yielding to vertical scroll content), not just an explicit
+      // release.
+      late PageFlipStateController flipController;
+      flipController = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (
+          _, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {},
+      );
+      flipController.updateCachedWidth(400);
+      flipController.onDragStart(
+        DragStartDetails(localPosition: Offset.zero),
+        5,
+      );
+      flipController.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -120,
+          delta: const Offset(-120, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+      final progressBeforeCancel = flipController.dragProgress;
+      expect(progressBeforeCancel, greaterThan(0));
+
+      flipController.onDragCancel(5);
+
+      // Immediately after onDragCancel returns (before any frame has been
+      // pumped), the flip must still be considered "active" so the flip
+      // layer keeps rendering the mid-flight geometry — the snap-back
+      // animation has only just started, not already finished.
+      expect(
+        flipController.isDragging,
+        isTrue,
+        reason: 'isDragging must stay true until the snap-back animation '
+            'actually completes',
+      );
+      expect(
+        flipController.dragProgress,
+        closeTo(progressBeforeCancel, 0.01),
+        reason: 'dragProgress must not jump to 0 before the animation runs',
+      );
+
+      // Advance past the (floored) snap-back duration.
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(flipController.isDragging, isFalse);
+      expect(flipController.dragProgress, 0.0);
+      flipController.dispose();
     });
 
     test('triggerTapFlip when isDragging returns early', () {
