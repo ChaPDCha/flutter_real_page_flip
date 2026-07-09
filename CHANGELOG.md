@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.14.2] - 2026-07-10
+### Fixed
+- **Flutter 3.44+ Compatibility**: Replaced removed `RenderObject.needsPaint` with direct `toImageSync` call in snapshot refresh path (`pre_render_manager.dart`).
+- **Boundary Lifecycle Guard**: Added `boundary.attached` check in `refreshIndexSync` to prevent crashes when `RenderRepaintBoundary` is detached before snapshot capture.
+
 ## [1.14.0] - 2026-07-09
 ### Added
 - **Continuous Haptic Waveform Pipeline**: Replaced the discrete haptic transient model with a continuous amplitude-modulated waveform pipeline for natural paper-friction vibration.
