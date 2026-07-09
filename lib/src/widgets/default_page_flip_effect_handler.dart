@@ -7,9 +7,9 @@ import 'package:real_page_flip/src/models/advanced_haptic_engine.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
+import 'package:real_page_flip/src/physics/continuous_haptic_buffer.dart';
 import 'package:real_page_flip/src/physics/paper_physics.dart';
 import 'package:real_page_flip/src/physics/paper_physics_config.dart';
-import 'package:real_page_flip/src/physics/stick_slip_controller.dart';
 
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   DefaultPageFlipEffectHandler({
@@ -25,6 +25,11 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   PaperTexturePreset hapticTexturePreset;
   PaperPhysicsConfig _physicsConfig;
   double _viewportWidth = 400;
+
+  // ---------------------------------------------------------------------------
+  // Continuous haptic buffer — replaces the discrete transient pipeline.
+  // ---------------------------------------------------------------------------
+  final ContinuousHapticBuffer _continuousBuffer = ContinuousHapticBuffer();
 
   @override
   set viewportWidth(double width) {
@@ -47,7 +52,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }
 
   static const int _audioPoolSize = 3;
-  static const int _minPaperTickGapMs = 20;
 
   final List<AudioPlayer> _audioPool = List.generate(
     _audioPoolSize,
@@ -57,8 +61,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   bool _audioReady = false;
   Source? _audioSource;
 
-  DateTime _lastTextureTick = DateTime.fromMillisecondsSinceEpoch(0);
-  DateTime _lastPaperTick = DateTime.fromMillisecondsSinceEpoch(0);
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
 
   Future<void> _initAudio() async {
@@ -93,36 +95,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     _audioReady = atLeastOneSuccess;
   }
 
-  bool _tryEmitPaperTick({
-    required double intensity,
-    required double sharpness,
-    required int durationMs,
-  }) {
-    final now = DateTime.now();
-    if (kDebugMode) {
-      print(
-        '[HAPTIC_DIAGNOSTIC] Dart _tryEmitPaperTick Attempt: intensity=$intensity, sharpness=$sharpness, durationMs=$durationMs, diffMs=${now.difference(_lastPaperTick).inMilliseconds}',
-      );
-    }
-    if (now.difference(_lastPaperTick).inMilliseconds < _minPaperTickGapMs) {
-      return false;
-    }
-    _lastPaperTick = now;
-    if (kDebugMode) {
-      print(
-        '[HAPTIC_DIAGNOSTIC] Dart _tryEmitPaperTick Dispatched: intensity=${intensity.clamp(0.08, 0.55)}, sharpness=${sharpness.clamp(0.15, 0.45)}, durationMs=$durationMs',
-      );
-    }
-    unawaited(
-      AdvancedHapticEngine.playTransient(
-        intensity: intensity.clamp(0.08, 0.55),
-        sharpness: sharpness.clamp(0.15, 0.45),
-        durationMs: durationMs,
-      ),
-    );
-    return true;
-  }
-
   @override
   FutureOr<void> onHandleEffect(
     PageFlipEvent event, {
@@ -138,7 +110,8 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         // separate "tap" before the paper scrape begins.
         break;
       case PageFlipEvent.stopHaptic:
-        unawaited(AdvancedHapticEngine.cancel());
+        // Stop the continuous waveform session cleanly.
+        unawaited(_continuousBuffer.stop());
         if (pageIndex != null) {
           _physicsEngines[pageIndex]?.reset();
           _physicsEngines.removeWhere(
@@ -147,8 +120,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         }
         break;
       case PageFlipEvent.impulseHaptic:
-        // The controller passes intensity 15-120. We map this to 0.4-0.9 for a satisfying settle thud.
-        // If intensity is null (e.g., tap flips), default to 90 for a solid landing thud.
+        // The controller passes intensity 15-120. We map this to 0.4-0.9 for a
+        // satisfying settle thud. If intensity is null (e.g., tap flips),
+        // default to 90 for a solid landing thud.
         final rawIntensity = (intensity ?? 90) / 120.0;
         final targetIntensity = (rawIntensity * 0.45 + 0.4).clamp(0.4, 0.9);
         unawaited(
@@ -163,6 +137,10 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
           _handlePhysicsHaptic(
             pageIndex: pageIndex,
             velocityIntensity: intensity ?? 60,
+            // `texture` from the older controller is a multi-sine noise
+            // value consumed for backward compatibility. The physics
+            // engine now uses ONLY its internal Perlin noise. The value
+            // is still accepted but interpreted as fold-angle hint.
             texture: texture,
             resistance: resistance ?? 0.5,
           );
@@ -188,89 +166,50 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       ),
     );
 
+    // Use the controller's `texture` value as fold progress (0–1) rather
+    // than noise. The physics engine now generates its own Perlin texture
+    // and keeps `foldAngle` as a geometric input.
+    final foldProgress = texture.clamp(0.0, 1.0);
+
     final frame = engine.calculate(
       dx: velocityIntensity.toDouble() * 0.1,
-      foldAngle: texture,
+      foldAngle: foldProgress,
       screenWidth: _viewportWidth,
     );
 
     if (kDebugMode) {
       print(
-        '[HAPTIC_DIAGNOSTIC] Dart Calc: pageIndex=$pageIndex, preset=$hapticTexturePreset, amp=${frame.amplitude}, durationMs=${frame.durationMs}, sharpness=${frame.sharpness}, rawResistance=${frame.rawResistance}, rawTexture=${frame.rawTexture}, rawFriction=${frame.rawFriction}',
+        '[HAPTIC_DIAGNOSTIC] Dart Calc: pageIndex=$pageIndex, preset=$hapticTexturePreset, amp=${frame.amplitude}, sharpness=${frame.sharpness}, durationMs=${frame.durationMs}, slipBoost=${frame.stickSlipModulation?.amplitudeBoost.toStringAsFixed(3) ?? 'none'}',
       );
     }
 
-    final stickSlip = frame.stickSlipEvent;
+    // ---- Continuous waveform pipeline (replaces discrete transients) ----
+    //
+    // The old model:
+    //   1. Check stick-slip → emit playSlipBurst → return (INTERRUPTS stream)
+    //   2. Check throttle → skip if too soon
+    //   3. Call _tryEmitPaperTick → playTransient
+    //
+    // New model:
+    //   1. Feed every frame into the continuous buffer
+    //   2. Buffer flushes every ~40ms as a native waveform segment
+    //   3. Stick-slip energy is ALREADY blended into frame.amplitude
+    //      by PaperPhysicsEngine — no separate event emission needed.
 
-    if (stickSlip != null) {
-      if (stickSlip.type == StickSlipEventType.slipRelease) {
-        // Trigger the multi-pulse native slip burst to give a crisp release feel
-        final slipIntensity =
-            (stickSlip.intensity * _physicsConfig.frictionScale * 0.65 + 0.15)
-                .clamp(0.15, 0.65);
-        if (kDebugMode) {
-          print(
-            '[HAPTIC_DIAGNOSTIC] Dart SlipRelease: intensity=$slipIntensity',
-          );
-        }
-        unawaited(AdvancedHapticEngine.playSlipBurst(intensity: slipIntensity));
-        return;
-      } else if (stickSlip.type == StickSlipEventType.microSlip) {
-        // Trigger a sharper transient tick immediately for micro slip
-        final microIntensity =
-            (stickSlip.intensity * _physicsConfig.frictionScale * 0.75 + 0.10)
-                .clamp(0.10, 0.45);
-        if (kDebugMode) {
-          print(
-            '[HAPTIC_DIAGNOSTIC] Dart MicroSlip: intensity=$microIntensity',
-          );
-        }
-        _lastPaperTick =
-            DateTime.now(); // Reset throttle check for immediate feedback
-        unawaited(
-          AdvancedHapticEngine.playTransient(
-            intensity: microIntensity,
-            sharpness: 0.38,
-            durationMs: 8,
-          ),
-        );
-        return;
-      }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    // Start continuous session on the first frame.
+    if (!_continuousBuffer.isActive) {
+      _continuousBuffer.start();
     }
 
-    final normalizedSpeed = (velocityIntensity / 255.0).clamp(0.1, 1.0);
+    // Add the current frame's amplitude to the buffer.
+    _continuousBuffer.addSample(frame.amplitude);
 
-    // Smooth continuous throttle mapping: avoids piece-wise discontinuities.
-    // Base throttle is tuned so that high speed + high roughness achieves ~16ms,
-    // while low speed naturally drops back to >60ms.
-    final baseThrottleMs = switch (performanceProfile) {
-      DevicePerformanceProfile.low => 80,
-      DevicePerformanceProfile.high => 16,
-      DevicePerformanceProfile.medium => 24,
-    };
-    final throttleMs = (baseThrottleMs /
-            (normalizedSpeed * (1.0 + _physicsConfig.roughnessScale)))
-        .round()
-        .clamp(14, 80);
-
-    final now = DateTime.now();
-    if (now.difference(_lastTextureTick).inMilliseconds <= throttleMs) {
-      return;
+    // Flush periodically (every ~40ms) to the native platform.
+    if (_continuousBuffer.shouldFlush(nowMs)) {
+      unawaited(_continuousBuffer.flush(nowMs: nowMs));
     }
-    _lastTextureTick = now;
-
-    // Modulate sharpness based on drag velocity: slower drag feels softer/duller, faster feels sharper/crisper
-    final speedSharpnessMod = normalizedSpeed * 0.45;
-    final dynamicSharpness = (_physicsConfig.baseSharpness * 0.35 +
-            _physicsConfig.roughnessScale * frame.rawTexture * 0.2 +
-            speedSharpnessMod)
-        .clamp(0.15, 0.85);
-
-    _tryEmitPaperTick(
-      intensity: frame.amplitude,
-      sharpness: dynamicSharpness,
-      durationMs: frame.durationMs,
-    );
   }
 
   Future<void> _playOnPlayer(AudioPlayer player, double volume) async {
@@ -302,5 +241,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       player.dispose();
     }
     _physicsEngines.clear();
+    _continuousBuffer.reset();
   }
 }

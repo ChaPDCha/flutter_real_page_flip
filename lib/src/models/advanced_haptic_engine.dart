@@ -98,6 +98,57 @@ class AdvancedHapticEngine {
     }
   }
 
+  /// Sends a continuous waveform segment to the native platform.
+  ///
+  /// [intensities] is a list of amplitude values (0.0–1.0) sampled at
+  /// ~200 Hz (5 ms per sample). On iOS the values become a
+  /// [CHHapticPattern] parameter curve on a persistent advanced player
+  /// with real-time dynamic parameters. On Android they become a
+  /// [VibrationEffect.createWaveform] amplitude array.
+  ///
+  /// Callers should flush at most every ~40 ms and keep each batch to
+  /// ~8–10 samples so the MethodChannel payload stays small.
+  static Future<void> playContinuousWaveform({
+    required List<double> intensities,
+    required double totalDurationMs,
+  }) async {
+    if (intensities.isEmpty) return;
+    try {
+      await _channel.invokeMethod('playContinuousWaveform', {
+        'intensities': intensities,
+        'totalDurationMs': totalDurationMs,
+      });
+    } on MissingPluginException {
+      _fallbackContinuous(intensities);
+    } on PlatformException {
+      _fallbackContinuous(intensities);
+    }
+  }
+
+  /// Fallback when the native plugin does not support continuous waveforms.
+  static void _fallbackContinuous(List<double> intensities) {
+    // Pick the median intensity as a representative single transient.
+    final sorted = List<double>.from(intensities)..sort();
+    final median = sorted[sorted.length >> 1];
+    if (median > 0.6) {
+      unawaited(HapticFeedback.mediumImpact());
+    } else {
+      unawaited(HapticFeedback.lightImpact());
+    }
+  }
+
+  /// Stops any in-flight continuous waveform so the drag-end does not leave
+  /// a springy tail or a stuck vibration.
+  static Future<void> stopContinuous() async {
+    try {
+      await _channel.invokeMethod('stopContinuous');
+    } on MissingPluginException {
+      // No-op on platforms without the custom channel.
+    } on PlatformException {
+      // Ignore cancel failures.
+    }
+  }
+
   /// Stops any in-flight composition so drag-end does not leave a springy tail.
   static Future<void> cancel() async {
     try {

@@ -11,6 +11,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import kotlin.math.roundToInt
 
 class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
@@ -40,7 +41,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
-        if (!isVibratorAvailable && call.method != "cancel") {
+        if (!isVibratorAvailable && call.method != "cancel" && call.method != "stopContinuous") {
             result.error("VIBRATOR_UNAVAILABLE", "Device has no vibrator", null)
             return
         }
@@ -77,6 +78,17 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
                     playPaperTick(0.18)
                     result.success(null)
                 }
+                "playContinuousWaveform" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val intensities = call.argument<List<Double>>("intensities") ?: emptyList()
+                    val totalDurationMs = call.argument<Double>("totalDurationMs") ?: 0.0
+                    playContinuousWaveform(intensities, totalDurationMs)
+                    result.success(null)
+                }
+                "stopContinuous" -> {
+                    cancelVibration()
+                    result.success(null)
+                }
                 "cancel" -> {
                     cancelVibration()
                     result.success(null)
@@ -103,6 +115,70 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         lastVibrateAt = now
         return true
     }
+
+    // -----------------------------------------------------------------------
+    // Continuous waveform playback
+    // -----------------------------------------------------------------------
+    //
+    // Converts the haptic buffer's intensity array into an Android
+    // VibrationEffect waveform with per-sample amplitude. Each sample
+    // is 5 ms by default, so an 8-sample batch produces a smooth
+    // 40 ms continuous vibration segment.
+    //
+    // For API 26+ with amplitude control, createWaveform(timings, amplitudes, -1)
+    // produces a true continuous vibration whose amplitude varies per-sample —
+    // the perceptual equivalent of a CoreHaptics parameter curve.
+    // For older APIs, fall back to a single one-shot at the median intensity.
+
+    private fun playContinuousWaveform(intensities: List<Double>, totalDurationMs: Double) {
+        if (intensities.isEmpty()) return
+
+        val sampleCount = intensities.size
+        val perSampleMs = if (totalDurationMs > 0 && sampleCount > 0) {
+            (totalDurationMs / sampleCount).roundToInt().coerceIn(4, 16)
+        } else {
+            5
+        }
+
+        if (isHapticDebugLogging) {
+            android.util.Log.d("HAPTIC_DIAGNOSTIC",
+                "Android playContinuousWaveform: samples=$sampleCount, perSampleMs=$perSampleMs, totalDurationMs=$totalDurationMs")
+        }
+
+        // API 26+ with amplitude control → createWaveform with amplitude array
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && hasAmplitudeControl) {
+            val timings = LongArray(sampleCount) { perSampleMs.toLong() }
+            val amplitudes = IntArray(sampleCount) { i ->
+                (intensities[i] * 255.0).roundToInt().coerceIn(1, 255)
+            }
+
+            try {
+                // Cancel previous waveform first so overlapping segments
+                // do not stack (which would produce a loud buzz).
+                vibrator?.cancel()
+                vibrator?.vibrate(
+                    VibrationEffect.createWaveform(timings, amplitudes, -1)
+                )
+                lastVibrateAt = SystemClock.uptimeMillis()
+                return
+            } catch (e: Exception) {
+                // Fall through to fallback
+            }
+        }
+
+        // Fallback: single median-amplitude one-shot.
+        val sorted = intensities.sorted()
+        val median = sorted[sampleCount / 2]
+        val totalMs = totalDurationMs.toLong().coerceIn(4, 120)
+        val amplitude = (median * 200.0).roundToInt().coerceIn(20, 200)
+        if (shouldEmitVibration()) {
+            playFallback(totalMs, amplitude)
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Legacy discrete methods (kept for backward compatibility)
+    // -----------------------------------------------------------------------
 
     private fun playPaperTick(scale: Double) {
         if (!shouldEmitVibration()) return
@@ -135,7 +211,6 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val scale = (intensity * 0.85).toFloat().coerceIn(0.03f, 0.48f)
             try {
-                // Paper scrape uses short ticks; CLICK reads as a sharp tap.
                 val effect = VibrationEffect.startComposition()
                     .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, scale)
                     .compose()
@@ -245,3 +320,6 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         channel.setMethodCallHandler(null)
     }
 }
+
+// Whether to emit diagnostic log output.
+private val isHapticDebugLogging = false

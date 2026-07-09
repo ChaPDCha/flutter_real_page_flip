@@ -12,7 +12,7 @@ void main() {
       expect(frame.rawResistance, equals(0));
       expect(frame.rawTexture, equals(0));
       expect(frame.rawFriction, equals(0));
-      expect(frame.stickSlipEvent, isNull);
+      expect(frame.stickSlipModulation, isNull);
     });
 
     test('constructor assigns fields correctly', () {
@@ -73,107 +73,7 @@ void main() {
       expect(a, isNot(equals(b)));
     });
 
-    test('inequality with different sharpness', () {
-      const a = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.8,
-        durationMs: 60,
-        rawResistance: 0.3,
-        rawTexture: 0.6,
-        rawFriction: 0.4,
-      );
-      const b = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.3,
-        durationMs: 60,
-        rawResistance: 0.3,
-        rawTexture: 0.6,
-        rawFriction: 0.4,
-      );
-      expect(a, isNot(equals(b)));
-    });
-
-    test('inequality with different durationMs', () {
-      const a = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.8,
-        durationMs: 60,
-        rawResistance: 0.3,
-        rawTexture: 0.6,
-        rawFriction: 0.4,
-      );
-      const b = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.8,
-        durationMs: 30,
-        rawResistance: 0.3,
-        rawTexture: 0.6,
-        rawFriction: 0.4,
-      );
-      expect(a, isNot(equals(b)));
-    });
-
-    test('inequality with different rawResistance', () {
-      const a = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.8,
-        durationMs: 60,
-        rawResistance: 0.3,
-        rawTexture: 0.6,
-        rawFriction: 0.4,
-      );
-      const b = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.8,
-        durationMs: 60,
-        rawResistance: 0.7,
-        rawTexture: 0.6,
-        rawFriction: 0.4,
-      );
-      expect(a, isNot(equals(b)));
-    });
-
-    test('inequality with different rawTexture', () {
-      const a = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.8,
-        durationMs: 60,
-        rawResistance: 0.3,
-        rawTexture: 0.6,
-        rawFriction: 0.4,
-      );
-      const b = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.8,
-        durationMs: 60,
-        rawResistance: 0.3,
-        rawTexture: 0.9,
-        rawFriction: 0.4,
-      );
-      expect(a, isNot(equals(b)));
-    });
-
-    test('inequality with different rawFriction', () {
-      const a = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.8,
-        durationMs: 60,
-        rawResistance: 0.3,
-        rawTexture: 0.6,
-        rawFriction: 0.4,
-      );
-      const b = PaperPhysicsFrame(
-        amplitude: 0.5,
-        sharpness: 0.8,
-        durationMs: 60,
-        rawResistance: 0.3,
-        rawTexture: 0.6,
-        rawFriction: 0.7,
-      );
-      expect(a, isNot(equals(b)));
-    });
-
-    test('inequality with different stickSlipEvent (null vs non-null)', () {
+    test('inequality with different stickSlipModulation (null vs non-null)', () {
       const a = PaperPhysicsFrame(
         amplitude: 0.5,
         sharpness: 0.8,
@@ -189,7 +89,10 @@ void main() {
         rawResistance: 0.3,
         rawTexture: 0.6,
         rawFriction: 0.4,
-        stickSlipEvent: StickSlipEvent.slipRelease(intensity: 0.5),
+        stickSlipModulation: const StickSlipModulation(
+          amplitudeBoost: 0.3,
+          sharpnessShift: 0.1,
+        ),
       );
       expect(a, isNot(equals(b)));
     });

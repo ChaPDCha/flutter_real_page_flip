@@ -17,17 +17,13 @@ enum PageFlipEvent {
   /// Continuous haptic feedback during active page dragging.
   continuousHaptic,
 
-  /// 종이 섬유 질감을 시뮬레이션하는 텍스쳐 햅틱
-  /// texture: 0.0~1.0 (텍스쳐 노이즈 강도)
-  /// resistance: 0.0~1.0 (페이지 위치 기반 저항감)
+  /// 피드 포워드 햅틱 이벤트 (velocity + fold angle).
+  /// texture: 폴드 각도 (0~1), resistance: 페이지 저항감 (0~1)
   texturedHaptic,
 
   /// Sound effect trigger for page flip audio.
   sound
 }
-
-// Phase increment for paper-texture noise per unit of drag distance.
-const double _kNoisePhaseStep = 0.0850509;
 
 /// Manages the state and animation of the PageFlip widget.
 class PageFlipStateController {
@@ -67,7 +63,6 @@ class PageFlipStateController {
       duration: animationDuration,
     );
     animationController.addListener(_onAnimationTick);
-    _noisePhase = _random.nextDouble() * 1000;
   }
 
   /// The [TickerProvider] used by the animation controller.
@@ -114,12 +109,6 @@ class PageFlipStateController {
 
   /// The underlying animation controller driving flip transitions.
   late final AnimationController animationController;
-
-  // 난수 생성기 (텍스쳐 노이즈용)
-  final math.Random _random = math.Random();
-
-  // Perlin-like noise phase (persists across session).
-  double _noisePhase = 0;
 
   int _currentIndex = 0;
   double _dragProgress = 0;
@@ -272,64 +261,35 @@ class PageFlipStateController {
       _dragProgress = (_dragProgress + progressDelta).clamp(0.0, 1.0);
 
       if (_dragProgress != oldProgress) {
-        // [Paper Texture Haptic System]
-        // 종이를 넘길 때 손가락이 느끼는 마찰 저항을 시뮬레이션
-        // 매 프레임 햅틱 이벤트 전송 (~60Hz). AdvancedHapticEngine의 네이티브
-        // 쓰로틀이 하드웨어 과부하를 방지하므로 컨트롤러 레벨 스킵 불필요.
+        // [Unified Haptic Pipeline]
+        // The controller sends raw velocity + fold progress to the
+        // effect handler. The handler's physics engine generates its
+        // own Perlin noise for paper texture — no redundant noise
+        // generation here. `foldProgress` is derived from the actual
+        // flip position so the physics engine's resistance model
+        // receives a clean geometric signal.
         final currentSpeed = delta.abs();
         _smoothedSpeed = (_smoothedSpeed * 0.5) + (currentSpeed * 0.5);
 
-        // 매우 느린 드래그에서도 미세한 종이 질감이 전달되도록 임계값 하향
         if (_smoothedSpeed > 0.12) {
-            // [1] Continuous Pseudo-noise for Paper Fiber Texture
-            // 실제 종이 섬유의 불규칙한 저항감 시뮬레이션
-            // _noisePhase를 드래그 거리에 따라 진행시켜 일관된 텍스쳐 생성
-            // NOTE: multi-sine sum → square instead of .abs() to avoid
-            // derivative discontinuities (cusps) at zero crossings, which
-            // produce audible "clicks" in haptic output.
-            _noisePhase += _smoothedSpeed * _kNoisePhaseStep;
-            final noise1 = math.sin(_noisePhase * 2.7);
-            final noise2 = math.sin(_noisePhase * 7.3 + 1.4);
-            final noise3 = math.sin(_noisePhase * 13.1 + 2.9);
-            // Fractal noise: 다중 주파수 합성으로 자연스러운 질감
-            final rawSum = (noise1 * 0.5) + (noise2 * 0.3) + (noise3 * 0.2);
-            final textureNoise = (rawSum * rawSum).clamp(0.0, 1.0);
+          // Fold progress (0–1): peaks at mid-flip for maximum resistance.
+          final foldProgress = math.sin(_dragProgress * math.pi);
 
-            // [2] Non-linear Resistance Model
-            // 페이지 시작/끝 근처에서 더 강한 저항 (종이가 붙어있는 느낌)
-            // 중간에서는 부드러운 저항
-            final edgeDistance = math.min(
-              _dragProgress,
-              1.0 - _dragProgress,
-            );
-            // Smoothstep-like curve: 가장자리에서 급격히 저항 증가
-            final edgeFactor = 1.0 - (edgeDistance * 2.5).clamp(0.0, 1.0);
-            final edgeResistance =
-                edgeFactor * edgeFactor * (3 - 2 * edgeFactor);
+          // Speed factor: normalised drag velocity for amplitude scaling.
+          final speedFactor = (_smoothedSpeed / 15.0).clamp(0.2, 1.0);
 
-            // [3] Speed-based Dynamic Intensity
-            // 빠를수록 강한 마찰력 (운동 에너지 기반)
-            final speedFactor = (_smoothedSpeed / 15.0).clamp(0.2, 1.0);
+          // Intensity scales with speed so fast flicks hit harder.
+          final baseIntensity = (_smoothedSpeed * 4.5).clamp(24, 110).toInt();
+          final finalIntensity =
+              (baseIntensity + (foldProgress * 22).toInt()).clamp(28, 140);
 
-            // [4] Combine all factors
-            final combinedTexture = (textureNoise * 0.6 + 0.4) * speedFactor;
-            final combinedResistance = edgeResistance * 0.4 + speedFactor * 0.6;
-
-            // 강도 계산: 기본 강도 + 텍스쳐 변조
-            final baseIntensity = (_smoothedSpeed * 4.5).clamp(24, 110).toInt();
-            final textureModulation = (textureNoise * 32).toInt();
-            final resistanceBoost = (edgeResistance * 22).toInt();
-            final finalIntensity =
-                (baseIntensity + textureModulation + resistanceBoost)
-                    .clamp(28, 140);
-
-            onEffectTrigger(
-              PageFlipEvent.texturedHaptic,
-              intensity: finalIntensity,
-              texture: combinedTexture,
-              resistance: combinedResistance,
-            );
-          }
+          onEffectTrigger(
+            PageFlipEvent.texturedHaptic,
+            intensity: finalIntensity,
+            texture: foldProgress,
+            resistance: speedFactor,
+          );
+        }
         }
 
         // Variable Sound Volume: Based on how far we've flipped

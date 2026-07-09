@@ -24,8 +24,9 @@ class PaperPhysicsFrame {
     /// Raw friction coefficient.
     required this.rawFriction,
 
-    /// Optional stick-slip event (if triggered this frame).
-    this.stickSlipEvent,
+    /// Optional stick-slip modulation blended into the continuous amplitude.
+    /// When null, no stick-slip activity was detected.
+    this.stickSlipModulation,
   });
 
   /// Haptic amplitude (0.0 to 1.0).
@@ -37,8 +38,11 @@ class PaperPhysicsFrame {
   /// Haptic duration in milliseconds.
   final int durationMs;
 
-  /// Optional stick-slip event (if triggered this frame).
-  final StickSlipEvent? stickSlipEvent;
+  /// Optional stick-slip modulation blended into the continuous amplitude
+  /// by the physics engine. When present the handler sends this frame's
+  /// data through the continuous waveform pipeline; it does NOT emit a
+  /// separate discrete transient.
+  final StickSlipModulation? stickSlipModulation;
 
   /// Raw resistance value from the paper model.
   final double rawResistance;
@@ -70,7 +74,7 @@ class PaperPhysicsFrame {
           rawResistance == other.rawResistance &&
           rawTexture == other.rawTexture &&
           rawFriction == other.rawFriction &&
-          stickSlipEvent == other.stickSlipEvent;
+          stickSlipModulation == other.stickSlipModulation;
 
   @override
   int get hashCode =>
@@ -80,5 +84,5 @@ class PaperPhysicsFrame {
       rawResistance.hashCode ^
       rawTexture.hashCode ^
       rawFriction.hashCode ^
-      stickSlipEvent.hashCode;
+      stickSlipModulation.hashCode;
 }
