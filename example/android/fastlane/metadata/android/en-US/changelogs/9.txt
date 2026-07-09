@@ -1,3 +1,0 @@
-• Fixed backward page flip direction: foldX now moves left to right
-• Fixed backward double-spread stationary content clipping
-• Fixed backward bend shading and edge-fade gradient direction

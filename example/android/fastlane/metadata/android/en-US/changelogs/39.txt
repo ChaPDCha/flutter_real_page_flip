@@ -1,2 +1,0 @@
-• Fixed page flip sound playing intermittently
-• Fixed haptic vibration not working on Android (missing permission)

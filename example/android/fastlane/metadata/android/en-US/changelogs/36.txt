@@ -1,1 +1,0 @@
-• Release notes now fetched live from remote API instead of bundled-only

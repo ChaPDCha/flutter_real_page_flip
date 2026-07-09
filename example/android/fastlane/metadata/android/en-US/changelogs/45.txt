@@ -1,3 +1,0 @@
-• Fixed haptic vibration not working on some Android devices
-• Improved sync performance with smarter data batching
-• Enhanced sync reliability with automatic rate limiting

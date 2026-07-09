@@ -1,5 +1,0 @@
-• 페이지플립 엔진 GPU 사용량 추가 최적화 (렌더링 경로 단순화)
-• PageFlipConfig에 copyWith() 패턴 도입으로 설정 객체 불변 업데이트
-• PageFlipStateController.dispose() 이중 호출 방지 guard 추가
-• 페이지플립 엔진 전면 테스트 보강: 코어 엔진 160+개 단위/통합 테스트 추가
-• 페이지플립 테스트 총 686개 달성 (4개 pre-existing 실패)

@@ -1,6 +1,0 @@
-• Fixed search navigation always landing on the first page
-• Fixed chapter skipping on rapid tap during page turns
-• Fixed sync failing permanently after network errors
-• Improved app startup speed with parallel initialization
-• Optimized PDF rendering and page flip performance
-• Improved sync speed by 66%

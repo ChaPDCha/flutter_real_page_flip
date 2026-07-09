@@ -1,4 +1,0 @@
-• Fixed flickering text along the fold line during page flip animation
-• Added Firebase Crashlytics for crash reporting
-• Chapter title now respects the selected font setting
-• Improved overall reading stability and performance

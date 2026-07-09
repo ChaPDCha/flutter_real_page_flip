@@ -1,2 +1,0 @@
-• Fixed backward page flip not showing page content on the turning flap
-• Improved backward double-spread page flip stability

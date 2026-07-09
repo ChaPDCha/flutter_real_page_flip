@@ -1,2 +1,0 @@
-• Fixed backward flap clipping at the fold line edge
-• Corrected single-page backward flip text direction (mirrored content for left-to-right peel)

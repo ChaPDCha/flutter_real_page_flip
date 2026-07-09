@@ -2,6 +2,23 @@
 .claude/
 .cursor/
 
+# Internal planning and AI workflow docs
+AI_DEBUG_PROMPT.md
+PLAN_TEST_COVERAGE.md
+community_pitches.md
+
+# AI test harness (DeepSeek/Claude tooling)
+tool/harness/
+
+# Example app deployment config (Play Store / Fastlane)
+example/android/fastlane/
+
+# Package lock file (libraries should not commit this)
+pubspec.lock
+
+# Duplicate source copies in doc
+doc/math_verification/sources/
+
 # Miscellaneous
 *.class
 *.log

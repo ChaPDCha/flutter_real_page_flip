@@ -1,2 +1,0 @@
-• Fixed backward page flip direction (fold was moving right-to-left instead of left-to-right)
-• Corrected reverse-page flip geometry for single and double-spread modes

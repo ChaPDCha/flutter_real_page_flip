@@ -1,2 +1,0 @@
-• Added multilingual support: 10 languages (Korean, English, Spanish, Filipino, French, Indonesian, Portuguese, Chinese, Japanese)
-• Runtime language switching support

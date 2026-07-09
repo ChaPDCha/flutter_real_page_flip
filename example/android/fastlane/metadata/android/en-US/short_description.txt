@@ -1,1 +1,0 @@
-Realistic 3D page flip reader. EPUB, PDF, TTS & dark mode.

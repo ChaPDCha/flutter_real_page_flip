@@ -1,4 +1,0 @@
-• Banner ads added to the reader screen
-• First Play Store release build
-• Support for EPUB, TXT, PDF books
-• Ad-supported free version

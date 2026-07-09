@@ -1,4 +1,0 @@
-• 2단 보기 페이지 뒷면 2.5D 효과 (flapBackStrength)
-• 페이지 넘김 중 얇은 종이 투과 효과 (thinPaperStrength)
-• 넘김 종료 시 콘텐츠 서서히 나타나기 (endRevealStrength)
-• 역방향 페이지 넘김 클리핑 오차 수정

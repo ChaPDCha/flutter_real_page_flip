@@ -1,3 +1,0 @@
-• Added Firebase Crashlytics + Sentry dual error reporting for improved stability
-• Enhanced paper texture vibration with more realistic haptic feedback
-• Improved overall app performance and code quality

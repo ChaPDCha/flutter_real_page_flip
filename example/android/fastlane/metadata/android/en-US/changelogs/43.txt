@@ -1,4 +1,0 @@
-• Smart TTS engine: 3-tier cache (memory → disk → ONNX) with predictive pre-generation for instant playback
-• EPUB content filtering: auto-removes page numbers, TOC, footnotes, and 30+ non-content types
-• Word-level TTS highlighting during audio playback
-• 40% faster page navigation with new pre-generation system

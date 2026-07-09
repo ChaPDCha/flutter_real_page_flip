@@ -1,1 +1,0 @@
-• Fixed backward single-page flip starting from the right instead of the left

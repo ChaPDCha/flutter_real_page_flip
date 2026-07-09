@@ -1,1 +1,0 @@
-• Fixed haptic feedback not firing due to screen width normalization regression

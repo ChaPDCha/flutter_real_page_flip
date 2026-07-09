@@ -1,3 +1,0 @@
-• Fixed page flip animation showing wrong page content in book view mode
-• Fixed EPUB table of contents being scattered across multiple pages
-• Fixed page flip gestures not working after switching chapters via edge tap

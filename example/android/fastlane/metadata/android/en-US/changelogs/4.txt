@@ -1,3 +1,0 @@
-• Fixed blank page issue when flipping in single-page mode
-• Fixed clipping gap showing stray text when flipping to previous page
-• Ads now appear only on bookshelf screen (not during reading)

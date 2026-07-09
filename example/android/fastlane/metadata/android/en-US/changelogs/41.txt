@@ -1,5 +1,0 @@
-• Further page flip GPU optimization with simplified rendering paths
-• Introduced copyWith() pattern for immutable config updates
-• Added idempotency guard to state controller dispose()
-• Added 160+ core engine unit/integration tests
-• Total 686 page flip tests (4 pre-existing failures)
