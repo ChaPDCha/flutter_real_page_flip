@@ -3,6 +3,23 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.14.0] - 2026-07-09
+### Added
+- **Continuous Haptic Waveform Pipeline**: Replaced the discrete haptic transient model with a continuous amplitude-modulated waveform pipeline for natural paper-friction vibration.
+  - `StickSlipController`: Redesigned from discrete events (`StickSlipEvent`) to continuous modulation (`StickSlipModulation`), with `amplitudeBoost` (0–0.5) and `sharpnessShift` (–0.3 to +0.3) that blend into every physics frame.
+  - `ContinuousHapticBuffer`: New accumulator that samples per-frame intensity and flushes every ~40ms (25Hz) as amplitude arrays to the native platform — no more interrupted tick streams.
+  - Android: Uses `VibrationEffect.createWaveform(timings, amplitudes, -1)` for API 26+ continuous vibration.
+  - iOS: Uses `CHHapticParameterCurve` with `CHHapticAdvancedPatternPlayer` for real-time intensity modulation.
+- **Single Unified Noise Source**: Removed the controller's multi-sine noise generator. The physics engine's Perlin noise is now the only texture source, eliminating dual-noise conflict.
+
+### Changed
+- **Stick-Slip Energy Blending**: Stick energy is always blended into the continuous amplitude output so the caller's tick stream is never interrupted by discrete events.
+- **Fold Progress Routing**: Controller now passes fold progress (not noise signal) as `foldAngle` to the physics engine.
+
+### Fixed
+- **Bright Blade Crescent Artifact**: Increased fold crease shadow intensity from 0.04 to 0.055 to fully mask the geometric bright-blade artifact at curved fold boundaries.
+- **Stick-Slip Test Determinism**: Fixed test clock dependency in stationary energy build-up test by adding deterministic fake clock.
+
 ## [1.13.0] - 2026-07-09
 ### Changed
 - **Haptic Density Overhaul**: Increased paper-scratch haptic frequency from ~14Hz to ~40-60Hz by removing the 3-frame event skip in `PageFlipStateController` and lowering throttle thresholds across controller, handler, and Android native layers.
