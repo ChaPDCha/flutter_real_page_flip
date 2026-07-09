@@ -1,5 +1,6 @@
-# Claude Code local settings (contains API keys)
-.claude/settings.local.json
+# IDE and AI tool configs (not part of the package)
+.claude/
+.cursor/
 
 # Miscellaneous
 *.class
