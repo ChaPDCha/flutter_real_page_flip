@@ -425,7 +425,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       PageFlipEvent.stopHaptic ||
       PageFlipEvent.continuousHaptic ||
       PageFlipEvent.texturedHaptic ||
-      PageFlipEvent.impulseHaptic =>
+      PageFlipEvent.impulseHaptic ||
+      PageFlipEvent.detentHaptic =>
         true,
       _ => false,
     };

@@ -146,6 +146,20 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
           );
         }
         break;
+      case PageFlipEvent.detentHaptic:
+        // A single crisp, low-intensity micro-tick — deliberately much
+        // smaller than the settle thud so it reads as a subtle "this will
+        // commit" confirmation layered on TOP of the ongoing friction
+        // texture, not a second event competing with it. Reuses the
+        // existing discrete playTransient path (no new native surface).
+        unawaited(
+          AdvancedHapticEngine.playTransient(
+            intensity: 0.32,
+            sharpness: 0.75,
+            durationMs: 10,
+          ),
+        );
+        break;
       case PageFlipEvent.sound:
         _playSound(volume ?? 1.0);
         break;
@@ -203,8 +217,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       _continuousBuffer.start();
     }
 
-    // Add the current frame's amplitude to the buffer.
-    _continuousBuffer.addSample(frame.amplitude);
+    // Add the current frame's amplitude + sharpness to the buffer. Sharpness
+    // rises with velocity/texture so fast flicks feel crisp and slow drags soft.
+    _continuousBuffer.addSample(frame.amplitude, sharpness: frame.sharpness);
 
     // Flush periodically (every ~40ms) to the native platform.
     if (_continuousBuffer.shouldFlush(nowMs)) {

@@ -21,6 +21,11 @@ enum PageFlipEvent {
   /// texture: 폴드 각도 (0~1), resistance: 페이지 저항감 (0~1)
   texturedHaptic,
 
+  /// A single crisp micro-tick fired the instant a drag crosses the success
+  /// cutoff threshold — a "point of no return" confirmation the user feels
+  /// before releasing, distinct from the continuous friction texture.
+  detentHaptic,
+
   /// Sound effect trigger for page flip audio.
   sound
 }
@@ -117,9 +122,15 @@ class PageFlipStateController {
   bool _isDragging = false;
   bool _blocksContentPointers = false;
   bool _hasPlayedSound = false;
+
+  /// Whether the detent micro-tick has already fired for the current drag.
+  /// One-shot per drag session (not per threshold crossing) so a finger that
+  /// wiggles back and forth across the cutoff does not spam the tick.
+  bool _hasFiredDetent = false;
   double _cachedWidth = 1;
   double _lastReleaseVelocity = 0;
   double _smoothedSpeed = 0;
+
   /// True while the 1-frame visual transition is pending after a successful flip.
   /// Blocks new drag/tap gestures during this window to prevent re-entrant state.
   bool _isPendingFinalize = false;
@@ -198,6 +209,20 @@ class PageFlipStateController {
     return (totalDx.abs() / _cachedWidth).clamp(0.0, 1.0);
   }
 
+  /// Fires a one-shot [PageFlipEvent.detentHaptic] the instant [_dragProgress]
+  /// first reaches the direction's success cutoff during the CURRENT drag.
+  ///
+  /// One-shot per drag (not per crossing): once fired, stays silent for the
+  /// rest of the gesture even if the finger retreats below the cutoff and
+  /// crosses again, so wiggling near the threshold does not spam ticks.
+  void _maybeFireDetent() {
+    if (_hasFiredDetent) return;
+    final threshold = _isForward ? cutoffForward : cutoffPrevious;
+    if (_dragProgress < threshold) return;
+    _hasFiredDetent = true;
+    onEffectTrigger(PageFlipEvent.detentHaptic);
+  }
+
   /// Handles the start of a drag gesture for page flipping.
   ///
   /// [accumulatedTotalDx] is horizontal movement already consumed before flip
@@ -215,6 +240,7 @@ class PageFlipStateController {
     _isDragging = false;
     _dragProgress = 0.0;
     _hasPlayedSound = false;
+    _hasFiredDetent = false;
 
     if (accumulatedTotalDx.abs() > 0.5) {
       _isForward = accumulatedTotalDx < 0;
@@ -228,6 +254,10 @@ class PageFlipStateController {
       final startIntensity =
           (accumulatedTotalDx.abs() * 5).clamp(10, 80).toInt();
       onEffectTrigger(PageFlipEvent.startHaptic, intensity: startIntensity);
+      // Credited touch-slop movement can already land past the cutoff on the
+      // very first frame (a fast decisive swipe) — check here too, not just
+      // in onDragUpdate, so that case still gets its confirmation tick.
+      _maybeFireDetent();
     }
 
     onUpdate();
@@ -269,17 +299,32 @@ class PageFlipStateController {
         // flip position so the physics engine's resistance model
         // receives a clean geometric signal.
         final currentSpeed = delta.abs();
-        _smoothedSpeed = (_smoothedSpeed * 0.5) + (currentSpeed * 0.5);
+        // Lighter smoothing (0.65 old / 0.35 new) tracks fingertip speed changes
+        // more responsively than the old 50/50 blend, so fast flicks and slow
+        // crawls read as distinct textures instead of a lagged average.
+        _smoothedSpeed = (_smoothedSpeed * 0.65) + (currentSpeed * 0.35);
 
-        if (_smoothedSpeed > 0.12) {
+        // Emit on ANY real motion (the `_dragProgress != oldProgress` guard
+        // above already excludes a stationary finger). The old `> 0.12` gate
+        // muted slow drags entirely, so the continuous waveform starved and the
+        // vibration died mid-drag whenever the finger crawled. A tiny floor
+        // keeps sub-pixel jitter from emitting noise while still feeding the
+        // buffer continuously across the whole speed range.
+        if (_smoothedSpeed > 0.02) {
           // Fold progress (0–1): peaks at mid-flip for maximum resistance.
           final foldProgress = math.sin(_dragProgress * math.pi);
 
-          // Speed factor: normalised drag velocity for amplitude scaling.
-          final speedFactor = (_smoothedSpeed / 15.0).clamp(0.2, 1.0);
+          // Speed factor: normalised drag velocity. Low floor (0.05) preserves
+          // fine low-speed detail instead of quantising slow drags to 0.2.
+          final speedFactor = (_smoothedSpeed / 15.0).clamp(0.05, 1.0);
 
-          // Intensity scales with speed so fast flicks hit harder.
-          final baseIntensity = (_smoothedSpeed * 4.5).clamp(24, 110).toInt();
+          // Intensity scales smoothly with speed so fast flicks hit harder while
+          // slow crawls still whisper. A gentle sqrt-like low-end (Weber-Fechner
+          // is applied again downstream in the physics amplitude) keeps the
+          // perceived step size even across the range.
+          final speedComponent =
+              math.sqrt(_smoothedSpeed.clamp(0.0, 40.0)) * 14;
+          final baseIntensity = speedComponent.clamp(24.0, 110.0).toInt();
           final finalIntensity =
               (baseIntensity + (foldProgress * 22).toInt()).clamp(28, 140);
 
@@ -290,21 +335,26 @@ class PageFlipStateController {
             resistance: speedFactor,
           );
         }
-        }
-
-        // Variable Sound Volume: Based on how far we've flipped
-        if (_dragProgress > 0.1 && !_hasPlayedSound) {
-          final flipSpeed = delta.abs();
-          final dynamicVolume = (flipSpeed / 50.0).clamp(0.1, 1.0);
-          onEffectTrigger(PageFlipEvent.sound, volume: dynamicVolume);
-          _hasPlayedSound = true;
-        }
       }
-      // Propagate animation state via notifier — avoids full setState
-      // for every animation frame (see PageFlipWidget / ValueListenableBuilder).
-      progressNotifier.value = _dragProgress;
-      touchNotifier.value = _touchPosition;
+
+      // Variable Sound Volume: Based on how far we've flipped
+      if (_dragProgress > 0.1 && !_hasPlayedSound) {
+        final flipSpeed = delta.abs();
+        final dynamicVolume = (flipSpeed / 50.0).clamp(0.1, 1.0);
+        onEffectTrigger(PageFlipEvent.sound, volume: dynamicVolume);
+        _hasPlayedSound = true;
+      }
+
+      // Detent confirmation tick: fires once, the instant progress first
+      // crosses the success cutoff, so the finger feels "this will commit"
+      // before it ever leaves the screen.
+      _maybeFireDetent();
     }
+    // Propagate animation state via notifier — avoids full setState
+    // for every animation frame (see PageFlipWidget / ValueListenableBuilder).
+    progressNotifier.value = _dragProgress;
+    touchNotifier.value = _touchPosition;
+  }
 
   /// Handles the end of a drag, animating the flip to completion or snap-back.
   void onDragEnd(DragEndDetails details, int totalPages) {
@@ -383,6 +433,7 @@ class PageFlipStateController {
     _isDragging = true;
     _dragProgress = 0.0;
     _hasPlayedSound = false;
+    _hasFiredDetent = false;
     // Tap flips have no drag start, so set touch position to page vertical
     // centre for a neutral (zero) fold angle instead of inheriting stale
     // coordinates from a previous drag gesture.
@@ -458,6 +509,7 @@ class PageFlipStateController {
         _isDragging = false;
         animationController.value = 0.0;
         _hasPlayedSound = false;
+        _hasFiredDetent = false;
         _lastReleaseVelocity = 0.0;
 
         onPageFinalized(_currentIndex);
@@ -478,6 +530,7 @@ class PageFlipStateController {
       animationController.value = 0.0;
       _isDragging = false;
       _hasPlayedSound = false;
+      _hasFiredDetent = false;
       endPointerCapture();
       onEffectTrigger(PageFlipEvent.stopHaptic);
       onUpdate();

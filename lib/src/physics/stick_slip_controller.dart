@@ -84,8 +84,8 @@ class StickSlipController {
   // Continuous state
   // ---------------------------------------------------------------------------
   bool _initialized = false;
-  double _stickEnergy = 0.0;          // 0–1, builds while stationary
-  double _decayAccumulator = 0.0;     // remaining decay after a slip
+  double _stickEnergy = 0.0; // 0–1, builds while stationary
+  double _decayAccumulator = 0.0; // remaining decay after a slip
   bool _wasStationary = true;
   double _lastVelocity = 0.0;
   double _accumulatedStationaryTime = 0.0;
@@ -122,8 +122,7 @@ class StickSlipController {
         _accumulatedStationaryTime += dt;
         if (_accumulatedStationaryTime > _stationaryThresholdMs) {
           _wasStationary = true;
-          _stickEnergy =
-              (_accumulatedStationaryTime * 0.0015).clamp(0.0, 1.0);
+          _stickEnergy = (_accumulatedStationaryTime * 0.0015).clamp(0.0, 1.0);
         }
       }
 
@@ -134,8 +133,8 @@ class StickSlipController {
       _lastVelocity = velocity;
       _lastUpdateTime = now;
       return StickSlipModulation(
-        amplitudeBoost: _stickEnergy * 0.12,   // subtle tension build-up
-        sharpnessShift: _stickEnergy * -0.15,   // softer while stuck
+        amplitudeBoost: _stickEnergy * 0.12, // subtle tension build-up
+        sharpnessShift: _stickEnergy * -0.15, // softer while stuck
       );
     }
 
@@ -157,8 +156,8 @@ class StickSlipController {
       _lastUpdateTime = now;
 
       return StickSlipModulation(
-        amplitudeBoost: releaseEnergy * 0.35,   // brief spike
-        sharpnessShift: releaseEnergy * 0.25,   // crisper
+        amplitudeBoost: releaseEnergy * 0.35, // brief spike
+        sharpnessShift: releaseEnergy * 0.25, // crisper
       );
     }
 

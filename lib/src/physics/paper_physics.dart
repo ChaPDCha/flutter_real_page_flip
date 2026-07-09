@@ -103,8 +103,9 @@ class PaperPhysicsEngine {
     // Blend stick-slip boost so it naturally perturbs the texture
     // rather than adding a separate top-level event.
     if (stickSlipModulation.amplitudeBoost > 0.001) {
-      amplitude = (amplitude + stickSlipModulation.amplitudeBoost * (1.0 - amplitude))
-          .clamp(0.0, 1.0);
+      amplitude =
+          (amplitude + stickSlipModulation.amplitudeBoost * (1.0 - amplitude))
+              .clamp(0.0, 1.0);
     }
 
     final duration = PaperResistanceModel.hapticDuration(
@@ -118,7 +119,8 @@ class PaperPhysicsEngine {
 
     // Apply stick-slip sharpness shift.
     if (stickSlipModulation.sharpnessShift != 0.0) {
-      sharpness = (sharpness + stickSlipModulation.sharpnessShift).clamp(0.0, 1.0);
+      sharpness =
+          (sharpness + stickSlipModulation.sharpnessShift).clamp(0.0, 1.0);
     }
 
     final hasSlip = stickSlipModulation.amplitudeBoost > 0.01;

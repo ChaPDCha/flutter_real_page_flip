@@ -40,6 +40,7 @@ class ContinuousHapticBuffer {
   static const int _minFlushGapMs = 30;
 
   double _lastIntensity = 0;
+  double _lastSharpness = 0.45;
   final List<double> _intensities = [];
   bool _active = false;
   int _lastFlushTime = 0;
@@ -55,10 +56,13 @@ class ContinuousHapticBuffer {
     _lastFlushTime = 0;
   }
 
-  /// Adds one amplitude sample from the current physics frame.
-  void addSample(double intensity) {
+  /// Adds one amplitude sample (and its sharpness) from the current physics
+  /// frame. The latest sharpness represents the batch on the next flush; iOS
+  /// applies it to the persistent player's sharpness control.
+  void addSample(double intensity, {double sharpness = 0.45}) {
     if (!_active) return;
     _lastIntensity = intensity.clamp(0.0, 1.0);
+    _lastSharpness = sharpness.clamp(0.0, 1.0);
     _intensities.add(_lastIntensity);
   }
 
@@ -85,6 +89,7 @@ class ContinuousHapticBuffer {
       await AdvancedHapticEngine.playContinuousWaveform(
         intensities: batch,
         totalDurationMs: totalDurationMs,
+        sharpness: _lastSharpness,
       );
     } catch (e) {
       if (kDebugMode) {
@@ -107,6 +112,7 @@ class ContinuousHapticBuffer {
 
     _intensities.clear();
     _lastIntensity = 0;
+    _lastSharpness = 0.45;
 
     try {
       await AdvancedHapticEngine.stopContinuous();
@@ -123,6 +129,7 @@ class ContinuousHapticBuffer {
     _active = false;
     _intensities.clear();
     _lastIntensity = 0;
+    _lastSharpness = 0.45;
     _lastFlushTime = 0;
   }
 }

@@ -111,12 +111,17 @@ class AdvancedHapticEngine {
   static Future<void> playContinuousWaveform({
     required List<double> intensities,
     required double totalDurationMs,
+    double sharpness = 0.45,
   }) async {
     if (intensities.isEmpty) return;
     try {
       await _channel.invokeMethod('playContinuousWaveform', {
         'intensities': intensities,
         'totalDurationMs': totalDurationMs,
+        // iOS streams this into the persistent player's sharpness control so
+        // fast flicks feel crisp and slow drags feel soft. Android has no
+        // sharpness axis and ignores it.
+        'sharpness': sharpness.clamp(0.0, 1.0),
       });
     } on MissingPluginException {
       _fallbackContinuous(intensities);

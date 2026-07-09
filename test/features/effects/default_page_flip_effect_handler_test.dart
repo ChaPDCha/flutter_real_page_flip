@@ -75,6 +75,33 @@ void main() {
         await handler.onHandleEffect(PageFlipEvent.impulseHaptic);
       });
 
+      test('detentHaptic sends a low-intensity, short, crisp playTransient',
+          () async {
+        final calls = <MethodCall>[];
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+          const MethodChannel('com.chapdcha.real_page_flip/haptics'),
+          (methodCall) async {
+            calls.add(methodCall);
+            return null;
+          },
+        );
+
+        final handler = DefaultPageFlipEffectHandler();
+        await Future<void>.delayed(Duration.zero);
+        await handler.onHandleEffect(PageFlipEvent.detentHaptic);
+
+        expect(calls, hasLength(1));
+        expect(calls.single.method, 'playTransient');
+        final args = calls.single.arguments as Map;
+        // Deliberately subtle: well below the settle-thud intensity range, a
+        // short duration so it reads as a tick layered on top of the ongoing
+        // friction texture rather than a competing event.
+        expect(args['intensity'], closeTo(0.32, 1e-6));
+        expect(args['sharpness'], closeTo(0.75, 1e-6));
+        expect(args['durationMs'], 10);
+      });
+
       test('continuousHaptic with parameters does not throw', () async {
         final handler = DefaultPageFlipEffectHandler();
         await Future<void>.delayed(Duration.zero);

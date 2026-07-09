@@ -343,6 +343,385 @@ void main() {
       effectController.dispose();
     });
 
+    test('slow drag still emits continuous texturedHaptic (no starvation)', () {
+      // Regression: the old `_smoothedSpeed > 0.12` gate muted slow drags, so
+      // the continuous haptic waveform starved and the vibration died whenever
+      // the finger crawled. Each small step should now emit a textured sample.
+      var texturedCount = 0;
+      final controller = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          if (effect == PageFlipEvent.texturedHaptic) texturedCount++;
+        },
+      )..updateCachedWidth(400);
+
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      // Slow crawl: small per-frame deltas that the old 0.12 gate suppressed.
+      for (var i = 0; i < 6; i++) {
+        controller.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: -0.6,
+            delta: const Offset(-0.6, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+          ),
+          5,
+        );
+      }
+
+      // A crawling finger now feeds the buffer on (almost) every frame instead
+      // of going silent; expect the majority of the slow steps to emit.
+      expect(texturedCount, greaterThanOrEqualTo(4));
+      controller.dispose();
+    });
+
+    test('detent haptic fires exactly once when progress crosses the cutoff',
+        () {
+      // cutoffForward defaults to 0.4; cachedWidth 400 → cross at totalDx > 160.
+      var detentCount = 0;
+      final controller = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          if (effect == PageFlipEvent.detentHaptic) detentCount++;
+        },
+      )..updateCachedWidth(400);
+
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      // Five steps of -40 = -200 total → progress 0.5, past the 0.4 cutoff.
+      for (var i = 0; i < 5; i++) {
+        controller.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: -40,
+            delta: const Offset(-40, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+          ),
+          5,
+        );
+      }
+
+      expect(detentCount, equals(1));
+      controller.dispose();
+    });
+
+    test('detent haptic does not fire while progress stays below the cutoff',
+        () {
+      var detentCount = 0;
+      final controller = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          if (effect == PageFlipEvent.detentHaptic) detentCount++;
+        },
+      )..updateCachedWidth(400);
+
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      // Two steps of -40 = -80 total → progress 0.2, well below the 0.4 cutoff.
+      for (var i = 0; i < 2; i++) {
+        controller.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: -40,
+            delta: const Offset(-40, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+          ),
+          5,
+        );
+      }
+
+      expect(detentCount, equals(0));
+      controller.dispose();
+    });
+
+    test(
+        'detent haptic does not re-fire when the finger wiggles back across '
+        'the cutoff', () {
+      // Regression guard: crossing forward, retreating below, then crossing
+      // again must still emit only ONE tick for the whole drag session.
+      var detentCount = 0;
+      final controller = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          if (effect == PageFlipEvent.detentHaptic) detentCount++;
+        },
+      )..updateCachedWidth(400);
+
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      // Cross forward past 0.4 (progress → 0.5).
+      for (var i = 0; i < 5; i++) {
+        controller.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: -40,
+            delta: const Offset(-40, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+          ),
+          5,
+        );
+      }
+      // Retreat back below 0.4 (progress → 0.2).
+      for (var i = 0; i < 3; i++) {
+        controller.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: 40,
+            delta: const Offset(40, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+          ),
+          5,
+        );
+      }
+      // Cross forward past 0.4 again (progress → 0.5).
+      for (var i = 0; i < 3; i++) {
+        controller.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: -40,
+            delta: const Offset(-40, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+          ),
+          5,
+        );
+      }
+
+      expect(detentCount, equals(1));
+      controller.dispose();
+    });
+
+    test(
+        'detent haptic fires on BACKWARD drags using cutoffPrevious, not '
+        'cutoffForward', () {
+      // Regression guard: the forward-only tests above could pass even if the
+      // implementation accidentally hardcoded `cutoffForward` for both
+      // directions. Use an asymmetric cutoff so a bug picking the wrong
+      // threshold would be caught: cutoffPrevious=0.6 means a backward drag
+      // must pass 0.6 (not the default 0.4) before the tick fires.
+      var detentCount = 0;
+      final controller = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        // cutoffForward left at its default (0.4).
+        cutoffPrevious: 0.6,
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          if (effect == PageFlipEvent.detentHaptic) detentCount++;
+        },
+      )..updateCachedWidth(400);
+
+      // currentIndex starts at 0, so a backward flip needs headroom: seed the
+      // controller at page 1 first so `!isForward && currentIndex <= 0` does
+      // not short-circuit the drag.
+      controller.setIndex(1, 5);
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      // Backward drag: positive delta. Progress to 0.5 (200/400) — past
+      // cutoffForward (0.4) but NOT past cutoffPrevious (0.6). Must NOT fire.
+      for (var i = 0; i < 5; i++) {
+        controller.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: 40,
+            delta: const Offset(40, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+          ),
+          5,
+        );
+      }
+      expect(controller.isForward, isFalse);
+      expect(
+        detentCount,
+        equals(0),
+        reason: 'progress 0.5 is past cutoffForward but not cutoffPrevious '
+            '(0.6) — a wrong-threshold bug would fire here',
+      );
+
+      // Two more steps → progress 0.7, past cutoffPrevious. Must fire once.
+      for (var i = 0; i < 2; i++) {
+        controller.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: 40,
+            delta: const Offset(40, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+          ),
+          5,
+        );
+      }
+      expect(detentCount, equals(1));
+      controller.dispose();
+    });
+
+    test(
+        'detent haptic fires from the touch-slop-credited onDragStart path, '
+        'not just onDragUpdate', () {
+      // Regression guard: a fast decisive swipe can already be past the
+      // cutoff on the very first frame via `accumulatedTotalDx`. The crossing
+      // check must run in onDragStart too, not only in onDragUpdate.
+      var detentCount = 0;
+      final controller = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          if (effect == PageFlipEvent.detentHaptic) detentCount++;
+        },
+      )..updateCachedWidth(400);
+
+      // accumulatedTotalDx=-200 on a 400-wide cache → progress 0.5 on the
+      // very first frame, already past the default 0.4 cutoff.
+      controller.onDragStart(
+        DragStartDetails(localPosition: Offset.zero),
+        5,
+        accumulatedTotalDx: -200,
+      );
+
+      expect(controller.dragProgress, closeTo(0.5, 0.001));
+      expect(detentCount, equals(1));
+      controller.dispose();
+    });
+
+    test('detent haptic fires immediately when cutoffForward is 0.0', () {
+      // Boundary: threshold=0.0 means ANY forward progress satisfies
+      // `dragProgress >= threshold`, so the very first update should fire.
+      var detentCount = 0;
+      final controller = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        cutoffForward: 0,
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          if (effect == PageFlipEvent.detentHaptic) detentCount++;
+        },
+      )..updateCachedWidth(400);
+
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      controller.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -1,
+          delta: const Offset(-1, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+
+      expect(detentCount, equals(1));
+      controller.dispose();
+    });
+
+    test(
+        'detent haptic never fires when cutoffForward is 1.0 and progress '
+        'stays below full completion', () {
+      // Boundary: threshold=1.0 requires dragProgress to reach exactly 1.0,
+      // which a mid-drag (not yet released/animated) should never reach.
+      var detentCount = 0;
+      final controller = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (index) {},
+        cutoffForward: 1,
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          if (effect == PageFlipEvent.detentHaptic) detentCount++;
+        },
+      )..updateCachedWidth(400);
+
+      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      // 9 steps of -40 = -360 total → progress 0.9, still short of 1.0.
+      for (var i = 0; i < 9; i++) {
+        controller.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: -40,
+            delta: const Offset(-40, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+          ),
+          5,
+        );
+      }
+
+      expect(controller.dragProgress, lessThan(1.0));
+      expect(detentCount, equals(0));
+      controller.dispose();
+    });
+
     testWidgets('successful finalize resets drag before onPageFinalized',
         (tester) async {
       var finalizedIndex = -1;

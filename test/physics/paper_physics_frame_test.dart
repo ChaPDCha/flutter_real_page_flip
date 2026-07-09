@@ -73,7 +73,8 @@ void main() {
       expect(a, isNot(equals(b)));
     });
 
-    test('inequality with different stickSlipModulation (null vs non-null)', () {
+    test('inequality with different stickSlipModulation (null vs non-null)',
+        () {
       const a = PaperPhysicsFrame(
         amplitude: 0.5,
         sharpness: 0.8,
