@@ -3,6 +3,22 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.15.0] - 2026-07-10
+### Added
+- **Free-Edge Contact Shadow & Highlight**: The flap's lifted free edge now casts a soft ambient-occlusion shadow onto the page beneath it and catches a thin light highlight, so a mid-flip page reads as physically lifted paper instead of a flat, knife-cut sticker. New `buildCurvedFreeEdgeShadowPath` geometry helper (single- and double-spread).
+- **Cylinder Curl Lighting (HIGH profile)**: A terminator-shading gradient across the flap surface makes the curling paper read as a rounded cylinder rather than a flat tilting board. Gated to the HIGH performance profile only — no cost added on low/medium-tier devices.
+- **Detent Confirmation Haptic**: A small, crisp micro-tick fires the instant a drag first crosses the success cutoff (`cutoffForward` / `cutoffPrevious`), giving tactile confirmation that releasing now will commit the flip — before the finger ever leaves the screen. One-shot per drag; does not re-fire if the finger wiggles back across the threshold.
+- **Sharpness-Aware Haptic Pipeline**: Physics-derived `sharpness` now flows end-to-end (physics frame → `ContinuousHapticBuffer` → native platform channel), so fast flicks feel crisp and slow drags feel soft instead of a fixed native sharpness value.
+
+### Changed
+- **Unified Fold-Crease Shadow**: The crease previously stacked two independent dark bands (flap-side darkening + revealed-side drop shadow) that visually merged into one thick, hard-edged line. These are now a single soft valley — narrower, eased gradient stops, and a flap-side band sized to only cover where the curl highlight fades through.
+- **Continuous Haptic No Longer Starves on Slow Drags**: Replaced the `_smoothedSpeed > 0.12` emission gate (which silenced the friction texture on slow crawls) with a 0.02 floor and lighter velocity smoothing, plus a smooth sqrt-based speed-to-intensity curve.
+- **iOS/Android Persistent Haptic Players**: Native continuous-waveform playback no longer stops and recreates the player every ~40ms flush. iOS streams intensity/sharpness onto one long-lived `CHHapticAdvancedPatternPlayer` via dynamic parameters; Android no longer calls `vibrator.cancel()` before each waveform, since a fresh `vibrate()` already supersedes the running effect. Removes the audible/tactile gap at every batch boundary. *(Native runtime behavior pending physical-device verification — not exercisable from this development environment.)*
+
+### Fixed
+- **Bright-Blade Regression on Extreme Angled Drags**: Narrowing the flap-side crease darkening initially uncovered a bright sliver from the existing curl highlight at steep touch angles in double-spread portrait layouts; the highlight's fade-out region and the crease darkening width are now aligned so the crease reads as one continuous valley at every angle.
+- **Snap-Back Flicker**: A drag released below the flip cutoff (or cancelled mid-gesture, e.g. yielding to vertical scroll content) used to reset the flip state on the same frame the snap-back animation started, tearing the flip layer down instantly instead of easing it back. The snap-back now defers state reset until the animation completes, and uses a higher minimum duration (180ms vs. the old 80ms floor) so small aborted drags visibly ease back like real paper instead of vanishing in a flicker.
+
 ## [1.14.2] - 2026-07-10
 ### Fixed
 - **Flutter 3.44+ Compatibility**: Replaced removed `RenderObject.needsPaint` with direct `toImageSync` call in snapshot refresh path (`pre_render_manager.dart`).

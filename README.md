@@ -50,7 +50,7 @@ Add `real_page_flip` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  real_page_flip: ^1.12.13
+  real_page_flip: ^1.15.0
 ```
 
 ## Quick Start
