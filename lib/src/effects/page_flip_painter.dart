@@ -569,7 +569,7 @@ class PageFlipPainter extends CustomPainter {
       final foldDarkenBlend =
           isPaperDark ? BlendMode.screen : BlendMode.multiply;
       final foldDarkenColor = isPaperDark ? Colors.white : Colors.black;
-      final foldShadow = (isPaperDark ? 0.03 : 0.08) * bendStrength;
+      final foldShadow = (isPaperDark ? 0.02 : 0.055) * bendStrength;
       final foldDarkenWidth = math
           .min(
             g.flapVisibleWidth,
