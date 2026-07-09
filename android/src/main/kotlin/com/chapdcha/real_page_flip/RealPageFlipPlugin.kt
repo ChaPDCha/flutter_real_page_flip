@@ -153,9 +153,13 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
             }
 
             try {
-                // Cancel previous waveform first so overlapping segments
-                // do not stack (which would produce a loud buzz).
-                vibrator?.cancel()
+                // Do NOT cancel() first. On the default vibrator a new
+                // vibrate() call already SUPERSEDES the current effect (it does
+                // not stack), so an explicit cancel only forces the motor to
+                // fully spin down and then ramp back up — an audible/tactile gap
+                // at every ~40 ms batch boundary. Letting the fresh waveform take
+                // over directly keeps the friction texture continuous, the
+                // Android counterpart to the iOS persistent-player fix.
                 vibrator?.vibrate(
                     VibrationEffect.createWaveform(timings, amplitudes, -1)
                 )

@@ -5,6 +5,11 @@ import CoreHaptics
 public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   private var hapticEngine: CHHapticEngine?
   private var _continuousPlayer: CHHapticAdvancedPatternPlayer?
+  // True once the persistent continuous player has been started for the current
+  // drag session. Kept alive across flushes so intensity/sharpness are streamed
+  // via dynamic parameters instead of stopping+recreating a player every ~40 ms
+  // (the old model, which left an audible/tactile gap at every batch boundary).
+  private var _continuousStarted = false
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "com.chapdcha.real_page_flip/haptics", binaryMessenger: registrar.messenger())
@@ -21,6 +26,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       hapticEngine?.resetHandler = { [weak self] in
         do { try self?.hapticEngine?.start() } catch { }
         self?._continuousPlayer = nil
+        self?._continuousStarted = false
       }
     } catch {
       print("Failed to start CoreHaptics engine: \(error)")
@@ -63,7 +69,8 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       let args = call.arguments as? [String: Any]
       let intensities = args?["intensities"] as? [Double] ?? []
       let totalDurationMs = args?["totalDurationMs"] as? Double ?? 0
-      playContinuousWaveform(intensities: intensities, totalDurationMs: totalDurationMs)
+      let sharpness = args?["sharpness"] as? Double ?? 0.45
+      playContinuousWaveform(intensities: intensities, totalDurationMs: totalDurationMs, sharpness: sharpness)
       result(nil)
 
     case "stopContinuous":
@@ -73,6 +80,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     case "cancel":
       _continuousPlayer?.stop(atTime: CHHapticTimeImmediate)
       _continuousPlayer = nil
+      _continuousStarted = false
       result(nil)
 
     default:
@@ -81,26 +89,67 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   // -----------------------------------------------------------------------
-  // MARK: - Continuous waveform (CoreHaptics parameter curve)
+  // MARK: - Continuous waveform (persistent player + dynamic parameters)
   // -----------------------------------------------------------------------
   //
-  // Instead of creating/destroying a new player per transient (the old
-  // model), this creates a CHHapticAdvancedPatternPlayer with a continuous
-  // event whose intensity is modulated by a CHHapticParameterCurve.
-  // Each flush from the Dart side (every ~40ms) stops the previous player
-  // and starts a new one with the latest amplitude curve — producing a
-  // seamless continuous vibration that feels like paper friction rather
-  // than discrete ticks.
+  // A single long-lived CHHapticAdvancedPatternPlayer is started once per drag
+  // session and then MODULATED in real time. Each ~40 ms flush from Dart:
+  //   • schedules a CHHapticParameterCurve on .hapticIntensityControl for the
+  //     upcoming segment (smooth intensity envelope between the 8 samples), and
+  //   • sends an immediate .hapticSharpnessControl dynamic parameter.
   //
-  // The base event is .hapticContinuous with a matched duration so the
-  // vibration stops cleanly if the next flush is delayed.
+  // Because the player is never stopped/recreated between flushes, there is no
+  // gap at batch boundaries — the vibration reads as one uninterrupted paper
+  // friction texture that tracks fingertip speed, instead of the "tick… tick…"
+  // of the old stop-and-restart model.
+  //
+  // NOTE: iOS-only path — verify on a physical device (CoreHaptics is a no-op
+  // in the simulator and unavailable on Windows/CI).
 
-  private func playContinuousWaveform(intensities: [Double], totalDurationMs: Double) {
+  /// Lazily creates and starts the persistent continuous player.
+  private func ensureContinuousPlayer(engine: CHHapticEngine) -> CHHapticAdvancedPatternPlayer? {
+    if let player = _continuousPlayer, _continuousStarted { return player }
+    do {
+      // Base continuous event at full intensity; the dynamic intensity CONTROL
+      // parameter (0…1, multiplies the base) does the real modulation. A long
+      // duration + looping keeps it alive for the whole drag; stopContinuous
+      // ends it. loopEnabled guards against a drag longer than `duration`.
+      let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0)
+      let sharpnessParam = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.45)
+      let event = CHHapticEvent(
+        eventType: .hapticContinuous,
+        parameters: [intensityParam, sharpnessParam],
+        relativeTime: 0,
+        duration: 30.0
+      )
+      let pattern = try CHHapticPattern(events: [event], parameters: [])
+      let player = try engine.createAdvancedPlayer(with: pattern)
+      player.loopEnabled = true
+      try engine.start()
+      try player.start(atTime: CHHapticTimeImmediate)
+      _continuousPlayer = player
+      _continuousStarted = true
+      return player
+    } catch {
+      _continuousPlayer = nil
+      _continuousStarted = false
+      return nil
+    }
+  }
+
+  private func playContinuousWaveform(intensities: [Double], totalDurationMs: Double, sharpness: Double) {
     guard let engine = hapticEngine,
           !intensities.isEmpty,
           totalDurationMs >= 4 else {
-      // Fallback: single light tap for very short segments.
       if intensities.contains(where: { $0 > 0.6 }) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+      }
+      return
+    }
+
+    guard let player = ensureContinuousPlayer(engine: engine) else {
+      let median = intensities.sorted()[intensities.count / 2]
+      if median > 0.6 {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
       }
       return
@@ -109,10 +158,8 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     let durationSec = Double(totalDurationMs) / 1000.0
     let sampleCount = intensities.count
     let perSampleSec = durationSec / Double(max(sampleCount, 1))
-    let lastIntensity = Float(intensities.last ?? 0.5)
 
-    // ── Build parameter curve control points ──
-    // Each sample becomes a control point at its relative time position.
+    // Intensity envelope for the upcoming segment (relative to "now").
     var controlPoints: [CHHapticParameterCurve.ControlPoint] = []
     for (i, amp) in intensities.enumerated() {
       let time = Double(i) * perSampleSec
@@ -121,58 +168,35 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
         CHHapticParameterCurve.ControlPoint(relativeTime: time, value: clampedAmp)
       )
     }
-
-    // ── Base continuous event ──
-    let intensityParam = CHHapticEventParameter(
-      parameterID: .hapticIntensity,
-      value: lastIntensity
-    )
-    let sharpnessParam = CHHapticEventParameter(
-      parameterID: .hapticSharpness,
-      value: 0.45  // moderate sharpness — paper-like, not buzz
-    )
-    let event = CHHapticEvent(
-      eventType: .hapticContinuous,
-      parameters: [intensityParam, sharpnessParam],
-      relativeTime: 0,
-      duration: TimeInterval(durationSec)
-    )
-
-    // ── Intensity curve modulates the continuous event ──
     let intensityCurve = CHHapticParameterCurve(
-      parameterID: .hapticIntensity,
+      parameterID: .hapticIntensityControl,
       controlPoints: controlPoints,
       relativeTime: 0
     )
 
     do {
-      // Stop the previous segment cleanly.
-      _continuousPlayer?.stop(atTime: CHHapticTimeImmediate)
-      _continuousPlayer = nil
-
-      let pattern = try CHHapticPattern(
-        events: [event],
-        parameterCurves: [intensityCurve]
+      try player.scheduleParameterCurve(intensityCurve, atTime: CHHapticTimeImmediate)
+      let sharpnessControl = CHHapticDynamicParameter(
+        parameterID: .hapticSharpnessControl,
+        value: Float(min(max(sharpness, 0.0), 1.0)),
+        relativeTime: 0
       )
-      let player = try engine.createAdvancedPlayer(with: pattern)
-      _continuousPlayer = player
-
-      // Schedule start with a tiny delay so the previous stop finishes.
-      try player.start(atTime: CHHapticTimeImmediate)
+      try player.sendParameters([sharpnessControl], atTime: CHHapticTimeImmediate)
     } catch {
+      // Drop the player so the next flush recreates it cleanly.
       _continuousPlayer = nil
-      // One-shot fallback using median intensity.
-      let median = intensities.sorted()[sampleCount / 2]
-      if median > 0.6 {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-      }
+      _continuousStarted = false
     }
   }
 
   private func stopContinuousHaptics() {
-    guard _continuousPlayer != nil else { return }
-    _continuousPlayer?.stop(atTime: CHHapticTimeImmediate)
+    guard let player = _continuousPlayer else {
+      _continuousStarted = false
+      return
+    }
+    try? player.stop(atTime: CHHapticTimeImmediate)
     _continuousPlayer = nil
+    _continuousStarted = false
   }
 
   // -----------------------------------------------------------------------
