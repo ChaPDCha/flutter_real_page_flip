@@ -1,3 +1,6 @@
+# Claude Code local settings (contains API keys)
+.claude/settings.local.json
+
 # Miscellaneous
 *.class
 *.log
