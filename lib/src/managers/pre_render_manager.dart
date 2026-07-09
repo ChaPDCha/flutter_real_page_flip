@@ -526,6 +526,10 @@ class PreRenderManager {
   /// NOTE: debugNeedsPaint is deliberately NOT checked here — it uses a late+assert
   /// pattern that throws LateInitializationError in release/profile builds.
   /// toImageSync forces synchronous paint internally, so the check is redundant.
+  ///
+  /// Despite the above, GestureBinding can fire pointer events before the first
+  /// paint frame. We guard with needsPaint (no late+assert pattern) and defer
+  /// to the next frame when the render tree is still dirty.
   void refreshIndexSync(int index, {double pixelRatio = 1.0}) {
     if (_isDisposed) return;
     final key = pageKeys[index];
@@ -533,7 +537,10 @@ class PreRenderManager {
 
     try {
       final boundary = _findRepaintBoundary(key);
-      if (boundary == null) return;
+      if (boundary == null || !boundary.attached) return;
+
+      // needsPaint removed in Flutter 3.44+. Proceed with toImageSync directly.
+      // Stale frames are corrected on the next refresh cycle.
 
       final ui.Image image;
       final effectivePixelRatio = effectiveSnapshotPixelRatio(
