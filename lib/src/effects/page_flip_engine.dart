@@ -590,6 +590,76 @@ Path buildCurvedFoldShadowPath(
   return path;
 }
 
+/// Local-space contact (ambient-occlusion) shadow just OUTSIDE the lifted free
+/// edge, following the same curved flap-edge bezier as the mesh.
+///
+/// A real lifted page edge is grounded onto the flat sheet beneath it by a
+/// thin, soft shadow on the far side of the edge (away from the fold). Drawing
+/// this inside the fold transform keeps the band parallel to the tilted edge.
+/// The outward direction is derived from [PageFlipGeometry.flapRightOfFold]:
+/// the shadow extends toward +X when the flap sits right of the fold, −X else.
+@visibleForTesting
+Path buildCurvedFreeEdgeShadowPath(
+  PageFlipGeometry geo, {
+  required double shadowWidth,
+  double edgeBleedPx = kSpineRevealOverlapPx,
+}) {
+  final height = geo.size.height;
+  if (height <= 0 || shadowWidth <= 0) return Path();
+
+  final topY = -height;
+  final midY = height / 2;
+  final bottomY = height * 2;
+  // Outward = away from the flap interior (fold). Same side the free edge sits
+  // on relative to the fold.
+  final outwardSign = geo.flapRightOfFold ? 1.0 : -1.0;
+  // Small inward bleed so the band tucks under the flap's anti-aliased edge
+  // instead of leaving a hairline gap on the page beneath.
+  final innerShift = -outwardSign * edgeBleedPx;
+  final outerShift = outwardSign * shadowWidth;
+
+  Offset point(double shift, double y) => Offset(geo.freeEdgeX + shift, y);
+  Offset control(double shift) =>
+      Offset(geo.freeEdgeX - geo.curveOffset + shift, midY);
+
+  final outerTop = point(outerShift, topY);
+  final path = Path()..moveTo(outerTop.dx, outerTop.dy);
+
+  if (geo.curvatureAmount > 0.001) {
+    final outerControl = control(outerShift);
+    final outerBottom = point(outerShift, bottomY);
+    path.quadraticBezierTo(
+      outerControl.dx,
+      outerControl.dy,
+      outerBottom.dx,
+      outerBottom.dy,
+    );
+  } else {
+    final outerBottom = point(outerShift, bottomY);
+    path.lineTo(outerBottom.dx, outerBottom.dy);
+  }
+
+  final innerBottom = point(innerShift, bottomY);
+  path.lineTo(innerBottom.dx, innerBottom.dy);
+
+  if (geo.curvatureAmount > 0.001) {
+    final innerControl = control(innerShift);
+    final innerTop = point(innerShift, topY);
+    path.quadraticBezierTo(
+      innerControl.dx,
+      innerControl.dy,
+      innerTop.dx,
+      innerTop.dy,
+    );
+  } else {
+    final innerTop = point(innerShift, topY);
+    path.lineTo(innerTop.dx, innerTop.dy);
+  }
+
+  path.close();
+  return path;
+}
+
 /// Local-space flap region clip used by [PageFlipPainter] (matches fold seam).
 @visibleForTesting
 Path buildFlapClipPathLocal(

@@ -456,6 +456,12 @@ class PageFlipPainter extends CustomPainter {
           flapHighlightPeakBase(isPaperDark: isPaperDark) * bendStrength;
       final highlightMid =
           flapHighlightMidBase(isPaperDark: isPaperDark) * bendStrength;
+      // Curl highlight centred on the bulge: darker at BOTH the free edge and
+      // the fold, brightest in the middle — physically how a curved page
+      // catches light. Kept away from the fold (transparent by 78%) so it never
+      // brightens the crease region; the crease darkening below then reads as
+      // one clean valley with no bright sliver ("blade") between the highlight
+      // and the crease shadow.
       canvas.drawRect(
         flapPaintRect,
         Paint()
@@ -469,9 +475,37 @@ class PageFlipPainter extends CustomPainter {
               highlightTone.withValues(alpha: highlightMid),
               Colors.transparent,
             ],
-            stops: const [0.0, 0.40, 0.72, 1.0],
+            stops: const [0.0, 0.38, 0.60, 0.78],
           ).createShader(flapPaintRect),
       );
+
+      // Cylinder curl shading (HIGH profile only): the free-edge half of the
+      // flap curls away from the light, so it falls into a soft terminator
+      // shadow while the bulge stays lit. This is the single extra gradient
+      // that turns the flat-lit flap into a rounded cylinder — one drawRect,
+      // still 2.5D. Concentrated on the free-edge side and transparent by the
+      // centre so it never darkens (thickens) the fold crease.
+      if (performanceProfile == DevicePerformanceProfile.high) {
+        final cylinderColor = isPaperDark ? Colors.white : Colors.black;
+        final cylinderBlend =
+            isPaperDark ? BlendMode.screen : BlendMode.multiply;
+        final cylinderAlpha = (isPaperDark ? 0.05 : 0.08) * bendStrength;
+        canvas.drawRect(
+          flapPaintRect,
+          Paint()
+            ..blendMode = cylinderBlend
+            ..shader = LinearGradient(
+              begin: freeAlign,
+              end: foldAlign,
+              colors: [
+                cylinderColor.withValues(alpha: cylinderAlpha),
+                Colors.transparent,
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.45, 1.0],
+            ).createShader(flapPaintRect),
+        );
+      }
     }
 
     // Edge / fold masks: hide stray, crushed texture fragments at the flap's
@@ -518,6 +552,41 @@ class PageFlipPainter extends CustomPainter {
       );
     }
 
+    // Free-edge highlight: a thin bright line right on the lifted edge, as the
+    // rounded paper edge catches ambient light. Together with the contact
+    // shadow below it sells the "lifted 3D edge" read instead of a flat cut.
+    // Matte and low-alpha (screen) so it never looks glassy; skipped on low.
+    if (g.shadowIntensity > 0.02 &&
+        performanceProfile != DevicePerformanceProfile.low) {
+      final edgeHighlightWidth = math.min(
+        g.flapVisibleWidth,
+        (isPaperDark ? 2.0 : 2.5) * (devicePixelRatio >= 2.0 ? 1.25 : 1.0),
+      );
+      final edgeHighlightPath = buildCurvedFlapBoundaryStripPath(
+        g,
+        atFold: false,
+        width: edgeHighlightWidth,
+      );
+      final edgeHighlightBounds = edgeHighlightPath.getBounds();
+      if (!edgeHighlightBounds.isEmpty) {
+        final highlightTone = flapHighlightTone(isPaperDark: isPaperDark);
+        final highlightAlpha = (isPaperDark ? 0.10 : 0.16) * g.shadowIntensity;
+        canvas.drawPath(
+          edgeHighlightPath,
+          Paint()
+            ..blendMode = BlendMode.screen
+            ..shader = LinearGradient(
+              begin: edgeFadeBegin,
+              end: edgeFadeEnd,
+              colors: [
+                highlightTone.withValues(alpha: highlightAlpha),
+                Colors.transparent,
+              ],
+            ).createShader(edgeHighlightBounds),
+        );
+      }
+    }
+
     // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
     // As the flap narrows near the fold line, texture pixels compress and
     // create visible fragments. This narrow gradient from paperBackColor →
@@ -551,29 +620,32 @@ class PageFlipPainter extends CustomPainter {
       );
     }
 
-    // Fold-edge darkening — drawn LAST so the edge-fade / fold-fade paper masks
-    // (which paint bright paper over the crease to hide crushed texture) do not
-    // overwrite it. Drawing it before those masks left a bright sliver right at
-    // the fold: at an angle that sliver became a diagonal "blade" between the
-    // flap's crease shadow and the revealed-page shadow. Keeping it on top makes
-    // the crease one continuous dark line at every fold angle.
+    // Fold-crease accent (flap side) — a NARROW hairline right at the crease,
+    // NOT a wide band. Previously this darkening spread across 30% of the flap
+    // width, and the revealed-page drop shadow added a second wide band on the
+    // other side of the fold; together they read as one thick dark line (the
+    // "cartoon outline" the user reported). The crease is now modelled as ONE
+    // soft valley: a thin accent on the flap side here + the eased revealed-side
+    // valley below. Drawn LAST so the paper masks above do not overwrite it.
     if (bendStrength > 0.005 &&
         performanceProfile != DevicePerformanceProfile.low) {
       final foldDarkenAlign =
           g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
       final freeDarkenAlign =
           g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-      // Softer, wider crease darkening: a lower peak spread over a larger
-      // falloff reads as gentle paper shading near the fold instead of a hard
-      // dark stroke (the "cartoon outline").
       final foldDarkenBlend =
           isPaperDark ? BlendMode.screen : BlendMode.multiply;
       final foldDarkenColor = isPaperDark ? Colors.white : Colors.black;
-      final foldShadow = (isPaperDark ? 0.02 : 0.055) * bendStrength;
+      final foldShadow = (isPaperDark ? 0.02 : 0.05) * bendStrength;
+      // Cover the fold-side region where the curl highlight fades out so the
+      // crease reads as one soft valley instead of leaving a bright sliver
+      // between the highlight and the crease shadow. Low alpha keeps it a gentle
+      // shade, not the old wide dark band; the revealed valley below is already
+      // narrow+eased so the total crease stays thin.
       final foldDarkenWidth = math
           .min(
             g.flapVisibleWidth,
-            math.max(foldFadeWidth, g.flapVisibleWidth * 0.30),
+            math.max(foldFadeWidth * 1.5, g.flapVisibleWidth * 0.28),
           )
           .toDouble();
       final foldDarkenPath = buildCurvedFlapBoundaryStripPath(
@@ -622,7 +694,10 @@ class PageFlipPainter extends CustomPainter {
     canvas.clipPath(shadowClipPath);
     canvas.transform(g.transform.storage);
 
-    final shadowWidth = _kRevealedShadowWidth * g.shadowIntensity;
+    // Single unified crease valley: darkest right at the fold, feathering out
+    // across the revealed page. Narrower than the layout guard and eased with
+    // [_kCreaseValleyStops] so it reads as one soft fold, not a hard stroke.
+    final shadowWidth = _kCreaseShadowWidth * g.shadowIntensity;
     final revealedAlpha = (isPaperDark ? 0.08 : 0.15) * g.shadowIntensity;
     if (revealedAlpha > 0.01 && shadowWidth > 1) {
       // Follow the same curved fold boundary as the flap. A straight shadow
@@ -649,7 +724,8 @@ class PageFlipPainter extends CustomPainter {
           Paint()..color = shadowColor.withValues(alpha: revealedAlpha * 0.42),
         );
       } else {
-        // Inner stronger drop shadow
+        // Inner drop shadow with an eased toe (3-stop) so the crease has no
+        // hard edge where it meets the fold line.
         canvas.drawPath(
           shadowPath,
           Paint()
@@ -658,20 +734,22 @@ class PageFlipPainter extends CustomPainter {
               end: endAlign,
               colors: [
                 shadowColor.withValues(alpha: revealedAlpha),
+                shadowColor.withValues(alpha: revealedAlpha * 0.45),
                 Colors.transparent,
               ],
-              stops: const [0.0, 1.0],
+              stops: _kCreaseValleyStops,
             ).createShader(shadowBounds),
         );
 
-        // Outer softer ambient band for natural falloff
-        final ambientWidth = shadowWidth * 1.6;
+        // Outer softer ambient band for natural falloff — the wide, low-alpha
+        // continuation of the SAME valley (not a second competing band).
+        final ambientWidth = shadowWidth * 1.8;
         final ambientPath = buildCurvedFoldShadowPath(
           g,
           isForward: isForward,
           shadowWidth: ambientWidth,
         );
-        final ambientAlpha = (isPaperDark ? 0.025 : 0.04) * g.shadowIntensity;
+        final ambientAlpha = (isPaperDark ? 0.02 : 0.035) * g.shadowIntensity;
         canvas.drawPath(
           ambientPath,
           Paint()
@@ -687,7 +765,61 @@ class PageFlipPainter extends CustomPainter {
         );
       }
     }
+
     canvas.restore();
+
+    // Free-edge contact shadow (ambient occlusion): grounds the lifted edge onto
+    // the flat page beneath it. Without this the flap reads as a flat sticker
+    // with a knife-cut border; a thin soft shadow just OUTSIDE the free edge
+    // makes the paper look genuinely lifted. Drawn in its OWN save with the fold
+    // transform (so the band stays parallel to the tilted edge) and clipped to
+    // the OUTWARD side of the fold — the opposite side from the revealed crease
+    // shadow — so it lands on the page beneath the lifted edge, not on the flap.
+    if (g.shadowIntensity > 0.02 &&
+        performanceProfile != DevicePerformanceProfile.low &&
+        g.flapVisibleWidth > 4) {
+      final contactWidth = _kFreeEdgeShadowWidth * g.shadowIntensity;
+      final contactAlpha = (isPaperDark ? 0.05 : 0.10) * g.shadowIntensity;
+      if (contactAlpha > 0.008 && contactWidth > 0.5) {
+        final contactPath = buildCurvedFreeEdgeShadowPath(
+          g,
+          shadowWidth: contactWidth,
+        );
+        final contactBounds = contactPath.getBounds();
+        if (!contactBounds.isEmpty) {
+          canvas.save();
+          // Outward side = opposite of the revealed-crease clip.
+          final contactClip = isForward
+              ? buildStationaryPageClipPath(size, g)
+              : buildOpenPageClipPath(size, g);
+          canvas.clipPath(contactClip);
+          canvas.transform(g.transform.storage);
+
+          // Gradient darkest at the edge, fading outward across the page.
+          final begin =
+              g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+          final end =
+              g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
+          final contactColor = isPaperDark ? Colors.white : Colors.black;
+          final contactBlend =
+              isPaperDark ? BlendMode.screen : BlendMode.multiply;
+          canvas.drawPath(
+            contactPath,
+            Paint()
+              ..blendMode = contactBlend
+              ..shader = LinearGradient(
+                begin: begin,
+                end: end,
+                colors: [
+                  contactColor.withValues(alpha: contactAlpha),
+                  Colors.transparent,
+                ],
+              ).createShader(contactBounds),
+          );
+          canvas.restore();
+        }
+      }
+    }
 
     // Stationary Page Shadow (double-spread only; single-page stationary layer is
     // left of the fold and must not receive transformed shadows from the flip side).

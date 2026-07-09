@@ -29,10 +29,37 @@ const double _kFlapWidthBase = 1;
 const double _kFlapWidthModulation = 0.30;
 
 /// Maximum width (px) of the drop shadow cast by the revealed (new) page.
+///
+/// This is the *layout guard* value: [conservativeFoldAngleLimit] reserves this
+/// much room on each side of the fold so no shadow band overflows the page.
+/// The actual painted crease shadow is narrower ([_kCreaseShadowWidth]); the
+/// guard stays generous so the tighter visual band always has headroom.
 const double _kRevealedShadowWidth = 36;
 
 /// Maximum width (px) of the shadow on the stationary page edge.
 const double _kStationaryShadowWidth = 14;
+
+/// Painted width (px) of the single unified crease shadow valley at the fold.
+///
+/// The crease is modelled as ONE soft valley centred on the fold line rather
+/// than two competing dark bands (a flap-side darkening plus a revealed-side
+/// drop shadow) that visually stacked into one thick line. Narrower than the
+/// [_kRevealedShadowWidth] layout guard so the valley reads as a gentle
+/// crease, not a hard stroke.
+const double _kCreaseShadowWidth = 22;
+
+/// Painted width (px) of the contact (ambient-occlusion) shadow just outside
+/// the lifted free edge.
+///
+/// A real lifted page edge is grounded onto the sheet beneath it by a thin,
+/// soft contact shadow. Without it the flap reads as a flat sticker with a
+/// knife-cut border. Kept narrow so it grounds the edge without a visible band.
+const double _kFreeEdgeShadowWidth = 10;
+
+/// Eased gradient stops for the crease valley (paper darkest at the fold,
+/// feathering out). Replaces the hard `[0.0, 1.0]` ramp whose abrupt toe made
+/// the crease look like a drawn line instead of a soft fold.
+const List<double> _kCreaseValleyStops = [0.0, 0.32, 1.0];
 
 /// Pre-computed identity matrix storage for [ui.ImageShader] transforms.
 /// Avoids allocating a new [Matrix4] + extracting storage every paint frame.

@@ -120,6 +120,104 @@ void main() {
     });
   });
 
+  group('curved free-edge contact shadow', () {
+    test(
+        'forward: shadow extends OUTWARD (left) of the free edge, not '
+        'onto the flap', () {
+      // Forward: flapRightOfFold=false → free edge sits LEFT of foldX, flap
+      // interior is to its right. Contact shadow must ground the lifted edge
+      // by extending further LEFT (outward), never bleeding right into the
+      // flap's own paint area.
+      final g = geo(progress: 0.5, isDoubleSpread: false);
+      const shadowWidth = 10.0;
+      final path = buildCurvedFreeEdgeShadowPath(g, shadowWidth: shadowWidth);
+      final midY = g.size.height / 2;
+      final edgeAtMid = flapEdgeCurveXAt(g, midY);
+
+      expect(
+        path.contains(Offset(edgeAtMid - 1, midY)),
+        isTrue,
+        reason: 'Shadow should cover just outside (left of) the free edge',
+      );
+      expect(
+        path.contains(Offset(edgeAtMid + kSpineRevealOverlapPx + 2, midY)),
+        isFalse,
+        reason: 'Shadow must not bleed onto the flap side of the free edge',
+      );
+      expect(
+        path.contains(Offset(edgeAtMid - shadowWidth - 2, midY)),
+        isFalse,
+        reason: 'Shadow must not extend past its declared width',
+      );
+    });
+
+    test('backward: shadow extends OUTWARD (right) of the free edge', () {
+      // Backward: flapRightOfFold=true → free edge sits RIGHT of foldX, flap
+      // interior is to its left. Contact shadow must extend further RIGHT.
+      final g = geo(progress: 0.5, isDoubleSpread: false, isForward: false);
+      const shadowWidth = 10.0;
+      final path = buildCurvedFreeEdgeShadowPath(g, shadowWidth: shadowWidth);
+      final midY = g.size.height / 2;
+      final edgeAtMid = flapEdgeCurveXAt(g, midY);
+
+      expect(path.contains(Offset(edgeAtMid + 1, midY)), isTrue);
+      expect(
+        path.contains(Offset(edgeAtMid - kSpineRevealOverlapPx - 2, midY)),
+        isFalse,
+      );
+      expect(path.contains(Offset(edgeAtMid + shadowWidth + 2, midY)), isFalse);
+    });
+
+    test('zero shadow width returns an empty path (no degenerate draw)', () {
+      final g = geo(progress: 0.5, isDoubleSpread: false);
+      final path = buildCurvedFreeEdgeShadowPath(g, shadowWidth: 0);
+      expect(path.getBounds().isEmpty, isTrue);
+    });
+
+    test('negative shadow width returns an empty path', () {
+      final g = geo(progress: 0.5, isDoubleSpread: false);
+      final path = buildCurvedFreeEdgeShadowPath(g, shadowWidth: -5);
+      expect(path.getBounds().isEmpty, isTrue);
+    });
+
+    test('zero-height viewport returns an empty path (no NaN/Infinity)', () {
+      final g = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        size: const Size(400, 0),
+      );
+      final path = buildCurvedFreeEdgeShadowPath(g, shadowWidth: 10);
+      expect(path.getBounds().isEmpty, isTrue);
+    });
+
+    test('double-spread forward hugs the free edge on the correct side', () {
+      // Same geometric contract must hold in double-spread, not just single.
+      final g = geo(progress: 0.5);
+      const shadowWidth = 10.0;
+      final path = buildCurvedFreeEdgeShadowPath(g, shadowWidth: shadowWidth);
+      final midY = g.size.height / 2;
+      final edgeAtMid = flapEdgeCurveXAt(g, midY);
+
+      expect(path.contains(Offset(edgeAtMid - 1, midY)), isTrue);
+      expect(path.contains(Offset(edgeAtMid + shadowWidth + 2, midY)), isFalse);
+    });
+
+    test('path bounds stay finite at extreme angled touch (no NaN)', () {
+      final g = geo(
+        progress: 0.5,
+        isDoubleSpread: false,
+        touchOffset: const Offset(0, -100000),
+      );
+      final path = buildCurvedFreeEdgeShadowPath(g, shadowWidth: 10);
+      final bounds = path.getBounds();
+      expect(bounds.left.isFinite, isTrue);
+      expect(bounds.top.isFinite, isTrue);
+      expect(bounds.right.isFinite, isTrue);
+      expect(bounds.bottom.isFinite, isTrue);
+    });
+  });
+
   group('clippers delegate to shared builders', () {
     test('PageFlipClipper matches buildStationaryPageClipPath', () {
       final g = geo(progress: 0.85);

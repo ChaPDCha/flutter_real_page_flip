@@ -488,6 +488,153 @@ void main() {
       expect(hasWhiteGlow, isTrue);
     });
 
+    // ── Free-edge contact shadow (ambient occlusion) ───────────
+
+    test(
+        'free-edge contact shadow adds one clipPath+transform on medium '
+        'profile', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        // Default profile is medium; kept implicit to avoid the redundant-arg lint.
+      ).paint(canvas, size);
+
+      // Single-page: flap clip + revealed-crease clip + free-edge contact
+      // clip = 3. Matching transform count (each clip pairs with one
+      // canvas.transform(fold) call).
+      expect(canvas.clipPathCount, equals(3));
+      final transformCount =
+          canvas.records.where((r) => r.method == 'transform').length;
+      expect(transformCount, equals(3));
+    });
+
+    test('free-edge contact shadow is OMITTED on low profile', () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        performanceProfile: DevicePerformanceProfile.low,
+      ).paint(canvas, size);
+
+      // Low profile: only flap clip + revealed-crease clip = 2. No contact
+      // shadow save/clip/transform block should be emitted.
+      expect(
+        canvas.clipPathCount,
+        equals(2),
+        reason: 'Low profile must skip the free-edge contact shadow entirely '
+            'to stay on the cheap rendering path',
+      );
+      final transformCount =
+          canvas.records.where((r) => r.method == 'transform').length;
+      expect(transformCount, equals(2));
+    });
+
+    test('free-edge edge highlight is OMITTED on low profile', () {
+      // The edge highlight shares the same low-profile gate as the contact
+      // shadow. Verify by comparing total shaded drawPath count between low
+      // and medium at an identical progress/touch — medium must draw MORE.
+      final lowCanvas = RecordingCanvas();
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        performanceProfile: DevicePerformanceProfile.low,
+      ).paint(lowCanvas, size);
+
+      final mediumCanvas = RecordingCanvas();
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+      ).paint(mediumCanvas, size);
+
+      expect(
+        mediumCanvas.drawPathCount,
+        greaterThan(lowCanvas.drawPathCount),
+        reason: 'Medium profile draws extra gradient paths (crease darkening, '
+            'edge highlight, contact shadow) that low profile must skip',
+      );
+    });
+
+    // ── Cylinder curl lighting (HIGH profile only) ─────────────
+
+    test(
+        'cylinder curl shading draws an extra gradient rect on HIGH profile '
+        'only', () {
+      int shadedRectCount(RecordingCanvas c) => c.records
+          .where(
+            (r) =>
+                r.method == 'drawRect' && (r.args[1]! as Paint).shader != null,
+          )
+          .length;
+
+      final mediumCanvas = RecordingCanvas();
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+      ).paint(mediumCanvas, size);
+
+      final highCanvas = RecordingCanvas();
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        performanceProfile: DevicePerformanceProfile.high,
+      ).paint(highCanvas, size);
+
+      // High profile adds exactly one extra shaded drawRect (the cylinder
+      // terminator-shading gradient) versus medium, at identical geometry.
+      expect(
+        shadedRectCount(highCanvas),
+        equals(shadedRectCount(mediumCanvas) + 1),
+        reason: 'High profile should draw exactly one additional shaded rect '
+            '(cylinder curl shading) versus medium',
+      );
+    });
+
+    test('cylinder curl shading never fires when bend strength is near zero',
+        () {
+      // progress=0.0015 sits just ABOVE kFlipProgressEpsilon (0.001) so the
+      // painter still runs its full body, but shadowIntensity/bendStrength =
+      // sin(0.0015π) ≈ 0.0047, just BELOW the shared `bendStrength > 0.005`
+      // guard. Even on HIGH profile, the cylinder gradient (and every other
+      // bend-linked draw) must stay silent — the guard, not the profile,
+      // gates it here.
+      final canvas = RecordingCanvas();
+      PageFlipPainter(
+        progress: 0.0015,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        performanceProfile: DevicePerformanceProfile.high,
+      ).paint(canvas, size);
+
+      // Paper-back underlay is a solid (unshaded) drawRect; any SHADED
+      // drawRect at this progress would have to come from a bend-linked
+      // effect (highlight or cylinder), both gated on the same threshold.
+      final shadedRects = canvas.records.where(
+        (r) => r.method == 'drawRect' && (r.args[1]! as Paint).shader != null,
+      );
+      expect(
+        shadedRects.length,
+        equals(0),
+        reason: 'No bend-linked gradient rect (highlight or cylinder) should '
+            'draw while bendStrength is below its 0.005 guard',
+      );
+    });
+
     test(
         'revealed shadow is drawn in the fold-aligned transform (single-page, '
         'angled touch) so it hugs the tilted crease', () {
@@ -504,7 +651,8 @@ void main() {
         paperBackColor: Colors.white,
       ).paint(canvas, size);
 
-      // Single-page: flap transform (1) + revealed-shadow transform (2).
+      // Single-page: flap transform (1) + revealed-shadow transform (2) +
+      // free-edge contact-shadow transform (3).
       final transformIdxs = <int>[];
       for (var i = 0; i < canvas.records.length; i++) {
         if (canvas.records[i].method == 'transform') transformIdxs.add(i);
@@ -514,8 +662,9 @@ void main() {
 
       expect(
         transformIdxs.length,
-        equals(2),
-        reason: 'Flap and revealed shadow must each apply the fold transform',
+        equals(3),
+        reason: 'Flap, revealed shadow, and free-edge contact shadow each '
+            'apply the fold transform',
       );
       expect(
         transformIdxs.last,
@@ -605,14 +754,15 @@ void main() {
         isDoubleSpread: true,
       ).paint(canvas, size);
 
-      // Revealed + stationary: clipPath before transform; spine: clipRect.
-      expect(canvas.clipPathCount, greaterThanOrEqualTo(3));
+      // Revealed + stationary + contact: clipPath before transform; spine: clipRect.
+      expect(canvas.clipPathCount, greaterThanOrEqualTo(4));
       final transformCount =
           canvas.records.where((r) => r.method == 'transform').length;
       expect(
         transformCount,
-        equals(3),
-        reason: 'Flap + revealed + stationary shadow each use one transform',
+        equals(4),
+        reason: 'Flap + revealed + stationary + free-edge contact shadow each '
+            'use one transform',
       );
     });
 
@@ -691,8 +841,9 @@ void main() {
 
       expect(
         canvas.clipPathCount,
-        equals(2),
-        reason: 'One clipPath for flap, one for shadow',
+        equals(3),
+        reason: 'One clipPath for flap, one for revealed crease shadow, one '
+            'for the free-edge contact shadow',
       );
     });
 
@@ -931,7 +1082,8 @@ void main() {
 
       // isRightToLeft = false → stationary shadow skipped (requires true).
       // Spine: isDoubleSpread && progress > 0 → true, but NOT gated on isRightToLeft.
-      expect(canvas.clipPathCount, equals(2));
+      // clipPaths: flap + revealed crease + free-edge contact = 3.
+      expect(canvas.clipPathCount, equals(3));
       // save/restore balanced
       expect(canvas.saveCount, equals(canvas.restoreCount));
       // Spine uses BlendMode.multiply
@@ -956,8 +1108,9 @@ void main() {
         isForward: false,
       ).paint(canvas, size);
 
-      // isRightToLeft && isDoubleSpread → stationary shadow IS drawn
-      expect(canvas.clipPathCount, equals(3));
+      // isRightToLeft && isDoubleSpread → stationary shadow IS drawn.
+      // clipPaths: flap + revealed crease + free-edge contact + stationary = 4.
+      expect(canvas.clipPathCount, equals(4));
       expect(canvas.saveCount, equals(canvas.restoreCount));
       expect(
         canvas.hasDrawRectWith(blendMode: BlendMode.multiply, hasShader: true),
@@ -1089,6 +1242,88 @@ void main() {
       expect(fwdCanvas.saveCount, equals(bwdCanvas.saveCount));
       expect(fwdCanvas.restoreCount, equals(bwdCanvas.restoreCount));
       expect(fwdCanvas.clipPathCount, equals(bwdCanvas.clipPathCount));
+    });
+  });
+
+  group('PageFlipPainter paint — degenerate sizes (no throw / no NaN)', () {
+    // These exercise paint() itself (not just PageFlipGeometry) at sizes
+    // where the new free-edge contact shadow / cylinder shading code paths
+    // could divide by a near-zero dimension. Every profile is checked since
+    // the new effects are profile-gated and must all degrade safely.
+    for (final profile in DevicePerformanceProfile.values) {
+      test('zero-size canvas does not throw ($profile)', () {
+        final canvas = RecordingCanvas();
+        expect(
+          () => PageFlipPainter(
+            progress: 0.5,
+            isRightToLeft: true,
+            touchOffset: Offset.zero,
+            paperBackColor: Colors.white,
+            performanceProfile: profile,
+          ).paint(canvas, Size.zero),
+          returnsNormally,
+        );
+      });
+
+      test('near-zero canvas (0.001 x 0.001) does not throw ($profile)', () {
+        final canvas = RecordingCanvas();
+        expect(
+          () => PageFlipPainter(
+            progress: 0.5,
+            isRightToLeft: true,
+            touchOffset: Offset.zero,
+            paperBackColor: Colors.white,
+            performanceProfile: profile,
+          ).paint(canvas, const Size(0.001, 0.001)),
+          returnsNormally,
+        );
+      });
+
+      test('zero-height canvas does not throw ($profile)', () {
+        final canvas = RecordingCanvas();
+        expect(
+          () => PageFlipPainter(
+            progress: 0.5,
+            isRightToLeft: true,
+            touchOffset: Offset.zero,
+            paperBackColor: Colors.white,
+            performanceProfile: profile,
+          ).paint(canvas, const Size(800, 0)),
+          returnsNormally,
+        );
+      });
+    }
+
+    test('extreme angled touch at high profile produces finite paint data', () {
+      final canvas = RecordingCanvas();
+      const size = Size(800, 600);
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(0, -1000000),
+        paperBackColor: Colors.white,
+        performanceProfile: DevicePerformanceProfile.high,
+      ).paint(canvas, size);
+
+      // Every recorded Rect/Path bounds must be finite — a NaN anywhere in the
+      // new cylinder/contact-shadow gradients would otherwise silently paint
+      // nothing (or crash on some backends) without any test noticing.
+      for (final r in canvas.records) {
+        if (r.method == 'drawRect') {
+          final rect = r.args[0]! as Rect;
+          expect(rect.left.isFinite, isTrue);
+          expect(rect.top.isFinite, isTrue);
+          expect(rect.right.isFinite, isTrue);
+          expect(rect.bottom.isFinite, isTrue);
+        } else if (r.method == 'drawPath') {
+          final bounds = (r.args[0]! as Path).getBounds();
+          if (bounds.isEmpty) continue;
+          expect(bounds.left.isFinite, isTrue);
+          expect(bounds.top.isFinite, isTrue);
+          expect(bounds.right.isFinite, isTrue);
+          expect(bounds.bottom.isFinite, isTrue);
+        }
+      }
     });
   });
 }
