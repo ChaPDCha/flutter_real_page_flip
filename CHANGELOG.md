@@ -3,6 +3,10 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.15.1] - 2026-07-10
+### Changed
+- **Analyzer Cleanup**: Fixed 11 pre-existing `flutter analyze` info-level lints (unresolvable Dartdoc `[Name]` references to native Swift/Kotlin types, two intentionally-broad `catch` blocks missing an `on` clause, and `double` literals that should be `int`) that were failing CI on every push. No functional changes.
+
 ## [1.15.0] - 2026-07-10
 ### Added
 - **Free-Edge Contact Shadow & Highlight**: The flap's lifted free edge now casts a soft ambient-occlusion shadow onto the page beneath it and catches a thin light highlight, so a mid-flip page reads as physically lifted paper instead of a flat, knife-cut sticker. New `buildCurvedFreeEdgeShadowPath` geometry helper (single- and double-spread).
