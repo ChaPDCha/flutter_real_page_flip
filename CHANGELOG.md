@@ -3,6 +3,17 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.16.0] - 2026-07-10
+### Changed
+- **True 2.5D Verso Repagination for Double Spreads**: The turning leaf now maps a progress-sized strip from the physically correct adjacent-spread page onto one curved mesh. Forward turns show the next spread's left page from the first lifted pixel through landing; backward turns show the previous spread's right page as the exact mirrored time-reverse.
+- **Continuous Opaque Compositing**: Removed the double-spread destination fade gate and the forward-only half-spread middle clip, eliminating the uncovered mid-flip background hole and settle content-swap pop.
+- **Lower Per-Frame Cost**: Removed the optional mirrored ghost back mesh and its snapshot lookup, removed one forward middle clip, and retained a single mesh plus existing affine transform, clips, crease/contact shadows, cylinder lighting, and gradients.
+- **Compatibility Controls**: `flapBackStrength` and `doubleSpreadMidFoldBleed` remain in the public configuration API but are now no-ops because the real verso is always rendered directly and fully opaque.
+
+### Tests
+- Added direction/progress/boundary coverage for verso source strips, pixel-level forward/backward checks at progress 0.3/0.6/0.9 for opaque coverage and correct destination/verso colors, a near-settle continuity threshold at progress 0.97, and four double-spread goldens at progress 0.50/0.85.
+- Preserved the single-page rendering path and verified the complete 1,012-test suite, including existing blade and gradient-halo regressions.
+
 ## [1.15.2] - 2026-07-10
 ### Fixed
 - **Dark Pillars at Flap Boundaries**: Every gradient in `PageFlipPainter` that faded to `Colors.transparent` (transparent BLACK) painted a semi-opaque dark-gray halo mid-ramp, because Flutter lerps RGB toward black as alpha falls. On light paper this rendered as two hard dark vertical "pillars" hugging the flap's free edge and fold line (measured 25–35% darkening where at most ~15% intended shading exists), and the false lines sat a few pixels inside the real content boundaries — reading as misaligned layer seams. All gradient endpoints now fade to the same hue at alpha 0. Adds a pixel-measuring regression test that renders a flip over plain paper across all performance profiles and fails if any pixel drops below the darkest intended shading.
