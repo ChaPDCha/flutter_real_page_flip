@@ -466,14 +466,18 @@ class PageFlipPainter extends CustomPainter {
         flapPaintRect,
         Paint()
           ..blendMode = BlendMode.screen
+          // NOTE: gradient endpoints fade to the SAME hue at alpha 0, never
+          // Colors.transparent (transparent BLACK): Flutter lerps RGB toward
+          // black as alpha falls, which painted a dark halo mid-ramp — the
+          // "two dark pillars" artifact at the flap boundaries on light paper.
           ..shader = LinearGradient(
             begin: freeAlign,
             end: foldAlign,
             colors: [
-              Colors.transparent,
+              highlightTone.withValues(alpha: 0),
               highlightTone.withValues(alpha: highlightPeak),
               highlightTone.withValues(alpha: highlightMid),
-              Colors.transparent,
+              highlightTone.withValues(alpha: 0),
             ],
             stops: const [0.0, 0.38, 0.60, 0.78],
           ).createShader(flapPaintRect),
@@ -499,8 +503,8 @@ class PageFlipPainter extends CustomPainter {
               end: foldAlign,
               colors: [
                 cylinderColor.withValues(alpha: cylinderAlpha),
-                Colors.transparent,
-                Colors.transparent,
+                cylinderColor.withValues(alpha: 0),
+                cylinderColor.withValues(alpha: 0),
               ],
               stops: const [0.0, 0.45, 1.0],
             ).createShader(flapPaintRect),
@@ -541,12 +545,15 @@ class PageFlipPainter extends CustomPainter {
       canvas.drawPath(
         edgeFadePath,
         Paint()
+          // Fade to transparent PAPER, not Colors.transparent (transparent
+          // black), or the ramp's midpoint darkens toward black — this exact
+          // mask painted the dark pillar at the free edge on light paper.
           ..shader = LinearGradient(
             begin: edgeFadeBegin,
             end: edgeFadeEnd,
             colors: [
               paperBackColor.withValues(alpha: maskPeak),
-              Colors.transparent,
+              paperBackColor.withValues(alpha: 0),
             ],
           ).createShader(edgeFadeBounds),
       );
@@ -580,7 +587,7 @@ class PageFlipPainter extends CustomPainter {
               end: edgeFadeEnd,
               colors: [
                 highlightTone.withValues(alpha: highlightAlpha),
-                Colors.transparent,
+                highlightTone.withValues(alpha: 0),
               ],
             ).createShader(edgeHighlightBounds),
         );
@@ -609,12 +616,14 @@ class PageFlipPainter extends CustomPainter {
       canvas.drawPath(
         foldFadePath,
         Paint()
+          // Transparent PAPER endpoint (see edge-fade note): this mask's
+          // black-endpoint ramp painted the dark pillar at the fold line.
           ..shader = LinearGradient(
             begin: foldFadeBegin,
             end: foldFadeEnd,
             colors: [
               paperBackColor.withValues(alpha: maskPeak),
-              Colors.transparent,
+              paperBackColor.withValues(alpha: 0),
             ],
           ).createShader(foldFadeBounds),
       );
@@ -664,7 +673,7 @@ class PageFlipPainter extends CustomPainter {
               end: freeDarkenAlign,
               colors: [
                 foldDarkenColor.withValues(alpha: foldShadow),
-                Colors.transparent,
+                foldDarkenColor.withValues(alpha: 0),
               ],
               stops: const [0.0, 1.0],
             ).createShader(foldDarkenBounds),
@@ -735,7 +744,7 @@ class PageFlipPainter extends CustomPainter {
               colors: [
                 shadowColor.withValues(alpha: revealedAlpha),
                 shadowColor.withValues(alpha: revealedAlpha * 0.45),
-                Colors.transparent,
+                shadowColor.withValues(alpha: 0),
               ],
               stops: _kCreaseValleyStops,
             ).createShader(shadowBounds),
@@ -758,7 +767,7 @@ class PageFlipPainter extends CustomPainter {
               end: endAlign,
               colors: [
                 shadowColor.withValues(alpha: ambientAlpha),
-                Colors.transparent,
+                shadowColor.withValues(alpha: 0),
               ],
               stops: const [0.0, 1.0],
             ).createShader(ambientPath.getBounds()),
@@ -812,7 +821,7 @@ class PageFlipPainter extends CustomPainter {
                 end: end,
                 colors: [
                   contactColor.withValues(alpha: contactAlpha),
-                  Colors.transparent,
+                  contactColor.withValues(alpha: 0),
                 ],
               ).createShader(contactBounds),
           );
@@ -877,7 +886,7 @@ class PageFlipPainter extends CustomPainter {
                 end: stationaryEnd,
                 colors: [
                   shadowColor.withValues(alpha: stationaryAlpha),
-                  Colors.transparent,
+                  shadowColor.withValues(alpha: 0),
                 ],
               ).createShader(stationaryRect),
           );
@@ -920,7 +929,7 @@ class PageFlipPainter extends CustomPainter {
               end: g.isForward ? Alignment.centerRight : Alignment.centerLeft,
               colors: [
                 shadowColor.withValues(alpha: 0.13 * g.shadowIntensity),
-                Colors.transparent,
+                shadowColor.withValues(alpha: 0),
               ],
             ).createShader(spineRect),
         );
