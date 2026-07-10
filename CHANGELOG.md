@@ -3,6 +3,13 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.16.1] - 2026-07-11
+### Changed
+- **Default Thin-Paper Back Bleed**: `singlePageBackContentOpacity` now defaults to `0.35` (was `1.0`) so single-page peels softly dim reverse text like India paper instead of showing crisp front-facing content. Explicit values still override the default; double-spread mode is unchanged.
+
+### Tests
+- Updated default-opacity and config coverage to expect the thin-paper bleed overlay; removed redundant explicit `0.35` overrides that now match the default.
+
 ## [1.16.0] - 2026-07-10
 ### Changed
 - **True 2.5D Verso Repagination for Double Spreads**: The turning leaf now maps a progress-sized strip from the physically correct adjacent-spread page onto one curved mesh. Forward turns show the next spread's left page from the first lifted pixel through landing; backward turns show the previous spread's right page as the exact mirrored time-reverse.
