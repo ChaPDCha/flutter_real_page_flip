@@ -76,7 +76,7 @@ class PageFlipPainter extends CustomPainter {
 
     /// Single-page only: opacity of the peeled page's own content while it is
     /// the back-facing side mid-flip (1.0 = crisp, lower = faint bleed-through).
-    this.singlePageBackContentOpacity = 1.0,
+    this.singlePageBackContentOpacity = 0.35,
 
     /// Pre-computed geometry shared with clippers (avoids redundant construction).
     this.geo,
@@ -331,7 +331,7 @@ class PageFlipPainter extends CustomPainter {
           // settle window. Gating it on the hard `useSettle` boolean made the
           // overlay's alpha snap off in one frame at the settle boundary — a
           // visible flicker at the binding edge near the end of the swipe.
-          // Default opacity 1.0 leaves existing behaviour intact.
+          // The default opacity 0.35 reads as thin-paper bleed-through.
           final backDim =
               (!isDoubleSpread && singlePageBackContentOpacity < 1.0)
                   ? singlePageBackDim(

@@ -42,6 +42,7 @@ void main() {
 
       expect(config.flapBackStrength, equals(0.0));
       expect(config.doubleSpreadMidFoldBleed, equals(0.15));
+      expect(config.singlePageBackContentOpacity, equals(0.35));
       expect(config.performanceProfile, DevicePerformanceProfile.medium);
     });
 

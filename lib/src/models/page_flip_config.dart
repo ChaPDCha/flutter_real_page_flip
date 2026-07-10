@@ -101,7 +101,7 @@ class PageFlipConfig {
     this.flapContentRevealEnd = 0.95,
     this.flapBackStrength = 0.0,
     this.doubleSpreadMidFoldBleed = 0.15,
-    this.singlePageBackContentOpacity = 1.0,
+    this.singlePageBackContentOpacity = 0.35,
     this.performanceProfile = DevicePerformanceProfile.medium,
     this.hapticTexturePreset = PaperTexturePreset.standard,
   });
@@ -158,7 +158,7 @@ class PageFlipConfig {
   /// paper colour during the peel (but NOT during the late settle reveal of the
   /// destination page), simulating thin Bible (India) paper where the reverse
   /// text bleeds through only faintly — as if a sheet of paper were laid over
-  /// the back. A value around `0.35` gives a subtle "thin paper" bleed-through.
+  /// the back. Defaults to `0.35` for subtle thin-paper bleed-through.
   ///
   /// Has no effect in double-spread mode (see [flapBackStrength]).
   final double singlePageBackContentOpacity;

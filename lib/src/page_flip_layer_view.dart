@@ -99,7 +99,7 @@ class PageFlipLayerView extends StatelessWidget {
     this.doubleSpreadMidFoldBleed = 0.0,
 
     /// Single-page only: opacity of the peeled page's own content mid-flip.
-    this.singlePageBackContentOpacity = 1.0,
+    this.singlePageBackContentOpacity = 0.35,
 
     /// True if rendering for a dual spread book
     this.isDoubleSpread = false,

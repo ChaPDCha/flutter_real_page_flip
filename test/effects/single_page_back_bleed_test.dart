@@ -78,9 +78,7 @@ void main() {
   tearDown(() => testImage.dispose());
 
   group('single-page back bleed-through (thin Bible paper)', () {
-    test(
-        'default (opacity 1.0) keeps peeled content crisp — no faint paper '
-        'overlay', () {
+    test('default opacity softly dims peeled content like thin paper', () {
       final canvas = _SolidRectTrackingCanvas();
 
       PageFlipPainter(
@@ -95,9 +93,9 @@ void main() {
 
       expect(
         canvas.solidRects.where(_isFaintPaperOverlay),
-        isEmpty,
-        reason: 'with full opacity the single-page peel must not dim its own '
-            'content; current behaviour is preserved.',
+        isNotEmpty,
+        reason: 'the default peel should soften reverse text so it reads as '
+            'thin-paper bleed-through rather than crisp front-facing text.',
       );
     });
 
@@ -113,7 +111,6 @@ void main() {
         paperBackColor: Colors.white,
         flapFrontImage: testImage,
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-        singlePageBackContentOpacity: 0.35,
         performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, const Size(800, 600));
 
@@ -154,7 +151,6 @@ void main() {
           // the exact condition that used to kill the overlay abruptly.
           flapFrontSettleImage: testImage,
           flapFrontSettleSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
-          singlePageBackContentOpacity: 0.35,
           performanceProfile: DevicePerformanceProfile.high,
         ).paint(canvas, const Size(800, 600));
         final overlays = canvas.solidRects.where(_isFaintPaperOverlay).toList();
@@ -191,7 +187,7 @@ void main() {
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
-        singlePageBackContentOpacity: 0.35,
+        singlePageBackContentOpacity: 0.5,
       );
       expect(painter1.shouldRepaint(painter2), isTrue);
     });

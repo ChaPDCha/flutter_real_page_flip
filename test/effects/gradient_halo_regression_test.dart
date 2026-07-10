@@ -69,7 +69,6 @@ void main() {
                 pageKeys: {for (var i = 0; i < 3; i++) i: GlobalKey()},
                 constrainedSize: canvasSize,
                 paperFlapColor: paper,
-                singlePageBackContentOpacity: 0.35,
                 performanceProfile: profile,
                 itemBuilder: (context, index) => const ColoredBox(color: paper),
               ),
