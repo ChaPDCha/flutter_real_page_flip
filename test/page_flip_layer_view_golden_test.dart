@@ -228,6 +228,97 @@ void main() {
       );
     });
   });
+
+  group('PageFlipLayerView golden — double-spread verso', () {
+    late ui.Image currentSpread;
+    late ui.Image nextSpread;
+    late ui.Image previousSpread;
+
+    setUp(() async {
+      currentSpread = await textPageImage(
+        title: 'Current spread — recto',
+        body: 'The right leaf lifts from its outer edge while the full current '
+            'spread remains stationary beneath the fold.',
+      );
+      nextSpread = await textPageImage(
+        title: 'Next spread — verso',
+        body: 'This adjacent spread supplies the real reverse side of the '
+            'turning leaf, mapped as a growing material strip.',
+      );
+      previousSpread = await textPageImage(
+        title: 'Previous spread — verso',
+        body: 'Backward motion is the exact mirrored time-reverse and uses the '
+            'previous spread right page as the visible reverse side.',
+      );
+    });
+
+    tearDown(() {
+      currentSpread.dispose();
+      nextSpread.dispose();
+      previousSpread.dispose();
+    });
+
+    Widget goldenDoubleSpreadView({
+      required double dragProgress,
+      required bool isForward,
+    }) =>
+        MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: Scaffold(
+            backgroundColor: const Color(0xFFF5F5F5),
+            body: Center(
+              child: SizedBox.fromSize(
+                size: canvasSize,
+                child: PageFlipLayerView(
+                  itemCount: 3,
+                  currentIndex: 1,
+                  dragProgress: dragProgress,
+                  isDragging: true,
+                  isForward: isForward,
+                  touchPosition: isForward
+                      ? const Offset(350, 150)
+                      : const Offset(50, 150),
+                  pageSnapshots: const {},
+                  spreadSnapshots: {
+                    0: previousSpread,
+                    1: currentSpread,
+                    2: nextSpread,
+                  },
+                  pageKeys: {for (var i = 0; i < 3; i++) i: GlobalKey()},
+                  constrainedSize: canvasSize,
+                  isDoubleSpread: true,
+                  paperFlapColor: paper,
+                  itemBuilder: (context, index) =>
+                      const ColoredBox(color: paper),
+                ),
+              ),
+            ),
+          ),
+        );
+
+    for (final isForward in <bool>[true, false]) {
+      final direction = isForward ? 'forward' : 'backward';
+      for (final progress in <double>[0.5, 0.85]) {
+        final suffix = progress == 0.5 ? '050' : '085';
+        testWidgets('$direction progress $progress', (tester) async {
+          await tester.pumpWidget(
+            goldenDoubleSpreadView(
+              dragProgress: progress,
+              isForward: isForward,
+            ),
+          );
+          await tester.pump();
+
+          await expectLater(
+            find.byType(PageFlipLayerView),
+            matchesGoldenFile(
+              'goldens/double_spread_verso_${direction}_$suffix.png',
+            ),
+          );
+        });
+      }
+    }
+  });
 }
 
 class _TolerantGoldenFileComparator extends LocalFileComparator {

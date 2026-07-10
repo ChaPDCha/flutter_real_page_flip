@@ -192,15 +192,16 @@ void main() {
       expect(withSettle.shouldRepaint(withNonNullSettle), isFalse);
     });
 
-    test('flapBackStrength change returns true', () {
+    test('legacy no-op double-spread controls do not repaint', () {
       final diff = PageFlipPainter(
         progress: 0.5,
         isRightToLeft: true,
         touchOffset: Offset.zero,
         paperBackColor: Colors.white,
         flapBackStrength: 0.5,
+        doubleSpreadMidFoldBleed: 0.75,
       );
-      expect(base.shouldRepaint(diff), isTrue);
+      expect(base.shouldRepaint(diff), isFalse);
     });
 
     test('performanceProfile change returns true', () {

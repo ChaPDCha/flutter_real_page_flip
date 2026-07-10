@@ -137,19 +137,12 @@ class PageFlipConfig {
   /// Flip progress (0–1) at which flap-front content reaches full opacity.
   final double flapContentRevealEnd;
 
-  /// How visible the 2.5D page back content is (0.0–1.0).
-  ///
-  /// In double-spread mode, the back of the flipping page shows the destination
-  /// page content horizontally mirrored at this opacity. Defaults to 0.0 for
-  /// readability and performance. Use about 0.3 for a subtle opt-in
-  /// through-paper effect; 1.0 is a fully visible mirror.
+  /// Retained for source compatibility. No-op since double-spread rendering
+  /// maps the real verso directly instead of drawing a mirrored ghost mesh.
   final double flapBackStrength;
 
-  /// Double-spread only: opacity floor of destination page content visible
-  /// through the paper flap during mid-fold (0.0–1.0).
-  ///
-  /// Defaults to 0.15 for a subtle thin-paper translucency; 0.0 disables.
-  /// High performance profile only.
+  /// Retained for source compatibility. No-op since the real verso stays fully
+  /// visible throughout a double-spread turn.
   final double doubleSpreadMidFoldBleed;
 
   /// Single-page only: opacity of the flipping page's own content while it is

@@ -8,22 +8,22 @@ void main() {
   // flapFrontSourceRect / flapBackSourceRect / flapFrontSettleSourceRect
   // ===========================================================================
   group('flapFrontSourceRect', () {
-    test('forward double-spread returns right half', () {
+    test('forward double-spread returns full left verso at material end', () {
       final result = flapFrontSourceRect(
         imageSize: const Size(800, 600),
         isDoubleSpread: true,
         isForward: true,
       );
-      expect(result, const Rect.fromLTWH(400, 0, 400, 600));
+      expect(result, const Rect.fromLTWH(0, 0, 400, 600));
     });
 
-    test('backward double-spread returns left half', () {
+    test('backward double-spread returns full right verso at material end', () {
       final result = flapFrontSourceRect(
         imageSize: const Size(800, 600),
         isDoubleSpread: true,
         isForward: false,
       );
-      expect(result, const Rect.fromLTWH(0, 0, 400, 600));
+      expect(result, const Rect.fromLTWH(400, 0, 400, 600));
     });
 
     test('single-page returns full rect regardless of direction', () {
@@ -115,34 +115,61 @@ void main() {
       expect(result, const Rect.fromLTWH(200, 0, 200, 600));
     });
 
-    test('progress is ignored for double-spread (half mapping preserved)', () {
+    test('forward double-spread maps a left-anchored material strip', () {
       final result = flapFrontSourceRect(
         imageSize: const Size(800, 600),
         isDoubleSpread: true,
         isForward: true,
         floatProgress: 0.5,
       );
-      expect(result, const Rect.fromLTWH(400, 0, 400, 600));
+      expect(result, const Rect.fromLTWH(0, 0, 200, 600));
+    });
+
+    test('backward double-spread maps a right-anchored material strip', () {
+      final result = flapFrontSourceRect(
+        imageSize: const Size(800, 600),
+        isDoubleSpread: true,
+        isForward: false,
+        floatProgress: 0.5,
+      );
+      expect(result, const Rect.fromLTWH(600, 0, 200, 600));
+    });
+
+    test('double-spread clamps progress at both boundaries', () {
+      final forwardStart = flapFrontSourceRect(
+        imageSize: const Size(800, 600),
+        isDoubleSpread: true,
+        isForward: true,
+        floatProgress: -1,
+      );
+      final backwardEnd = flapFrontSourceRect(
+        imageSize: const Size(800, 600),
+        isDoubleSpread: true,
+        isForward: false,
+        floatProgress: 2,
+      );
+      expect(forwardStart, const Rect.fromLTWH(0, 0, 0, 600));
+      expect(backwardEnd, const Rect.fromLTWH(800, 0, 0, 600));
     });
   });
 
   group('flapBackSourceRect', () {
-    test('forward double-spread returns left half (verso)', () {
+    test('double-spread returns null because the front is the verso', () {
       final result = flapBackSourceRect(
         imageSize: const Size(800, 600),
         isDoubleSpread: true,
         isForward: true,
       );
-      expect(result, const Rect.fromLTWH(0, 0, 400, 600));
+      expect(result, isNull);
     });
 
-    test('backward double-spread returns right half (verso)', () {
+    test('backward double-spread also returns null', () {
       final result = flapBackSourceRect(
         imageSize: const Size(800, 600),
         isDoubleSpread: true,
         isForward: false,
       );
-      expect(result, const Rect.fromLTWH(400, 0, 400, 600));
+      expect(result, isNull);
     });
 
     test('single-page returns null (no back content)', () {
@@ -156,22 +183,24 @@ void main() {
   });
 
   group('flapFrontSettleSourceRect', () {
-    test('forward double-spread returns left half (destination)', () {
+    test('forward double-spread matches the verso strip', () {
       final result = flapFrontSettleSourceRect(
         imageSize: const Size(800, 600),
         isDoubleSpread: true,
         isForward: true,
+        floatProgress: 0.5,
       );
-      expect(result, const Rect.fromLTWH(0, 0, 400, 600));
+      expect(result, const Rect.fromLTWH(0, 0, 200, 600));
     });
 
-    test('backward double-spread returns right half (destination)', () {
+    test('backward double-spread matches the verso strip', () {
       final result = flapFrontSettleSourceRect(
         imageSize: const Size(800, 600),
         isDoubleSpread: true,
         isForward: false,
+        floatProgress: 0.5,
       );
-      expect(result, const Rect.fromLTWH(400, 0, 400, 600));
+      expect(result, const Rect.fromLTWH(600, 0, 200, 600));
     });
 
     test('single-page returns full rect (unchanged)', () {
@@ -363,15 +392,15 @@ void main() {
       );
     });
 
-    // ── Double-spread: physical two-sided paper-back reveal model ──
+    // ── Double-spread: the real verso stays visible for the whole turn ──
     test('double: returns 1.0 at progress=0 (start)', () {
       final result = flapFrontContentRevealOpacity(0, isDoubleSpread: true);
       expect(result, closeTo(1, 0.001));
     });
 
-    test('double: returns 0.0 during mid-fold phase', () {
+    test('double: returns 1.0 during mid-fold phase', () {
       final result = flapFrontContentRevealOpacity(0.5, isDoubleSpread: true);
-      expect(result, closeTo(0, 0.001));
+      expect(result, closeTo(1, 0.001));
     });
 
     test('double: returns 1.0 at progress=1 (end)', () {
@@ -379,27 +408,25 @@ void main() {
       expect(result, closeTo(1, 0.001));
     });
 
-    test('double: smoothstep fade-out from 1.0 to 0.0', () {
+    test('double: fade controls are ignored', () {
       final atStart = flapFrontContentRevealOpacity(0, isDoubleSpread: true);
       final atMidFade =
           flapFrontContentRevealOpacity(0.10, isDoubleSpread: true);
       final atEndFade =
           flapFrontContentRevealOpacity(0.20, isDoubleSpread: true);
       expect(atStart, closeTo(1, 0.001));
-      expect(atMidFade, greaterThan(0.0));
-      expect(atMidFade, lessThan(1.0));
-      expect(atEndFade, closeTo(0, 0.001));
+      expect(atMidFade, closeTo(1, 0.001));
+      expect(atEndFade, closeTo(1, 0.001));
     });
 
-    test('double: smoothstep reveal from 0.0 to 1.0', () {
+    test('double: settle controls are ignored', () {
       final atStart = flapFrontContentRevealOpacity(0.85, isDoubleSpread: true);
       final atMidReveal =
           flapFrontContentRevealOpacity(0.90, isDoubleSpread: true);
       final atEndReveal =
           flapFrontContentRevealOpacity(0.95, isDoubleSpread: true);
-      expect(atStart, closeTo(0, 0.001));
-      expect(atMidReveal, greaterThan(0.0));
-      expect(atMidReveal, lessThan(1.0));
+      expect(atStart, closeTo(1, 0.001));
+      expect(atMidReveal, closeTo(1, 0.001));
       expect(atEndReveal, closeTo(1, 0.001));
     });
 
@@ -411,7 +438,7 @@ void main() {
         isDoubleSpread: true,
         doubleSpreadMidFoldBleed: 0.15,
       );
-      expect(result, closeTo(0.15, 0.001));
+      expect(result, closeTo(1, 0.001));
     });
 
     test(
@@ -432,9 +459,8 @@ void main() {
         isDoubleSpread: true,
         doubleSpreadMidFoldBleed: 0.15,
       );
-      expect(atBleed, closeTo(0.15, 0.001));
-      expect(atMid, greaterThan(0.15));
-      expect(atMid, lessThan(1.0));
+      expect(atBleed, closeTo(1, 0.001));
+      expect(atMid, closeTo(1, 0.001));
       expect(atEnd, closeTo(1.0, 0.001));
     });
 
@@ -450,14 +476,14 @@ void main() {
         ),
         closeTo(1, 0.001),
       );
-      // At backward progress=0.5 (mid-flip), p=0.5 → mid-fold → 0.0.
+      // The physical verso remains visible at mid-flip too.
       expect(
         flapFrontContentRevealOpacity(
           0.5,
           isForward: false,
           isDoubleSpread: true,
         ),
-        closeTo(0, 0.001),
+        closeTo(1, 0.001),
       );
       // At backward progress=1.0, p=0.0 → start → 1.0.
       expect(
@@ -470,13 +496,13 @@ void main() {
       );
     });
 
-    test('double: fadeOutEnd=0 returns 0 for any p <= 0', () {
+    test('double: fadeOutEnd=0 remains fully visible', () {
       final result = flapFrontContentRevealOpacity(
         0,
         fadeOutEnd: 0,
         isDoubleSpread: true,
       );
-      expect(result, closeTo(0, 0.001));
+      expect(result, closeTo(1, 0.001));
     });
 
     test('double: revealStart equals revealEnd means instant transition', () {
@@ -492,7 +518,7 @@ void main() {
         revealEnd: 0.90,
         isDoubleSpread: true,
       );
-      expect(before, closeTo(0, 0.001));
+      expect(before, closeTo(1, 0.001));
       expect(after, closeTo(1, 0.001));
     });
   });
@@ -1405,7 +1431,7 @@ void main() {
         isDoubleSpread: true,
         isForward: true,
       );
-      expect(result!.left, closeTo(200.5, 0.001));
+      expect(result!.left, closeTo(0, 0.001));
       expect(result.width, closeTo(200.5, 0.001));
     });
 
@@ -1418,8 +1444,7 @@ void main() {
         revealStart: 0.20,
         isDoubleSpread: true,
       );
-      // At p=fadeOutEnd, Phase 1 is active and returns 0.
-      expect(atBoundary, closeTo(0, 0.001));
+      expect(atBoundary, closeTo(1, 0.001));
     });
   });
 }

@@ -66,72 +66,6 @@ void main() {
       });
     });
 
-    // ─── middleSpreadHalf (double mode only) ───
-
-    group('middleSpreadHalf', () {
-      test('double forward returns current index, left-aligned', () {
-        const policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: true,
-          currentIndex: 2,
-          itemCount: itemCount,
-        );
-        final result = policy.middleSpreadHalf;
-        expect(result, isNotNull);
-        expect(result!.index, 2);
-        expect(result.alignment, Alignment.centerLeft);
-      });
-
-      test('double forward at last spread still returns current index', () {
-        const policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: true,
-          currentIndex: 4,
-          itemCount: itemCount,
-        );
-        final result = policy.middleSpreadHalf;
-        expect(result, isNotNull);
-        expect(result!.index, 4);
-        expect(result.alignment, Alignment.centerLeft);
-      });
-
-      test('double backward returns current index, right-aligned', () {
-        const policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: false,
-          currentIndex: 3,
-          itemCount: itemCount,
-        );
-        final result = policy.middleSpreadHalf;
-        expect(result, isNotNull);
-        expect(result!.index, 3);
-        expect(result.alignment, Alignment.centerRight);
-      });
-
-      test('double backward at index 0 still returns current index', () {
-        const policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: false,
-          currentIndex: 0,
-          itemCount: itemCount,
-        );
-        final result = policy.middleSpreadHalf;
-        expect(result, isNotNull);
-        expect(result!.index, 0);
-        expect(result.alignment, Alignment.centerRight);
-      });
-
-      test('single mode returns null (uses middlePageIndex instead)', () {
-        const policy = FlipLayerPolicy(
-          isDoubleSpread: false,
-          isForward: true,
-          currentIndex: 2,
-          itemCount: itemCount,
-        );
-        expect(policy.middleSpreadHalf, isNull);
-      });
-    });
-
     // ─── bottomPageIndex (single mode only) ───
 
     group('bottomPageIndex', () {
@@ -267,24 +201,24 @@ void main() {
     // ─── flapSnapshotSpreadIndex ───
 
     group('flapSnapshotSpreadIndex', () {
-      test('double mode returns currentIndex', () {
+      test('double forward returns next spread verso', () {
         const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: true,
           currentIndex: 2,
           itemCount: itemCount,
         );
-        expect(policy.flapSnapshotSpreadIndex, 2);
+        expect(policy.flapSnapshotSpreadIndex, 3);
       });
 
-      test('double backward returns currentIndex', () {
+      test('double backward returns previous spread verso', () {
         const policy = FlipLayerPolicy(
           isDoubleSpread: true,
           isForward: false,
           currentIndex: 2,
           itemCount: itemCount,
         );
-        expect(policy.flapSnapshotSpreadIndex, 2);
+        expect(policy.flapSnapshotSpreadIndex, 1);
       });
 
       test('single forward returns currentIndex', () {
@@ -307,71 +241,6 @@ void main() {
           itemCount: itemCount,
         );
         expect(policy.flapSnapshotSpreadIndex, 1);
-      });
-    });
-
-    // ─── flapBackSnapshotSpreadIndex (2.5D back content) ───
-
-    group('flapBackSnapshotSpreadIndex', () {
-      test('double forward returns next spread index', () {
-        const policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: true,
-          currentIndex: 2,
-          itemCount: itemCount,
-        );
-        expect(policy.flapBackSnapshotSpreadIndex, 3);
-      });
-
-      test('double forward at last spread returns null', () {
-        const policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: true,
-          currentIndex: 4,
-          itemCount: itemCount,
-        );
-        expect(policy.flapBackSnapshotSpreadIndex, isNull);
-      });
-
-      test('double backward returns previous spread index', () {
-        const policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: false,
-          currentIndex: 3,
-          itemCount: itemCount,
-        );
-        expect(policy.flapBackSnapshotSpreadIndex, 2);
-      });
-
-      test('double backward at first spread returns null', () {
-        const policy = FlipLayerPolicy(
-          isDoubleSpread: true,
-          isForward: false,
-          currentIndex: 0,
-          itemCount: itemCount,
-        );
-        expect(policy.flapBackSnapshotSpreadIndex, isNull);
-      });
-
-      test('single mode returns null regardless of direction', () {
-        expect(
-          const FlipLayerPolicy(
-            isDoubleSpread: false,
-            isForward: true,
-            currentIndex: 2,
-            itemCount: itemCount,
-          ).flapBackSnapshotSpreadIndex,
-          isNull,
-        );
-        expect(
-          const FlipLayerPolicy(
-            isDoubleSpread: false,
-            isForward: false,
-            currentIndex: 2,
-            itemCount: itemCount,
-          ).flapBackSnapshotSpreadIndex,
-          isNull,
-        );
       });
     });
 
@@ -460,11 +329,9 @@ void main() {
         // No next spread to reveal
         expect(policy.bottomSpreadHalf, isNull);
         expect(policy.bottomPageIndex, isNull);
-        expect(policy.middleSpreadHalf, isNotNull);
-        expect(policy.middleSpreadHalf!.index, 0);
-        expect(policy.middleSpreadHalf!.alignment, Alignment.centerLeft);
+        expect(policy.middleSpreadIndex, 0);
         expect(policy.middlePageIndex, isNull);
-        expect(policy.flapSnapshotSpreadIndex, 0);
+        expect(policy.flapSnapshotSpreadIndex, isNull);
       });
 
       test(

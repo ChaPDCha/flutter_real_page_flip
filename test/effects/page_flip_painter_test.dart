@@ -261,8 +261,7 @@ void main() {
       testImage = null;
     });
 
-    test('double-spread mid fold skips texture when reveal opacity is zero',
-        () {
+    test('double-spread mid fold draws the verso texture', () {
       final canvas = MockCanvas();
 
       PageFlipPainter(
@@ -275,7 +274,7 @@ void main() {
         isDoubleSpread: true,
       ).paint(canvas, const Size(800, 600));
 
-      expect(canvas.didDrawVertices, isFalse);
+      expect(canvas.didDrawVertices, isTrue);
       expect(canvas.didDrawRect, isTrue);
     });
 
@@ -399,7 +398,7 @@ void main() {
     // ── 2.5D back content tests ─────────────────────────────────
 
     group('2.5D back content rendering', () {
-      test('high draws back mesh when flapBackImage and srcRect provided', () {
+      test('high ignores legacy back mesh inputs', () {
         final canvas = TrackingShaderCanvas();
 
         PageFlipPainter(
@@ -416,9 +415,7 @@ void main() {
           performanceProfile: DevicePerformanceProfile.high,
         ).paint(canvas, const Size(800, 600));
 
-        // At progress=0.96, front content is fully revealed AND back content is drawn.
-        // Front mesh (1) + Back mesh (1) = 2 drawVertices calls.
-        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+        expect(canvas.drawVerticesCount, equals(1));
         // Should have drawn fade overlay rects.
         expect(canvas.drawRectCount, greaterThan(0));
       });
@@ -459,9 +456,7 @@ void main() {
           isDoubleSpread: true,
         ).paint(canvas, const Size(800, 600));
 
-        // flapBackStrength=0 is a real performance-off switch: no hidden
-        // back mesh should be built and then covered by paper.
-        expect(canvas.drawVerticesCount, equals(0));
+        expect(canvas.drawVerticesCount, equals(1));
       });
 
       test('single page mode skips back content even with images', () {
@@ -484,7 +479,7 @@ void main() {
         expect(canvas.drawVerticesCount, equals(1));
       });
 
-      test('draws back mesh in backward double-spread', () {
+      test('backward double-spread draws one verso mesh', () {
         final canvas = TrackingShaderCanvas();
 
         PageFlipPainter(
@@ -502,8 +497,7 @@ void main() {
           performanceProfile: DevicePerformanceProfile.high,
         ).paint(canvas, const Size(800, 600));
 
-        // Front mesh + back mesh = 2 drawVertices
-        expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+        expect(canvas.drawVerticesCount, equals(1));
         expect(canvas.drawRectCount, greaterThan(0));
       });
 
@@ -523,7 +517,7 @@ void main() {
           isForward: false,
         ).paint(canvas, const Size(800, 600));
 
-        expect(canvas.drawVerticesCount, equals(0));
+        expect(canvas.drawVerticesCount, equals(1));
       });
 
       test('backward double-spread shouldRepaint when isForward changes', () {
@@ -546,7 +540,7 @@ void main() {
       });
     });
 
-    group('skipEarlyMesh performance gating (double-spread)', () {
+    group('continuous verso mesh (double-spread)', () {
       const earlyFadeProgress = 0.10;
       const settleProgress = 0.90;
       const midFoldProgress = 0.50;
@@ -576,7 +570,7 @@ void main() {
         ).paint(canvas, canvasSize);
       }
 
-      test('early fade: low/medium skip front mesh, high draws mesh', () {
+      test('early fold draws one mesh on every profile', () {
         final lowCanvas = TrackingShaderCanvas();
         final mediumCanvas = TrackingShaderCanvas();
         final highCanvas = TrackingShaderCanvas();
@@ -605,9 +599,9 @@ void main() {
           greaterThan(0.001),
           reason: 'early fade window must have visible content reveal',
         );
-        expect(lowCanvas.drawVerticesCount, equals(0));
-        expect(mediumCanvas.drawVerticesCount, equals(0));
-        expect(highCanvas.drawVerticesCount, greaterThan(0));
+        expect(lowCanvas.drawVerticesCount, equals(1));
+        expect(mediumCanvas.drawVerticesCount, equals(1));
+        expect(highCanvas.drawVerticesCount, equals(1));
       });
 
       test('settle phase: medium profile draws front mesh', () {
@@ -626,7 +620,7 @@ void main() {
         expect(canvas.drawVerticesCount, greaterThan(0));
       });
 
-      test('mid-fold hides mesh via zero content reveal (all profiles)', () {
+      test('mid-fold keeps one verso mesh on all profiles', () {
         for (final profile in DevicePerformanceProfile.values) {
           final canvas = TrackingShaderCanvas();
           paintWithProfile(
@@ -640,11 +634,11 @@ void main() {
               midFoldProgress,
               isDoubleSpread: true,
             ),
-            closeTo(0, 0.001),
+            closeTo(1, 0.001),
           );
           expect(
             canvas.drawVerticesCount,
-            equals(0),
+            equals(1),
             reason: 'profile=$profile',
           );
         }
@@ -671,7 +665,7 @@ void main() {
         expect(canvas.drawVerticesCount, greaterThan(0));
       });
 
-      test('backward mid-fold skips mesh on medium', () {
+      test('backward mid-fold draws mesh on medium', () {
         final canvas = TrackingShaderCanvas();
 
         paintWithProfile(
@@ -689,10 +683,10 @@ void main() {
           isFlapSettlePhase(midFoldProgress, isForward: false),
           isFalse,
         );
-        expect(canvas.drawVerticesCount, equals(0));
+        expect(canvas.drawVerticesCount, equals(1));
       });
 
-      test('custom revealStart gates skipEarlyMesh on medium profile', () {
+      test('custom revealStart does not gate double-spread mesh', () {
         const customRevealStart = 0.75;
         final earlyCanvas = TrackingShaderCanvas();
         final settleCanvas = TrackingShaderCanvas();
@@ -735,7 +729,7 @@ void main() {
           ),
           isTrue,
         );
-        expect(earlyCanvas.drawVerticesCount, equals(0));
+        expect(earlyCanvas.drawVerticesCount, equals(1));
         expect(settleCanvas.drawVerticesCount, greaterThan(0));
       });
 

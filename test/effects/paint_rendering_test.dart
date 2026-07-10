@@ -1024,7 +1024,7 @@ void main() {
 
     // ── 2.5D back content inside clip ──────────────────────────
 
-    test('2.5D back mesh and fade drawn in double-spread high profile', () {
+    test('legacy back inputs do not add a second high-profile mesh', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -1041,8 +1041,7 @@ void main() {
         performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, size);
 
-      // Front mesh + Back mesh + all gradient draws
-      expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+      expect(canvas.drawVerticesCount, equals(1));
     });
 
     test('2.5D back mesh is skipped in double-spread medium profile', () {
@@ -1155,7 +1154,7 @@ void main() {
       expect(canvas.clipRectCount, greaterThan(0));
     });
 
-    test('backward double-spread 2.5D back content at late progress', () {
+    test('backward double-spread uses one verso mesh at late progress', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -1173,7 +1172,7 @@ void main() {
         performanceProfile: DevicePerformanceProfile.high,
       ).paint(canvas, size);
 
-      expect(canvas.drawVerticesCount, greaterThanOrEqualTo(2));
+      expect(canvas.drawVerticesCount, equals(1));
     });
 
     test('backward double-spread flap front texture at late progress', () {

@@ -1,7 +1,5 @@
 part of 'page_flip_engine.dart';
 
-const double _kVisibleFlapBackThreshold = 0.005;
-
 /// PERFORMANCE CRITICAL: This painter is called 60 times per second during animation.
 class PageFlipPainter extends CustomPainter {
   /// Creates a [PageFlipPainter] with the given animation state.
@@ -70,12 +68,10 @@ class PageFlipPainter extends CustomPainter {
     /// Source rect within [flapBackImage] for the mirrored back texture.
     this.flapBackSrcRect,
 
-    /// How visible the back content is (0.0-1.0, default 0.0).
-    /// 0 = disabled, 0.3 = subtle mirror-through-paper effect.
+    /// Retained for source compatibility; no-op for the direct verso mesh.
     this.flapBackStrength = 0.0,
 
-    /// Double-spread only: minimum opacity of destination page content visible
-    /// through the paper during mid-fold (0.0–1.0). High profile only.
+    /// Retained for source compatibility; no-op for the direct verso mesh.
     this.doubleSpreadMidFoldBleed = 0.0,
 
     /// Single-page only: opacity of the peeled page's own content while it is
@@ -149,11 +145,10 @@ class PageFlipPainter extends CustomPainter {
   /// Source rect within [flapBackImage] for the mirrored back texture.
   final Rect? flapBackSrcRect;
 
-  /// How visible the back content is (0.0–1.0, default 0.3).
+  /// Retained for source compatibility; no-op for the direct verso mesh.
   final double flapBackStrength;
 
-  /// Double-spread only: minimum opacity of destination page content visible
-  /// through the paper during mid-fold (0.0–1.0). High profile only.
+  /// Retained for source compatibility; no-op for the direct verso mesh.
   final double doubleSpreadMidFoldBleed;
 
   /// Single-page only: opacity of the peeled page's own content while it is the
@@ -265,65 +260,11 @@ class PageFlipPainter extends CustomPainter {
     );
     final usesLightweightBackFace =
         performanceProfile != DevicePerformanceProfile.high;
-    final skipBackFacingMesh = usesLightweightBackFace && !isSettlePhase;
-    final skipEarlyMesh = isDoubleSpread &&
-        (performanceProfile != DevicePerformanceProfile.high) &&
-        !isSettlePhase;
-
-    // Layer 2: 2.5D page back content (double-spread only).
-    // Shows the destination page content horizontally mirrored at low opacity,
-    // creating the illusion of seeing through thin paper to the back side.
-    final effectiveFlapBackStrength = flapBackStrength.clamp(0.0, 1.0);
-    final hasFlapBack = performanceProfile == DevicePerformanceProfile.high &&
-        effectiveFlapBackStrength > _kVisibleFlapBackThreshold &&
-        flapBackImage != null &&
-        flapBackSrcRect != null &&
-        isDoubleSpread;
-    if (hasFlapBack && g.flapVisibleWidth >= 12.0 && !skipEarlyMesh) {
-      final density = flapMeshDensityForPerformance(performanceProfile);
-
-      final backMesh = buildFlapContentMesh(
-        size: size,
-        foldX: g.foldX,
-        flapLeft: g.freeEdgeX,
-        curveOffset: g.curveOffset,
-        srcRect: flapBackSrcRect!,
-        segments: density.segments,
-        columns: density.columns,
-        flipHorizontal: true,
-      );
-      canvas.drawVertices(
-        backMesh,
-        BlendMode.srcOver,
-        Paint()
-          ..shader = ui.ImageShader(
-            flapBackImage!,
-            ui.TileMode.clamp,
-            ui.TileMode.clamp,
-            _identityMatrixStorage,
-          )
-          ..filterQuality = FilterQuality.medium,
-      );
-
-      // Fade the back content into the paper by flapBackStrength so it looks
-      // like a subtle bleed-through rather than a full texture layer.
-      final backFadeAlpha = 1.0 - effectiveFlapBackStrength;
-      if (backFadeAlpha > 0.005) {
-        canvas.drawRect(
-          flapPaintRect,
-          Paint()
-            ..blendMode = BlendMode.srcOver
-            ..color = paperBackColor.withValues(alpha: backFadeAlpha),
-        );
-      }
-    }
+    final skipBackFacingMesh =
+        !isDoubleSpread && usesLightweightBackFace && !isSettlePhase;
 
     final hasFlapTexture = flapFrontImage != null && flapFrontSrcRect != null;
     if (hasFlapTexture) {
-      final effectiveDoubleSpreadBleed = (isDoubleSpread &&
-              performanceProfile == DevicePerformanceProfile.high)
-          ? doubleSpreadMidFoldBleed
-          : 0.0;
       final contentReveal = flapFrontContentRevealOpacity(
         progress,
         fadeOutEnd: flapContentFadeOutEnd,
@@ -333,16 +274,13 @@ class PageFlipPainter extends CustomPainter {
         isDoubleSpread: isDoubleSpread,
         keepSinglePageContentVisible:
             performanceProfile == DevicePerformanceProfile.high,
-        doubleSpreadMidFoldBleed: effectiveDoubleSpreadBleed,
+        doubleSpreadMidFoldBleed: doubleSpreadMidFoldBleed,
       );
       if (contentReveal > 0.001) {
         // Determine which image/rect to use: settle content for Phase 3
         // or mid-fold bleed in high-profile double-spread mode,
         // regular flap content for Phase 1 (early drag).
-        final wantsSettleForBleed = isDoubleSpread &&
-            performanceProfile == DevicePerformanceProfile.high &&
-            effectiveDoubleSpreadBleed > 0.005;
-        final useSettle = (isSettlePhase || wantsSettleForBleed) &&
+        final useSettle = isSettlePhase &&
             flapFrontSettleImage != null &&
             flapFrontSettleSrcRect != null;
         final srcImage = useSettle ? flapFrontSettleImage! : flapFrontImage!;
@@ -352,9 +290,7 @@ class PageFlipPainter extends CustomPainter {
         // page texture into visible noise. Paper underlay + fade overlay handle
         // this scale — skip the mesh entirely.
         // Mesh rendering is also skipped early in the flip on low/medium devices.
-        if (g.flapVisibleWidth >= 12.0 &&
-            !skipEarlyMesh &&
-            !skipBackFacingMesh) {
+        if (g.flapVisibleWidth >= 12.0 && !skipBackFacingMesh) {
           // Build a triangle mesh that follows the bezier curves so text and
           // images appear to bend with the paper — not a flat board tilting.
           // 16 vertical segments × 6 horizontal columns (4 interior) with
@@ -369,11 +305,7 @@ class PageFlipPainter extends CustomPainter {
             srcRect: srcRect,
             segments: density.segments,
             columns: density.columns,
-            // Single-page: srcRect is the right-anchored lifted strip. Mirror
-            // the UV so the crease edge stays continuous with the page beneath
-            // (folded paper reads as a mirror of its front). Double-spread keeps
-            // its existing non-mirrored mapping.
-            flipHorizontal: !isDoubleSpread,
+            flipHorizontal: !isDoubleSpread || !isForward,
           );
           canvas.drawVertices(
             mesh,
@@ -959,10 +891,6 @@ class PageFlipPainter extends CustomPainter {
       oldDelegate.flapFrontSrcRect != flapFrontSrcRect ||
       oldDelegate.flapFrontSettleImage != flapFrontSettleImage ||
       oldDelegate.flapFrontSettleSrcRect != flapFrontSettleSrcRect ||
-      oldDelegate.flapBackImage != flapBackImage ||
-      oldDelegate.flapBackSrcRect != flapBackSrcRect ||
-      oldDelegate.flapBackStrength != flapBackStrength ||
-      oldDelegate.doubleSpreadMidFoldBleed != doubleSpreadMidFoldBleed ||
       oldDelegate.singlePageBackContentOpacity !=
           singlePageBackContentOpacity ||
       oldDelegate.performanceProfile != performanceProfile;

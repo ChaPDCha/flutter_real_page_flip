@@ -6,19 +6,18 @@ void main() {
   group('flapFrontSourceRect', () {
     const imageSize = Size(800, 600);
 
-    test(
-        'double spread forward flip uses right half of current spread snapshot',
-        () {
+    test('double spread forward uses a left-anchored verso strip', () {
       final rect = flapFrontSourceRect(
         imageSize: imageSize,
         isDoubleSpread: true,
         isForward: true,
+        floatProgress: 0.5,
       );
 
       expect(rect, isNotNull);
-      expect(rect!.left, equals(400));
+      expect(rect!.left, equals(0));
       expect(rect.top, equals(0));
-      expect(rect.width, equals(400));
+      expect(rect.width, equals(200));
       expect(rect.height, equals(600));
     });
 
@@ -32,19 +31,18 @@ void main() {
       expect(rect, equals(const Rect.fromLTWH(0, 0, 800, 600)));
     });
 
-    test(
-        'double spread backward flip uses left half of current spread snapshot',
-        () {
+    test('double spread backward uses a right-anchored verso strip', () {
       final rect = flapFrontSourceRect(
         imageSize: imageSize,
         isDoubleSpread: true,
         isForward: false,
+        floatProgress: 0.5,
       );
 
       expect(rect, isNotNull);
-      expect(rect!.left, equals(0));
+      expect(rect!.left, equals(600));
       expect(rect.top, equals(0));
-      expect(rect.width, equals(400));
+      expect(rect.width, equals(200));
       expect(rect.height, equals(600));
     });
 
@@ -63,32 +61,24 @@ void main() {
   group('flapBackSourceRect', () {
     const imageSize = Size(800, 600);
 
-    test('double spread forward uses left half (verso of right page)', () {
+    test('double spread forward returns null', () {
       final rect = flapBackSourceRect(
         imageSize: imageSize,
         isDoubleSpread: true,
         isForward: true,
       );
 
-      expect(rect, isNotNull);
-      expect(rect!.left, equals(0));
-      expect(rect.top, equals(0));
-      expect(rect.width, equals(400));
-      expect(rect.height, equals(600));
+      expect(rect, isNull);
     });
 
-    test('double spread backward uses right half (verso of left page)', () {
+    test('double spread backward returns null', () {
       final rect = flapBackSourceRect(
         imageSize: imageSize,
         isDoubleSpread: true,
         isForward: false,
       );
 
-      expect(rect, isNotNull);
-      expect(rect!.left, equals(400));
-      expect(rect.top, equals(0));
-      expect(rect.width, equals(400));
-      expect(rect.height, equals(600));
+      expect(rect, isNull);
     });
 
     test('single page forward returns null (no back content)', () {
@@ -131,53 +121,13 @@ void main() {
       );
     });
 
-    test('double: starts visible and fades out quickly during early drag', () {
-      expect(
-        flapFrontContentRevealOpacity(0, isDoubleSpread: true),
-        equals(1.0),
-      );
-      expect(
-        flapFrontContentRevealOpacity(0.10, isDoubleSpread: true),
-        closeTo(0.5, 0.01),
-      );
-      expect(
-        flapFrontContentRevealOpacity(0.20, isDoubleSpread: true),
-        equals(0.0),
-      );
-    });
-
-    test('double: is zero during mid fold between fade-out and late reveal',
-        () {
-      expect(
-        flapFrontContentRevealOpacity(0.25, isDoubleSpread: true),
-        equals(0.0),
-      );
-      expect(
-        flapFrontContentRevealOpacity(0.50, isDoubleSpread: true),
-        equals(0.0),
-      );
-      expect(
-        flapFrontContentRevealOpacity(0.84, isDoubleSpread: true),
-        equals(0.0),
-      );
-    });
-
-    test('double: ramps smoothly during late settle reveal', () {
-      expect(
-        flapFrontContentRevealOpacity(0.90, isDoubleSpread: true),
-        closeTo(0.5, 0.01),
-      );
-    });
-
-    test('double: is fully opaque at or after reveal end', () {
-      expect(
-        flapFrontContentRevealOpacity(0.95, isDoubleSpread: true),
-        equals(1.0),
-      );
-      expect(
-        flapFrontContentRevealOpacity(1, isDoubleSpread: true),
-        equals(1.0),
-      );
+    test('double: real verso remains fully visible for every phase', () {
+      for (final p in <double>[0, 0.1, 0.2, 0.5, 0.85, 0.9, 0.95, 1]) {
+        expect(
+          flapFrontContentRevealOpacity(p, isDoubleSpread: true),
+          equals(1.0),
+        );
+      }
     });
   });
 

@@ -24,8 +24,8 @@ import 'package:real_page_flip/src/page_flip_layer_view.dart'
 /// |------|--------|--------|
 /// | Single forward | Next page | Current page |
 /// | Single backward | Current page | Previous page |
-/// | Double forward | Next spread right half | Current spread left half |
-/// | Double backward | Previous spread left half | Current spread right half |
+/// | Double forward | Next spread right half | Full current spread |
+/// | Double backward | Previous spread left half | Full current spread |
 class FlipLayerPolicy {
   const FlipLayerPolicy({
     required this.isDoubleSpread,
@@ -80,20 +80,6 @@ class FlipLayerPolicy {
 
   // ─── Middle layer (stationary under the flap) ───
 
-  /// Spread half to show in the middle layer (double mode), or null.
-  ///
-  /// The stationary side always shows the **current** spread's corresponding
-  /// half during the flip — the new content is only on the revealed (bottom)
-  /// side. Forward: left half (Clipper, left of fold). Backward: right half
-  /// (OpenClipper, right of fold).
-  ({int index, Alignment alignment})? get middleSpreadHalf {
-    if (!isDoubleSpread) return null;
-    return (
-      index: currentIndex,
-      alignment: isForward ? Alignment.centerLeft : Alignment.centerRight,
-    );
-  }
-
   /// Full spread index for the middle layer (double mode), or null for single mode.
   ///
   /// In double mode the entire current spread sits stationary under the flap
@@ -119,7 +105,11 @@ class FlipLayerPolicy {
     if (!isDoubleSpread && !isForward) {
       return currentIndex > 0 ? currentIndex - 1 : null;
     }
-    return currentIndex;
+    if (!isDoubleSpread) return currentIndex;
+    if (isForward) {
+      return currentIndex < itemCount - 1 ? currentIndex + 1 : null;
+    }
+    return currentIndex > 0 ? currentIndex - 1 : null;
   }
 
   /// Spread index whose snapshot provides the settle-phase flap front content.
@@ -135,26 +125,6 @@ class FlipLayerPolicy {
     if (!isDoubleSpread) {
       return flapSnapshotSpreadIndex;
     }
-    if (isForward) {
-      return currentIndex < itemCount - 1 ? currentIndex + 1 : null;
-    }
-    return currentIndex > 0 ? currentIndex - 1 : null;
-  }
-
-  // ─── Flap back texture snapshot (2.5D back content) ───
-
-  /// Spread index whose snapshot provides the 2.5D page back content, or null.
-  ///
-  /// In double-spread mode, the back of the flipping page shows the destination
-  /// page content horizontally mirrored. Forward: next spread. Backward: prev.
-  /// Null in single mode (no back content needed) or at boundaries.
-  int? get flapBackSnapshotSpreadIndex {
-    if (!isDoubleSpread) return null;
-    if (isForward) {
-      if (currentIndex + 1 >= itemCount) return null;
-      return currentIndex + 1;
-    }
-    if (currentIndex - 1 < 0) return null;
-    return currentIndex - 1;
+    return flapSnapshotSpreadIndex;
   }
 }

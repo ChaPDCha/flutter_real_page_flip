@@ -26,9 +26,9 @@ part 'page_flip_clippers.dart';
 
 /// Returns the source rect within a spread snapshot for the flipping flap front.
 ///
-/// Forward double-spread: right half of the **current** spread (turning page).
-/// Backward double-spread: left half of the **current** spread (turning page).
-/// Spine reveal in layer 2 shows the adjacent spread half after crossing the spine.
+/// Double-spread maps the physically exposed verso strip from the adjacent
+/// spread. Forward uses a left-anchored strip from the next spread's left page;
+/// backward uses a right-anchored strip from the previous spread's right page.
 /// Single-page (both directions): full page rect — the current page wraps onto
 /// the flap so content is visible during the turn.
 Rect? flapFrontSourceRect({
@@ -39,10 +39,18 @@ Rect? flapFrontSourceRect({
 }) {
   if (isDoubleSpread) {
     final halfWidth = imageSize.width / 2;
+    final p = (floatProgress ?? (isForward ? 1.0 : 0.0)).clamp(0.0, 1.0);
+    final materialFraction = isForward ? p : 1.0 - p;
+    final stripWidth = halfWidth * materialFraction;
     if (isForward) {
-      return Rect.fromLTWH(halfWidth, 0, halfWidth, imageSize.height);
+      return Rect.fromLTWH(0, 0, stripWidth, imageSize.height);
     }
-    return Rect.fromLTWH(0, 0, halfWidth, imageSize.height);
+    return Rect.fromLTWH(
+      imageSize.width - stripWidth,
+      0,
+      stripWidth,
+      imageSize.height,
+    );
   }
 
   // Single-page: when [floatProgress] is supplied, map only the LIFTED strip
@@ -76,29 +84,14 @@ Rect singlePagePeeledStripRect(Size imageSize, double floatProgress) {
   );
 }
 
-/// Returns the source rect within an adjacent spread snapshot for 2.5D back content.
-///
-/// The back of the flipping page shows the physically opposite half from the front:
-/// - Forward double-spread: left half (verso of the right page = left page of next spread).
-/// - Backward double-spread: right half (verso of the left page = right page of prev spread).
-/// - Single mode: null (no back content).
-///
-/// Unlike [flapFrontSourceRect] which selects the page being peeled away, this
-/// selects the page that lies on the other side of the paper — the one the reader
-/// would see through thin paper as the flip progresses.
+/// Legacy back-content helper. The double-spread flap front now directly maps
+/// the real verso strip, so a second mirrored ghost texture is never needed.
 Rect? flapBackSourceRect({
   required Size imageSize,
   required bool isDoubleSpread,
   required bool isForward,
-}) {
-  if (!isDoubleSpread) return null;
-  final halfWidth = imageSize.width / 2;
-  // The physically opposite half: forward → left half, backward → right half.
-  if (isForward) {
-    return Rect.fromLTWH(0, 0, halfWidth, imageSize.height);
-  }
-  return Rect.fromLTWH(halfWidth, 0, halfWidth, imageSize.height);
-}
+}) =>
+    null;
 
 /// Returns the source rect within a spread snapshot for settle-phase flap front content.
 ///
@@ -116,11 +109,12 @@ Rect? flapFrontSettleSourceRect({
   double? floatProgress,
 }) {
   if (isDoubleSpread) {
-    final halfWidth = imageSize.width / 2;
-    if (isForward) {
-      return Rect.fromLTWH(0, 0, halfWidth, imageSize.height);
-    }
-    return Rect.fromLTWH(halfWidth, 0, halfWidth, imageSize.height);
+    return flapFrontSourceRect(
+      imageSize: imageSize,
+      isDoubleSpread: true,
+      isForward: isForward,
+      floatProgress: floatProgress,
+    );
   }
 
   // Single-page settle phase reuses the same peeled-strip mapping as the front
@@ -218,6 +212,9 @@ double flapFrontContentRevealOpacity(
   bool keepSinglePageContentVisible = true,
   double doubleSpreadMidFoldBleed = 0.0,
 }) {
+  // Double-spread maps the actual verso, so it stays fully visible throughout.
+  if (isDoubleSpread) return 1;
+
   // Single-page mode: pages are single-sided, so the flipping page shows its
   // own content curling with the paper for the entire turn only when the
   // high-fidelity path opts into it. Medium/low profiles intentionally use the

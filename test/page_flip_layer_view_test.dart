@@ -457,9 +457,9 @@ void main() {
 
         final painter =
             tester.widget<CustomPaint>(paintFinder).painter! as PageFlipPainter;
-        expect(painter.flapFrontImage, same(currentSpread));
+        expect(painter.flapFrontImage, same(nextSpread));
         expect(painter.flapFrontSettleImage, same(nextSpread));
-        expect(painter.flapBackImage, same(nextSpread));
+        expect(painter.flapBackImage, isNull);
       },
     );
 
@@ -530,9 +530,9 @@ void main() {
 
         final painter =
             tester.widget<CustomPaint>(paintFinder).painter! as PageFlipPainter;
-        expect(painter.flapFrontImage, same(currentSpread));
+        expect(painter.flapFrontImage, same(nextSpread));
         expect(painter.flapFrontSettleImage, same(nextSpread));
-        expect(painter.flapBackImage, same(nextSpread));
+        expect(painter.flapBackImage, isNull);
       },
     );
 
@@ -1128,7 +1128,7 @@ void main() {
       expect(bottomImage.image, isNot(equals(currentSpread)));
     });
 
-    testWidgets('forward middle layer clips current spread left half', (
+    testWidgets('forward middle layer clips the full current spread at fold', (
       tester,
     ) async {
       final currentSpread = await spreadImage(
@@ -1168,15 +1168,15 @@ void main() {
       );
       expect(middleClipper, findsOneWidget);
 
-      final middleAlign = tester.widget<Align>(
+      expect(
         find.descendant(
           of: middleClipper,
           matching: find.byWidgetPredicate(
             (w) => w is Align && w.widthFactor == 0.5,
           ),
         ),
+        findsNothing,
       );
-      expect(middleAlign.alignment, Alignment.centerLeft);
 
       final middleImage = tester.widget<RawImage>(
         find.descendant(
