@@ -100,11 +100,11 @@ class AdvancedHapticEngine {
 
   /// Sends a continuous waveform segment to the native platform.
   ///
-  /// [intensities] is a list of amplitude values (0.0–1.0) sampled at
-  /// ~200 Hz (5 ms per sample). On iOS the values become a
-  /// [CHHapticPattern] parameter curve on a persistent advanced player
-  /// with real-time dynamic parameters. On Android they become a
-  /// [VibrationEffect.createWaveform] amplitude array.
+  /// [intensities] is a list of amplitude values (0.0-1.0) sampled at
+  /// ~200 Hz (5 ms per sample). On iOS the values become a `CHHapticPattern`
+  /// parameter curve on a persistent advanced player with real-time dynamic
+  /// parameters. On Android they become a `VibrationEffect.createWaveform`
+  /// amplitude array.
   ///
   /// Callers should flush at most every ~40 ms and keep each batch to
   /// ~8–10 samples so the MethodChannel payload stays small.
