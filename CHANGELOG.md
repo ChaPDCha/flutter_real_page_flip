@@ -3,6 +3,10 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [1.15.2] - 2026-07-10
+### Fixed
+- **Dark Pillars at Flap Boundaries**: Every gradient in `PageFlipPainter` that faded to `Colors.transparent` (transparent BLACK) painted a semi-opaque dark-gray halo mid-ramp, because Flutter lerps RGB toward black as alpha falls. On light paper this rendered as two hard dark vertical "pillars" hugging the flap's free edge and fold line (measured 25–35% darkening where at most ~15% intended shading exists), and the false lines sat a few pixels inside the real content boundaries — reading as misaligned layer seams. All gradient endpoints now fade to the same hue at alpha 0. Adds a pixel-measuring regression test that renders a flip over plain paper across all performance profiles and fails if any pixel drops below the darkest intended shading.
+
 ## [1.15.1] - 2026-07-10
 ### Changed
 - **Analyzer Cleanup**: Fixed 11 pre-existing `flutter analyze` info-level lints (unresolvable Dartdoc `[Name]` references to native Swift/Kotlin types, two intentionally-broad `catch` blocks missing an `on` clause, and `double` literals that should be `int`) that were failing CI on every push. No functional changes.
