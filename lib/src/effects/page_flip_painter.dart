@@ -307,18 +307,22 @@ class PageFlipPainter extends CustomPainter {
             columns: density.columns,
             flipHorizontal: !isDoubleSpread || !isForward,
           );
-          canvas.drawVertices(
-            mesh,
-            BlendMode.srcOver,
-            Paint()
-              ..shader = ui.ImageShader(
-                srcImage,
-                ui.TileMode.clamp,
-                ui.TileMode.clamp,
-                _identityMatrixStorage,
-              )
-              ..filterQuality = FilterQuality.medium,
-          );
+          try {
+            canvas.drawVertices(
+              mesh,
+              BlendMode.srcOver,
+              Paint()
+                ..shader = ui.ImageShader(
+                  srcImage,
+                  ui.TileMode.clamp,
+                  ui.TileMode.clamp,
+                  _identityMatrixStorage,
+                )
+                ..filterQuality = FilterQuality.medium,
+            );
+          } finally {
+            mesh.dispose();
+          }
 
           // Fade mesh away during early fold / late settle using paper-colour
           // overlay so content does not pop in/out harshly.
@@ -561,14 +565,11 @@ class PageFlipPainter extends CustomPainter {
       );
     }
 
-    // Fold-crease accent (flap side) — a NARROW hairline right at the crease,
-    // NOT a wide band. Previously this darkening spread across 30% of the flap
-    // width, and the revealed-page drop shadow added a second wide band on the
-    // other side of the fold; together they read as one thick dark line (the
-    // "cartoon outline" the user reported). The crease is now modelled as ONE
-    // soft valley: a thin accent on the flap side here + the eased revealed-side
-    // valley below. Drawn LAST so the paper masks above do not overwrite it.
-    if (bendStrength > 0.005 &&
+    // Double-spread fold accent. In single-page mode the unified crease mesh
+    // below owns both sides of the fold, so drawing this pass as well would
+    // recreate the parallel boundary that makes one sheet look layered.
+    if (isDoubleSpread &&
+        bendStrength > 0.005 &&
         performanceProfile != DevicePerformanceProfile.low) {
       final foldDarkenAlign =
           g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
@@ -617,97 +618,139 @@ class PageFlipPainter extends CustomPainter {
 
     canvas.restore();
 
-    // Revealed Page Shadow
+    // Crease shadow
     //
-    // Soft shadow the lifted flap casts onto the flat page beneath. The shadow
-    // band must run parallel to the crease. When the user drags at an angle the
-    // fold line tilts (rotateZ around the hinge), so the shadow is drawn inside
-    // the SAME fold transform: the local rect's dark edge at foldX maps exactly
-    // onto the tilted fold line. Drawing it axis-aligned in screen space instead
-    // leaves a bright wedge gap near the fold whenever the angle is non-zero.
-    // The screen-space clip below (applied before the transform) still bounds
-    // the shadow to the revealed-page side along the curved fold line.
+    // The shadow must share the fold transform and curved centerline. Single
+    // pages use one color mesh across the complete crease; double spreads keep
+    // the directional revealed-page shadow because they contain separate sheets.
     canvas.save();
-    // Clip strictly to the revealed page side along the curved fold line
-    final shadowClipPath = isForward
-        ? buildOpenPageClipPath(size, g)
-        : buildStationaryPageClipPath(size, g);
-    canvas.clipPath(shadowClipPath);
-    canvas.transform(g.transform.storage);
 
-    // Single unified crease valley: darkest right at the fold, feathering out
-    // across the revealed page. Narrower than the layout guard and eased with
-    // [_kCreaseValleyStops] so it reads as one soft fold, not a hard stroke.
-    final shadowWidth = _kCreaseShadowWidth * g.shadowIntensity;
-    final revealedAlpha = (isPaperDark ? 0.08 : 0.15) * g.shadowIntensity;
-    if (revealedAlpha > 0.01 && shadowWidth > 1) {
-      // Follow the same curved fold boundary as the flap. A straight shadow
-      // rect stays angle-aligned after transform, but its dark edge remains a
-      // straight line while the paper edge is quadratic, which makes the crease
-      // look like two competing layers. The path below shares the fold curve
-      // and only bleeds a little across it to cover antialiasing.
-      final shadowPath = buildCurvedFoldShadowPath(
-        g,
-        isForward: isForward,
-        shadowWidth: shadowWidth,
+    if (!isDoubleSpread) {
+      // One sheet, one optical boundary. The old single-page path painted a
+      // flap-side darkening, an inner revealed shadow, and an ambient shadow as
+      // three independent gradients. Their geometry shared a centreline, but
+      // their alpha discontinuities produced parallel vertical borders.
+      //
+      // The colored mesh below spans both sides of the fold and bends every
+      // opacity column with foldCurveXAt, which a straight LinearGradient cannot
+      // do. It also replaces three shaded draws with one drawVertices call.
+      canvas.clipRect(Offset.zero & size);
+      canvas.transform(g.transform.storage);
+
+      final revealedWidth = _kCreaseShadowWidth * 1.8 * g.shadowIntensity;
+      final flapWidth = math.min(
+        g.flapVisibleWidth,
+        math.max(foldFadeWidth, _kCreaseFlapSideWidth) * g.shadowIntensity,
       );
-      final shadowBounds = shadowPath.getBounds();
-
-      final beginAlign =
-          isForward ? Alignment.centerLeft : Alignment.centerRight;
-      final endAlign = isForward ? Alignment.centerRight : Alignment.centerLeft;
-
-      final shadowColor = isPaperDark ? Colors.white : Colors.black;
-
-      if (performanceProfile == DevicePerformanceProfile.low) {
-        canvas.drawPath(
-          shadowPath,
-          Paint()..color = shadowColor.withValues(alpha: revealedAlpha * 0.42),
+      final peakOpacity = (isPaperDark ? 0.07 : 0.13) * g.shadowIntensity;
+      if (peakOpacity > 0.008 && revealedWidth > 1 && flapWidth > 0.5) {
+        final density = flapMeshDensityForPerformance(performanceProfile);
+        final creaseMesh = buildCurvedCreaseValleyMesh(
+          g,
+          flapSideWidth: flapWidth,
+          revealedSideWidth: revealedWidth,
+          color: isPaperDark ? Colors.white : Colors.black,
+          peakOpacity: peakOpacity,
+          segments: density.segments,
         );
-      } else {
-        // Inner drop shadow with an eased toe (3-stop) so the crease has no
-        // hard edge where it meets the fold line.
-        canvas.drawPath(
-          shadowPath,
-          Paint()
-            ..shader = LinearGradient(
-              begin: beginAlign,
-              end: endAlign,
-              colors: [
-                shadowColor.withValues(alpha: revealedAlpha),
-                shadowColor.withValues(alpha: revealedAlpha * 0.45),
-                shadowColor.withValues(alpha: 0),
-              ],
-              stops: _kCreaseValleyStops,
-            ).createShader(shadowBounds),
-        );
+        try {
+          canvas.drawVertices(
+            creaseMesh,
+            BlendMode.dst,
+            Paint()
+              ..blendMode = isPaperDark ? BlendMode.screen : BlendMode.multiply,
+          );
+        } finally {
+          creaseMesh.dispose();
+        }
+      }
 
-        // Outer softer ambient band for natural falloff — the wide, low-alpha
-        // continuation of the SAME valley (not a second competing band).
-        final ambientWidth = shadowWidth * 1.8;
-        final ambientPath = buildCurvedFoldShadowPath(
+      canvas.restore();
+    } else {
+      // Double spreads retain the directional revealed-page shadow because the
+      // stationary half and the open half are separate physical sheets.
+      final shadowClipPath = isForward
+          ? buildOpenPageClipPath(size, g)
+          : buildStationaryPageClipPath(size, g);
+      canvas.clipPath(shadowClipPath);
+      canvas.transform(g.transform.storage);
+
+      // Single unified crease valley: darkest right at the fold, feathering out
+      // across the revealed page. Narrower than the layout guard and eased with
+      // [_kCreaseValleyStops] so it reads as one soft fold, not a hard stroke.
+      final shadowWidth = _kCreaseShadowWidth * g.shadowIntensity;
+      final revealedAlpha = (isPaperDark ? 0.08 : 0.15) * g.shadowIntensity;
+      if (revealedAlpha > 0.01 && shadowWidth > 1) {
+        // Follow the same curved fold boundary as the flap. A straight shadow
+        // rect stays angle-aligned after transform, but its dark edge remains a
+        // straight line while the paper edge is quadratic, which makes the crease
+        // look like two competing layers. The path below shares the fold curve
+        // and only bleeds a little across it to cover antialiasing.
+        final shadowPath = buildCurvedFoldShadowPath(
           g,
           isForward: isForward,
-          shadowWidth: ambientWidth,
+          shadowWidth: shadowWidth,
         );
-        final ambientAlpha = (isPaperDark ? 0.02 : 0.035) * g.shadowIntensity;
-        canvas.drawPath(
-          ambientPath,
-          Paint()
-            ..shader = LinearGradient(
-              begin: beginAlign,
-              end: endAlign,
-              colors: [
-                shadowColor.withValues(alpha: ambientAlpha),
-                shadowColor.withValues(alpha: 0),
-              ],
-              stops: const [0.0, 1.0],
-            ).createShader(ambientPath.getBounds()),
-        );
-      }
-    }
+        final shadowBounds = shadowPath.getBounds();
 
-    canvas.restore();
+        final beginAlign =
+            isForward ? Alignment.centerLeft : Alignment.centerRight;
+        final endAlign =
+            isForward ? Alignment.centerRight : Alignment.centerLeft;
+
+        final shadowColor = isPaperDark ? Colors.white : Colors.black;
+
+        if (performanceProfile == DevicePerformanceProfile.low) {
+          canvas.drawPath(
+            shadowPath,
+            Paint()
+              ..color = shadowColor.withValues(alpha: revealedAlpha * 0.42),
+          );
+        } else {
+          // Inner drop shadow with an eased toe (3-stop) so the crease has no
+          // hard edge where it meets the fold line.
+          canvas.drawPath(
+            shadowPath,
+            Paint()
+              ..shader = LinearGradient(
+                begin: beginAlign,
+                end: endAlign,
+                colors: [
+                  shadowColor.withValues(alpha: revealedAlpha),
+                  shadowColor.withValues(alpha: revealedAlpha * 0.45),
+                  shadowColor.withValues(alpha: 0),
+                ],
+                stops: _kCreaseValleyStops,
+              ).createShader(shadowBounds),
+          );
+
+          // Outer softer ambient band for natural falloff — the wide, low-alpha
+          // continuation of the SAME valley (not a second competing band).
+          final ambientWidth = shadowWidth * 1.8;
+          final ambientPath = buildCurvedFoldShadowPath(
+            g,
+            isForward: isForward,
+            shadowWidth: ambientWidth,
+          );
+          final ambientAlpha = (isPaperDark ? 0.02 : 0.035) * g.shadowIntensity;
+          canvas.drawPath(
+            ambientPath,
+            Paint()
+              ..shader = LinearGradient(
+                begin: beginAlign,
+                end: endAlign,
+                colors: [
+                  shadowColor.withValues(alpha: ambientAlpha),
+                  shadowColor.withValues(alpha: 0),
+                ],
+                stops: const [0.0, 1.0],
+              ).createShader(ambientPath.getBounds()),
+          );
+        }
+      }
+
+      canvas.restore();
+    }
 
     // Free-edge contact shadow (ambient occlusion): grounds the lifted edge onto
     // the flat page beneath it. Without this the flap reads as a flat sticker

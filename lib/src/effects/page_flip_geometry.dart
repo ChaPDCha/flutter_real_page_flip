@@ -48,6 +48,12 @@ const double _kStationaryShadowWidth = 14;
 /// crease, not a hard stroke.
 const double _kCreaseShadowWidth = 22;
 
+/// Flap-side reach of the single-page crease valley.
+///
+/// The lifted sheet needs a little shading on both sides of the fold, but the
+/// flap-side toe must stay narrow. A broad toe reads as another paper edge.
+const double _kCreaseFlapSideWidth = 8;
+
 /// Painted width (px) of the contact (ambient-occlusion) shadow just outside
 /// the lifted free edge.
 ///

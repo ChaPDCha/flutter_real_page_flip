@@ -71,6 +71,11 @@ class RecordingCanvas extends Fake implements Canvas {
   int get drawPathCount => records.where((r) => r.method == 'drawPath').length;
   int get drawVerticesCount =>
       records.where((r) => r.method == 'drawVertices').length;
+  int get creaseMeshCount => records.where((r) {
+        if (r.method != 'drawVertices') return false;
+        return r.args[1] == BlendMode.dst &&
+            (r.args[2]! as Paint).shader == null;
+      }).length;
 
   int shadedDrawCountWhere({
     BlendMode? blendMode,
@@ -410,9 +415,9 @@ void main() {
       expect(paint.color.alpha, lessThan(255));
     });
 
-    // ── Revealed page shadow ──────────────────────────────────
+    // ── Single-page unified crease ─────────────────────────────
 
-    test('revealed page shadow drawn at mid-flip', () {
+    test('single-page crease is drawn once as one curved color mesh', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -422,24 +427,15 @@ void main() {
         paperBackColor: Colors.white,
       ).paint(canvas, size);
 
-      // Revealed shadow uses a gradient shader and is drawn as a curved path
-      // after the flap restore.
-      // At progress=0.5, revealedAlpha = 0.15 > 0.01 and shadowWidth > 1
-      // → shadow IS drawn
-      final allShaderDraws = canvas.shadedDrawCountWhere(hasShader: true);
-      // Must be >= 5: bend highlight + bend shadow + edge-fade + fold-fade + revealed shadow (inner) + revealed shadow (ambient)
-      // At progress=0.5 with single-page, no stationary shadow, no spine.
-      // So: highlight(1) + shadow(2) + edge-fade(3) + fold-fade(4) + revealed-shadow-inner(5) + revealed-shadow-ambient(6)
-      expect(allShaderDraws, greaterThanOrEqualTo(5));
       expect(
-        canvas.drawPathCount,
-        greaterThanOrEqualTo(2),
-        reason:
-            'Revealed page shadow should draw two curved paths (inner + ambient glow).',
+        canvas.creaseMeshCount,
+        equals(1),
+        reason: 'Flap-side shade, fold peak, and revealed falloff must be one '
+            'continuous mesh draw, not independent shadow paths.',
       );
     });
 
-    test('revealed page shadow draws one flat path on low profile', () {
+    test('low profile also keeps one continuous crease mesh', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -450,20 +446,15 @@ void main() {
         performanceProfile: DevicePerformanceProfile.low,
       ).paint(canvas, size);
 
-      final solidPathDraws = canvas.records.where((r) {
-        if (r.method != 'drawPath') return false;
-        return (r.args[1]! as Paint).shader == null;
-      });
       expect(
-        solidPathDraws.length,
+        canvas.creaseMeshCount,
         equals(1),
-        reason:
-            'Low profile revealed shadow should draw exactly one non-shader path.',
+        reason: 'Low profile should use the lower-density version of the same '
+            'continuous crease geometry.',
       );
     });
 
-    test('revealed page shadow uses white color as highlight on dark paper',
-        () {
+    test('single-page crease uses screen compositing on dark paper', () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -473,19 +464,13 @@ void main() {
         paperBackColor: Colors.black, // Dark paper
       ).paint(canvas, size);
 
-      final pathPaints = canvas.records
-          .where((r) => r.method == 'drawPath')
-          .map((r) => r.args[1]! as Paint);
-
-      final hasWhiteGlow = pathPaints.any((p) {
-        if (p.shader == null) return false;
-        // Since it's a shader, we cannot trivially check colors list from Paint object here
-        // as the shader is an opaque native object.
-        // We'll rely on the RecordingCanvas or just skip deep inspection if not supported.
-        return true;
-      });
-
-      expect(hasWhiteGlow, isTrue);
+      final crease = canvas.records.singleWhere(
+        (r) =>
+            r.method == 'drawVertices' &&
+            r.args[1] == BlendMode.dst &&
+            (r.args[2]! as Paint).shader == null,
+      );
+      expect((crease.args[2]! as Paint).blendMode, BlendMode.screen);
     });
 
     // ── Free-edge contact shadow (ambient occlusion) ───────────
@@ -503,10 +488,9 @@ void main() {
         // Default profile is medium; kept implicit to avoid the redundant-arg lint.
       ).paint(canvas, size);
 
-      // Single-page: flap clip + revealed-crease clip + free-edge contact
-      // clip = 3. Matching transform count (each clip pairs with one
-      // canvas.transform(fold) call).
-      expect(canvas.clipPathCount, equals(3));
+      // Single-page: flap clip + free-edge contact clip = 2. The unified crease
+      // is bounded by its own mesh and needs only the viewport clipRect.
+      expect(canvas.clipPathCount, equals(2));
       final transformCount =
           canvas.records.where((r) => r.method == 'transform').length;
       expect(transformCount, equals(3));
@@ -523,11 +507,11 @@ void main() {
         performanceProfile: DevicePerformanceProfile.low,
       ).paint(canvas, size);
 
-      // Low profile: only flap clip + revealed-crease clip = 2. No contact
-      // shadow save/clip/transform block should be emitted.
+      // Low profile: only the flap clip remains. The crease uses clipRect and
+      // the contact shadow is omitted.
       expect(
         canvas.clipPathCount,
-        equals(2),
+        equals(1),
         reason: 'Low profile must skip the free-edge contact shadow entirely '
             'to stay on the cheap rendering path',
       );
@@ -651,7 +635,7 @@ void main() {
         paperBackColor: Colors.white,
       ).paint(canvas, size);
 
-      // Single-page: flap transform (1) + revealed-shadow transform (2) +
+      // Single-page: flap transform (1) + unified-crease transform (2) +
       // free-edge contact-shadow transform (3).
       final transformIdxs = <int>[];
       for (var i = 0; i < canvas.records.length; i++) {
@@ -663,14 +647,13 @@ void main() {
       expect(
         transformIdxs.length,
         equals(3),
-        reason: 'Flap, revealed shadow, and free-edge contact shadow each '
+        reason: 'Flap, unified crease, and free-edge contact shadow each '
             'apply the fold transform',
       );
       expect(
         transformIdxs.last,
         greaterThan(lastClipPathIdx),
-        reason: 'Revealed shadow transform must follow the shadow clipPath so '
-            'the shadow band aligns with the tilted fold line',
+        reason: 'The final contact-shadow transform must follow its clipPath',
       );
     });
 
@@ -841,9 +824,9 @@ void main() {
 
       expect(
         canvas.clipPathCount,
-        equals(3),
-        reason: 'One clipPath for flap, one for revealed crease shadow, one '
-            'for the free-edge contact shadow',
+        equals(2),
+        reason: 'One clipPath for the flap and one for the free-edge contact '
+            'shadow; the unified crease uses a bounded color mesh.',
       );
     });
 
@@ -1006,8 +989,10 @@ void main() {
 
       // At progress=0.96: contentReveal = 1.0 → front vertices drawn
       // Find the last drawVertices and first gradient drawRect
-      final lastVerticesIdx =
-          canvas.records.lastIndexWhere((r) => r.method == 'drawVertices');
+      final lastTextureVerticesIdx = canvas.records.lastIndexWhere(
+        (r) =>
+            r.method == 'drawVertices' && (r.args[2]! as Paint).shader != null,
+      );
       // Bend highlight: BlendMode.screen
       final firstBendIdx = canvas.records.indexWhere(
         (r) =>
@@ -1016,7 +1001,7 @@ void main() {
       );
 
       expect(
-        lastVerticesIdx,
+        lastTextureVerticesIdx,
         lessThan(firstBendIdx),
         reason: 'Vertices must be drawn before bend shading overlay',
       );

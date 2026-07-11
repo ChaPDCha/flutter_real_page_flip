@@ -587,6 +587,156 @@ Path buildCurvedFoldShadowPath(
   return path;
 }
 
+/// Builds one color-interpolated mesh for the complete single-page crease.
+///
+/// A regular [LinearGradient] is straight in shader space even when its clip
+/// path is curved. That leaves the darkest part of the shadow axis-aligned while
+/// the paper follows [foldCurveXAt]. This mesh places every opacity column on a
+/// translated copy of that same fold curve, so the flap-side shade, crease peak,
+/// and revealed-page falloff remain one continuous optical boundary.
+List<({double shift, double opacity})> _creaseValleyColumns({
+  required PageFlipGeometry geo,
+  required double flapSideWidth,
+  required double revealedSideWidth,
+  required double peakOpacity,
+}) {
+  final flapSign = geo.flapRightOfFold ? 1.0 : -1.0;
+  final revealedSign = -flapSign;
+  return <({double shift, double opacity})>[
+    (shift: flapSign * flapSideWidth, opacity: 0),
+    (shift: flapSign * flapSideWidth * 0.35, opacity: peakOpacity * 0.32),
+    (shift: 0, opacity: peakOpacity),
+    (
+      shift: revealedSign * revealedSideWidth * 0.18,
+      opacity: peakOpacity * 0.45,
+    ),
+    (
+      shift: revealedSign * revealedSideWidth * 0.55,
+      opacity: peakOpacity * 0.12,
+    ),
+    (shift: revealedSign * revealedSideWidth, opacity: 0),
+  ]..sort((a, b) => a.shift.compareTo(b.shift));
+}
+
+/// Vertex positions used by [buildCurvedCreaseValleyMesh].
+///
+/// Every row contains a vertex on [foldCurveXAt], with all remaining columns
+/// kept as parallel translations of that exact curve.
+@visibleForTesting
+Float32List buildCurvedCreaseValleyPositions(
+  PageFlipGeometry geo, {
+  required double flapSideWidth,
+  required double revealedSideWidth,
+  int segments = 12,
+}) {
+  final safeSegments = math.max(segments, 0);
+  final safeFlapWidth = flapSideWidth.clamp(0.0, double.infinity).toDouble();
+  final safeRevealedWidth =
+      revealedSideWidth.clamp(0.0, double.infinity).toDouble();
+  final height = geo.size.height;
+
+  if (safeSegments == 0 ||
+      height <= 0 ||
+      safeFlapWidth + safeRevealedWidth <= 0) {
+    return Float32List(0);
+  }
+
+  final columns = _creaseValleyColumns(
+    geo: geo,
+    flapSideWidth: safeFlapWidth,
+    revealedSideWidth: safeRevealedWidth,
+    peakOpacity: 1,
+  );
+  final rows = safeSegments + 1;
+  final columnCount = columns.length;
+  final positions = Float32List(rows * columnCount * 2);
+  final topY = -height;
+  final verticalSpan = height * 3;
+
+  for (var row = 0; row < rows; row++) {
+    final y = topY + verticalSpan * (row / safeSegments);
+    final foldX = foldCurveXAt(geo, y);
+    final rowBase = row * columnCount;
+
+    for (var column = 0; column < columnCount; column++) {
+      final vertex = rowBase + column;
+      positions[vertex * 2] = foldX + columns[column].shift;
+      positions[vertex * 2 + 1] = y;
+    }
+  }
+
+  return positions;
+}
+
+@visibleForTesting
+ui.Vertices buildCurvedCreaseValleyMesh(
+  PageFlipGeometry geo, {
+  required double flapSideWidth,
+  required double revealedSideWidth,
+  required Color color,
+  required double peakOpacity,
+  int segments = 12,
+}) {
+  final safeSegments = math.max(segments, 0);
+  final safeFlapWidth = flapSideWidth.clamp(0.0, double.infinity).toDouble();
+  final safeRevealedWidth =
+      revealedSideWidth.clamp(0.0, double.infinity).toDouble();
+  final safePeak = peakOpacity.clamp(0.0, 1.0).toDouble();
+  final positions = buildCurvedCreaseValleyPositions(
+    geo,
+    flapSideWidth: safeFlapWidth,
+    revealedSideWidth: safeRevealedWidth,
+    segments: safeSegments,
+  );
+
+  if (positions.isEmpty || safePeak <= 0) {
+    return ui.Vertices.raw(
+      ui.VertexMode.triangles,
+      Float32List(0),
+      colors: Int32List(0),
+    );
+  }
+
+  final columns = _creaseValleyColumns(
+    geo: geo,
+    flapSideWidth: safeFlapWidth,
+    revealedSideWidth: safeRevealedWidth,
+    peakOpacity: safePeak,
+  );
+  final columnCount = columns.length;
+  final rows = safeSegments + 1;
+  final colors = Int32List(rows * columnCount);
+  for (var row = 0; row < rows; row++) {
+    final rowBase = row * columnCount;
+    for (var column = 0; column < columnCount; column++) {
+      colors[rowBase + column] =
+          color.withValues(alpha: columns[column].opacity).toARGB32();
+    }
+  }
+
+  final indices = Uint16List(safeSegments * (columnCount - 1) * 6);
+  var index = 0;
+  for (var row = 0; row < safeSegments; row++) {
+    final current = row * columnCount;
+    final next = (row + 1) * columnCount;
+    for (var column = 0; column < columnCount - 1; column++) {
+      indices[index++] = current + column;
+      indices[index++] = next + column;
+      indices[index++] = current + column + 1;
+      indices[index++] = current + column + 1;
+      indices[index++] = next + column;
+      indices[index++] = next + column + 1;
+    }
+  }
+
+  return ui.Vertices.raw(
+    ui.VertexMode.triangles,
+    positions,
+    colors: colors,
+    indices: indices,
+  );
+}
+
 /// Local-space contact (ambient-occlusion) shadow just OUTSIDE the lifted free
 /// edge, following the same curved flap-edge bezier as the mesh.
 ///

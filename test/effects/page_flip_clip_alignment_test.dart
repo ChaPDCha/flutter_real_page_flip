@@ -120,6 +120,89 @@ void main() {
     });
   });
 
+  group('unified single-page crease mesh geometry', () {
+    const segments = 12;
+    const columnCount = 6;
+    final cases = <(Size, bool, Offset)>[
+      (const Size(360, 1600), true, const Offset(340, 0)),
+      (const Size(360, 1600), false, const Offset(20, 1600)),
+      (const Size(2200, 700), true, const Offset(2100, 0)),
+      (const Size(2200, 700), false, const Offset(100, 700)),
+      (const Size(800, 600), true, const Offset(400, 300)),
+    ];
+
+    for (final (size, isForward, touch) in cases) {
+      test(
+          'every opacity column follows the fold curve at '
+          '$size forward=$isForward', () {
+        final g = PageFlipGeometry(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: touch,
+          size: size,
+          isForward: isForward,
+        );
+        final positions = buildCurvedCreaseValleyPositions(
+          g,
+          flapSideWidth: 8,
+          revealedSideWidth: 40,
+        );
+
+        expect(positions.length, (segments + 1) * columnCount * 2);
+        for (var row = 0; row <= segments; row++) {
+          final rowOffset = row * columnCount * 2;
+          final y = positions[rowOffset + 1];
+          final foldX = foldCurveXAt(g, y);
+          final xs = <double>[];
+          for (var column = 0; column < columnCount; column++) {
+            final x = positions[rowOffset + column * 2];
+            final vertexY = positions[rowOffset + column * 2 + 1];
+            expect(x.isFinite, isTrue);
+            expect(vertexY, closeTo(y, 0.001));
+            xs.add(x);
+          }
+
+          expect(
+            xs.any((x) => (x - foldX).abs() < 0.01),
+            isTrue,
+            reason: 'Each row must contain the exact fold-curve peak; a '
+                'straight shader axis would miss it as curvature changes.',
+          );
+          for (var column = 1; column < xs.length; column++) {
+            expect(xs[column], greaterThan(xs[column - 1]));
+          }
+        }
+      });
+    }
+
+    test('degenerate dimensions return no crease vertices', () {
+      final g = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        size: const Size(400, 0),
+      );
+
+      expect(
+        buildCurvedCreaseValleyPositions(
+          g,
+          flapSideWidth: 8,
+          revealedSideWidth: 40,
+        ),
+        isEmpty,
+      );
+      expect(
+        buildCurvedCreaseValleyPositions(
+          geo(progress: 0.5, isDoubleSpread: false),
+          flapSideWidth: 8,
+          revealedSideWidth: 40,
+          segments: 0,
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('curved free-edge contact shadow', () {
     test(
         'forward: shadow extends OUTWARD (left) of the free edge, not '

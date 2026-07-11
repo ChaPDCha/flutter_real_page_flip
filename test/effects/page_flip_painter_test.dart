@@ -900,7 +900,9 @@ class TrackingShaderCanvas extends Fake implements Canvas {
 
   @override
   void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {
-    drawVerticesCount++;
+    // Texture meshes carry an ImageShader. The single-page crease now also
+    // uses drawVertices, but with vertex colors and no shader.
+    if (paint.shader != null) drawVerticesCount++;
   }
 
   @override
@@ -954,7 +956,7 @@ class MockCanvas extends Fake implements Canvas {
 
   @override
   void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {
-    didDrawVertices = true;
+    if (paint.shader != null) didDrawVertices = true;
   }
 
   @override
