@@ -5,6 +5,10 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 
 ## Unreleased
 
+## [2.0.1] - 2026-07-11
+### Fixed
+- **Single-Page Flap Splitting Into Three Sheets**: Mid-to-late flip, the turning page could read as three stacked vertical bands — full-bright stationary page | washed-out flap | crisp revealed page. Root cause: the thin-paper `saveLayer` (default `thinPaperStrength` 0.15) composited the whole single-page flap, opaque paper underlay included, at ~85% alpha, letting the stationary middle layer (the current page, un-mirrored, in its original position) bleed through the sheet. Worst on medium/low performance profiles, whose flap draws no mesh content mid-flip, leaving a naked paper veil over the page beneath. The single-page flap now always renders as one opaque sheet; its thin-paper feel remains conveyed by `singlePageBackContentOpacity` (the flap's own mirrored back-bleed). Double-spread translucency behavior is unchanged. Adds a pixel-probe regression test (half-blue current page) that fails if any middle-layer tint is detectable inside the flap on high or medium profiles.
+
 ## [2.0.0] - 2026-07-11
 ### Added
 - Capability-adaptive `HapticQuality` (`adaptive`, `basic`, `standard`, `premium`) with native Android/iOS feature detection and safe quality downgrade.
