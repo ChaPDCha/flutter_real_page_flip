@@ -17,6 +17,84 @@ enum PaperTexturePreset {
 
   /// 크래프트지 — 강한 진동, 매우 낮은 임계값, 긴 지속시간
   kraft,
+
+  /// 진동 없음 — 효과음과 페이지 애니메이션은 유지
+  ///
+  /// Appended to preserve the persisted indices of the original presets.
+  none,
+}
+
+/// Device-facing output envelope for one paper texture level.
+@immutable
+class PaperHapticOutputProfile {
+  const PaperHapticOutputProfile({
+    required this.level,
+    required this.minAmplitude,
+    required this.maxAmplitude,
+    required this.sharpness,
+    required this.samplesPerGrain,
+  });
+
+  final int level;
+  final double minAmplitude;
+  final double maxAmplitude;
+  final double sharpness;
+
+  /// Number of 5 ms waveform samples emitted for each movement grain.
+  final int samplesPerGrain;
+}
+
+extension PaperTexturePresetHaptics on PaperTexturePreset {
+  /// Stable user-facing strength level: none=0, paper presets=1..4.
+  int get hapticLevel => switch (this) {
+        PaperTexturePreset.none => 0,
+        PaperTexturePreset.smooth => 1,
+        PaperTexturePreset.standard => 2,
+        PaperTexturePreset.textured => 3,
+        PaperTexturePreset.kraft => 4,
+      };
+
+  bool get hapticsEnabled => this != PaperTexturePreset.none;
+
+  /// Deliberately separated amplitude bands and pulse widths remain
+  /// distinguishable on high-output flagship phone haptic motors.
+  PaperHapticOutputProfile get hapticOutputProfile => switch (this) {
+        PaperTexturePreset.none => const PaperHapticOutputProfile(
+            level: 0,
+            minAmplitude: 0,
+            maxAmplitude: 0,
+            sharpness: 0,
+            samplesPerGrain: 0,
+          ),
+        PaperTexturePreset.smooth => const PaperHapticOutputProfile(
+            level: 1,
+            minAmplitude: 0.025,
+            maxAmplitude: 0.10,
+            sharpness: 0.92,
+            samplesPerGrain: 1,
+          ),
+        PaperTexturePreset.standard => const PaperHapticOutputProfile(
+            level: 2,
+            minAmplitude: 0.07,
+            maxAmplitude: 0.22,
+            sharpness: 0.68,
+            samplesPerGrain: 2,
+          ),
+        PaperTexturePreset.textured => const PaperHapticOutputProfile(
+            level: 3,
+            minAmplitude: 0.14,
+            maxAmplitude: 0.38,
+            sharpness: 0.48,
+            samplesPerGrain: 3,
+          ),
+        PaperTexturePreset.kraft => const PaperHapticOutputProfile(
+            level: 4,
+            minAmplitude: 0.24,
+            maxAmplitude: 0.55,
+            sharpness: 0.24,
+            samplesPerGrain: 4,
+          ),
+      };
 }
 
 /// Concrete haptic parameters derived from a [PaperTexturePreset].
@@ -39,6 +117,7 @@ class PaperTextureConfig {
         PaperTexturePreset.standard => _standard,
         PaperTexturePreset.textured => _textured,
         PaperTexturePreset.kraft => _kraft,
+        PaperTexturePreset.none => _none,
       };
 
   /// 마찰 계수 (0.0 ~ 1.0). 드래그 시 발생하는 미세 진동의 기본 강도와 밀도.
@@ -78,6 +157,13 @@ class PaperTextureConfig {
     stiffness: 0.9,
     roughness: 1.2,
     baseSharpness: 0.4, // 둔탁하고 두꺼운 느낌
+  );
+
+  static const _none = PaperTextureConfig(
+    friction: 0,
+    stiffness: 0,
+    roughness: 0,
+    baseSharpness: 0,
   );
 
   @override

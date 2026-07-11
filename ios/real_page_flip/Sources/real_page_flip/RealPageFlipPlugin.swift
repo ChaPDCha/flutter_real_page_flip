@@ -63,6 +63,14 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     case "playSystemLight":
       UIImpactFeedbackGenerator(style: .light).impactOccurred()
       result(nil)
+    case "getHapticCapabilities":
+      let supportsCoreHaptics = hapticEngine != nil &&
+        CHHapticEngine.capabilitiesForHardware().supportsHaptics
+      result([
+        "hasVibrator": true,
+        "hasAmplitudeControl": supportsCoreHaptics,
+        "hasAdvancedHaptics": supportsCoreHaptics,
+      ])
 
     // ── Continuous waveform API ──────────────────────────────────────
     case "playContinuousWaveform":

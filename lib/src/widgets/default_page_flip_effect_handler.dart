@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/models/advanced_haptic_engine.dart';
+import 'package:real_page_flip/src/models/haptic_quality.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
@@ -11,18 +12,89 @@ import 'package:real_page_flip/src/physics/continuous_haptic_buffer.dart';
 import 'package:real_page_flip/src/physics/paper_physics.dart';
 import 'package:real_page_flip/src/physics/paper_physics_config.dart';
 
+/// Final player-volume guard shared by drag and tap flips.
+@visibleForTesting
+double cappedFlipSoundVolume(double requestedVolume) {
+  final safeVolume = requestedVolume.isFinite ? requestedVolume : 0.0;
+  return (safeVolume.clamp(0.0, 1.0) * 0.4).clamp(0.04, 0.22);
+}
+
+@visibleForTesting
+({double amplitude, double sharpness, int samplesPerGrain})
+    shapePaperHapticOutput({
+  required PaperTexturePreset preset,
+  required double rawAmplitude,
+  required double rawSharpness,
+  required double speedFactor,
+}) {
+  final profile = preset.hapticOutputProfile;
+  if (!preset.hapticsEnabled) {
+    return (amplitude: 0, sharpness: 0, samplesPerGrain: 0);
+  }
+
+  final speed = speedFactor.clamp(0.0, 1.0);
+  final speedCurve = speed * speed * (3 - 2 * speed);
+  final amplitudeBand = profile.minAmplitude +
+      (profile.maxAmplitude - profile.minAmplitude) * speedCurve;
+  final materialVariation = 0.9 + rawAmplitude.clamp(0.0, 1.0) * 0.1;
+  final amplitude =
+      (amplitudeBand * materialVariation).clamp(0.0, profile.maxAmplitude);
+  final sharpness =
+      (profile.sharpness * 0.8 + rawSharpness.clamp(0.0, 1.0) * 0.2)
+          .clamp(0.0, 1.0);
+
+  return (
+    amplitude: amplitude,
+    sharpness: sharpness,
+    samplesPerGrain: profile.samplesPerGrain,
+  );
+}
+
+@visibleForTesting
+double paperSettleIntensity({
+  required PaperTexturePreset preset,
+  required int controllerIntensity,
+}) {
+  if (!preset.hapticsEnabled) return 0;
+  final level = preset.hapticLevel / 4.0;
+  final gesture = (controllerIntensity / 120.0).clamp(0.0, 1.0);
+  return (0.12 + level * 0.48 + gesture * 0.22).clamp(0.0, 0.82);
+}
+
+@visibleForTesting
+({double intensity, double sharpness, int durationMs}) paperDetentOutput(
+  PaperTexturePreset preset,
+) {
+  if (!preset.hapticsEnabled) {
+    return (intensity: 0, sharpness: 0, durationMs: 0);
+  }
+  final profile = preset.hapticOutputProfile;
+  return (
+    intensity: 0.12 + preset.hapticLevel * 0.08,
+    sharpness: profile.sharpness,
+    durationMs: 6 + preset.hapticLevel * 3,
+  );
+}
+
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   DefaultPageFlipEffectHandler({
     this.performanceProfile = DevicePerformanceProfile.medium,
     PaperTexturePreset hapticTexturePreset = PaperTexturePreset.standard,
+    this.hapticQuality = HapticQuality.adaptive,
   })  : hapticTexturePreset = hapticTexturePreset,
+        _resolvedHapticQuality = hapticQuality == HapticQuality.adaptive
+            ? HapticQuality.basic
+            : hapticQuality,
         _physicsConfig =
             PaperPhysicsConfig.fromTexturePreset(hapticTexturePreset) {
     _initAudio();
+    _resolveHapticQuality();
   }
 
   final DevicePerformanceProfile performanceProfile;
   PaperTexturePreset hapticTexturePreset;
+  HapticQuality hapticQuality;
+  HapticQuality _resolvedHapticQuality;
   PaperPhysicsConfig _physicsConfig;
   double _viewportWidth = 400;
 
@@ -39,16 +111,43 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   }
 
   /// Updates haptic preset state without retaining stale per-page engines.
-  void updateConfig({required PaperTexturePreset hapticTexturePreset}) {
-    if (this.hapticTexturePreset == hapticTexturePreset) return;
+  void updateConfig({
+    required PaperTexturePreset hapticTexturePreset,
+    required HapticQuality hapticQuality,
+  }) {
+    if (this.hapticTexturePreset == hapticTexturePreset &&
+        this.hapticQuality == hapticQuality) {
+      return;
+    }
     if (kDebugMode) {
       print(
         '[HAPTIC_DIAGNOSTIC] Dart updateConfig: oldPreset=${this.hapticTexturePreset}, newPreset=$hapticTexturePreset, clearedEngines=${_physicsEngines.length}',
       );
     }
     this.hapticTexturePreset = hapticTexturePreset;
+    this.hapticQuality = hapticQuality;
     _physicsConfig = PaperPhysicsConfig.fromTexturePreset(hapticTexturePreset);
     _physicsEngines.clear();
+    if (!hapticTexturePreset.hapticsEnabled) {
+      unawaited(_continuousBuffer.stop());
+    }
+    _resolveHapticQuality();
+  }
+
+  Future<void> _resolveHapticQuality() async {
+    final capabilities = await AdvancedHapticEngine.getCapabilities();
+    final resolved = capabilities.resolve(hapticQuality);
+    if (resolved != _resolvedHapticQuality && kDebugMode) {
+      debugPrint(
+        '[HAPTIC_DIAGNOSTIC] resolved quality=$resolved '
+        'amplitude=${capabilities.hasAmplitudeControl} '
+        'advanced=${capabilities.hasAdvancedHaptics}',
+      );
+    }
+    _resolvedHapticQuality = resolved;
+    if (resolved == HapticQuality.basic) {
+      unawaited(_continuousBuffer.stop());
+    }
   }
 
   static const int _audioPoolSize = 3;
@@ -104,6 +203,23 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     double? texture,
     double? resistance,
   }) {
+    final isHaptic = switch (event) {
+      PageFlipEvent.startHaptic ||
+      PageFlipEvent.stopHaptic ||
+      PageFlipEvent.impulseHaptic ||
+      PageFlipEvent.continuousHaptic ||
+      PageFlipEvent.texturedHaptic ||
+      PageFlipEvent.detentHaptic =>
+        true,
+      PageFlipEvent.sound => false,
+    };
+    if (isHaptic && !hapticTexturePreset.hapticsEnabled) {
+      if (_continuousBuffer.isActive) {
+        unawaited(_continuousBuffer.stop());
+      }
+      return Future<void>.value();
+    }
+
     switch (event) {
       case PageFlipEvent.startHaptic:
         // Drag texture handles ongoing feedback; a medium pulse here reads as a
@@ -120,11 +236,12 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         }
         break;
       case PageFlipEvent.impulseHaptic:
-        // The controller passes intensity 15-120. We map this to 0.4-0.9 for a
-        // satisfying settle thud. If intensity is null (e.g., tap flips),
-        // default to 90 for a solid landing thud.
-        final rawIntensity = (intensity ?? 90) / 120.0;
-        final targetIntensity = (rawIntensity * 0.45 + 0.4).clamp(0.4, 0.9);
+        final targetIntensity = _resolvedHapticQuality == HapticQuality.basic
+            ? 0.35
+            : paperSettleIntensity(
+                preset: hapticTexturePreset,
+                controllerIntensity: intensity ?? 90,
+              );
         unawaited(
           AdvancedHapticEngine.playSettleThud(
             intensity: targetIntensity,
@@ -133,6 +250,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         break;
       case PageFlipEvent.continuousHaptic:
       case PageFlipEvent.texturedHaptic:
+        if (_resolvedHapticQuality == HapticQuality.basic) break;
         if (pageIndex != null && texture != null) {
           _handlePhysicsHaptic(
             pageIndex: pageIndex,
@@ -152,11 +270,14 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         // commit" confirmation layered on TOP of the ongoing friction
         // texture, not a second event competing with it. Reuses the
         // existing discrete playTransient path (no new native surface).
+        final detent = _resolvedHapticQuality == HapticQuality.basic
+            ? (intensity: 0.18, sharpness: 0.5, durationMs: 8)
+            : paperDetentOutput(hapticTexturePreset);
         unawaited(
           AdvancedHapticEngine.playTransient(
-            intensity: 0.32,
-            sharpness: 0.75,
-            durationMs: 10,
+            intensity: detent.intensity,
+            sharpness: detent.sharpness,
+            durationMs: detent.durationMs,
           ),
         );
         break;
@@ -190,10 +311,17 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       foldAngle: foldProgress,
       screenWidth: _viewportWidth,
     );
+    final speedFactor = resistance.clamp(0.0, 1.0);
+    final output = shapePaperHapticOutput(
+      preset: hapticTexturePreset,
+      rawAmplitude: frame.amplitude,
+      rawSharpness: frame.sharpness,
+      speedFactor: speedFactor,
+    );
 
     if (kDebugMode) {
       print(
-        '[HAPTIC_DIAGNOSTIC] Dart Calc: pageIndex=$pageIndex, preset=$hapticTexturePreset, amp=${frame.amplitude}, sharpness=${frame.sharpness}, durationMs=${frame.durationMs}, slipBoost=${frame.stickSlipModulation?.amplitudeBoost.toStringAsFixed(3) ?? 'none'}',
+        '[HAPTIC_DIAGNOSTIC] Dart Calc: pageIndex=$pageIndex, preset=$hapticTexturePreset, level=${hapticTexturePreset.hapticLevel}, rawAmp=${frame.amplitude}, outputAmp=${output.amplitude}, speedFactor=$speedFactor, sharpness=${output.sharpness}, grainMs=${output.samplesPerGrain * ContinuousHapticBuffer.sampleIntervalMs}, durationMs=${frame.durationMs}, slipBoost=${frame.stickSlipModulation?.amplitudeBoost.toStringAsFixed(3) ?? 'none'}',
       );
     }
 
@@ -219,7 +347,13 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
     // Add the current frame's amplitude + sharpness to the buffer. Sharpness
     // rises with velocity/texture so fast flicks feel crisp and slow drags soft.
-    _continuousBuffer.addSample(frame.amplitude, sharpness: frame.sharpness);
+    for (var i = 0; i < output.samplesPerGrain; i++) {
+      final tailScale = 1 - i * 0.08;
+      _continuousBuffer.addSample(
+        output.amplitude * tailScale,
+        sharpness: output.sharpness,
+      );
+    }
 
     // Flush periodically (every ~40ms) to the native platform.
     if (_continuousBuffer.shouldFlush(nowMs)) {
@@ -241,7 +375,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   void _playSound(double volume) {
     if (!_audioReady || _audioSource == null) return;
 
-    final cappedVolume = (volume * 0.4).clamp(0.05, 0.35);
+    final cappedVolume = cappedFlipSoundVolume(volume);
 
     final player = _audioPool[_audioPoolIndex];
     _audioPoolIndex = (_audioPoolIndex + 1) % _audioPoolSize;

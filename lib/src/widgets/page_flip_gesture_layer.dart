@@ -88,6 +88,7 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
       widget.controller.beginPointerCapture();
       widget.controller.onDragStart(
         DragStartDetails(
+          sourceTimeStamp: event.timeStamp,
           globalPosition: event.position,
           localPosition: local,
         ),

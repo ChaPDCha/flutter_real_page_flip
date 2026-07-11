@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:real_page_flip/src/models/haptic_quality.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 import 'package:real_page_flip/src/page_flip_widget.dart';
@@ -104,6 +105,7 @@ class PageFlipConfig {
     this.singlePageBackContentOpacity = 0.35,
     this.performanceProfile = DevicePerformanceProfile.medium,
     this.hapticTexturePreset = PaperTexturePreset.standard,
+    this.hapticQuality = HapticQuality.adaptive,
   });
 
   /// The performance profile to use for rendering quality.
@@ -174,6 +176,9 @@ class PageFlipConfig {
   /// Controls vibration intensity, trigger sensitivity, duration, and tick
   /// density. Defaults to [PaperTexturePreset.standard].
   final PaperTexturePreset hapticTexturePreset;
+
+  /// Haptic fidelity policy. [HapticQuality.adaptive] is recommended.
+  final HapticQuality hapticQuality;
 
   /// Custom handler for effects. If null, a default implementation is used.
   final PageFlipEffectHandler? effectHandler;
@@ -267,6 +272,7 @@ class PageFlipConfig {
     double? singlePageBackContentOpacity,
     DevicePerformanceProfile? performanceProfile,
     PaperTexturePreset? hapticTexturePreset,
+    HapticQuality? hapticQuality,
     bool clearSemanticBuilder = false,
     bool clearBackgroundColor = false,
     bool clearEffectHandler = false,
@@ -309,6 +315,7 @@ class PageFlipConfig {
             singlePageBackContentOpacity ?? this.singlePageBackContentOpacity,
         performanceProfile: performanceProfile ?? this.performanceProfile,
         hapticTexturePreset: hapticTexturePreset ?? this.hapticTexturePreset,
+        hapticQuality: hapticQuality ?? this.hapticQuality,
       );
 
   /// Runtime-safe view of this configuration.
@@ -397,6 +404,7 @@ class PageFlipConfig {
       ),
       performanceProfile: performanceProfile,
       hapticTexturePreset: hapticTexturePreset,
+      hapticQuality: hapticQuality,
     );
 
     return normalizedConfig == this ? this : normalizedConfig;
@@ -444,6 +452,7 @@ class PageFlipConfig {
           enableHaptics == other.enableHaptics &&
           enableSound == other.enableSound &&
           hapticTexturePreset == other.hapticTexturePreset &&
+          hapticQuality == other.hapticQuality &&
           effectHandler == other.effectHandler &&
           paperOpacity == other.paperOpacity &&
           thinPaperStrength == other.thinPaperStrength &&
@@ -475,6 +484,7 @@ class PageFlipConfig {
         enableHaptics,
         enableSound,
         hapticTexturePreset,
+        hapticQuality,
         effectHandler,
         paperOpacity,
         thinPaperStrength,

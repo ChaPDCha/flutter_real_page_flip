@@ -98,17 +98,13 @@ class ContinuousHapticBuffer {
     }
   }
 
-  /// Immediately sends the current accumulated intensity as a safety flush,
-  /// then tears down the session.
+  /// Drops unsent samples and tears down the session immediately.
+  ///
+  /// Pending samples represent movement that has already ended. Playing them
+  /// after pointer-up makes the vibration lag behind the finger.
   Future<void> stop() async {
     if (!_active) return;
     _active = false;
-
-    // Flush any remaining samples so the waveform ends cleanly (last
-    // segment reaches the device) instead of cutting abruptly.
-    if (_intensities.isNotEmpty) {
-      await flush(nowMs: DateTime.now().millisecondsSinceEpoch);
-    }
 
     _intensities.clear();
     _lastIntensity = 0;

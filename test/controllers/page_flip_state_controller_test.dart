@@ -272,7 +272,7 @@ void main() {
       effectController.dispose();
     });
 
-    test('texturedHaptic intensity in valid range (28-140)', () {
+    test('texturedHaptic intensity stays in the conservative 8-84 range', () {
       final intensities = <int>[];
       final effectController = PageFlipStateController(
         vsync: const TestVSync(),
@@ -338,15 +338,12 @@ void main() {
 
       expect(intensities.length, greaterThanOrEqualTo(1));
       for (final i in intensities) {
-        expect(i, inInclusiveRange(28, 140));
+        expect(i, inInclusiveRange(8, 84));
       }
       effectController.dispose();
     });
 
-    test('slow drag still emits continuous texturedHaptic (no starvation)', () {
-      // Regression: the old `_smoothedSpeed > 0.12` gate muted slow drags, so
-      // the continuous haptic waveform starved and the vibration died whenever
-      // the finger crawled. Each small step should now emit a textured sample.
+    test('textured haptic is gated by actual movement distance', () {
       var texturedCount = 0;
       final controller = PageFlipStateController(
         vsync: const TestVSync(),
@@ -366,24 +363,206 @@ void main() {
         },
       )..updateCachedWidth(400);
 
-      controller.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
-      // Slow crawl: small per-frame deltas that the old 0.12 gate suppressed.
-      for (var i = 0; i < 6; i++) {
+      controller.onDragStart(
+        DragStartDetails(
+          localPosition: Offset.zero,
+          sourceTimeStamp: Duration.zero,
+        ),
+        5,
+      );
+      for (var i = 1; i <= 5; i++) {
         controller.onDragUpdate(
           DragUpdateDetails(
-            primaryDelta: -0.6,
-            delta: const Offset(-0.6, 0),
+            primaryDelta: -1,
+            delta: const Offset(-1, 0),
             globalPosition: Offset.zero,
             localPosition: Offset.zero,
+            sourceTimeStamp: Duration(milliseconds: i * 20),
           ),
           5,
         );
       }
+      expect(texturedCount, 0);
 
-      // A crawling finger now feeds the buffer on (almost) every frame instead
-      // of going silent; expect the majority of the slow steps to emit.
-      expect(texturedCount, greaterThanOrEqualTo(4));
+      controller.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -1,
+          delta: const Offset(-1, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+          sourceTimeStamp: const Duration(milliseconds: 120),
+        ),
+        5,
+      );
+      expect(texturedCount, 1);
       controller.dispose();
+    });
+
+    test('faster movement produces stronger but bounded textured haptic', () {
+      ({int intensity, double speed}) sample(Duration elapsed) {
+        int? capturedIntensity;
+        double? capturedSpeed;
+        final local = PageFlipStateController(
+          vsync: const TestVSync(),
+          animationDuration: const Duration(milliseconds: 300),
+          onUpdate: () {},
+          onPageFinalized: (_) {},
+          onEffectTrigger: (
+            effect, {
+            intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume,
+          }) {
+            if (effect == PageFlipEvent.texturedHaptic) {
+              capturedIntensity = intensity;
+              capturedSpeed = resistance;
+            }
+          },
+        )..updateCachedWidth(400);
+
+        local.onDragStart(
+          DragStartDetails(
+            localPosition: Offset.zero,
+            sourceTimeStamp: Duration.zero,
+          ),
+          5,
+        );
+        local.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: -12,
+            delta: const Offset(-12, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+            sourceTimeStamp: elapsed,
+          ),
+          5,
+        );
+        local.dispose();
+        return (
+          intensity: capturedIntensity!,
+          speed: capturedSpeed!,
+        );
+      }
+
+      final slow = sample(const Duration(milliseconds: 200));
+      final fast = sample(const Duration(milliseconds: 8));
+
+      expect(fast.intensity, greaterThan(slow.intensity));
+      expect(fast.speed, greaterThan(slow.speed));
+      expect(slow.intensity, inInclusiveRange(8, 84));
+      expect(fast.intensity, inInclusiveRange(8, 84));
+      expect(fast.speed, inInclusiveRange(0, 1));
+    });
+
+    test('drag sound fires only when release commits the page flip', () {
+      final events = <PageFlipEvent>[];
+      final volumes = <double>[];
+      final local = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (_) {},
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          events.add(effect);
+          if (effect == PageFlipEvent.sound && volume != null) {
+            volumes.add(volume);
+          }
+        },
+      )..updateCachedWidth(400);
+
+      local.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      local.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -200,
+          delta: const Offset(-200, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+      expect(events, isNot(contains(PageFlipEvent.sound)));
+
+      local.onDragEnd(
+        DragEndDetails(
+          velocity: const Velocity(pixelsPerSecond: Offset(-100000, 0)),
+          primaryVelocity: -100000,
+        ),
+        5,
+      );
+      expect(volumes, hasLength(1));
+      expect(volumes.single, inInclusiveRange(0.18, 0.55));
+      expect(
+        events.indexOf(PageFlipEvent.stopHaptic),
+        lessThan(events.indexOf(PageFlipEvent.sound)),
+      );
+      local.dispose();
+    });
+
+    test('cancelled release stops haptics without playing sound', () {
+      final events = <PageFlipEvent>[];
+      final local = PageFlipStateController(
+        vsync: const TestVSync(),
+        animationDuration: const Duration(milliseconds: 300),
+        onUpdate: () {},
+        onPageFinalized: (_) {},
+        onEffectTrigger: (
+          effect, {
+          intensity,
+          pageIndex,
+          resistance,
+          texture,
+          timestampMs,
+          volume,
+        }) {
+          events.add(effect);
+        },
+      )..updateCachedWidth(400);
+
+      local.onDragStart(DragStartDetails(localPosition: Offset.zero), 5);
+      local.onDragUpdate(
+        DragUpdateDetails(
+          primaryDelta: -20,
+          delta: const Offset(-20, 0),
+          globalPosition: Offset.zero,
+          localPosition: Offset.zero,
+        ),
+        5,
+      );
+      local.onDragEnd(DragEndDetails(primaryVelocity: 0), 5);
+
+      expect(events, contains(PageFlipEvent.stopHaptic));
+      expect(events, isNot(contains(PageFlipEvent.sound)));
+      local.dispose();
+    });
+
+    test('release sound volume is monotonic and conservatively capped', () {
+      final slow = releaseSoundVolumeForVelocity(
+        velocityPxPerSecond: 100,
+        viewportWidth: 400,
+      );
+      final fast = releaseSoundVolumeForVelocity(
+        velocityPxPerSecond: 2000,
+        viewportWidth: 400,
+      );
+      final extreme = releaseSoundVolumeForVelocity(
+        velocityPxPerSecond: 1000000,
+        viewportWidth: 400,
+      );
+
+      expect(slow, inInclusiveRange(0.18, 0.55));
+      expect(fast, greaterThan(slow));
+      expect(extreme, 0.55);
     });
 
     test('detent haptic fires exactly once when progress crosses the cutoff',

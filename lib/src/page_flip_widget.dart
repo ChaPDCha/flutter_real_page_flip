@@ -8,6 +8,7 @@ import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/managers/pre_render_manager.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 import 'package:real_page_flip/src/page_flip_layer_view.dart';
 import 'package:real_page_flip/src/widgets/default_page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/widgets/edge_tap_feedback.dart';
@@ -119,7 +120,12 @@ class PageFlipWidget extends StatefulWidget {
   /// See also [onPageFlipped] which fires at the same point.
   final void Function(int pageNumber)? onPageChanged;
 
-  /// Custom callback for handling effects. Overrides the built-in handler.
+  /// Custom callback for handling raw effects. Overrides the built-in handler.
+  ///
+  /// This observer receives all effect events even when [PageFlipConfig]
+  /// disables built-in sound or haptics, allowing hosts to implement an
+  /// entirely custom policy. Use [PageFlipConfig.effectHandler] when the
+  /// engine's enable/disable gates should remain authoritative.
   final FutureOr<void> Function(
     PageFlipEvent effect, {
     int? intensity,
@@ -186,6 +192,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         DefaultPageFlipEffectHandler(
           performanceProfile: config.performanceProfile,
           hapticTexturePreset: config.hapticTexturePreset,
+          hapticQuality: config.hapticQuality,
         );
 
     // Warm snapshots immediately after first frame. Using immediate capture
@@ -275,16 +282,19 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         config.performanceProfile != oldConfig.performanceProfile;
     final texturePresetChanged =
         config.hapticTexturePreset != oldConfig.hapticTexturePreset;
+    final hapticQualityChanged =
+        config.hapticQuality != oldConfig.hapticQuality;
     if (effectHandlerChanged ||
         (config.effectHandler == null &&
-            (profileChanged || texturePresetChanged))) {
+            (profileChanged || texturePresetChanged || hapticQualityChanged))) {
       if (_isInternalEffectHandler &&
           !effectHandlerChanged &&
           !profileChanged &&
-          texturePresetChanged &&
+          (texturePresetChanged || hapticQualityChanged) &&
           _effectHandler is DefaultPageFlipEffectHandler) {
         (_effectHandler as DefaultPageFlipEffectHandler).updateConfig(
           hapticTexturePreset: config.hapticTexturePreset,
+          hapticQuality: config.hapticQuality,
         );
       } else {
         if (_isInternalEffectHandler) {
@@ -295,6 +305,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
             DefaultPageFlipEffectHandler(
               performanceProfile: config.performanceProfile,
               hapticTexturePreset: config.hapticTexturePreset,
+              hapticQuality: config.hapticQuality,
             );
       }
     }
@@ -430,7 +441,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         true,
       _ => false,
     };
-    if (isHaptic && !config.enableHaptics) return;
+    if (isHaptic &&
+        (!config.enableHaptics ||
+            config.hapticTexturePreset == PaperTexturePreset.none)) {
+      return;
+    }
     if (effect == PageFlipEvent.sound && !config.enableSound) return;
 
     try {

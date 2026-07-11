@@ -1,12 +1,32 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:real_page_flip/src/models/haptic_quality.dart';
 
 class AdvancedHapticEngine {
   AdvancedHapticEngine._();
 
   static const MethodChannel _channel =
       MethodChannel('com.chapdcha.real_page_flip/haptics');
+
+  /// Reads hardware capability instead of inferring quality from device model.
+  static Future<HapticCapabilities> getCapabilities() async {
+    try {
+      final raw = await _channel.invokeMapMethod<String, dynamic>(
+        'getHapticCapabilities',
+      );
+      if (raw == null) return const HapticCapabilities.basic();
+      return HapticCapabilities(
+        hasVibrator: raw['hasVibrator'] == true,
+        hasAmplitudeControl: raw['hasAmplitudeControl'] == true,
+        hasAdvancedHaptics: raw['hasAdvancedHaptics'] == true,
+      );
+    } on MissingPluginException {
+      return const HapticCapabilities.basic();
+    } on PlatformException {
+      return const HapticCapabilities.basic();
+    }
+  }
 
   /// 매우 짧고 날카로운 단일 이벤트 (드래그 시 텍스처 표현용)
   /// [intensity]: 0.0 ~ 1.0

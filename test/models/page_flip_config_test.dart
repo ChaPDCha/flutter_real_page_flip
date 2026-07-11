@@ -257,6 +257,13 @@ void main() {
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
+    test('equality respects hapticQuality', () {
+      const a = PageFlipConfig();
+      const b = PageFlipConfig(hapticQuality: HapticQuality.basic);
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
     test('equality respects semanticBuilder (null vs null)', () {
       const a = PageFlipConfig();
       const b = PageFlipConfig();
@@ -270,7 +277,7 @@ void main() {
       expect(a == b, isFalse);
     });
 
-    test('all 26 fields produce distinct configs', () {
+    test('all configurable fields produce distinct configs', () {
       // Verify that changing any single field from defaults produces inequality
       const base = PageFlipConfig();
       final variants = <PageFlipConfig>[
@@ -298,6 +305,7 @@ void main() {
         const PageFlipConfig(
           hapticTexturePreset: PaperTexturePreset.kraft,
         ),
+        const PageFlipConfig(hapticQuality: HapticQuality.basic),
       ];
       for (final v in variants) {
         expect(

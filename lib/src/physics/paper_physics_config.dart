@@ -71,6 +71,7 @@ class PaperPhysicsConfig {
         PaperTexturePreset.standard => standardPreset,
         PaperTexturePreset.textured => texturedPreset,
         PaperTexturePreset.kraft => kraftPreset,
+        PaperTexturePreset.none => silentPreset,
       };
 
   /// Sigmoid curve steepness for resistance model.
@@ -199,6 +200,15 @@ class PaperPhysicsConfig {
     stiffnessScale: 0.9,
     roughnessScale: 1.2,
     baseSharpness: 0.4,
+  );
+
+  /// Silent preset retained as a valid physics configuration for callers that
+  /// resolve every enum value before the presentation layer filters haptics.
+  static const silentPreset = PaperPhysicsConfig(
+    frictionScale: 0,
+    stiffnessScale: 0,
+    roughnessScale: 0,
+    baseSharpness: 0,
   );
 
   /// Returns a copy of this config with the given fields replaced.

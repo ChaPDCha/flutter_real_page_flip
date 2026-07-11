@@ -6,6 +6,7 @@ library real_page_flip;
 
 export 'src/controllers/page_flip_state_controller.dart' show PageFlipEvent;
 export 'src/effects/page_flip_engine.dart' show clipSpreadPageHalf;
+export 'src/models/haptic_quality.dart' show HapticQuality;
 export 'src/models/page_flip_config.dart'
     show PageFlipConfig, PageFlipSpreadMode, PageFlipSpreadModeCompat;
 export 'src/models/page_flip_effect_handler.dart';

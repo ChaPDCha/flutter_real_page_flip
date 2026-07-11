@@ -41,7 +41,10 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
-        if (!isVibratorAvailable && call.method != "cancel" && call.method != "stopContinuous") {
+        if (!isVibratorAvailable &&
+            call.method != "cancel" &&
+            call.method != "stopContinuous" &&
+            call.method != "getHapticCapabilities") {
             result.error("VIBRATOR_UNAVAILABLE", "Device has no vibrator", null)
             return
         }
@@ -78,6 +81,17 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
                     playPaperTick(0.18)
                     result.success(null)
                 }
+                "getHapticCapabilities" -> {
+                    result.success(
+                        mapOf(
+                            "hasVibrator" to isVibratorAvailable,
+                            "hasAmplitudeControl" to hasAmplitudeControl,
+                            // Composition primitives are the only Android route
+                            // that preserves premium semantic impacts.
+                            "hasAdvancedHaptics" to supportsRequiredPrimitives()
+                        )
+                    )
+                }
                 "playContinuousWaveform" -> {
                     @Suppress("UNCHECKED_CAST")
                     val intensities = call.argument<List<Double>>("intensities") ?: emptyList()
@@ -105,6 +119,23 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     private fun cancelVibration() {
         vibrator?.cancel()
         lastVibrateAt = 0L
+    }
+
+    private fun supportsRequiredPrimitives(): Boolean {
+        if (!isVibratorAvailable ||
+            !hasAmplitudeControl ||
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return false
+        }
+        return try {
+            vibrator?.arePrimitivesSupported(
+                VibrationEffect.Composition.PRIMITIVE_TICK,
+                VibrationEffect.Composition.PRIMITIVE_CLICK,
+                VibrationEffect.Composition.PRIMITIVE_THUD
+            )?.all { it } == true
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun shouldEmitVibration(force: Boolean = false): Boolean {

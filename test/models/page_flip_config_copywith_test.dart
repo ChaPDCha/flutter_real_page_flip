@@ -196,6 +196,11 @@ void main() {
       expect(copy.hapticTexturePreset, PaperTexturePreset.kraft);
     });
 
+    test('copyWith hapticQuality', () {
+      final copy = base.copyWith(hapticQuality: HapticQuality.basic);
+      expect(copy.hapticQuality, HapticQuality.basic);
+    });
+
     test('copyWith preserves unmodified fields', () {
       final copy = base.copyWith(duration: const Duration(milliseconds: 200));
       // All other fields should match base
@@ -204,6 +209,7 @@ void main() {
       expect(copy.enableHaptics, base.enableHaptics);
       expect(copy.paperOpacity, base.paperOpacity);
       expect(copy.performanceProfile, base.performanceProfile);
+      expect(copy.hapticQuality, base.hapticQuality);
     });
 
     test('multiple fields in single copyWith', () {

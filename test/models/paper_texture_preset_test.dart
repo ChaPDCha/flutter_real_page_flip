@@ -20,8 +20,12 @@ void main() {
         expect(PaperTexturePreset.kraft, isA<PaperTexturePreset>());
       });
 
-      test('values list contains all four presets', () {
-        expect(PaperTexturePreset.values.length, 4);
+      test('PaperTexturePreset.none exists', () {
+        expect(PaperTexturePreset.none, isA<PaperTexturePreset>());
+      });
+
+      test('values list contains silent plus four paper levels', () {
+        expect(PaperTexturePreset.values.length, 5);
         expect(
           PaperTexturePreset.values,
           containsAll([
@@ -29,6 +33,7 @@ void main() {
             PaperTexturePreset.standard,
             PaperTexturePreset.textured,
             PaperTexturePreset.kraft,
+            PaperTexturePreset.none,
           ]),
         );
       });
@@ -38,6 +43,7 @@ void main() {
         expect(PaperTexturePreset.standard.index, 1);
         expect(PaperTexturePreset.textured.index, 2);
         expect(PaperTexturePreset.kraft.index, 3);
+        expect(PaperTexturePreset.none.index, 4);
       });
 
       test('enum names match declaration names', () {
@@ -45,6 +51,15 @@ void main() {
         expect(PaperTexturePreset.standard.name, 'standard');
         expect(PaperTexturePreset.textured.name, 'textured');
         expect(PaperTexturePreset.kraft.name, 'kraft');
+        expect(PaperTexturePreset.none.name, 'none');
+      });
+
+      test('haptic levels are stable from none and 1 through 4', () {
+        expect(PaperTexturePreset.none.hapticLevel, 0);
+        expect(PaperTexturePreset.smooth.hapticLevel, 1);
+        expect(PaperTexturePreset.standard.hapticLevel, 2);
+        expect(PaperTexturePreset.textured.hapticLevel, 3);
+        expect(PaperTexturePreset.kraft.hapticLevel, 4);
       });
     });
 
@@ -100,6 +115,14 @@ void main() {
         expect(smooth.friction, lessThan(standard.friction));
         expect(standard.friction, lessThan(textured.friction));
         expect(textured.friction, lessThan(kraft.friction));
+      });
+
+      test('none resolves to a completely silent material config', () {
+        final config = PaperTextureConfig.fromPreset(PaperTexturePreset.none);
+        expect(config.friction, 0);
+        expect(config.stiffness, 0);
+        expect(config.roughness, 0);
+        expect(config.baseSharpness, 0);
       });
     });
 
