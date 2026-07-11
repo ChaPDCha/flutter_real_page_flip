@@ -194,6 +194,29 @@ void main() {
       expect(canvas.saveLayerCount, equals(0));
     });
 
+    test(
+        'single-page mode NEVER uses the translucency saveLayer, even with '
+        'thin-paper and end-reveal enabled', () {
+      // Regression: the thin-paper saveLayer composited the whole single-page
+      // flap (opaque paper included) at ~85% alpha, letting the stationary
+      // middle layer bleed through in place — the "three stacked sheets"
+      // artifact. Single mode must render the sheet fully opaque; its
+      // thin-paper feel comes from singlePageBackContentOpacity instead.
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5, // sin peak → maximum thin-paper effect if not suppressed
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        thinPaperStrength: 0.15,
+        endRevealStrength: 0.35,
+        performanceProfile: DevicePerformanceProfile.high,
+      ).paint(canvas, size);
+
+      expect(canvas.saveLayerCount, equals(0));
+    });
+
     test('saveLayer at end-reveal at progress=0.92', () {
       final canvas = RecordingCanvas();
 
@@ -941,12 +964,15 @@ void main() {
     test('flap opacity layer uses screen-space bounds for angled drags', () {
       final canvas = RecordingCanvas();
 
+      // Double-spread: single-page mode suppresses the translucency saveLayer
+      // entirely (opaque sheet), so the bounds contract is a double-spread one.
       PageFlipPainter(
         progress: 0.5,
         isRightToLeft: true,
         touchOffset: const Offset(400, 2600),
         paperBackColor: Colors.white,
         thinPaperStrength: 0.2,
+        isDoubleSpread: true,
       ).paint(canvas, size);
 
       final saveLayerRecord = canvas.records.firstWhere(

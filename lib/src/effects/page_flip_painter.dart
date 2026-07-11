@@ -219,11 +219,23 @@ class PageFlipPainter extends CustomPainter {
     // Overall flap opacity modulation (thin paper + end reveal).
     // saveLayer composites everything inside at reduced opacity so the
     // underlying page content shows through — like real translucent paper.
+    //
+    // SINGLE-PAGE MODE IS EXEMPT. Under the flap sits the STATIONARY current
+    // page in its original, un-mirrored position; compositing the whole flap
+    // (opaque paper underlay included) at partial alpha lets that page bleed
+    // through in place. The result is three hard vertical bands — full-bright
+    // middle | washed flap | crisp revealed page — that read as three stacked
+    // sheets of glass instead of one turning page. Worst on medium/low
+    // profiles, whose flap shows no mesh content mid-flip, so the "wash" is a
+    // naked paper veil over the middle layer. Thin-paper feel in single mode
+    // is already conveyed by [singlePageBackContentOpacity] (the flap's OWN
+    // mirrored back-bleed); the sheet itself must stay opaque.
     final isLowProfile = performanceProfile == DevicePerformanceProfile.low;
+    final suppressTranslucency = isLowProfile || !isDoubleSpread;
     final flapAlpha = flapOpacityModulator(
       progress,
-      thinPaperStrength: isLowProfile ? 0.0 : thinPaperStrength,
-      endRevealStrength: isLowProfile ? 0.0 : endRevealStrength,
+      thinPaperStrength: suppressTranslucency ? 0.0 : thinPaperStrength,
+      endRevealStrength: suppressTranslucency ? 0.0 : endRevealStrength,
       isForward: isActualForward,
     );
     final needsLayer = flapAlpha < 0.995;
