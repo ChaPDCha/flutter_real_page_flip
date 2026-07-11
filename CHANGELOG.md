@@ -3,6 +3,28 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## Unreleased
+
+## [2.0.0] - 2026-07-11
+### Added
+- Capability-adaptive `HapticQuality` (`adaptive`, `basic`, `standard`, `premium`) with native Android/iOS feature detection and safe quality downgrade.
+- `PaperTexturePreset.none` plus clearly separated level 1-4 amplitude, sharpness, grain width, detent, and settle signatures.
+- Native Android plugin unit coverage and CI builds for Android and the iOS simulator.
+
+### Changed
+- Drag haptics now follow actual finger distance and timestamp-derived speed; basic motors receive semantic confirmation feedback instead of continuous vibration.
+- Flip sound now fires only when release commits a page and uses a conservative maximum volume.
+- Android plugin and example migrated away from directly applying the legacy Kotlin Gradle Plugin; Gradle/AGP toolchain updated for future Flutter compatibility.
+- Publish archive reduced by omitting historical media and generated example shells; README installation and adaptive-haptic guidance refreshed.
+
+### Fixed
+- Capability detection now works on Android devices without a vibrator, verifies required primitive support, and starts adaptive mode conservatively until detection completes.
+- iOS Swift Package now bundles the privacy manifest, CocoaPods metadata matches the package version, and the stale Android `getPlatformVersion` test now validates the real capability API.
+- Single-page curved layer boundaries, contact shadows, and crease masks share one geometric boundary across gesture angles and aspect ratios.
+
+### Breaking
+- Adding `PaperTexturePreset.none` requires consumers with exhaustive switches over `PaperTexturePreset` to handle the new case.
+
 ## [1.16.1] - 2026-07-11
 ### Changed
 - **Default Thin-Paper Back Bleed**: `singlePageBackContentOpacity` now defaults to `0.35` (was `1.0`) so single-page peels softly dim reverse text like India paper instead of showing crisp front-facing content. Explicit values still override the default; double-spread mode is unchanged.
