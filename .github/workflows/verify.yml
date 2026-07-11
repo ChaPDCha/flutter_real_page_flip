@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -42,8 +42,8 @@ jobs:
 
       - name: Test count regression check
         run: |
-          BASELINE=939
-          MINIMUM=930
+          BASELINE=1035
+          MINIMUM=1020
           TEST_OUTPUT=$(flutter test 2>&1 | tail -5)
           echo "$TEST_OUTPUT"
           # Extract number of passed tests from output line like "+448" or "448 tests passed"

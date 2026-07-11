@@ -1,5 +1,4 @@
 buildscript {
-    val kotlinVersion = "2.3.20"
     repositories {
         google()
         mavenCentral()
@@ -7,13 +6,11 @@ buildscript {
 
     dependencies {
         classpath("com.android.tools.build:gradle:9.0.1")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
 }
 
 group = "com.chapdcha.real_page_flip"

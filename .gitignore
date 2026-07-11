@@ -15,6 +15,7 @@ example/android/fastlane/
 
 # Package lock file (libraries should not commit this)
 pubspec.lock
+!example/pubspec.lock
 
 # Duplicate source copies in doc
 doc/math_verification/sources/

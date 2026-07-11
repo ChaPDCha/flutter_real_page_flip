@@ -23,4 +23,18 @@ harness/
 
 # Package size reduction: omit heavy test assets and runner tools
 test/failures/
-tool/harness/
+tool/
+example/pubspec.lock
+
+# Store metadata and generated desktop/mobile shells are not needed to
+# understand or run the package example from pub.dev.
+example/android/fastlane/
+example/linux/
+example/macos/
+example/windows/
+
+# Keep the current screenshots referenced by pubspec/README, omit historical
+# release captures and source copies already present under lib/.
+doc/screenshots/page_flip_demo_v*.webp
+doc/screenshots/real_page_flip_demo.mp4
+doc/math_verification/sources/
