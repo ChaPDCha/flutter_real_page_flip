@@ -1447,4 +1447,52 @@ void main() {
       expect(atBoundary, closeTo(1, 0.001));
     });
   });
+
+  group('flipShadowOnset', () {
+    test('is zero at the flip extremes so shadows do not pop', () {
+      expect(flipShadowOnset(0), equals(0));
+      expect(flipShadowOnset(1), equals(0));
+    });
+
+    test('is 1.0 across the mid-flip plateau (intensity unchanged there)', () {
+      // The plateau must include the common 0.3–0.7 test progress band so the
+      // envelope never alters established mid-flip shading contracts.
+      for (final p in <double>[0.2, 0.3, 0.5, 0.7, 0.8]) {
+        expect(flipShadowOnset(p), closeTo(1, 1e-9), reason: 'progress=$p');
+      }
+    });
+
+    test('eases in gently — far below the raw sin toe near the start', () {
+      // At 5% progress sin(pi*0.05) already reaches ~0.156 of peak; the eased
+      // onset must be materially smaller so the gutter/crease fade in instead
+      // of snapping on in the middle of the spread.
+      final onset = flipShadowOnset(0.05);
+      expect(onset, greaterThan(0));
+      expect(onset, lessThan(0.5));
+    });
+
+    test('is monotonic non-decreasing across the opening ramp', () {
+      var previous = -1.0;
+      for (var p = 0.0; p <= 0.14 + 1e-9; p += 0.01) {
+        final value = flipShadowOnset(p);
+        expect(value, greaterThanOrEqualTo(previous), reason: 'progress=$p');
+        previous = value;
+      }
+    });
+
+    test('is symmetric about mid-flip', () {
+      for (final p in <double>[0.02, 0.06, 0.1, 0.13]) {
+        expect(
+          flipShadowOnset(p),
+          closeTo(flipShadowOnset(1 - p), 1e-9),
+          reason: 'progress=$p',
+        );
+      }
+    });
+
+    test('clamps out-of-range progress without throwing', () {
+      expect(flipShadowOnset(-0.5), equals(0));
+      expect(flipShadowOnset(1.5), equals(0));
+    });
+  });
 }

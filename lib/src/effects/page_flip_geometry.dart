@@ -67,6 +67,37 @@ const double _kFreeEdgeShadowWidth = 10;
 /// the crease look like a drawn line instead of a soft fold.
 const List<double> _kCreaseValleyStops = [0.0, 0.32, 1.0];
 
+/// Fraction of the flip (at each end) over which the discrete fold/gutter
+/// shadows ease in and out. Inside the plateau the envelope is 1.0, so mid-flip
+/// shading is unchanged.
+const double _kShadowOnsetRamp = 0.14;
+
+/// Eased onset envelope (0 → 1 → 0) for the discrete fold, binding-gutter, and
+/// contact shadows so they fade in gently at the very start of a flip and out
+/// near the end, instead of snapping on with the steep toe of `sin(progress·π)`.
+///
+/// `sin(progress·π)` rises with slope π at the origin, so a crease/gutter shadow
+/// reaches a third of its peak within the first ~5% of a turn. In a two-page
+/// spread that reads as a shadow *popping* into existence in the middle of the
+/// spread the instant a page starts to lift. Multiplying only the discrete
+/// shadow intensities by this smoothstep ramp removes the pop while leaving the
+/// flap's own curl highlight/shading (driven directly by
+/// [PageFlipGeometry.shadowIntensity]) untouched.
+///
+/// Returns 1.0 across the plateau
+/// `[_kShadowOnsetRamp, 1 − _kShadowOnsetRamp]`, so mid-flip intensity is
+/// identical to before; only the first/last [_kShadowOnsetRamp] of progress is
+/// eased.
+@visibleForTesting
+double flipShadowOnset(double progress) {
+  if (_kShadowOnsetRamp <= 0) return 1;
+  final p = progress.clamp(0.0, 1.0).toDouble();
+  final tIn = (p / _kShadowOnsetRamp).clamp(0.0, 1.0).toDouble();
+  final tOut = ((1.0 - p) / _kShadowOnsetRamp).clamp(0.0, 1.0).toDouble();
+  final t = math.min(tIn, tOut);
+  return t * t * (3 - 2 * t);
+}
+
 /// Pre-computed identity matrix storage for [ui.ImageShader] transforms.
 /// Avoids allocating a new [Matrix4] + extracting storage every paint frame.
 final Float64List _identityMatrixStorage =
