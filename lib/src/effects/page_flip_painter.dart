@@ -407,11 +407,23 @@ class PageFlipPainter extends CustomPainter {
       //   • Dark paper: a very dim, slightly cool ambient sheen so near-black
       //     stock reads as a real surface gently catching light rather than a
       //     flat void — kept extra low to never look glassy.
+      // Double-spread HIGH pairs a slightly brighter bulge with the deeper
+      // cylinder terminator below: roundness is read from the light→dark
+      // CONTRAST across the sheet, so lifting the highlight a touch (kept well
+      // short of a glassy sheen on matte paper) completes the rounded-tube look.
+      // Scoped to double-spread so the separately tuned single-page sheen is
+      // unchanged; medium/low keep the flatter, cheaper base sheen.
+      final highlightBoost = isDoubleSpread &&
+              performanceProfile == DevicePerformanceProfile.high
+          ? 1.35
+          : 1.0;
       final highlightTone = flapHighlightTone(isPaperDark: isPaperDark);
-      final highlightPeak =
-          flapHighlightPeakBase(isPaperDark: isPaperDark) * bendStrength;
-      final highlightMid =
-          flapHighlightMidBase(isPaperDark: isPaperDark) * bendStrength;
+      final highlightPeak = flapHighlightPeakBase(isPaperDark: isPaperDark) *
+          highlightBoost *
+          bendStrength;
+      final highlightMid = flapHighlightMidBase(isPaperDark: isPaperDark) *
+          highlightBoost *
+          bendStrength;
       // Curl highlight centred on the bulge: darker at BOTH the free edge and
       // the fold, brightest in the middle — physically how a curved page
       // catches light. Kept away from the fold (transparent by 78%) so it never
@@ -441,15 +453,42 @@ class PageFlipPainter extends CustomPainter {
 
       // Cylinder curl shading (HIGH profile only): the free-edge half of the
       // flap curls away from the light, so it falls into a soft terminator
-      // shadow while the bulge stays lit. This is the single extra gradient
-      // that turns the flat-lit flap into a rounded cylinder — one drawRect,
-      // still 2.5D. Concentrated on the free-edge side and transparent by the
-      // centre so it never darkens (thickens) the fold crease.
+      // shadow while the bulge stays lit. Paired with the centre highlight
+      // above, the light-bulge-to-dark-edge ramp is what turns a flat-lit flap
+      // into a rounded cylinder — the single strongest "this sheet is curved"
+      // cue available in 2.5D. Concentrated on the free-edge side and eased to
+      // zero before the centre so it never darkens (thickens) the fold crease.
+      //
+      // The terminator is deliberately stronger than the centre highlight: a
+      // curved page reads as rounded from its SHADOW gradient far more than from
+      // a matte sheen, and thin Bible paper barely reflects light. The eased
+      // 4-stop ramp keeps the free-edge quarter in real shade, then lifts back
+      // to the lit bulge by ~62% so there is no hard terminator line.
       if (performanceProfile == DevicePerformanceProfile.high) {
         final cylinderColor = isPaperDark ? Colors.white : Colors.black;
         final cylinderBlend =
             isPaperDark ? BlendMode.screen : BlendMode.multiply;
-        final cylinderAlpha = (isPaperDark ? 0.05 : 0.08) * bendStrength;
+        // Double-spread deepens the terminator and uses an eased 4-stop ramp so
+        // the turning leaf reads as a rounded tube; single-page keeps its
+        // separately tuned lighter 3-stop curl so its look is unchanged.
+        final cylinderAlpha = isDoubleSpread
+            ? (isPaperDark ? 0.09 : 0.15) * bendStrength
+            : (isPaperDark ? 0.05 : 0.08) * bendStrength;
+        final cylinderColors = isDoubleSpread
+            ? <Color>[
+                cylinderColor.withValues(alpha: cylinderAlpha),
+                cylinderColor.withValues(alpha: cylinderAlpha * 0.5),
+                cylinderColor.withValues(alpha: 0),
+                cylinderColor.withValues(alpha: 0),
+              ]
+            : <Color>[
+                cylinderColor.withValues(alpha: cylinderAlpha),
+                cylinderColor.withValues(alpha: 0),
+                cylinderColor.withValues(alpha: 0),
+              ];
+        final cylinderStops = isDoubleSpread
+            ? const <double>[0, 0.28, 0.62, 1]
+            : const <double>[0, 0.45, 1];
         canvas.drawRect(
           flapPaintRect,
           Paint()
@@ -457,12 +496,8 @@ class PageFlipPainter extends CustomPainter {
             ..shader = LinearGradient(
               begin: freeAlign,
               end: foldAlign,
-              colors: [
-                cylinderColor.withValues(alpha: cylinderAlpha),
-                cylinderColor.withValues(alpha: 0),
-                cylinderColor.withValues(alpha: 0),
-              ],
-              stops: const [0.0, 0.45, 1.0],
+              colors: cylinderColors,
+              stops: cylinderStops,
             ).createShader(flapPaintRect),
         );
       }
@@ -785,9 +820,25 @@ class PageFlipPainter extends CustomPainter {
     if (g.shadowIntensity > 0.02 &&
         performanceProfile != DevicePerformanceProfile.low &&
         g.flapVisibleWidth > 4) {
-      final contactWidth = _kFreeEdgeShadowWidth * g.shadowIntensity;
-      final contactAlpha =
-          (isPaperDark ? 0.05 : 0.10) * g.shadowIntensity * shadowOnset;
+      // The band widens with the lift so the raised edge throws a longer shadow
+      // the higher it rises. Scoped to double-spread (the requested mode): HIGH
+      // gets the full soft penumbra (best 2.5D) and the default MEDIUM a modest
+      // lift-cast so a two-page turn reads as genuinely lifted, not a flat
+      // sticker — at no extra draw cost. Single-page keeps its tuned tight
+      // grounding shadow unchanged.
+      final isHighContact =
+          performanceProfile == DevicePerformanceProfile.high;
+      final liftGain = freeEdgeContactLiftGain(
+        profile: performanceProfile,
+        isDoubleSpread: isDoubleSpread,
+      );
+      final contactSpread = 1.0 + liftGain * g.shadowIntensity;
+      final contactWidth =
+          _kFreeEdgeShadowWidth * contactSpread * g.shadowIntensity;
+      final contactAlpha = (isPaperDark ? 0.05 : 0.10) *
+          (isDoubleSpread ? (isHighContact ? 1.25 : 1.08) : 1.0) *
+          g.shadowIntensity *
+          shadowOnset;
       if (contactAlpha > 0.008 && contactWidth > 0.5) {
         final contactPath = buildCurvedFreeEdgeShadowPath(
           g,
@@ -803,7 +854,9 @@ class PageFlipPainter extends CustomPainter {
           canvas.clipPath(contactClip);
           canvas.transform(g.transform.storage);
 
-          // Gradient darkest at the edge, fading outward across the page.
+          // Gradient darkest at the edge, fading outward across the page with an
+          // eased 3-stop penumbra (soft shoulder) instead of a linear ramp, so
+          // the cast shadow has a believable soft edge rather than a hard band.
           final begin =
               g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
           final end =
@@ -818,10 +871,17 @@ class PageFlipPainter extends CustomPainter {
               ..shader = LinearGradient(
                 begin: begin,
                 end: end,
-                colors: [
-                  contactColor.withValues(alpha: contactAlpha),
-                  contactColor.withValues(alpha: 0),
-                ],
+                colors: isDoubleSpread
+                    ? <Color>[
+                        contactColor.withValues(alpha: contactAlpha),
+                        contactColor.withValues(alpha: contactAlpha * 0.4),
+                        contactColor.withValues(alpha: 0),
+                      ]
+                    : <Color>[
+                        contactColor.withValues(alpha: contactAlpha),
+                        contactColor.withValues(alpha: 0),
+                      ],
+                stops: isDoubleSpread ? const <double>[0, 0.45, 1] : null,
               ).createShader(contactBounds),
           );
           canvas.restore();

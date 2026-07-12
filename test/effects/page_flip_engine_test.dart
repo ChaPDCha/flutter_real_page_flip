@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 void main() {
   // ===========================================================================
@@ -1493,6 +1494,54 @@ void main() {
     test('clamps out-of-range progress without throwing', () {
       expect(flipShadowOnset(-0.5), equals(0));
       expect(flipShadowOnset(1.5), equals(0));
+    });
+  });
+
+  group('freeEdgeContactLiftGain', () {
+    test('single-page keeps the tight grounding shadow on every profile', () {
+      for (final profile in DevicePerformanceProfile.values) {
+        expect(
+          freeEdgeContactLiftGain(profile: profile, isDoubleSpread: false),
+          equals(0),
+          reason: 'single-page must not widen the contact shadow ($profile)',
+        );
+      }
+    });
+
+    test('double-spread HIGH earns the widest lift-cast penumbra', () {
+      final high = freeEdgeContactLiftGain(
+        profile: DevicePerformanceProfile.high,
+        isDoubleSpread: true,
+      );
+      final medium = freeEdgeContactLiftGain(
+        profile: DevicePerformanceProfile.medium,
+        isDoubleSpread: true,
+      );
+      expect(high, greaterThan(medium));
+      expect(
+        medium,
+        greaterThan(0),
+        reason: 'default medium still reads as lifted, not a flat sticker',
+      );
+    });
+
+    test('gain scales the painted band width by 1 + gain·intensity', () {
+      // Mirrors the painter: contactSpread = 1 + gain * shadowIntensity.
+      const intensity = 1.0; // mid-flip peak
+      final highGain = freeEdgeContactLiftGain(
+        profile: DevicePerformanceProfile.high,
+        isDoubleSpread: true,
+      );
+      final singleGain = freeEdgeContactLiftGain(
+        profile: DevicePerformanceProfile.high,
+        isDoubleSpread: false,
+      );
+      expect(1.0 + highGain * intensity, greaterThan(1.0 + singleGain));
+      expect(
+        1.0 + singleGain * intensity,
+        equals(1.0),
+        reason: 'single-page band width is unchanged from the base',
+      );
     });
   });
 }
