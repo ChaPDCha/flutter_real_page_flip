@@ -200,6 +200,14 @@ class PageFlipPainter extends CustomPainter {
     final verticalPaintBleed =
         g.angle.abs() > 0.0001 && size.height > 0 ? size.height : 0.0;
 
+    // Eased onset for the discrete fold/gutter/contact shadows. `sin(progress·π)`
+    // (g.shadowIntensity) alone snaps these on the instant a turn begins, which
+    // reads as a shadow popping into the middle of a two-page spread. Multiplying
+    // only these shadow alphas by the envelope keeps the flap's own curl shading
+    // (which uses g.shadowIntensity directly) untouched. 1.0 across the plateau,
+    // so mid-flip intensity is unchanged.
+    final shadowOnset = flipShadowOnset(progress);
+
     canvas.save();
     if (verticalPaintBleed > 0) {
       canvas.clipRect(Offset.zero & size);
@@ -399,11 +407,23 @@ class PageFlipPainter extends CustomPainter {
       //   • Dark paper: a very dim, slightly cool ambient sheen so near-black
       //     stock reads as a real surface gently catching light rather than a
       //     flat void — kept extra low to never look glassy.
+      // Double-spread HIGH pairs a slightly brighter bulge with the deeper
+      // cylinder terminator below: roundness is read from the light→dark
+      // CONTRAST across the sheet, so lifting the highlight a touch (kept well
+      // short of a glassy sheen on matte paper) completes the rounded-tube look.
+      // Scoped to double-spread so the separately tuned single-page sheen is
+      // unchanged; medium/low keep the flatter, cheaper base sheen.
+      final highlightBoost = isDoubleSpread &&
+              performanceProfile == DevicePerformanceProfile.high
+          ? 1.35
+          : 1.0;
       final highlightTone = flapHighlightTone(isPaperDark: isPaperDark);
-      final highlightPeak =
-          flapHighlightPeakBase(isPaperDark: isPaperDark) * bendStrength;
-      final highlightMid =
-          flapHighlightMidBase(isPaperDark: isPaperDark) * bendStrength;
+      final highlightPeak = flapHighlightPeakBase(isPaperDark: isPaperDark) *
+          highlightBoost *
+          bendStrength;
+      final highlightMid = flapHighlightMidBase(isPaperDark: isPaperDark) *
+          highlightBoost *
+          bendStrength;
       // Curl highlight centred on the bulge: darker at BOTH the free edge and
       // the fold, brightest in the middle — physically how a curved page
       // catches light. Kept away from the fold (transparent by 78%) so it never
@@ -433,15 +453,42 @@ class PageFlipPainter extends CustomPainter {
 
       // Cylinder curl shading (HIGH profile only): the free-edge half of the
       // flap curls away from the light, so it falls into a soft terminator
-      // shadow while the bulge stays lit. This is the single extra gradient
-      // that turns the flat-lit flap into a rounded cylinder — one drawRect,
-      // still 2.5D. Concentrated on the free-edge side and transparent by the
-      // centre so it never darkens (thickens) the fold crease.
+      // shadow while the bulge stays lit. Paired with the centre highlight
+      // above, the light-bulge-to-dark-edge ramp is what turns a flat-lit flap
+      // into a rounded cylinder — the single strongest "this sheet is curved"
+      // cue available in 2.5D. Concentrated on the free-edge side and eased to
+      // zero before the centre so it never darkens (thickens) the fold crease.
+      //
+      // The terminator is deliberately stronger than the centre highlight: a
+      // curved page reads as rounded from its SHADOW gradient far more than from
+      // a matte sheen, and thin Bible paper barely reflects light. The eased
+      // 4-stop ramp keeps the free-edge quarter in real shade, then lifts back
+      // to the lit bulge by ~62% so there is no hard terminator line.
       if (performanceProfile == DevicePerformanceProfile.high) {
         final cylinderColor = isPaperDark ? Colors.white : Colors.black;
         final cylinderBlend =
             isPaperDark ? BlendMode.screen : BlendMode.multiply;
-        final cylinderAlpha = (isPaperDark ? 0.05 : 0.08) * bendStrength;
+        // Double-spread deepens the terminator and uses an eased 4-stop ramp so
+        // the turning leaf reads as a rounded tube; single-page keeps its
+        // separately tuned lighter 3-stop curl so its look is unchanged.
+        final cylinderAlpha = isDoubleSpread
+            ? (isPaperDark ? 0.09 : 0.15) * bendStrength
+            : (isPaperDark ? 0.05 : 0.08) * bendStrength;
+        final cylinderColors = isDoubleSpread
+            ? <Color>[
+                cylinderColor.withValues(alpha: cylinderAlpha),
+                cylinderColor.withValues(alpha: cylinderAlpha * 0.5),
+                cylinderColor.withValues(alpha: 0),
+                cylinderColor.withValues(alpha: 0),
+              ]
+            : <Color>[
+                cylinderColor.withValues(alpha: cylinderAlpha),
+                cylinderColor.withValues(alpha: 0),
+                cylinderColor.withValues(alpha: 0),
+              ];
+        final cylinderStops = isDoubleSpread
+            ? const <double>[0, 0.28, 0.62, 1]
+            : const <double>[0, 0.45, 1];
         canvas.drawRect(
           flapPaintRect,
           Paint()
@@ -449,12 +496,8 @@ class PageFlipPainter extends CustomPainter {
             ..shader = LinearGradient(
               begin: freeAlign,
               end: foldAlign,
-              colors: [
-                cylinderColor.withValues(alpha: cylinderAlpha),
-                cylinderColor.withValues(alpha: 0),
-                cylinderColor.withValues(alpha: 0),
-              ],
-              stops: const [0.0, 0.45, 1.0],
+              colors: cylinderColors,
+              stops: cylinderStops,
             ).createShader(flapPaintRect),
         );
       }
@@ -654,7 +697,8 @@ class PageFlipPainter extends CustomPainter {
         g.flapVisibleWidth,
         math.max(foldFadeWidth, _kCreaseFlapSideWidth) * g.shadowIntensity,
       );
-      final peakOpacity = (isPaperDark ? 0.07 : 0.13) * g.shadowIntensity;
+      final peakOpacity =
+          (isPaperDark ? 0.07 : 0.13) * g.shadowIntensity * shadowOnset;
       if (peakOpacity > 0.008 && revealedWidth > 1 && flapWidth > 0.5) {
         final density = flapMeshDensityForPerformance(performanceProfile);
         final creaseMesh = buildCurvedCreaseValleyMesh(
@@ -691,7 +735,8 @@ class PageFlipPainter extends CustomPainter {
       // across the revealed page. Narrower than the layout guard and eased with
       // [_kCreaseValleyStops] so it reads as one soft fold, not a hard stroke.
       final shadowWidth = _kCreaseShadowWidth * g.shadowIntensity;
-      final revealedAlpha = (isPaperDark ? 0.08 : 0.15) * g.shadowIntensity;
+      final revealedAlpha =
+          (isPaperDark ? 0.08 : 0.15) * g.shadowIntensity * shadowOnset;
       if (revealedAlpha > 0.01 && shadowWidth > 1) {
         // Follow the same curved fold boundary as the flap. A straight shadow
         // rect stays angle-aligned after transform, but its dark edge remains a
@@ -744,7 +789,8 @@ class PageFlipPainter extends CustomPainter {
             isForward: isForward,
             shadowWidth: ambientWidth,
           );
-          final ambientAlpha = (isPaperDark ? 0.02 : 0.035) * g.shadowIntensity;
+          final ambientAlpha =
+              (isPaperDark ? 0.02 : 0.035) * g.shadowIntensity * shadowOnset;
           canvas.drawPath(
             ambientPath,
             Paint()
@@ -774,8 +820,25 @@ class PageFlipPainter extends CustomPainter {
     if (g.shadowIntensity > 0.02 &&
         performanceProfile != DevicePerformanceProfile.low &&
         g.flapVisibleWidth > 4) {
-      final contactWidth = _kFreeEdgeShadowWidth * g.shadowIntensity;
-      final contactAlpha = (isPaperDark ? 0.05 : 0.10) * g.shadowIntensity;
+      // The band widens with the lift so the raised edge throws a longer shadow
+      // the higher it rises. Scoped to double-spread (the requested mode): HIGH
+      // gets the full soft penumbra (best 2.5D) and the default MEDIUM a modest
+      // lift-cast so a two-page turn reads as genuinely lifted, not a flat
+      // sticker — at no extra draw cost. Single-page keeps its tuned tight
+      // grounding shadow unchanged.
+      final isHighContact =
+          performanceProfile == DevicePerformanceProfile.high;
+      final liftGain = freeEdgeContactLiftGain(
+        profile: performanceProfile,
+        isDoubleSpread: isDoubleSpread,
+      );
+      final contactSpread = 1.0 + liftGain * g.shadowIntensity;
+      final contactWidth =
+          _kFreeEdgeShadowWidth * contactSpread * g.shadowIntensity;
+      final contactAlpha = (isPaperDark ? 0.05 : 0.10) *
+          (isDoubleSpread ? (isHighContact ? 1.25 : 1.08) : 1.0) *
+          g.shadowIntensity *
+          shadowOnset;
       if (contactAlpha > 0.008 && contactWidth > 0.5) {
         final contactPath = buildCurvedFreeEdgeShadowPath(
           g,
@@ -791,7 +854,9 @@ class PageFlipPainter extends CustomPainter {
           canvas.clipPath(contactClip);
           canvas.transform(g.transform.storage);
 
-          // Gradient darkest at the edge, fading outward across the page.
+          // Gradient darkest at the edge, fading outward across the page with an
+          // eased 3-stop penumbra (soft shoulder) instead of a linear ramp, so
+          // the cast shadow has a believable soft edge rather than a hard band.
           final begin =
               g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
           final end =
@@ -806,10 +871,17 @@ class PageFlipPainter extends CustomPainter {
               ..shader = LinearGradient(
                 begin: begin,
                 end: end,
-                colors: [
-                  contactColor.withValues(alpha: contactAlpha),
-                  contactColor.withValues(alpha: 0),
-                ],
+                colors: isDoubleSpread
+                    ? <Color>[
+                        contactColor.withValues(alpha: contactAlpha),
+                        contactColor.withValues(alpha: contactAlpha * 0.4),
+                        contactColor.withValues(alpha: 0),
+                      ]
+                    : <Color>[
+                        contactColor.withValues(alpha: contactAlpha),
+                        contactColor.withValues(alpha: 0),
+                      ],
+                stops: isDoubleSpread ? const <double>[0, 0.45, 1] : null,
               ).createShader(contactBounds),
           );
           canvas.restore();
@@ -832,7 +904,7 @@ class PageFlipPainter extends CustomPainter {
       canvas.transform(g.transform.storage);
 
       final stationaryWidth = _kStationaryShadowWidth * g.shadowIntensity;
-      final stationaryAlpha = 0.06 * g.shadowIntensity;
+      final stationaryAlpha = 0.06 * g.shadowIntensity * shadowOnset;
       if (stationaryAlpha > 0.01 && stationaryWidth > 1) {
         final stationaryRect = g.flapRightOfFold
             ? Rect.fromLTWH(
@@ -882,46 +954,63 @@ class PageFlipPainter extends CustomPainter {
       canvas.restore();
     }
 
-    // Center spine groove (double-spread): keep on the flip side so layer 2
-    // stationary halves are not darkened.
+    // Center binding gutter (double-spread): a symmetric valley centred on the
+    // spine, darkest at the binding and feathering out to BOTH sides.
+    //
+    // The previous groove painted a single one-sided band clipped hard to the
+    // flip half, so its full-alpha edge sat exactly on the spine while the
+    // stationary half stayed at zero. That step read as a knife-cut running
+    // straight down the middle of the spread — the "shadow sharply clipped at
+    // the body text" artifact. A real binding gutter darkens both facing pages,
+    // so the two feathered sides below share the same peak alpha at the spine
+    // and are therefore continuous across it (no centre seam). The lifting side
+    // reaches a little further (its page is pulling the gutter open) while the
+    // resting side stays narrow so the stationary page's text is barely grazed.
     if (isDoubleSpread && progress > 0) {
-      const spineWidth = 18.0;
-      canvas.save();
-      canvas.clipRect(flipSideShadowClipRect(g));
-      final spineLeft = g.isForward ? g.spineX : g.spineX - spineWidth;
-      final spineRect = Rect.fromLTWH(
-        spineLeft,
-        0,
-        spineWidth,
-        size.height,
-      );
-
       final shadowColor = isPaperDark ? Colors.white : Colors.black;
       final shadowBlend = isPaperDark ? BlendMode.srcOver : BlendMode.multiply;
+      final isLowProfileGutter =
+          performanceProfile == DevicePerformanceProfile.low;
+      // Shared peak at the spine (onset-eased so it fades in with the turn
+      // instead of snapping on in the middle of the spread).
+      final gutterPeak =
+          (isPaperDark ? 0.09 : 0.12) * g.shadowIntensity * shadowOnset;
 
-      if (performanceProfile == DevicePerformanceProfile.low) {
-        canvas.drawRect(
-          spineRect,
-          Paint()
-            ..blendMode = shadowBlend
-            ..color = shadowColor.withValues(alpha: 0.06 * g.shadowIntensity),
-        );
-      } else {
-        canvas.drawRect(
-          spineRect,
-          Paint()
-            ..blendMode = shadowBlend
-            ..shader = LinearGradient(
-              begin: g.isForward ? Alignment.centerLeft : Alignment.centerRight,
-              end: g.isForward ? Alignment.centerRight : Alignment.centerLeft,
-              colors: [
-                shadowColor.withValues(alpha: 0.13 * g.shadowIntensity),
-                shadowColor.withValues(alpha: 0),
-              ],
-            ).createShader(spineRect),
-        );
+      const flipSideWidth = 18.0;
+      const stationarySideWidth = 13.0;
+
+      void drawGutterSide(double outward) {
+        if (gutterPeak <= 0.003 || outward == 0) return;
+        final outerX = g.spineX + outward;
+        final left = math.min(g.spineX, outerX);
+        final right = math.max(g.spineX, outerX);
+        if (right - left < 0.5) return;
+        final rect = Rect.fromLTRB(left, 0, right, size.height);
+        canvas.save();
+        canvas.clipRect(rect);
+        final paint = Paint()..blendMode = shadowBlend;
+        if (isLowProfileGutter) {
+          paint.color = shadowColor.withValues(alpha: gutterPeak * 0.5);
+        } else {
+          // Peak sits on the spine edge; transparent at the outer edge.
+          final peakAtLeft = outward > 0; // spine is the rect's left edge
+          paint.shader = LinearGradient(
+            begin: peakAtLeft ? Alignment.centerLeft : Alignment.centerRight,
+            end: peakAtLeft ? Alignment.centerRight : Alignment.centerLeft,
+            colors: [
+              shadowColor.withValues(alpha: gutterPeak),
+              shadowColor.withValues(alpha: 0),
+            ],
+          ).createShader(rect);
+        }
+        canvas.drawRect(rect, paint);
+        canvas.restore();
       }
-      canvas.restore();
+
+      // Flip side (page lifting away from the spine) reaches further; the
+      // stationary side is narrower. Directions mirror for backward turns.
+      drawGutterSide(g.isForward ? flipSideWidth : -flipSideWidth);
+      drawGutterSide(g.isForward ? -stationarySideWidth : stationarySideWidth);
     }
   }
 

@@ -822,6 +822,61 @@ void main() {
       );
     });
 
+    test('binding gutter feathers on BOTH sides of the spine (no knife-cut)',
+        () {
+      final canvas = RecordingCanvas();
+
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        isDoubleSpread: true,
+      ).paint(canvas, size);
+
+      // Regression: the old groove painted a single one-sided band clipped hard
+      // to the flip half, so its full-alpha edge sat exactly on the spine while
+      // the stationary half stayed at zero — a knife-cut down the centre. The
+      // symmetric gutter must paint a multiply band on EACH side of spineX=400:
+      // one whose LEFT edge is the spine (flip side) and one whose RIGHT edge is
+      // the spine (stationary side). Both share the spine peak, so the valley is
+      // continuous across the binding.
+      bool isMultiplyGutter(_Record r) {
+        if (r.method != 'drawRect') return false;
+        final paint = r.args[1]! as Paint;
+        return paint.blendMode == BlendMode.multiply && paint.shader != null;
+      }
+
+      final gutterRects = canvas.records
+          .where(isMultiplyGutter)
+          .map((r) => r.args[0]! as Rect)
+          .toList();
+
+      final flipSide =
+          gutterRects.where((rect) => (rect.left - 400).abs() <= 1).toList();
+      final stationarySide =
+          gutterRects.where((rect) => (rect.right - 400).abs() <= 1).toList();
+
+      expect(
+        flipSide,
+        isNotEmpty,
+        reason: 'Flip-side gutter band should start at the spine (left=400)',
+      );
+      expect(
+        stationarySide,
+        isNotEmpty,
+        reason: 'Stationary-side gutter band should end at the spine '
+            '(right=400) — this is the feather that removes the knife-cut',
+      );
+      // The stationary band must actually extend LEFT of the spine (into the
+      // resting page), otherwise it is zero-width and the seam is back.
+      expect(
+        stationarySide.any((rect) => rect.left < 400 - 1),
+        isTrue,
+        reason: 'Stationary-side feather must have real width left of the spine',
+      );
+    });
+
     test('no spine groove in single-page mode', () {
       final canvas = RecordingCanvas();
 

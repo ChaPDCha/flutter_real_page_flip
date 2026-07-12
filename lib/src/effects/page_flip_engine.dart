@@ -176,6 +176,25 @@ double flapHighlightPeakBase({required bool isPaperDark}) =>
 double flapHighlightMidBase({required bool isPaperDark}) =>
     isPaperDark ? 0.04 : 0.06;
 
+/// How far the free-edge contact shadow lengthens as the flap lifts.
+///
+/// The lifted edge of a turning leaf throws a longer, softer shadow the higher
+/// it rises, so the painted band width is scaled by `1 + gain·shadowIntensity`.
+/// The gain is the primary "this leaf is lifted off the page" cue and is scoped
+/// to double-spread — the requested mode — so single-page keeps its separately
+/// tuned tight grounding shadow (`gain == 0`, band width unchanged). Within
+/// double-spread the HIGH profile earns the full soft penumbra (best 2.5D)
+/// while the lean default MEDIUM still gets a modest lift so a two-page turn
+/// reads as genuinely raised rather than a flat sticker.
+@visibleForTesting
+double freeEdgeContactLiftGain({
+  required DevicePerformanceProfile profile,
+  required bool isDoubleSpread,
+}) {
+  if (!isDoubleSpread) return 0;
+  return profile == DevicePerformanceProfile.high ? 1.3 : 0.55;
+}
+
 /// Direction-normalized progress used by the flap's phased content effects.
 ///
 /// Double-spread backward flips animate geometry in reverse, so paint-time
