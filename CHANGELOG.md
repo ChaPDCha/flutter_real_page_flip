@@ -3,7 +3,10 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
-## Unreleased
+## [2.0.3] - 2026-07-13
+
+### Fixed
+- **Single-Page Flap Edge Splitting Into Multiple Layers**: The flap content mesh evaluated vertical curvature over the visible `0..H` range while the screen clip, edge masks, and shadows used the extended `-H..2H` curve domain. Their free edges therefore separated progressively and peaked near mid-flip. The opaque paper underlay also stopped at the flat flap rectangle instead of covering the curved-edge bulge, exposing a narrow wedge of the stationary page. All flap boundaries now share one curve mapping, and the paper coverage bounds include the maximum curve bulge plus seam bleed. Added forward/backward progress-matrix, pixel-edge, all-profile opacity, and refreshed textured golden regressions.
 
 ## [2.0.2] - 2026-07-12
 ### Fixed
