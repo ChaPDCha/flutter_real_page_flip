@@ -65,8 +65,16 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Prepare local plugin path for Swift Package identity
+        run: |
+          rm -rf "$GITHUB_WORKSPACE/../real_page_flip"
+          rsync -a --exclude='example/' "$GITHUB_WORKSPACE/" "$GITHUB_WORKSPACE/../real_page_flip/"
+          perl -0pi -e 's#path: \.\./#path: ../real_page_flip#' example/pubspec.yaml
+
+      - name: Install example dependencies
+        working-directory: example
+        run: flutter pub get
+
       - name: Build iOS simulator example
         working-directory: example
-        run: |
-          flutter config --no-enable-swift-package-manager
-          flutter build ios --simulator --no-codesign --no-pub
+        run: flutter build ios --simulator --no-codesign --no-pub
