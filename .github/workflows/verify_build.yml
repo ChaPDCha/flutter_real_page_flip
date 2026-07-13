@@ -65,15 +65,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Prepare local plugin path for Swift Package identity
-        run: |
-          rm -rf "$GITHUB_WORKSPACE/real_page_flip"
-          rsync -a --exclude='example/' --exclude='real_page_flip/' \
-            "$GITHUB_WORKSPACE/" "$GITHUB_WORKSPACE/real_page_flip/"
-          rm -rf "$GITHUB_WORKSPACE/real_page_flip/android"
-          cp -R "$GITHUB_WORKSPACE/android" "$GITHUB_WORKSPACE/real_page_flip/android"
-          test -f "$GITHUB_WORKSPACE/real_page_flip/android/src/main/kotlin/com/chapdcha/real_page_flip/RealPageFlipPlugin.kt"
-          perl -0pi -e 's#path: \.\./#path: ../real_page_flip#' example/pubspec.yaml
+      - name: Disable experimental Swift Package Manager path
+        run: flutter config --no-enable-swift-package-manager
 
       - name: Install example dependencies
         working-directory: example
