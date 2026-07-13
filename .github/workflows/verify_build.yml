@@ -67,4 +67,6 @@ jobs:
 
       - name: Build iOS simulator example
         working-directory: example
-        run: flutter build ios --simulator --no-codesign --no-pub
+        run: |
+          flutter config --no-enable-swift-package-manager
+          flutter build ios --simulator --no-codesign --no-pub
