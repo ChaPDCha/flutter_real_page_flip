@@ -873,7 +873,8 @@ void main() {
       expect(
         stationarySide.any((rect) => rect.left < 400 - 1),
         isTrue,
-        reason: 'Stationary-side feather must have real width left of the spine',
+        reason:
+            'Stationary-side feather must have real width left of the spine',
       );
     });
 
