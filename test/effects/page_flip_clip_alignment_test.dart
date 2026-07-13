@@ -58,6 +58,81 @@ void main() {
       // point pulls the mid-height edge further left (paper curl).
       expect(bounds.left, lessThan(snapClipCoord(g.flapLeft)));
     });
+
+    test('paper paint bounds cover the full curved flap at every visible row',
+        () {
+      for (final isForward in [true, false]) {
+        final g = geo(
+          progress: 0.5,
+          isDoubleSpread: false,
+          isForward: isForward,
+        );
+        final bounds = buildFlapPaintBoundsLocal(g, verticalBleed: 0);
+
+        for (final y in [
+          0.0,
+          g.size.height * 0.25,
+          g.size.height * 0.5,
+          g.size.height * 0.75,
+          g.size.height,
+        ]) {
+          final foldX = foldCurveXAt(g, y);
+          final edgeX = flapEdgeCurveXAt(g, y);
+          expect(
+            bounds.left,
+            lessThanOrEqualTo(math.min(foldX, edgeX)),
+            reason: 'Paper underlay misses curved flap at y=$y '
+                'forward=$isForward',
+          );
+          expect(
+            bounds.right,
+            greaterThanOrEqualTo(math.max(foldX, edgeX)),
+            reason: 'Paper underlay misses curved flap at y=$y '
+                'forward=$isForward',
+          );
+        }
+      }
+    });
+  });
+
+  group('one-sheet flap geometry contract', () {
+    for (final progress in [0.1, 0.3, 0.5, 0.7, 0.9]) {
+      for (final isForward in [true, false]) {
+        test(
+            'mesh boundaries match clip curve at p=$progress '
+            'forward=$isForward', () {
+          final g = geo(
+            progress: progress,
+            isDoubleSpread: false,
+            isForward: isForward,
+          );
+
+          for (final y in [
+            0.0,
+            g.size.height * 0.25,
+            g.size.height * 0.5,
+            g.size.height * 0.75,
+            g.size.height,
+          ]) {
+            final meshFoldX = flapBoundaryCurveXAt(
+              baseX: g.foldX,
+              curveOffset: g.curveOffset,
+              localY: y,
+              height: g.size.height,
+            );
+            final meshEdgeX = flapBoundaryCurveXAt(
+              baseX: g.freeEdgeX,
+              curveOffset: g.curveOffset,
+              localY: y,
+              height: g.size.height,
+            );
+
+            expect(meshFoldX, closeTo(foldCurveXAt(g, y), 0.001));
+            expect(meshEdgeX, closeTo(flapEdgeCurveXAt(g, y), 0.001));
+          }
+        });
+      }
+    }
   });
 
   group('curved fold shadow band', () {

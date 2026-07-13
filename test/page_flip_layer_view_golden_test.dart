@@ -36,7 +36,10 @@ void main() {
     // edge pixels, so keep a tight tolerance while still catching real drift.
     goldenFileComparator = _TolerantGoldenFileComparator(
       Uri.parse('test/page_flip_layer_view_golden_test.dart'),
-      precisionTolerance: 0.001,
+      // Linux/macOS Skia versions can differ from the Windows capture by a
+      // small number of anti-aliased edge pixels on curved flap boundaries.
+      // Keep this below 0.2% so geometry regressions still fail loudly.
+      precisionTolerance: 0.0015,
     );
   });
 

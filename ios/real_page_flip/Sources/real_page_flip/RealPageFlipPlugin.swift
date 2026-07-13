@@ -86,7 +86,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       result(nil)
 
     case "cancel":
-      _continuousPlayer?.stop(atTime: CHHapticTimeImmediate)
+      try? _continuousPlayer?.stop(atTime: CHHapticTimeImmediate)
       _continuousPlayer = nil
       _continuousStarted = false
       result(nil)
@@ -131,7 +131,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
         duration: 30.0
       )
       let pattern = try CHHapticPattern(events: [event], parameters: [])
-      let player = try engine.createAdvancedPlayer(with: pattern)
+      let player = try engine.makeAdvancedPlayer(with: pattern)
       player.loopEnabled = true
       try engine.start()
       try player.start(atTime: CHHapticTimeImmediate)
@@ -239,7 +239,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
 
     do {
       let pattern = try CHHapticPattern(events: [event], parameters: [])
-      let player = try engine.createPlayer(with: pattern)
+      let player = try engine.makePlayer(with: pattern)
       try player.start(atTime: CHHapticTimeImmediate)
     } catch {
       UISelectionFeedbackGenerator().selectionChanged()
@@ -259,7 +259,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
 
     do {
       let pattern = try CHHapticPattern(events: [event], parameters: [])
-      let player = try engine.createPlayer(with: pattern)
+      let player = try engine.makePlayer(with: pattern)
       try player.start(atTime: CHHapticTimeImmediate)
     } catch {
       UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
@@ -288,7 +288,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
 
     do {
       let pattern = try CHHapticPattern(events: [e1, e2, e3], parameters: [])
-      let player = try engine.createPlayer(with: pattern)
+      let player = try engine.makePlayer(with: pattern)
       try player.start(atTime: CHHapticTimeImmediate)
     } catch {
       UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -322,7 +322,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
 
     do {
       let pattern = try CHHapticPattern(events: [continuousEvent, transientEvent], parameters: [])
-      let player = try engine.createPlayer(with: pattern)
+      let player = try engine.makePlayer(with: pattern)
       try player.start(atTime: CHHapticTimeImmediate)
     } catch {
       UIImpactFeedbackGenerator(style: .heavy).impactOccurred()

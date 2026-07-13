@@ -413,10 +413,10 @@ class PageFlipPainter extends CustomPainter {
       // short of a glassy sheen on matte paper) completes the rounded-tube look.
       // Scoped to double-spread so the separately tuned single-page sheen is
       // unchanged; medium/low keep the flatter, cheaper base sheen.
-      final highlightBoost = isDoubleSpread &&
-              performanceProfile == DevicePerformanceProfile.high
-          ? 1.35
-          : 1.0;
+      final highlightBoost =
+          isDoubleSpread && performanceProfile == DevicePerformanceProfile.high
+              ? 1.35
+              : 1.0;
       final highlightTone = flapHighlightTone(isPaperDark: isPaperDark);
       final highlightPeak = flapHighlightPeakBase(isPaperDark: isPaperDark) *
           highlightBoost *
@@ -826,8 +826,7 @@ class PageFlipPainter extends CustomPainter {
       // lift-cast so a two-page turn reads as genuinely lifted, not a flat
       // sticker — at no extra draw cost. Single-page keeps its tuned tight
       // grounding shadow unchanged.
-      final isHighContact =
-          performanceProfile == DevicePerformanceProfile.high;
+      final isHighContact = performanceProfile == DevicePerformanceProfile.high;
       final liftGain = freeEdgeContactLiftGain(
         profile: performanceProfile,
         isDoubleSpread: isDoubleSpread,

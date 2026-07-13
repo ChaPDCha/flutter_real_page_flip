@@ -300,6 +300,37 @@ void main() {
       image.dispose();
     });
 
+    test('mesh free edge follows the extended flap clip curve near the top',
+        () async {
+      const foldX = 300.0;
+      const flapLeft = 100.0;
+      const curveOffset = 18.0;
+      final image = await renderMesh(
+        foldX: foldX,
+        flapLeft: flapLeft,
+        curveOffset: curveOffset,
+        segments: 16,
+      );
+      final byteData = await image.toByteData();
+      expect(byteData, isNotNull);
+
+      // The screen-space clip uses a quadratic whose endpoints are extended to
+      // -H and 2H. At the visible top its blend is 4/9, so the free edge is
+      // shifted 8 px left. The mesh must cover that same curved-paper wedge.
+      const sampleX = 95;
+      const sampleY = 2;
+      final stride = size.width.toInt() * 4;
+      final offset = sampleY * stride + sampleX * 4;
+      expect(
+        byteData!.getUint8(offset),
+        greaterThan(0),
+        reason:
+            'Mesh and clip must share the same free-edge curve near the top',
+      );
+
+      image.dispose();
+    });
+
     test('mesh does not crash with extreme parameters on render', () async {
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);

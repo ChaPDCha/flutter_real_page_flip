@@ -139,6 +139,7 @@ void main() {
   for (final profile in [
     DevicePerformanceProfile.high,
     DevicePerformanceProfile.medium,
+    DevicePerformanceProfile.low,
   ]) {
     testWidgets(
         'flap shows NO middle-layer bleed-through at mid-flip ($profile)',

@@ -65,6 +65,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Disable experimental Swift Package Manager path
+        run: flutter config --no-enable-swift-package-manager
+
+      - name: Install example dependencies
+        working-directory: example
+        run: flutter pub get
+
       - name: Build iOS simulator example
         working-directory: example
         run: flutter build ios --simulator --no-codesign --no-pub
