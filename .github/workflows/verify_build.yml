@@ -70,6 +70,9 @@ jobs:
           rm -rf "$GITHUB_WORKSPACE/real_page_flip"
           rsync -a --exclude='example/' --exclude='real_page_flip/' \
             "$GITHUB_WORKSPACE/" "$GITHUB_WORKSPACE/real_page_flip/"
+          rm -rf "$GITHUB_WORKSPACE/real_page_flip/android"
+          cp -R "$GITHUB_WORKSPACE/android" "$GITHUB_WORKSPACE/real_page_flip/android"
+          test -f "$GITHUB_WORKSPACE/real_page_flip/android/src/main/kotlin/com/chapdcha/real_page_flip/RealPageFlipPlugin.kt"
           perl -0pi -e 's#path: \.\./#path: ../real_page_flip#' example/pubspec.yaml
 
       - name: Install example dependencies
