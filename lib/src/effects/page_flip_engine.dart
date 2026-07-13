@@ -438,6 +438,30 @@ Path buildOpenPageClipPath(Size size, PageFlipGeometry geo) {
 double foldCurveMaxBulge(PageFlipGeometry geo) =>
     geo.curvatureAmount > 0.001 ? geo.curveOffset.abs() * 0.5 : 0.0;
 
+/// Quadratic blend shared by every visible flap boundary.
+///
+/// The screen-space fold and free-edge paths deliberately extend from `-H` to
+/// `2H` so angled turns cannot expose the viewport corners. A visible row must
+/// therefore be evaluated in that same extended domain. Keeping this mapping
+/// here prevents the content mesh, paper underlay masks, and clip paths from
+/// interpreting the same swipe progress as differently curved sheets.
+@visibleForTesting
+double flapCurveBlendAt(double localY, double height) {
+  if (height <= 0) return 0;
+  final t = ((localY + height) / (height * 3)).clamp(0.0, 1.0).toDouble();
+  return 2 * (1 - t) * t;
+}
+
+/// X coordinate on a flap boundary in the shared extended curve domain.
+@visibleForTesting
+double flapBoundaryCurveXAt({
+  required double baseX,
+  required double curveOffset,
+  required double localY,
+  required double height,
+}) =>
+    baseX - curveOffset * flapCurveBlendAt(localY, height);
+
 /// Local-space x coordinate of the curved fold at [localY].
 ///
 /// This mirrors [appendFoldLineBoundary], which extends the fold endpoints
@@ -449,9 +473,12 @@ double foldCurveXAt(PageFlipGeometry geo, double localY) {
   final height = geo.size.height;
   if (height <= 0) return geo.foldX;
 
-  final t = ((localY + height) / (height * 3)).clamp(0.0, 1.0).toDouble();
-  final bulge = 2 * (1 - t) * t;
-  return geo.foldX - geo.curveOffset * bulge;
+  return flapBoundaryCurveXAt(
+    baseX: geo.foldX,
+    curveOffset: geo.curveOffset,
+    localY: localY,
+    height: height,
+  );
 }
 
 /// Local-space x coordinate of the curved flap free edge at [localY].
@@ -466,9 +493,12 @@ double flapEdgeCurveXAt(PageFlipGeometry geo, double localY) {
   final height = geo.size.height;
   if (height <= 0) return geo.freeEdgeX;
 
-  final t = ((localY + height) / (height * 3)).clamp(0.0, 1.0).toDouble();
-  final bulge = 2 * (1 - t) * t;
-  return geo.freeEdgeX - geo.curveOffset * bulge;
+  return flapBoundaryCurveXAt(
+    baseX: geo.freeEdgeX,
+    curveOffset: geo.curveOffset,
+    localY: localY,
+    height: height,
+  );
 }
 
 /// Curved local strip along either the fold crease or lifted free edge.
@@ -878,10 +908,16 @@ Rect buildFlapPaintBoundsLocal(
 }) {
   final height = geo.size.height;
   final bleed = verticalBleed ?? (height > 0 ? height : 0.0);
+  // The quadratic free edge protrudes beyond the flat flap rectangle by up to
+  // half of its control-point offset. Expand both horizontal sides because the
+  // sign reverses for backward turns. The screen-space flap path remains the
+  // exact visual clip; this conservative local rect only guarantees that the
+  // clipped sheet always has an opaque paper underlay.
+  final horizontalCoverage = foldCurveMaxBulge(geo) + foldEdgeBleedPx;
   return Rect.fromLTRB(
-    geo.flapLeft,
+    geo.flapLeft - horizontalCoverage,
     -bleed,
-    geo.flapLeft + geo.flapVisibleWidth + foldEdgeBleedPx,
+    geo.flapLeft + geo.flapVisibleWidth + horizontalCoverage,
     height + bleed,
   );
 }
@@ -971,8 +1007,9 @@ ui.Vertices buildFlapContentMesh({
   for (var i = 0; i < rows; i++) {
     final t = i / safeSegments;
     final y = height * t;
-    // Vertical quadratic bezier blend: 2(1-t)t — peak at t=0.5, zero at ends.
-    final b = 2 * (1 - t) * t;
+    // Use the same extended vertical domain as the screen clip. UVs still use
+    // the visible 0..1 [t] below; only the projected paper position is curved.
+    final b = flapCurveBlendAt(y, height);
     final rowBase = i * totalCols;
 
     for (var j = 0; j < totalCols; j++) {
