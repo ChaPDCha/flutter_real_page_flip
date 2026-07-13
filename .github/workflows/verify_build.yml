@@ -67,8 +67,9 @@ jobs:
 
       - name: Prepare local plugin path for Swift Package identity
         run: |
-          rm -rf "$GITHUB_WORKSPACE/../real_page_flip"
-          rsync -a --exclude='example/' "$GITHUB_WORKSPACE/" "$GITHUB_WORKSPACE/../real_page_flip/"
+          rm -rf "$GITHUB_WORKSPACE/real_page_flip"
+          rsync -a --exclude='example/' --exclude='real_page_flip/' \
+            "$GITHUB_WORKSPACE/" "$GITHUB_WORKSPACE/real_page_flip/"
           perl -0pi -e 's#path: \.\./#path: ../real_page_flip#' example/pubspec.yaml
 
       - name: Install example dependencies
