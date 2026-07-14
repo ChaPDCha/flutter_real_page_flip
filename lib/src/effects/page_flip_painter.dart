@@ -379,12 +379,105 @@ class PageFlipPainter extends CustomPainter {
       }
     }
 
+    // Edge / fold masks: hide stray, crushed texture fragments at the flap's
+    // free edge and at the fold crease where the mesh compresses.
+    //
+    // These paint the paper colour over the mesh boundary. On a LIGHT paper
+    // that is invisible (paper over paper). On a DARK paper (e.g. pure-black
+    // theme) a full-opacity paper-coloured strip wipes the light text in a hard
+    // vertical band — the "dark band at the paper edge". Two mitigations:
+    //   • keep the masks narrow, and
+    //   • on dark paper hold them below full opacity so the text bleeds through
+    //     faintly instead of being cut into a solid band.
+    // Single-page content is already dimmed by the thin-paper bleed overlay, so
+    // the crushed edge fragments are faint and need less aggressive masking.
+    //
+    // ORDER MATTERS: the masks cover CONTENT artifacts, so they must sit
+    // directly on the mesh — BEFORE the bend highlight / cylinder shading and
+    // the free-edge highlight below. When they were painted after the shading,
+    // the flat paper strip erased the curl shading across the last few px of
+    // the sheet, leaving a dark trough (dark paper) or a bare bright band
+    // (light paper) between the edge highlight and the shaded flap body — read
+    // as a light line detached from the page edge, widening as the turn
+    // progressed and peaking mid-flip on double spreads.
+    final maskPeak = edgeMaskPeakOpacity(isPaperDark: isPaperDark);
+
+    // Edge-fade: mask partial-text artifacts at the flap's free edge.
+    final edgeFadeWidth = edgeMaskWidth(
+      isPaperDark: isPaperDark,
+      devicePixelRatio: devicePixelRatio,
+    );
+    final edgeFadeBegin =
+        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
+    final edgeFadeEnd =
+        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+    final edgeFadePath = buildCurvedFlapBoundaryStripPath(
+      g,
+      atFold: false,
+      width: edgeFadeWidth,
+    );
+    final edgeFadeBounds = edgeFadePath.getBounds();
+    if (!edgeFadeBounds.isEmpty) {
+      canvas.drawPath(
+        edgeFadePath,
+        Paint()
+          // Fade to transparent PAPER, not Colors.transparent (transparent
+          // black), or the ramp's midpoint darkens toward black — this exact
+          // mask painted the dark pillar at the free edge on light paper.
+          ..shader = LinearGradient(
+            begin: edgeFadeBegin,
+            end: edgeFadeEnd,
+            colors: [
+              paperBackColor.withValues(alpha: maskPeak),
+              paperBackColor.withValues(alpha: 0),
+            ],
+          ).createShader(edgeFadeBounds),
+      );
+    }
+
+    // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
+    // As the flap narrows near the fold line, texture pixels compress and
+    // create visible fragments. This narrow gradient from paperBackColor →
+    // transparent softens the fold boundary edge.
+    final foldFadeWidth = foldMaskWidth(
+      isPaperDark: isPaperDark,
+      devicePixelRatio: devicePixelRatio,
+    );
+    final foldFadeBegin =
+        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+    final foldFadeEnd =
+        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
+    final foldFadePath = buildCurvedFlapBoundaryStripPath(
+      g,
+      atFold: true,
+      width: foldFadeWidth,
+    );
+    final foldFadeBounds = foldFadePath.getBounds();
+    if (!foldFadeBounds.isEmpty) {
+      canvas.drawPath(
+        foldFadePath,
+        Paint()
+          // Transparent PAPER endpoint (see edge-fade note): this mask's
+          // black-endpoint ramp painted the dark pillar at the fold line.
+          ..shader = LinearGradient(
+            begin: foldFadeBegin,
+            end: foldFadeEnd,
+            colors: [
+              paperBackColor.withValues(alpha: maskPeak),
+              paperBackColor.withValues(alpha: 0),
+            ],
+          ).createShader(foldFadeBounds),
+      );
+    }
+
     // Layer 2–3: Subtle paper-bend shading
     //
     // A gentle highlight across the flap centre and faint darkening at the
     // fold edge. Strong enough to suggest a curved surface, soft enough not
     // to look like the paper is tightly rolled.
     // Fold side vs free-edge side determined by flapRightOfFold.
+    // Painted over the boundary masks above so the curl light/shade stays
+    // continuous all the way to the sheet's edges.
     final bendStrength = g.shadowIntensity; // 0–1, peaks mid-flip
     if (bendStrength > 0.005 &&
         performanceProfile != DevicePerformanceProfile.low) {
@@ -503,53 +596,6 @@ class PageFlipPainter extends CustomPainter {
       }
     }
 
-    // Edge / fold masks: hide stray, crushed texture fragments at the flap's
-    // free edge and at the fold crease where the mesh compresses.
-    //
-    // These paint the paper colour over the mesh boundary. On a LIGHT paper
-    // that is invisible (paper over paper). On a DARK paper (e.g. pure-black
-    // theme) a full-opacity paper-coloured strip wipes the light text in a hard
-    // vertical band — the "dark band at the paper edge". Two mitigations:
-    //   • keep the masks narrow, and
-    //   • on dark paper hold them below full opacity so the text bleeds through
-    //     faintly instead of being cut into a solid band.
-    // Single-page content is already dimmed by the thin-paper bleed overlay, so
-    // the crushed edge fragments are faint and need less aggressive masking.
-    final maskPeak = edgeMaskPeakOpacity(isPaperDark: isPaperDark);
-
-    // Edge-fade: mask partial-text artifacts at the flap's free edge.
-    final edgeFadeWidth = edgeMaskWidth(
-      isPaperDark: isPaperDark,
-      devicePixelRatio: devicePixelRatio,
-    );
-    final edgeFadeBegin =
-        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-    final edgeFadeEnd =
-        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
-    final edgeFadePath = buildCurvedFlapBoundaryStripPath(
-      g,
-      atFold: false,
-      width: edgeFadeWidth,
-    );
-    final edgeFadeBounds = edgeFadePath.getBounds();
-    if (!edgeFadeBounds.isEmpty) {
-      canvas.drawPath(
-        edgeFadePath,
-        Paint()
-          // Fade to transparent PAPER, not Colors.transparent (transparent
-          // black), or the ramp's midpoint darkens toward black — this exact
-          // mask painted the dark pillar at the free edge on light paper.
-          ..shader = LinearGradient(
-            begin: edgeFadeBegin,
-            end: edgeFadeEnd,
-            colors: [
-              paperBackColor.withValues(alpha: maskPeak),
-              paperBackColor.withValues(alpha: 0),
-            ],
-          ).createShader(edgeFadeBounds),
-      );
-    }
-
     // Free-edge highlight: a thin bright line right on the lifted edge, as the
     // rounded paper edge catches ambient light. Together with the contact
     // shadow below it sells the "lifted 3D edge" read instead of a flat cut.
@@ -586,41 +632,6 @@ class PageFlipPainter extends CustomPainter {
             ).createShader(edgeHighlightBounds),
         );
       }
-    }
-
-    // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
-    // As the flap narrows near the fold line, texture pixels compress and
-    // create visible fragments. This narrow gradient from paperBackColor →
-    // transparent softens the fold boundary edge.
-    final foldFadeWidth = foldMaskWidth(
-      isPaperDark: isPaperDark,
-      devicePixelRatio: devicePixelRatio,
-    );
-    final foldFadeBegin =
-        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
-    final foldFadeEnd =
-        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-    final foldFadePath = buildCurvedFlapBoundaryStripPath(
-      g,
-      atFold: true,
-      width: foldFadeWidth,
-    );
-    final foldFadeBounds = foldFadePath.getBounds();
-    if (!foldFadeBounds.isEmpty) {
-      canvas.drawPath(
-        foldFadePath,
-        Paint()
-          // Transparent PAPER endpoint (see edge-fade note): this mask's
-          // black-endpoint ramp painted the dark pillar at the fold line.
-          ..shader = LinearGradient(
-            begin: foldFadeBegin,
-            end: foldFadeEnd,
-            colors: [
-              paperBackColor.withValues(alpha: maskPeak),
-              paperBackColor.withValues(alpha: 0),
-            ],
-          ).createShader(foldFadeBounds),
-      );
     }
 
     // Double-spread fold accent. In single-page mode the unified crease mesh

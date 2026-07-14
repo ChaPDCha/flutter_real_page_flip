@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.5] - 2026-07-14
+
+### Fixed
+- **Edge Decorations Detached From the Turning Sheet**: The paper-colour edge/fold masks (which hide crushed mesh texture at the flap boundaries) were painted AFTER the curl shading (bend highlight, cylinder terminator), so the flat paper strip erased the shading across the last few pixels of the sheet. Between the free-edge highlight line and the shaded flap body this left a dark trough on dark paper and a bare bright band on light paper - read as a light line hovering detached from the page edge. The gap widened as the turn progressed (single page) and peaked mid-flip before vanishing near the end (double spread). The masks now paint directly on the content mesh, BEFORE the curl shading and edge highlight, so the curl light/shade runs continuously to the sheet edges and the highlight sits on the paper instead of floating beside it. Verified by pixel probes at phone aspect ratio with tilted drags: the former trough (edge-adjacent luminance dipping below the flap body) is gone in all profiles.
+
 ## [2.0.4] - 2026-07-14
 
 ### Changed
