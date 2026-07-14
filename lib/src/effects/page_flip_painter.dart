@@ -465,7 +465,7 @@ class PageFlipPainter extends CustomPainter {
       // 4-stop ramp keeps the free-edge quarter in real shade, then lifts back
       // to the lit bulge by ~62% so there is no hard terminator line.
       if (performanceProfile == DevicePerformanceProfile.high) {
-        final cylinderColor = isPaperDark ? Colors.white : Colors.black;
+        final cylinderColor = discreteShadowTone(isPaperDark: isPaperDark);
         final cylinderBlend =
             isPaperDark ? BlendMode.screen : BlendMode.multiply;
         // Double-spread deepens the terminator and uses an eased 4-stop ramp so
@@ -568,7 +568,10 @@ class PageFlipPainter extends CustomPainter {
       final edgeHighlightBounds = edgeHighlightPath.getBounds();
       if (!edgeHighlightBounds.isEmpty) {
         final highlightTone = flapHighlightTone(isPaperDark: isPaperDark);
-        final highlightAlpha = (isPaperDark ? 0.10 : 0.16) * g.shadowIntensity;
+        // Dark paper: a 2px light line on near-black stock spikes ~2× above
+        // the surrounding moonlit shading and reads as a separate wire, not a
+        // lit paper edge — hold it closer to the crease/gutter glow level.
+        final highlightAlpha = (isPaperDark ? 0.06 : 0.16) * g.shadowIntensity;
         canvas.drawPath(
           edgeHighlightPath,
           Paint()
@@ -697,15 +700,18 @@ class PageFlipPainter extends CustomPainter {
         g.flapVisibleWidth,
         math.max(foldFadeWidth, _kCreaseFlapSideWidth) * g.shadowIntensity,
       );
+      // Dark paper renders the valley as moonlight on the sheet: the moonlit
+      // tone + a lower peak keep it a soft spread instead of a white seam.
+      // (The 1.8× reach above is already wide, so no extra dark widening.)
       final peakOpacity =
-          (isPaperDark ? 0.07 : 0.13) * g.shadowIntensity * shadowOnset;
+          (isPaperDark ? 0.055 : 0.13) * g.shadowIntensity * shadowOnset;
       if (peakOpacity > 0.008 && revealedWidth > 1 && flapWidth > 0.5) {
         final density = flapMeshDensityForPerformance(performanceProfile);
         final creaseMesh = buildCurvedCreaseValleyMesh(
           g,
           flapSideWidth: flapWidth,
           revealedSideWidth: revealedWidth,
-          color: isPaperDark ? Colors.white : Colors.black,
+          color: discreteShadowTone(isPaperDark: isPaperDark),
           peakOpacity: peakOpacity,
           segments: density.segments,
         );
@@ -734,9 +740,16 @@ class PageFlipPainter extends CustomPainter {
       // Single unified crease valley: darkest right at the fold, feathering out
       // across the revealed page. Narrower than the layout guard and eased with
       // [_kCreaseValleyStops] so it reads as one soft fold, not a hard stroke.
-      final shadowWidth = _kCreaseShadowWidth * g.shadowIntensity;
+      //
+      // Dark paper flips the valley from shadow to moonlight: the band widens
+      // (glowBandWidthScale), the peak drops, the tone cools, and screen blend
+      // brightens the paper/text beneath it — light falling ON the sheet, not
+      // a white line floating over it.
+      final shadowWidth = _kCreaseShadowWidth *
+          glowBandWidthScale(isPaperDark: isPaperDark) *
+          g.shadowIntensity;
       final revealedAlpha =
-          (isPaperDark ? 0.08 : 0.15) * g.shadowIntensity * shadowOnset;
+          (isPaperDark ? 0.055 : 0.15) * g.shadowIntensity * shadowOnset;
       if (revealedAlpha > 0.01 && shadowWidth > 1) {
         // Follow the same curved fold boundary as the flap. A straight shadow
         // rect stays angle-aligned after transform, but its dark edge remains a
@@ -755,12 +768,15 @@ class PageFlipPainter extends CustomPainter {
         final endAlign =
             isForward ? Alignment.centerRight : Alignment.centerLeft;
 
-        final shadowColor = isPaperDark ? Colors.white : Colors.black;
+        final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
+        final shadowBlend =
+            isPaperDark ? BlendMode.screen : BlendMode.srcOver;
 
         if (performanceProfile == DevicePerformanceProfile.low) {
           canvas.drawPath(
             shadowPath,
             Paint()
+              ..blendMode = shadowBlend
               ..color = shadowColor.withValues(alpha: revealedAlpha * 0.42),
           );
         } else {
@@ -769,6 +785,7 @@ class PageFlipPainter extends CustomPainter {
           canvas.drawPath(
             shadowPath,
             Paint()
+              ..blendMode = shadowBlend
               ..shader = LinearGradient(
                 begin: beginAlign,
                 end: endAlign,
@@ -790,10 +807,11 @@ class PageFlipPainter extends CustomPainter {
             shadowWidth: ambientWidth,
           );
           final ambientAlpha =
-              (isPaperDark ? 0.02 : 0.035) * g.shadowIntensity * shadowOnset;
+              (isPaperDark ? 0.015 : 0.035) * g.shadowIntensity * shadowOnset;
           canvas.drawPath(
             ambientPath,
             Paint()
+              ..blendMode = shadowBlend
               ..shader = LinearGradient(
                 begin: beginAlign,
                 end: endAlign,
@@ -860,7 +878,7 @@ class PageFlipPainter extends CustomPainter {
               g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
           final end =
               g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-          final contactColor = isPaperDark ? Colors.white : Colors.black;
+          final contactColor = discreteShadowTone(isPaperDark: isPaperDark);
           final contactBlend =
               isPaperDark ? BlendMode.screen : BlendMode.multiply;
           canvas.drawPath(
@@ -902,8 +920,13 @@ class PageFlipPainter extends CustomPainter {
       canvas.clipPath(stationaryShadowClip);
       canvas.transform(g.transform.storage);
 
-      final stationaryWidth = _kStationaryShadowWidth * g.shadowIntensity;
-      final stationaryAlpha = 0.06 * g.shadowIntensity * shadowOnset;
+      // Dark paper: same moonlight treatment as the crease valley — wider,
+      // dimmer, cool-toned, screen-blended (see discreteShadowTone).
+      final stationaryWidth = _kStationaryShadowWidth *
+          glowBandWidthScale(isPaperDark: isPaperDark) *
+          g.shadowIntensity;
+      final stationaryAlpha =
+          (isPaperDark ? 0.045 : 0.06) * g.shadowIntensity * shadowOnset;
       if (stationaryAlpha > 0.01 && stationaryWidth > 1) {
         final stationaryRect = g.flapRightOfFold
             ? Rect.fromLTWH(
@@ -923,9 +946,9 @@ class PageFlipPainter extends CustomPainter {
         final stationaryEnd =
             g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
 
-        final shadowColor = isPaperDark ? Colors.white : Colors.black;
+        final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
         final shadowBlend =
-            isPaperDark ? BlendMode.srcOver : BlendMode.multiply;
+            isPaperDark ? BlendMode.screen : BlendMode.multiply;
 
         if (performanceProfile == DevicePerformanceProfile.low) {
           canvas.drawRect(
@@ -966,17 +989,23 @@ class PageFlipPainter extends CustomPainter {
     // reaches a little further (its page is pulling the gutter open) while the
     // resting side stays narrow so the stationary page's text is barely grazed.
     if (isDoubleSpread && progress > 0) {
-      final shadowColor = isPaperDark ? Colors.white : Colors.black;
-      final shadowBlend = isPaperDark ? BlendMode.srcOver : BlendMode.multiply;
+      // Dark paper: the gutter is lit, not shaded. srcOver white laid a flat
+      // veil over the text that read as a detached bright stripe down the
+      // spine; screen with the cool moonlight tone brightens the paper and
+      // text beneath instead, and the wider/dimmer band spreads the light
+      // out like a page catching moonlight at the binding.
+      final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
+      final shadowBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
       final isLowProfileGutter =
           performanceProfile == DevicePerformanceProfile.low;
       // Shared peak at the spine (onset-eased so it fades in with the turn
       // instead of snapping on in the middle of the spread).
       final gutterPeak =
-          (isPaperDark ? 0.09 : 0.12) * g.shadowIntensity * shadowOnset;
+          (isPaperDark ? 0.06 : 0.12) * g.shadowIntensity * shadowOnset;
 
-      const flipSideWidth = 18.0;
-      const stationarySideWidth = 13.0;
+      final gutterScale = glowBandWidthScale(isPaperDark: isPaperDark);
+      final flipSideWidth = 18.0 * gutterScale;
+      final stationarySideWidth = 13.0 * gutterScale;
 
       void drawGutterSide(double outward) {
         if (gutterPeak <= 0.003 || outward == 0) return;

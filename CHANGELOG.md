@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.4] - 2026-07-14
+
+### Changed
+- **Dark-Paper Flip Accents Read as Moonlight, Not Detached Lines**: On near-black paper the crease valley, binding gutter, stationary-edge band, cylinder curl, and free-edge contact accent were painted pure white -- the gutter and stationary bands additionally with `srcOver`, laying a flat veil over the text beneath. Combined with band widths tuned for dark-on-light shadows, the accents read as crisp bright lines hovering over the page instead of light settling onto it. Dark paper now shares one cool moonlight tone (`0xFFE8E8F0`, the flap-highlight cast) across all lit accents via `discreteShadowTone`, blends them with `screen` so the paper and text brighten optically, widens the discrete bands 1.6x via `glowBandWidthScale` (crease 22->35px, still inside the 36px layout guard; gutter 18/13->29/21px; stationary 14->22px), and drops their peak alphas (double crease 0.08->0.055, single crease 0.07->0.055, gutter 0.09->0.06, stationary 0.06->0.045, ambient 0.02->0.015, free-edge highlight 0.10->0.06). Light-paper rendering is unchanged.
+
 ## [2.0.3] - 2026-07-13
 
 ### Fixed

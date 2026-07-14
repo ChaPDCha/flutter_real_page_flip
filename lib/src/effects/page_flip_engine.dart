@@ -176,6 +176,31 @@ double flapHighlightPeakBase({required bool isPaperDark}) =>
 double flapHighlightMidBase({required bool isPaperDark}) =>
     isPaperDark ? 0.04 : 0.06;
 
+/// Colour of the discrete crease/gutter/stationary/contact shadow accents.
+///
+/// Light paper darkens under a fold, so its accents are black shadow. Dark
+/// paper cannot darken further; its accents are painted as light falling onto
+/// the sheet instead — and that light must carry the same cool moonlight cast
+/// as [flapHighlightTone] so every lit accent on near-black stock reads as one
+/// light source. Pure [Colors.white] at these band widths reads as a detached
+/// bright line hovering over the page rather than a sheen on its surface.
+@visibleForTesting
+Color discreteShadowTone({required bool isPaperDark}) =>
+    isPaperDark ? const Color(0xFFE8E8F0) : Colors.black;
+
+/// Width multiplier for the discrete glow bands on dark paper.
+///
+/// A light accent on near-black stock carries far more perceived contrast than
+/// the equivalent dark shadow on white paper, so at equal width it reads as a
+/// crisp separate line instead of light spreading across the sheet. Widening
+/// the band — with its peak alpha lowered at the call sites — turns the accent
+/// into a soft moonlit falloff. Light paper keeps 1.0 (shadows already blend).
+/// The dark scale keeps the widened crease band (22px → ~35px) within the 36px
+/// revealed-shadow layout guard reserved by [conservativeFoldAngleLimit].
+@visibleForTesting
+double glowBandWidthScale({required bool isPaperDark}) =>
+    isPaperDark ? 1.6 : 1.0;
+
 /// How far the free-edge contact shadow lengthens as the flap lifts.
 ///
 /// The lifted edge of a turning leaf throws a longer, softer shadow the higher

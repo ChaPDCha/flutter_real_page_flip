@@ -252,13 +252,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       _captureSnapshots();
     }
   }
-
   late PageFlipEffectHandler _effectHandler;
-
-  // Incremented on every didUpdateWidget so ValueListenableBuilder below can
-  // use it as a key to force rebuild when itemBuilder dependencies change
-  // (e.g. theme, font size — the itemBuilder reference itself is stable).
-  int _flipLayerVersion = 0;
 
   @override
   void didUpdateWidget(PageFlipWidget oldWidget) {
@@ -269,10 +263,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     widget.controller?._state = this;
     final config = _config;
     final oldConfig = oldWidget.config.normalized;
-
-    // Bump version so ValueListenableBuilder key changes on parent rebuild,
-    // forcing the flip layers to rebuild with fresh itemBuilder output.
-    _flipLayerVersion++;
 
     // Update effect handler if changed in config, or if we are using the default
     // handler and the performance profile or texture preset has changed.
@@ -570,7 +560,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           // progressNotifier fires every animation tick; isDragging/touch/forward
           // are read from the controller getters (always current in memory).
           final animatedFlipLayer = ValueListenableBuilder<double>(
-            key: ValueKey(_flipLayerVersion),
             valueListenable: _controller.progressNotifier,
             builder: (context, progress, _) => PageFlipLayerView(
               itemBuilder: widget.itemBuilder,
