@@ -1,12 +1,23 @@
 # Flutter 실시간 페이지 플립 엔진 (Real Page Flip)
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
+[![프로젝트 후원하기](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE_KR)
 [![Flutter](https://img.shields.io/badge/Flutter-SDK-%2302569B?logo=flutter)](https://flutter.dev)
 
 플러터를 위한 고성능 3D 스타일 페이지 플립 엔진입니다. 제한된 스냅샷
 윈도우와 렌더링 프로필을 통해 다양한 성능의 기기에서 사용할 수 있도록
 설계되었습니다. 실제 프레임 속도는 페이지 캡처 비용과 호스트 UI에 따라 달라집니다.
+
+## 프로젝트 후원
+
+Real Page Flip이 앱 개발에 도움이 되었다면
+[GitHub Sponsors에서 커피 한 잔 후원하기](https://github.com/sponsors/ChaPDCha)로
+응원해 주세요. 월정액 후원은 유지보수, 성능 개선, 새 릴리즈 개발에 사용됩니다.
+
+기업 후원자는 [GitHub Sponsors 프로필](https://github.com/sponsors/ChaPDCha)의
+월정액 스폰서십 티어를 통해 README에 회사명 또는 로고를 노출하는 맞춤형 리워드를
+선택할 수 있습니다. 제공 중인 티어와 후원 조건은 프로필에서 확인해 주세요.
 
 ## 리얼바이블을 위해 개발된 엔진, 상용 서비스 적용
 

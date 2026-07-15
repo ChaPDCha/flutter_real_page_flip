@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.9] - 2026-07-15
+
+### Documentation
+- Added GitHub Sponsors funding links, a coffee-support call to action, and guidance for company sponsorship tiers with README attribution.
+
 ## [2.0.8] - 2026-07-15
 
 ### Documentation

@@ -1,6 +1,7 @@
 # Real Page Flip Engine for Flutter
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
+[![Sponsor this project](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-SDK-%2302569B?logo=flutter)](https://flutter.dev)
 
@@ -20,6 +21,17 @@ the following applications:
 > **Notice**: This page flip engine is fully optimized for both single-page vertical layouts and horizontal two-page view (double-spread mode) for tablets and wider screens.
 
 English | [한국어](README_KR.md)
+
+## Support the Project
+
+If Real Page Flip helps your app, please [buy us a coffee through GitHub
+Sponsors](https://github.com/sponsors/ChaPDCha). Monthly sponsorships help fund
+maintenance, performance work, and new releases.
+
+For companies, GitHub Sponsors can provide monthly sponsorship tiers with a
+custom reward such as having your company name or logo listed in this README.
+See the [GitHub Sponsors profile](https://github.com/sponsors/ChaPDCha) for the
+currently available tiers and sponsorship terms.
 
 ## Demos
 
