@@ -7,6 +7,16 @@
 A high-fidelity, 3D-like page flip engine for Flutter with bounded snapshot
 windowing and configurable rendering profiles for a broad range of devices.
 
+## Built for RealBible, Proven in Production
+
+Real Page Flip is the page-flip engine developed for the production of
+[RealBible](https://play.google.com/store/apps/details?id=com.jinproduction.realbible&pcampaignid=web_share).
+It has since been successfully integrated into and commercialized in both of
+the following applications:
+
+- [RealBible](https://play.google.com/store/apps/details?id=com.jinproduction.realbible&pcampaignid=web_share)
+- [The King's Way (왕의 길)](https://play.google.com/store/apps/details?id=kr.chapdcha.thekingsway&pcampaignid=web_share)
+
 > **Notice**: This page flip engine is fully optimized for both single-page vertical layouts and horizontal two-page view (double-spread mode) for tablets and wider screens.
 
 English | [한국어](README_KR.md)

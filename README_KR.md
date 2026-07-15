@@ -8,6 +8,14 @@
 윈도우와 렌더링 프로필을 통해 다양한 성능의 기기에서 사용할 수 있도록
 설계되었습니다. 실제 프레임 속도는 페이지 캡처 비용과 호스트 UI에 따라 달라집니다.
 
+## 리얼바이블을 위해 개발된 엔진, 상용 서비스 적용
+
+Real Page Flip은 **리얼바이블 제작을 위해 개발한 페이지플립엔진**입니다.
+현재 다음 두 프로젝트에 성공적으로 적용되어 상용화되고 있습니다.
+
+- [리얼바이블 (RealBible)](https://play.google.com/store/apps/details?id=com.jinproduction.realbible&pcampaignid=web_share)
+- [왕의 길 (The King's Way)](https://play.google.com/store/apps/details?id=kr.chapdcha.thekingsway&pcampaignid=web_share)
+
 > **안내**: 세로형 단일 페이지 레이아웃과 태블릿 및 넓은 화면을 위한 **가로형 2단 보기(양쪽 페이지 스프레드 모드)**를 지원합니다.
 
 ## 데모 시연

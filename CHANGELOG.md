@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.8] - 2026-07-15
+
+### Documentation
+- Documented that Real Page Flip was developed for the production of RealBible and is successfully commercialized in both RealBible and The King's Way, with Google Play links.
+
 ## [2.0.7] - 2026-07-15
 
 ### Fixed
