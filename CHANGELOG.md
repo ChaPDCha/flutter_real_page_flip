@@ -3,6 +3,12 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.6] - 2026-07-15
+
+### Changed
+- Replaced the package demos with concise, high-quality recordings: four slow turns in portrait single-page view and four 16:9 double-spread turns with distinct content on both pages.
+- Added a deterministic high-quality capture mode to the example app for reproducible demo recordings without changing its normal startup behavior.
+
 ## [2.0.5] - 2026-07-14
 
 ### Fixed

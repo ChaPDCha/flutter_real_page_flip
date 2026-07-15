@@ -13,9 +13,17 @@ English | [한국어](README_KR.md)
 
 ## Demos
 
-### 1. Interactive Web Preview (Recorded Animation)
-This demo showcases the ultra-smooth page flip animations in both **1-Column Layout** and **2-Column Double-Spread Layout**.
-![Interactive Web Preview](doc/screenshots/interaction_demo.webp)
+### Mobile single-page view
+
+Four slow page turns recorded on a portrait mobile viewport using the high-quality rendering profile.
+
+![Mobile single-page page flip](doc/screenshots/mobile_single_page_demo.webp)
+
+### 16:9 double-spread view
+
+Four slow spread turns with distinct left- and right-page content, recorded on a 16:9 landscape viewport using the high-quality rendering profile.
+
+![16:9 double-spread page flip](doc/screenshots/mobile_double_spread_demo.webp)
 
 ## Why Real Page Flip? (The Technical Edge)
 

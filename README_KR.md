@@ -12,9 +12,17 @@
 
 ## 데모 시연
 
-### 인터랙티브 웹 데모 미리보기
-이 데모는 **1단 레이아웃**과 **2단 스프레드 레이아웃** 모두에서 매끄러운 페이지 전환 애니메이션을 보여줍니다.
-![Interactive Web Preview](doc/screenshots/interaction_demo.webp)
+### 모바일 1면 보기
+
+세로 모바일 화면과 최고 품질 렌더링 프로필에서 4페이지를 천천히 넘긴 영상입니다.
+
+![모바일 1면 페이지 넘김](doc/screenshots/mobile_single_page_demo.webp)
+
+### 16:9 2면 보기
+
+좌우 페이지에 서로 다른 콘텐츠를 배치하고, 16:9 가로 화면과 최고 품질 렌더링 프로필에서 4개 스프레드를 천천히 넘긴 영상입니다.
+
+![16:9 2면 페이지 넘김](doc/screenshots/mobile_double_spread_demo.webp)
 
 기존의 페이지 플립 라이브러리들은 UI가 복잡해질수록 성능 저하가 발생하기 쉽습니다. Real Page Flip은 근본적으로 다른 접근 방식을 취합니다:
 
