@@ -219,6 +219,35 @@ void main() {
             'a settle content swap pop.',
       );
     });
+
+    testWidgets('backward endpoint matches settled previous spread',
+        (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final nearSettle = await render(
+        tester,
+        currentIndex: 1,
+        dragProgress: 1,
+        isDragging: true,
+        isForward: false,
+      );
+      late _Pixels settled;
+      await tester.runAsync(() async {
+        final data = await previous.toByteData();
+        settled = _Pixels(
+          List<int>.of(data!.buffer.asUint8List()),
+          size.width.toInt(),
+        );
+      });
+
+      expect(
+        nearSettle.meanAbsoluteDifference(settled),
+        lessThan(18),
+        reason: 'The completed backward animation frame must already match the '
+            'previous spread; showing the current spread here creates a '
+            'one-frame flash before finalization.',
+      );
+    });
   });
 }
 

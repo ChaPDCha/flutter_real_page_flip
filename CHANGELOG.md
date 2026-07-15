@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.7] - 2026-07-15
+
+### Fixed
+- **Backward Double-Spread Completion Flash**: The exact completed frame of a backward double-spread turn briefly exposed the current spread before finalization swapped to the previous spread. The open-clip endpoint now follows the reverse animation direction, so the completed backward animation frame already matches the settled previous spread. Added endpoint regression coverage to catch this one-frame flash.
+
 ## [2.0.6] - 2026-07-15
 
 ### Changed

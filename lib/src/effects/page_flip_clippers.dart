@@ -130,6 +130,15 @@ class PageFlipOpenClipper extends CustomClipper<Path> {
           isForward: isForward,
         );
 
+    // The open region follows the visual direction at the exact endpoints.
+    // Forward turns finish fully open at progress=1. Backward turns are the
+    // reverse animation: they start fully open at progress=1 and finish closed
+    // at progress=0. Returning a full rect at BOTH endpoints made the current
+    // spread cover the destination for the completed backward frame, followed
+    // by an abrupt previous-spread swap during finalization (one-frame flash).
+    if (!g.isForward && g.progress <= kFlipProgressEpsilon) {
+      return Path();
+    }
     if (g.progress <= kFlipProgressEpsilon ||
         g.progress >= 1.0 - kFlipProgressEpsilon) {
       return Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
