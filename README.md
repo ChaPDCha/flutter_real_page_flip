@@ -11,6 +11,7 @@ windowing and configurable rendering profiles for a broad range of devices.
 ## Built for RealBible, Proven in Production
 
 Real Page Flip is the page-flip engine developed for the production of
+Jinproduction homepage https://sharebible.org/
 [RealBible](https://play.google.com/store/apps/details?id=com.jinproduction.realbible&pcampaignid=web_share).
 It has since been successfully integrated into and commercialized in both of
 the following applications:
