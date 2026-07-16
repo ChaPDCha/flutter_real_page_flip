@@ -3,6 +3,27 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.10] - 2026-07-15
+
+### Added
+- **Explicit single-page settle policy**: `PageFlipConfig.enableSinglePageSettleReveal` controls whether a single-page turn fades the destination snapshot in before finalization. It defaults to `true` for backwards-compatible continuity. Set it to `false` to keep the moving back face stable until the live-page handoff: medium/low remain blank, while high keeps its configured back-content dim instead of brightening at 85–95%. Double-spread physical-verso rendering is unaffected.
+- **Snapshot invalidation API**: `PageFlipWidget.contentRevision`, `PageFlipController.markPageDirty()`, and `markCurrentPageDirty()` refresh changed content without destroying widget state, page index, or snapshot keys. Both controller methods accept `prewarm: false` for fast-changing transient content that should become dirty without an eager GPU readback.
+- **Dirty-aware snapshot policy**: `PageFlipSnapshotRefreshPolicy.whenDirty` observes page scrolling, pre-warms the changed page asynchronously, and avoids blocking clean flips with `toImageSync`. The backwards-compatible `always` policy remains the default.
+- **Independent snapshot resolution budget**: `PageFlipConfig.maxSnapshotPixelRatio` caps only the moving raster texture while settled content continues rendering at native resolution.
+
+### Performance
+- Hoisted the expensive current/adjacent live page subtree outside the animation progress builder. Flip frames now rebuild only snapshot, clip, and paint layers instead of repeatedly invoking the host `itemBuilder` for three pages.
+- Coalesced repeated dirty notifications, serialized GPU readbacks, and tracked per-page dirty epochs so an in-flight stale capture cannot erase a newer invalidation. Cached images are replaced only after a new asynchronous capture succeeds.
+- Re-capture the current window when `performanceProfile` or `maxSnapshotPixelRatio` changes, while coalescing simultaneous content/config revisions into one pass.
+
+### Fixed
+- Released cached `RenderRepaintBoundary` objects as pages leave the live window. The old cache retained detached render subtrees until widget disposal, so memory and traversal pressure could accumulate over long reading sessions.
+- Fixed capture-generation, post-frame retry, and dirty-epoch races that could drop the newest snapshot request or let an older readback clear a newer invalidation.
+- Preserved a newly attached external `PageFlipController` when an older keyed widget using the same controller is disposed.
+
+### Tooling
+- The profile benchmark now waits for confirmed `onPageChanged` completions, reports request-to-page-change percentiles, caches dense fixtures, pauses HUD work during measurement, keeps Android devices awake, and can compare `always` versus `whenDirty` plus DPR caps.
+
 ## [2.0.9] - 2026-07-15
 
 ### Documentation

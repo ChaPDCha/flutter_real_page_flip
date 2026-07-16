@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // LAYOUT GATE: Single constraint gate (LayoutBuilder + needBounded -> SizedBox, constrainedSize to layer view).
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
@@ -35,6 +36,18 @@ class PageFlipController {
 
   /// Navigates to the specified page index.
   Future<void> goToPage(int index) => _state?.goToPage(index) ?? Future.value();
+
+  /// Marks one page's live content as changed.
+  ///
+  /// When [prewarm] is true, a replacement snapshot is captured asynchronously
+  /// if the page is in the live capture window. Set it to false for transient
+  /// content that should be refreshed only if the user actually starts a flip.
+  void markPageDirty(int index, {bool prewarm = true}) =>
+      _state?._markPageDirty(index, prewarm: prewarm);
+
+  /// Marks the currently visible page snapshot stale.
+  void markCurrentPageDirty({bool prewarm = true}) =>
+      _state?._markCurrentPageDirty(prewarm: prewarm);
 }
 
 /// A high-fidelity, physics-based page flip widget for Flutter.
@@ -49,6 +62,7 @@ class PageFlipWidget extends StatefulWidget {
     required this.itemCount,
     super.key,
     this.controller,
+    this.contentRevision,
     this.config = PageFlipConfig.defaultSettings,
     this.initialIndex = 0,
     this.isDoubleSpread = false,
@@ -78,6 +92,13 @@ class PageFlipWidget extends StatefulWidget {
 
   /// Optional external controller for programmatic navigation.
   final PageFlipController? controller;
+
+  /// Declarative content revision for the visible capture window.
+  ///
+  /// Changing this value keeps the widget state, controller index, and page
+  /// keys intact while asynchronously replacing stale snapshots. For a single
+  /// changed page, prefer [PageFlipController.markPageDirty].
+  final Object? contentRevision;
 
   /// Configuration for animations, gestures, haptics, and effects.
   final PageFlipConfig config;
@@ -157,6 +178,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   Size? _lastConstrainedSize;
   bool _isInternalEffectHandler = false;
   bool _pendingLayoutCallback = false;
+  bool _pendingSnapshotRefresh = false;
+  bool _snapshotRefreshScheduled = false;
 
   int get _totalPages => widget.itemCount < 0 ? 0 : widget.itemCount;
 
@@ -164,6 +187,20 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   /// Exposes the internal state controller for advanced programmatic interaction.
   PageFlipStateController get controller => _controller;
+
+  /// Dirty snapshot indices exposed for performance regression tests.
+  @visibleForTesting
+  Set<int> get debugDirtySnapshotIndices => _preRenderManager.dirtyIndices;
+
+  /// Number of successful asynchronous captures in this widget's lifetime.
+  @visibleForTesting
+  int get debugAsyncSnapshotCaptureCount =>
+      _preRenderManager.successfulAsyncCaptureCount;
+
+  /// Number of successful synchronous captures in this widget's lifetime.
+  @visibleForTesting
+  int get debugSyncSnapshotCaptureCount =>
+      _preRenderManager.successfulSyncCaptureCount;
 
   @override
   void initState() {
@@ -211,7 +248,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // the page from the user's present scroll position, not the stale top-of-page
     // capture taken when the chapter loaded. Synchronous so the first flip frame
     // already shows the scrolled content (see [PreRenderManager.refreshIndexSync]).
-    if (mounted) {
+    final shouldRefreshCurrent =
+        _config.snapshotRefreshPolicy == PageFlipSnapshotRefreshPolicy.always ||
+            _preRenderManager.isDirty(_controller.currentIndex);
+    if (mounted && shouldRefreshCurrent) {
       _preRenderManager.refreshIndexSync(
         _controller.currentIndex,
         pixelRatio: _capturePixelRatio(),
@@ -239,6 +279,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   void _onFlipEnd() {
     widget.onFlipEnd?.call();
+    if (_pendingSnapshotRefresh) {
+      _scheduleSnapshotRefresh(immediate: true);
+    }
   }
 
   void _handleSizeChange(Size newSize) {
@@ -252,13 +295,17 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       _captureSnapshots();
     }
   }
+
   late PageFlipEffectHandler _effectHandler;
 
   @override
   void didUpdateWidget(PageFlipWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller?._state = null;
+      final oldController = oldWidget.controller;
+      if (identical(oldController?._state, this)) {
+        oldController?._state = null;
+      }
     }
     widget.controller?._state = this;
     final config = _config;
@@ -270,6 +317,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         config.effectHandler != oldConfig.effectHandler;
     final profileChanged =
         config.performanceProfile != oldConfig.performanceProfile;
+    final snapshotResolutionChanged = profileChanged ||
+        config.maxSnapshotPixelRatio != oldConfig.maxSnapshotPixelRatio;
     final texturePresetChanged =
         config.hapticTexturePreset != oldConfig.hapticTexturePreset;
     final hapticQualityChanged =
@@ -302,6 +351,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
     final indexChangedExternally =
         widget.initialIndex != _controller.currentIndex;
+    final contentRevisionChanged =
+        widget.contentRevision != oldWidget.contentRevision;
     // Do not reset on itemBuilder identity: hosts often pass a new closure each
     // build; snapshots are refreshed on flip start and after page changes.
     final contentOrCountChanged = widget.itemCount != oldWidget.itemCount ||
@@ -330,12 +381,22 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     } else {
       // Update pre-render keys for new structure if necessary (soft update)
       _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
+      if (contentRevisionChanged || snapshotResolutionChanged) {
+        _preRenderManager.markDirtyWindow(
+          _controller.currentIndex,
+          _totalPages,
+        );
+        _scheduleSnapshotRefresh(immediate: true);
+      }
     }
   }
 
   @override
   void dispose() {
-    widget.controller?._state = null;
+    final externalController = widget.controller;
+    if (identical(externalController?._state, this)) {
+      externalController?._state = null;
+    }
     _controller.dispose();
     _preRenderManager.dispose();
     if (_isInternalEffectHandler) {
@@ -350,26 +411,72 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _preRenderManager.cleanup(newIndex, _totalPages);
     _preRenderManager.prepareKeys(newIndex, _totalPages);
 
-    // Defer snapshot capture to a post-frame callback.
-    // This ensures that the widget tree has rebuilt and painted the new page
-    // onstage (and the previous page offstage, preserving its last painted texture)
-    // before we attempt to capture repaint boundaries.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _captureSnapshots(immediate: true);
-      }
-    });
+    // Capture only after the new live/offstage page window has painted.
+    _scheduleSnapshotRefresh(immediate: true);
   }
 
   /// Device pixel ratio for snapshot capture, scaled down by performance profile.
   double _capturePixelRatio() {
     final mediaQuery = MediaQuery.maybeOf(context);
     final pixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
-    return switch (_config.performanceProfile) {
+    final profileRatio = switch (_config.performanceProfile) {
       DevicePerformanceProfile.low => pixelRatio.clamp(1.0, 1.25),
       DevicePerformanceProfile.medium => pixelRatio.clamp(1.0, 2.0),
       DevicePerformanceProfile.high => pixelRatio,
     };
+    final maxRatio = _config.maxSnapshotPixelRatio;
+    if (maxRatio != null && profileRatio > maxRatio) return maxRatio;
+    return profileRatio;
+  }
+
+  bool get _isFlipActive =>
+      _controller.isDragging ||
+      _controller.animationController.isAnimating ||
+      _controller.isPendingFinalize;
+
+  void _markCurrentPageDirty({bool prewarm = true}) =>
+      _markPageDirty(_controller.currentIndex, prewarm: prewarm);
+
+  void _markPageDirty(int index, {bool prewarm = true}) {
+    if (index < 0 || index >= _totalPages) return;
+    _preRenderManager.markDirty(index);
+
+    // A page outside current ±1 has no mounted capture boundary. Keep its dirty
+    // marker until navigation brings it into the live window.
+    if (prewarm && (index - _controller.currentIndex).abs() <= 1) {
+      _scheduleSnapshotRefresh(immediate: true);
+    }
+  }
+
+  bool _onCurrentPageScroll(ScrollNotification notification) {
+    if (_config.snapshotRefreshPolicy !=
+        PageFlipSnapshotRefreshPolicy.whenDirty) {
+      return false;
+    }
+
+    _preRenderManager.markDirty(_controller.currentIndex);
+    if (notification is ScrollEndNotification) {
+      _scheduleSnapshotRefresh(immediate: true);
+    }
+    return false;
+  }
+
+  void _scheduleSnapshotRefresh({required bool immediate}) {
+    _pendingSnapshotRefresh = true;
+    if (_snapshotRefreshScheduled || _isFlipActive) return;
+
+    _snapshotRefreshScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _snapshotRefreshScheduled = false;
+      if (!mounted) return;
+      if (_isFlipActive) return;
+
+      _pendingSnapshotRefresh = false;
+      _captureSnapshots(immediate: immediate);
+    });
+    // addPostFrameCallback does not itself request a frame when this API is
+    // called from an idle host controller.
+    WidgetsBinding.instance.scheduleFrame();
   }
 
   void _captureSnapshots({bool immediate = false}) {
@@ -559,9 +666,20 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           // PageFlipGestureLayer, and Semantics stay unchanged.
           // progressNotifier fires every animation tick; isDragging/touch/forward
           // are read from the controller getters (always current in memory).
+          final livePageLayer = _LivePageCaptureLayer(
+            itemBuilder: widget.itemBuilder,
+            itemCount: _totalPages,
+            currentIndex: _controller.currentIndex,
+            pageKeys: _preRenderManager.pageKeys,
+            constrainedSize: constrainedSize,
+            progressListenable: _controller.progressNotifier,
+            isDragging: () => _controller.isDragging,
+            onCurrentPageScroll: _onCurrentPageScroll,
+          );
           final animatedFlipLayer = ValueListenableBuilder<double>(
             valueListenable: _controller.progressNotifier,
-            builder: (context, progress, _) => PageFlipLayerView(
+            child: livePageLayer,
+            builder: (context, progress, livePages) => PageFlipLayerView(
               itemBuilder: widget.itemBuilder,
               itemCount: _totalPages,
               currentIndex: _controller.currentIndex,
@@ -582,10 +700,12 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               flapBackStrength: config.flapBackStrength,
               doubleSpreadMidFoldBleed: config.doubleSpreadMidFoldBleed,
               singlePageBackContentOpacity: config.singlePageBackContentOpacity,
+              enableSinglePageSettleReveal: config.enableSinglePageSettleReveal,
               constrainedSize: constrainedSize,
               isDoubleSpread: widget.spreadMode.isDoubleSpread,
               performanceProfile: config.performanceProfile,
               flipAnimation: _controller.animationController,
+              livePageLayer: livePages,
             ),
           );
 
@@ -656,4 +776,78 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           return semantics;
         },
       );
+}
+
+/// Hosts the expensive live current/adjacent page trees outside the animated
+/// flip-layer builder. Only the lightweight offscreen wrapper reacts to frame
+/// progress; host [IndexedWidgetBuilder] content is rebuilt on structural page
+/// changes, not at 60/120 Hz.
+class _LivePageCaptureLayer extends StatelessWidget {
+  const _LivePageCaptureLayer({
+    required this.itemBuilder,
+    required this.itemCount,
+    required this.currentIndex,
+    required this.pageKeys,
+    required this.constrainedSize,
+    required this.progressListenable,
+    required this.isDragging,
+    required this.onCurrentPageScroll,
+  });
+
+  final IndexedWidgetBuilder itemBuilder;
+  final int itemCount;
+  final int currentIndex;
+  final Map<int, GlobalKey> pageKeys;
+  final Size constrainedSize;
+  final ValueListenable<double> progressListenable;
+  final bool Function() isDragging;
+  final NotificationListenerCallback<ScrollNotification> onCurrentPageScroll;
+
+  Widget _constrain(Widget child) => SizedBox(
+        width: constrainedSize.width,
+        height: constrainedSize.height,
+        child: child,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final currentBoundary = RepaintBoundary(
+      key: pageKeys[currentIndex],
+      child: NotificationListener<ScrollNotification>(
+        onNotification: onCurrentPageScroll,
+        child: _constrain(itemBuilder(context, currentIndex)),
+      ),
+    );
+    final currentPage = ValueListenableBuilder<double>(
+      valueListenable: progressListenable,
+      child: currentBoundary,
+      builder: (context, progress, child) => OffscreenPreRenderer(
+        isOffscreen: progress > 0 && isDragging(),
+        child: child!,
+      ),
+    );
+
+    final backgroundPages = <Widget>[];
+    for (final index in <int>{
+      if (currentIndex > 0) currentIndex - 1,
+      if (currentIndex < itemCount - 1) currentIndex + 1,
+    }) {
+      final pageKey = pageKeys[index];
+      if (pageKey == null) continue;
+      backgroundPages.add(
+        OffscreenPreRenderer(
+          isOffscreen: true,
+          child: RepaintBoundary(
+            key: pageKey,
+            child: _constrain(itemBuilder(context, index)),
+          ),
+        ),
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[...backgroundPages, currentPage],
+    );
+  }
 }

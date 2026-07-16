@@ -174,6 +174,43 @@ void main() {
       );
     });
 
+    test(
+        'disabling settle reveal keeps high-profile back dim constant through '
+        'the late window in both directions', () {
+      double overlayAlphaAt({
+        required double progress,
+        required bool isForward,
+      }) {
+        final canvas = _SolidRectTrackingCanvas();
+        PageFlipPainter(
+          progress: progress,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          flapFrontImage: testImage,
+          flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
+          flapFrontSettleImage: testImage,
+          flapFrontSettleSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
+          performanceProfile: DevicePerformanceProfile.high,
+          isForward: isForward,
+          isActualForward: isForward,
+          enableSinglePageSettleReveal: false,
+        ).paint(canvas, const Size(800, 600));
+        final overlays = canvas.solidRects.where(_isFaintPaperOverlay).toList();
+        return overlays.map((r) => r.alpha).reduce((a, b) => a > b ? a : b);
+      }
+
+      final forwardBefore = overlayAlphaAt(progress: 0.84, isForward: true);
+      final forwardLate = overlayAlphaAt(progress: 0.90, isForward: true);
+      final backwardBefore = overlayAlphaAt(progress: 0.16, isForward: false);
+      final backwardLate = overlayAlphaAt(progress: 0.10, isForward: false);
+
+      expect(forwardLate, closeTo(forwardBefore, 0.02));
+      expect(backwardLate, closeTo(backwardBefore, 0.02));
+      expect(forwardLate, closeTo(0.65, 0.12));
+      expect(backwardLate, closeTo(0.65, 0.12));
+    });
+
     test('shouldRepaint returns true when singlePageBackContentOpacity changes',
         () {
       final painter1 = PageFlipPainter(

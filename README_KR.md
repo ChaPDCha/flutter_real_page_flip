@@ -88,6 +88,61 @@ PageFlipConfig(
 )
 ```
 
+## 1면보기 정착 텍스처 정책
+
+기본적으로 1면보기는 페이지가 완전히 넘어가기 직전에 넘기는 면을 목적지 화면에
+맞춰 완화합니다. 넘기는 종이의 뒷면을 최종 확정까지 일정하게 유지해야 하는
+리더는 다음처럼 설정할 수 있습니다.
+
+```dart
+PageFlipWidget(
+  config: const PageFlipConfig(
+    enableSinglePageSettleReveal: false,
+  ),
+  itemCount: 10,
+  itemBuilder: (context, index) => MyPage(index),
+)
+```
+
+이 설정을 끄면 중·저품질은 뒷면을 계속 비우고, 고품질은 85–95% 구간에서 갑자기
+밝아지지 않고 설정된 `singlePageBackContentOpacity`를 유지합니다. 이 설정은
+**1면보기만** 바꾸며, 실제 verso를 렌더링하는 2면보기에는 영향을 주지 않습니다.
+
+## 스냅샷 갱신과 발열 예산
+
+호환성 기본값은 플립 시작마다 현재 페이지를 동기 캡처합니다. 길고 스크롤 가능한
+페이지나 Provider 구독이 많은 페이지는 dirty 기반 갱신을 사용하면, 변경되지 않은
+플립에서 미리 준비된 텍스처를 그대로 재사용할 수 있습니다.
+
+```dart
+final flipController = PageFlipController();
+
+PageFlipWidget(
+  controller: flipController,
+  contentRevision: documentRevision,
+  config: const PageFlipConfig(
+    snapshotRefreshPolicy: PageFlipSnapshotRefreshPolicy.whenDirty,
+    maxSnapshotPixelRatio: 2.25,
+  ),
+  itemCount: pages.length,
+  itemBuilder: (context, index) => pages[index],
+)
+
+// 한 페이지만 바뀌었다면 전체 갱신 대신 해당 페이지만 무효화합니다.
+flipController.markPageDirty(changedPageIndex);
+
+// TTS처럼 빠르게 바뀌는 임시 상태는 즉시 GPU 캡처하지 않고 dirty만 남깁니다.
+// 이후 ScrollEnd가 선캡처하거나, 실제 플립 시작 시 정확성 fallback을 사용합니다.
+flipController.markCurrentPageDirty(prewarm: false);
+```
+
+`whenDirty`는 스크롤을 자동 감지하고 스크롤 종료 후 비동기로 선캡처합니다.
+`contentRevision`은 현재 보이는 페이지 창 전체를 선언적으로 갱신하고,
+`markPageDirty()`는 한 페이지만 갱신합니다. `maxSnapshotPixelRatio`는 움직이는
+래스터 텍스처에만 적용되며 정착된 실제 페이지는 기기 기본 해상도를 유지합니다.
+성능 프로필이나 스냅샷 DPR 상한이 바뀌어도 현재 페이지를 초기화하지 않고 캡처
+창만 새 해상도로 갱신합니다.
+
 ## 라이선스
 
 이 프로젝트는 **MIT 라이선스**를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 및 [LICENSE_KR](LICENSE_KR) 파일을 참고해 주세요. 비상업적 목적뿐만 아니라 상업적 프로젝트에서도 제한 없이 완전 무료로 사용하실 수 있습니다.

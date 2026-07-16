@@ -101,6 +101,10 @@ class PageFlipLayerView extends StatelessWidget {
     /// Single-page only: opacity of the peeled page's own content mid-flip.
     this.singlePageBackContentOpacity = 0.35,
 
+    /// Allows the destination texture to fade in before a single-page turn
+    /// finalizes. Disable to keep lightweight turns blank until handoff.
+    this.enableSinglePageSettleReveal = true,
+
     /// True if rendering for a dual spread book
     this.isDoubleSpread = false,
 
@@ -109,6 +113,11 @@ class PageFlipLayerView extends StatelessWidget {
 
     /// Animation controller for driving fade transitions.
     this.flipAnimation,
+
+    /// Stable live current/adjacent page subtree supplied by PageFlipWidget.
+    /// Keeping this child outside the progress builder prevents expensive host
+    /// itemBuilder trees from rebuilding on every animation tick.
+    this.livePageLayer,
     super.key,
   });
 
@@ -174,6 +183,9 @@ class PageFlipLayerView extends StatelessWidget {
   /// (1.0 = crisp, lower = faint thin-paper bleed-through).
   final double singlePageBackContentOpacity;
 
+  /// Whether a single-page turn may reveal its destination before finalizing.
+  final bool enableSinglePageSettleReveal;
+
   /// Explicit viewport size to constrain children and paint layers.
   ///
   /// The parent widget is the single layout gate and always passes a finite size.
@@ -190,6 +202,9 @@ class PageFlipLayerView extends StatelessWidget {
   /// Used by [FadeTransition] instead of [Opacity] for better compositing.
   final Animation<double>? flipAnimation;
 
+  /// Prebuilt live page/capture subtree reused across animation frames.
+  final Widget? livePageLayer;
+
   /// Wraps a widget with the resolved viewport size.
   /// Prevents infinite height propagation from Stack(fit: StackFit.expand).
   Widget _wrapWithConstraints(Widget child) => SizedBox(
@@ -205,6 +220,18 @@ class PageFlipLayerView extends StatelessWidget {
     }
 
     final isDragActive = dragProgress > 0 && isDragging;
+
+    final stableLivePageLayer = livePageLayer;
+    if (stableLivePageLayer != null) {
+      if (isDragActive) {
+        return _buildDragLayout(
+          context,
+          stableLivePageLayer,
+          const <Widget>[],
+        );
+      }
+      return stableLivePageLayer;
+    }
 
     // Current page: always present at this Stack position.
     final currentKey = pageKeys[currentIndex];
@@ -413,6 +440,7 @@ class PageFlipLayerView extends StatelessWidget {
               flapBackStrength: flapBackStrength,
               doubleSpreadMidFoldBleed: doubleSpreadMidFoldBleed,
               singlePageBackContentOpacity: singlePageBackContentOpacity,
+              enableSinglePageSettleReveal: enableSinglePageSettleReveal,
               geo: geo,
               performanceProfile: performanceProfile,
             ),
@@ -517,6 +545,10 @@ class PageFlipLayerView extends StatelessWidget {
     required Offset visualTouchPosition,
   }) {
     if (!isDoubleSpread) {
+      final settleRevealStart =
+          enableSinglePageSettleReveal ? flapContentRevealStart : 1.0;
+      final settleRevealEnd =
+          enableSinglePageSettleReveal ? flapContentRevealEnd : 1.0;
       // Opacity is keyed on the REAL flip direction, not [renderForward]:
       // forward fades the source page out during settle, while backward keeps
       // the incoming previous page fully opaque so it always covers the strip
@@ -526,8 +558,8 @@ class PageFlipLayerView extends StatelessWidget {
       final middleOpacity = middleLayerOpacity(
         floatProgress,
         isForward: isForward,
-        revealStart: flapContentRevealStart,
-        revealEnd: flapContentRevealEnd,
+        revealStart: settleRevealStart,
+        revealEnd: settleRevealEnd,
       );
 
       Widget middle = ClipPath(

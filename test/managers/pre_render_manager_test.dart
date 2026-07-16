@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -598,6 +599,65 @@ void main() {
   // Memory management: flush, reset, cancel, dispose
   // ============================================================
   group('memory management', () {
+    testWidgets('cleanup bounds the render-boundary cache to the live window',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      const totalPages = 6;
+      mgr.prepareKeys(1, totalPages);
+
+      Widget buildWindow(Iterable<int> indices) => MaterialApp(
+            home: Stack(
+              children: [
+                for (final index in indices)
+                  SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: RepaintBoundary(
+                      key: mgr.pageKeys[index],
+                      child: ColoredBox(color: Color(0xFF000000 + index)),
+                    ),
+                  ),
+              ],
+            ),
+          );
+
+      await tester.pumpWidget(buildWindow(const [0, 1, 2]));
+      await tester.pump();
+      await mgr.captureSnapshots(
+        1,
+        totalPages,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+      expect(mgr.debugBoundaryCacheCount, 3);
+
+      final keysBeforeCleanup = mgr.pageKeys.length;
+      mgr.cleanup(3, totalPages);
+      final removedKeyCount = keysBeforeCleanup - mgr.pageKeys.length;
+      expect(removedKeyCount, 2);
+      expect(
+        mgr.debugBoundaryCacheCount,
+        1,
+        reason: 'The two removed page keys must release their cached render '
+            'boundaries at the same time.',
+      );
+
+      mgr.prepareKeys(3, totalPages);
+      await tester.pumpWidget(buildWindow(const [2, 3, 4]));
+      await tester.pump();
+      await mgr.captureSnapshots(
+        3,
+        totalPages,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+
+      expect(mgr.debugBoundaryCacheCount, lessThanOrEqualTo(3));
+    });
+
     test('flushSnapshots clears all cached images', () async {
       final mgr = PreRenderManager();
       mgr.pageSnapshots[1] = await _createTestImage();
@@ -656,6 +716,36 @@ void main() {
   // Query methods: hasSnapshot, hasSpreadSnapshot, isCapturePending
   // ============================================================
   group('query methods', () {
+    testWidgets('new capture generation clears stale pending retry indices',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(0, 10);
+
+      await mgr.captureSnapshots(
+        0,
+        10,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+      expect(mgr.isCapturePending(0), isTrue);
+      expect(mgr.isCapturePending(1), isTrue);
+
+      mgr.prepareKeys(5, 10);
+      await mgr.captureSnapshots(
+        5,
+        10,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+
+      expect(mgr.isCapturePending(0), isFalse);
+      expect(mgr.isCapturePending(1), isFalse);
+      expect(mgr.isCapturePending(5), isTrue);
+    });
+
     test('hasSnapshot returns true only for captured indices', () async {
       final mgr = PreRenderManager();
       mgr.pageSnapshots[3] = await _createTestImage();
@@ -770,6 +860,224 @@ void main() {
       expect(() => mgr.refreshIndexSync(0), returnsNormally);
       expect(mgr.pageSnapshots.containsKey(0), isFalse);
     });
+
+    testWidgets('dirty snapshots replace cached images atomically',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(0, 1);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: RepaintBoundary(
+              key: mgr.pageKeys[0],
+              child: const ColoredBox(color: Colors.red),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await mgr.captureSnapshots(
+        0,
+        1,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+      final firstImage = mgr.spreadSnapshots[0];
+
+      mgr.markDirty(0);
+      mgr.markDirty(0);
+      expect(mgr.isDirty(0), isTrue);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: RepaintBoundary(
+              key: mgr.pageKeys[0],
+              child: const ColoredBox(color: Colors.green),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await mgr.captureSnapshots(
+        0,
+        1,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+
+      expect(mgr.isDirty(0), isFalse);
+      expect(mgr.spreadSnapshots[0], isNot(same(firstImage)));
+      expect(mgr.successfulAsyncCaptureCount, 2);
+    });
+
+    testWidgets('new dirty request survives an in-flight capture',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(0, 1);
+      _ControlledRenderRepaintBoundary.pending.clear();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: _ControlledRepaintBoundary(
+              key: mgr.pageKeys[0],
+              child: const ColoredBox(color: Colors.red),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      mgr.spreadSnapshots[0] = await _createTestImage();
+
+      mgr.markDirty(0);
+      final firstCapture = mgr.captureSnapshots(
+        0,
+        1,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+      await tester.pump();
+      expect(_ControlledRenderRepaintBoundary.pending, hasLength(1));
+
+      mgr.markDirty(0);
+      final secondCapture = mgr.captureSnapshots(
+        0,
+        1,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+      await tester.pump();
+
+      _ControlledRenderRepaintBoundary.pending.first.complete(
+        await _createTestImage(),
+      );
+      await firstCapture;
+      await tester.pump();
+      expect(_ControlledRenderRepaintBoundary.pending, hasLength(2));
+
+      _ControlledRenderRepaintBoundary.pending.last.complete(
+        await _createTestImage(),
+      );
+      await secondCapture;
+
+      expect(mgr.isDirty(0), isFalse);
+      expect(mgr.successfulAsyncCaptureCount, 1);
+    });
+
+    testWidgets('in-flight capture cannot clear a newer dirty epoch',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(0, 1);
+      _ControlledRenderRepaintBoundary.pending.clear();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: _ControlledRepaintBoundary(
+              key: mgr.pageKeys[0],
+              child: const ColoredBox(color: Colors.blue),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      mgr.spreadSnapshots[0] = await _createTestImage();
+
+      mgr.markDirty(0);
+      final staleCapture = mgr.captureSnapshots(
+        0,
+        1,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+      await tester.pump();
+      mgr.markDirty(0);
+      _ControlledRenderRepaintBoundary.pending.first.complete(
+        await _createTestImage(),
+      );
+      await staleCapture;
+
+      expect(mgr.isDirty(0), isTrue);
+
+      final freshCapture = mgr.captureSnapshots(
+        0,
+        1,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+      await tester.pump();
+      _ControlledRenderRepaintBoundary.pending.last.complete(
+        await _createTestImage(),
+      );
+      await freshCapture;
+
+      expect(mgr.isDirty(0), isFalse);
+      expect(mgr.successfulAsyncCaptureCount, 2);
+    });
+
+    testWidgets('post-frame retry uses the latest capture generation',
+        (tester) async {
+      final mgr = PreRenderManager();
+      addTearDown(mgr.dispose);
+      mgr.prepareKeys(0, 1);
+
+      // Generation 1 cannot find a mounted boundary yet, so it schedules a
+      // post-frame retry.
+      await mgr.captureSnapshots(
+        0,
+        1,
+        () {},
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+
+      var latestCallbackCount = 0;
+      // Generation 2 arrives before generation 1's retry callback runs. The
+      // already-scheduled callback must adopt these latest parameters instead
+      // of returning for the stale generation and dropping this request.
+      await mgr.captureSnapshots(
+        0,
+        1,
+        () => latestCallbackCount++,
+        immediate: true,
+        includeCurrentSpread: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 100,
+            height: 100,
+            child: RepaintBoundary(
+              key: mgr.pageKeys[0],
+              child: const ColoredBox(color: Colors.purple),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(mgr.hasSpreadSnapshot(0), isTrue);
+      expect(latestCallbackCount, 1);
+    });
   });
 }
 
@@ -793,4 +1101,23 @@ class _ThrowingRepaintBoundary extends RepaintBoundary {
   @override
   RenderRepaintBoundary createRenderObject(BuildContext context) =>
       _ThrowingRenderRepaintBoundary();
+}
+
+class _ControlledRenderRepaintBoundary extends RenderRepaintBoundary {
+  static final List<Completer<ui.Image>> pending = <Completer<ui.Image>>[];
+
+  @override
+  Future<ui.Image> toImage({double pixelRatio = 1.0}) {
+    final completer = Completer<ui.Image>();
+    pending.add(completer);
+    return completer.future;
+  }
+}
+
+class _ControlledRepaintBoundary extends RepaintBoundary {
+  const _ControlledRepaintBoundary({super.key, super.child});
+
+  @override
+  RenderRepaintBoundary createRenderObject(BuildContext context) =>
+      _ControlledRenderRepaintBoundary();
 }

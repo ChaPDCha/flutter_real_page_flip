@@ -121,6 +121,20 @@ void main() {
       );
     });
 
+    test('single-page lightweight path can keep the flap blank until settled',
+        () {
+      for (final p in <double>[0.5, 0.85, 0.9, 0.95, 0.99]) {
+        expect(
+          flapFrontContentRevealOpacity(
+            p,
+            keepSinglePageContentVisible: false,
+            enableSinglePageSettleReveal: false,
+          ),
+          equals(0.0),
+        );
+      }
+    });
+
     test('double: real verso remains fully visible for every phase', () {
       for (final p in <double>[0, 0.1, 0.2, 0.5, 0.85, 0.9, 0.95, 1]) {
         expect(
@@ -128,6 +142,20 @@ void main() {
           equals(1.0),
         );
       }
+    });
+
+    test(
+        'disabling a single-page settle reveal never changes double-spread verso',
+        () {
+      expect(
+        flapFrontContentRevealOpacity(
+          0.9,
+          isDoubleSpread: true,
+          keepSinglePageContentVisible: false,
+          enableSinglePageSettleReveal: false,
+        ),
+        equals(1.0),
+      );
     });
   });
 

@@ -78,6 +78,9 @@ class PageFlipPainter extends CustomPainter {
     /// the back-facing side mid-flip (1.0 = crisp, lower = faint bleed-through).
     this.singlePageBackContentOpacity = 0.35,
 
+    /// Whether single-page turns may reveal the destination before finalizing.
+    this.enableSinglePageSettleReveal = true,
+
     /// Pre-computed geometry shared with clippers (avoids redundant construction).
     this.geo,
 
@@ -162,6 +165,9 @@ class PageFlipPainter extends CustomPainter {
   /// late settle reveal of the destination page), simulating a sheet of paper
   /// laid over the back so the reverse text bleeds through faintly.
   final double singlePageBackContentOpacity;
+
+  /// Whether a single-page turn may reveal its destination before finalizing.
+  final bool enableSinglePageSettleReveal;
 
   /// Pre-computed geometry (avoids redundant construction in paint).
   final PageFlipGeometry? geo;
@@ -273,11 +279,12 @@ class PageFlipPainter extends CustomPainter {
 
     final normalizedProgress =
         normalizedFlapProgress(progress, isForward: isActualForward);
-    final isSettlePhase = isFlapSettlePhase(
-      progress,
-      isForward: isActualForward,
-      revealStart: flapContentRevealStart,
-    );
+    final isSettlePhase = (isDoubleSpread || enableSinglePageSettleReveal) &&
+        isFlapSettlePhase(
+          progress,
+          isForward: isActualForward,
+          revealStart: flapContentRevealStart,
+        );
     final usesLightweightBackFace =
         performanceProfile != DevicePerformanceProfile.high;
     final skipBackFacingMesh =
@@ -294,6 +301,7 @@ class PageFlipPainter extends CustomPainter {
         isDoubleSpread: isDoubleSpread,
         keepSinglePageContentVisible:
             performanceProfile == DevicePerformanceProfile.high,
+        enableSinglePageSettleReveal: enableSinglePageSettleReveal,
         doubleSpreadMidFoldBleed: doubleSpreadMidFoldBleed,
       );
       if (contentReveal > 0.001) {
@@ -355,16 +363,21 @@ class PageFlipPainter extends CustomPainter {
           // settle window. Gating it on the hard `useSettle` boolean made the
           // overlay's alpha snap off in one frame at the settle boundary — a
           // visible flicker at the binding edge near the end of the swipe.
+          // When the host disables the single-page settle reveal, keep the
+          // back dim fixed until the widget commits the live destination page;
+          // otherwise this relaxation alone recreates the 85–95% brightening.
           // The default opacity 0.35 reads as thin-paper bleed-through.
-          final backDim =
-              (!isDoubleSpread && singlePageBackContentOpacity < 1.0)
+          final backDim = (!isDoubleSpread &&
+                  singlePageBackContentOpacity < 1.0)
+              ? enableSinglePageSettleReveal
                   ? singlePageBackDim(
                       normalizedProgress,
                       backOpacity: singlePageBackContentOpacity.clamp(0.0, 1.0),
                       revealStart: flapContentRevealStart,
                       revealEnd: flapContentRevealEnd,
                     )
-                  : 1.0;
+                  : singlePageBackContentOpacity.clamp(0.0, 1.0)
+              : 1.0;
           final effectiveReveal = contentReveal * backDim;
           final fadeAlpha = (1.0 - effectiveReveal).clamp(0.0, 1.0);
           if (fadeAlpha > 0.005) {
@@ -780,8 +793,7 @@ class PageFlipPainter extends CustomPainter {
             isForward ? Alignment.centerRight : Alignment.centerLeft;
 
         final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
-        final shadowBlend =
-            isPaperDark ? BlendMode.screen : BlendMode.srcOver;
+        final shadowBlend = isPaperDark ? BlendMode.screen : BlendMode.srcOver;
 
         if (performanceProfile == DevicePerformanceProfile.low) {
           canvas.drawPath(
@@ -958,8 +970,7 @@ class PageFlipPainter extends CustomPainter {
             g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
 
         final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
-        final shadowBlend =
-            isPaperDark ? BlendMode.screen : BlendMode.multiply;
+        final shadowBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
 
         if (performanceProfile == DevicePerformanceProfile.low) {
           canvas.drawRect(
@@ -1076,5 +1087,7 @@ class PageFlipPainter extends CustomPainter {
       oldDelegate.flapFrontSettleSrcRect != flapFrontSettleSrcRect ||
       oldDelegate.singlePageBackContentOpacity !=
           singlePageBackContentOpacity ||
+      oldDelegate.enableSinglePageSettleReveal !=
+          enableSinglePageSettleReveal ||
       oldDelegate.performanceProfile != performanceProfile;
 }

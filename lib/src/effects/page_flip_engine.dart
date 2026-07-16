@@ -254,6 +254,7 @@ double flapFrontContentRevealOpacity(
   bool isForward = true,
   bool isDoubleSpread = false,
   bool keepSinglePageContentVisible = true,
+  bool enableSinglePageSettleReveal = true,
   double doubleSpreadMidFoldBleed = 0.0,
 }) {
   // Double-spread maps the actual verso, so it stays fully visible throughout.
@@ -265,6 +266,10 @@ double flapFrontContentRevealOpacity(
   // same paper-back reveal curve as double-spread so the back-facing flap stays
   // blank during the main fold and avoids extra mesh work.
   if (!isDoubleSpread && keepSinglePageContentVisible) return 1;
+
+  // Lightweight single-page readers can deliberately keep the flap blank
+  // until PageFlipWidget commits the destination page.
+  if (!enableSinglePageSettleReveal) return 0;
 
   // Normalize progress so p always goes 0→1 from flip-start to flip-end.
   final p = normalizedFlapProgress(progress, isForward: isForward);

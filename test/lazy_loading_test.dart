@@ -36,6 +36,25 @@ void main() {
       expect(builtIndices.length, lessThanOrEqualTo(5));
     });
 
+    testWidgets('empty data never calls itemBuilder', (tester) async {
+      var buildCalls = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipWidget(
+            itemCount: 0,
+            itemBuilder: (context, index) {
+              buildCalls++;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(buildCalls, 0);
+    });
+
     testWidgets('stress test: rapid flipping through many pages',
         (tester) async {
       final controller = PageFlipController();
@@ -72,6 +91,50 @@ void main() {
         offstageCount,
         lessThanOrEqualTo(4),
       ); // prev, next + maybe old ones being disposed
+    });
+
+    testWidgets('animation ticks do not rebuild live page itemBuilder trees', (
+      tester,
+    ) async {
+      final controller = PageFlipController();
+      var buildCalls = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 700,
+            child: PageFlipWidget(
+              controller: controller,
+              itemCount: 10,
+              config: const PageFlipConfig(
+                enableHaptics: false,
+                enableSound: false,
+                skipTapAnimation: false,
+              ),
+              itemBuilder: (context, index) {
+                buildCalls++;
+                return Text('Page $index');
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      buildCalls = 0;
+
+      controller.nextPage();
+      await tester.pump();
+      for (var frame = 0; frame < 20; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      expect(
+        buildCalls,
+        lessThanOrEqualTo(6),
+        reason: 'Only the structural flip-start rebuild may rebuild the '
+            'current/adjacent live pages; animation frames must use snapshots.',
+      );
     });
   });
 }

@@ -177,6 +177,11 @@ void main() {
       expect(copy.flapContentRevealEnd, 0.9);
     });
 
+    test('copyWith enableSinglePageSettleReveal', () {
+      final copy = base.copyWith(enableSinglePageSettleReveal: false);
+      expect(copy.enableSinglePageSettleReveal, isFalse);
+    });
+
     test('copyWith flapBackStrength', () {
       final copy = base.copyWith(flapBackStrength: 0.5);
       expect(copy.flapBackStrength, 0.5);

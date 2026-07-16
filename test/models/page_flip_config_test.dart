@@ -43,6 +43,7 @@ void main() {
       expect(config.flapBackStrength, equals(0.0));
       expect(config.doubleSpreadMidFoldBleed, equals(0.15));
       expect(config.singlePageBackContentOpacity, equals(0.35));
+      expect(config.enableSinglePageSettleReveal, isTrue);
       expect(config.performanceProfile, DevicePerformanceProfile.medium);
     });
 
@@ -105,6 +106,13 @@ void main() {
     test('equality respects flapContentRevealEnd', () {
       const a = PageFlipConfig();
       const b = PageFlipConfig(flapContentRevealEnd: 0.90);
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
+    test('equality respects enableSinglePageSettleReveal', () {
+      const a = PageFlipConfig();
+      const b = PageFlipConfig(enableSinglePageSettleReveal: false);
       expect(a == b, isFalse);
       expect(a.hashCode == b.hashCode, isFalse);
     });

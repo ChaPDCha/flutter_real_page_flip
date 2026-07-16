@@ -18,6 +18,26 @@ class PreRenderManager {
   /// Cached snapshots of the current spread (used for flap front texture).
   final Map<int, ui.Image> spreadSnapshots = {};
 
+  /// Pages whose live content changed after their cached snapshot was made.
+  ///
+  /// Dirty snapshots stay resident until a replacement capture succeeds. This
+  /// avoids a blank frame while an asynchronous GPU readback is in flight.
+  final Set<int> _dirtyIndices = <int>{};
+
+  /// Per-page dirty epochs prevent a capture that started before a newer
+  /// content change from clearing that newer invalidation.
+  final Map<int, int> _dirtyEpochs = <int, int>{};
+
+  /// Successful asynchronous raster captures for engine diagnostics.
+  int successfulAsyncCaptureCount = 0;
+
+  /// Successful synchronous raster captures for engine diagnostics.
+  int successfulSyncCaptureCount = 0;
+
+  /// Number of render boundaries retained by the lookup cache.
+  @visibleForTesting
+  int get debugBoundaryCacheCount => _boundaryCache.length;
+
   /// Maximum pixels per captured snapshot before the manager downscales.
   ///
   /// A 4K-class tablet at DPR 3 can otherwise request tens of millions of
@@ -91,9 +111,16 @@ class PreRenderManager {
 
     _disposeImagesOnce(toDispose);
 
-    pageKeys.removeWhere(
-      (index, _) => !targetIndices.contains(index) && index != currentIndex,
-    );
+    final removedKeys = <GlobalKey>[];
+    pageKeys.removeWhere((index, key) {
+      final shouldRemove =
+          !targetIndices.contains(index) && index != currentIndex;
+      if (shouldRemove) removedKeys.add(key);
+      return shouldRemove;
+    });
+    for (final key in removedKeys) {
+      _boundaryCache.remove(key);
+    }
   }
 
   void _disposeImagesOnce(Set<ui.Image> images) {
@@ -105,6 +132,7 @@ class PreRenderManager {
   /// Resets the manager: cancels pending renders, clears snapshots and keys.
   void reset() {
     _captureGeneration++; // Cancel any running async captures
+    _retryCallbackToken++;
     _retryScheduled = false;
     _retryCurrentIndex = null;
     _retryTotalPages = null;
@@ -114,6 +142,8 @@ class PreRenderManager {
     _activeCaptures.clear();
     _pendingRetryIndices.clear();
     _captureRetryCounts.clear();
+    _dirtyIndices.clear();
+    _dirtyEpochs.clear();
     _boundaryCache.clear();
     cancelPreRender();
     flushSnapshots();
@@ -135,6 +165,11 @@ class PreRenderManager {
   Timer? _debounceTimer;
   bool _isDisposed = false;
 
+  /// Serializes GPU readbacks. A newer generation can invalidate an older
+  /// result, but the next request still runs after the in-flight readback has
+  /// released its boundary instead of being dropped by [_activeCaptures].
+  Future<void> _captureQueue = Future<void>.value();
+
   /// Current generation token to prevent outdated asynchronous capture operations
   /// from overwriting newer snapshots or leaking memory.
   int _captureGeneration = 0;
@@ -147,6 +182,10 @@ class PreRenderManager {
 
   /// Post-frame callback token for batched capture retries.
   bool _retryScheduled = false;
+
+  /// Invalidates a queued post-frame callback without letting that stale
+  /// callback clear the scheduling state of a newer one.
+  int _retryCallbackToken = 0;
 
   /// Last capture context used to retry pending indices.
   int? _retryCurrentIndex;
@@ -165,6 +204,26 @@ class PreRenderManager {
 
   /// Returns true if a spread snapshot exists for the given [index].
   bool hasSpreadSnapshot(int index) => spreadSnapshots.containsKey(index);
+
+  /// Marks one page snapshot stale without discarding its current image.
+  void markDirty(int index) {
+    _dirtyIndices.add(index);
+    _dirtyEpochs[index] = (_dirtyEpochs[index] ?? 0) + 1;
+  }
+
+  /// Marks the current and adjacent capture window stale.
+  void markDirtyWindow(int currentIndex, int totalPages) {
+    for (final index
+        in getCaptureIndices(currentIndex, totalPages, includeCurrent: true)) {
+      markDirty(index);
+    }
+  }
+
+  /// Whether [index] needs a replacement capture.
+  bool isDirty(int index) => _dirtyIndices.contains(index);
+
+  /// Read-only set used by widget-level diagnostics.
+  Set<int> get dirtyIndices => Set<int>.unmodifiable(_dirtyIndices);
 
   /// Caps requested snapshot scale to the package's memory budget.
   @visibleForTesting
@@ -246,21 +305,13 @@ class PreRenderManager {
   }) async {
     _debounceTimer?.cancel();
     _captureGeneration++;
+    _pendingRetryIndices.clear();
+    _captureRetryCounts.clear();
     final currentGen = _captureGeneration;
 
     if (immediate) {
-      await _doCaptureSnapshots(
-        currentIndex,
-        totalPages,
-        onSnapshotCaptured,
-        currentGen,
-        includeCurrentSpread: includeCurrentSpread,
-        capturePageSnapshotClones: capturePageSnapshotClones,
-        pixelRatio: pixelRatio,
-      );
-    } else {
-      _debounceTimer = Timer(delay, () async {
-        await _doCaptureSnapshots(
+      await _enqueueCapture(
+        () => _doCaptureSnapshots(
           currentIndex,
           totalPages,
           onSnapshotCaptured,
@@ -268,9 +319,31 @@ class PreRenderManager {
           includeCurrentSpread: includeCurrentSpread,
           capturePageSnapshotClones: capturePageSnapshotClones,
           pixelRatio: pixelRatio,
+        ),
+      );
+    } else {
+      _debounceTimer = Timer(delay, () {
+        unawaited(
+          _enqueueCapture(
+            () => _doCaptureSnapshots(
+              currentIndex,
+              totalPages,
+              onSnapshotCaptured,
+              currentGen,
+              includeCurrentSpread: includeCurrentSpread,
+              capturePageSnapshotClones: capturePageSnapshotClones,
+              pixelRatio: pixelRatio,
+            ),
+          ),
         );
       });
     }
+  }
+
+  Future<void> _enqueueCapture(Future<void> Function() operation) {
+    final queued = _captureQueue.then((_) => operation());
+    _captureQueue = queued;
+    return queued;
   }
 
   /// Core snapshot capture logic, shared by debounced and immediate paths.
@@ -302,10 +375,12 @@ class PreRenderManager {
       if (_isDisposed || generation != _captureGeneration) return;
 
       final captureAsSpread = spreadIndices.contains(index);
+      final isDirty = _dirtyIndices.contains(index);
+      final dirtyEpochAtStart = _dirtyEpochs[index] ?? 0;
       if (captureAsSpread) {
-        if (spreadSnapshots.containsKey(index)) continue;
+        if (spreadSnapshots.containsKey(index) && !isDirty) continue;
       } else if (pageSnapshots.containsKey(index)) {
-        continue;
+        if (!isDirty) continue;
       }
 
       if (_activeCaptures.contains(index)) continue;
@@ -379,6 +454,8 @@ class PreRenderManager {
           pageSnapshots[index] = image;
           if (oldImage != null) toDispose.add(oldImage);
         }
+        _clearDirtyIfUnchanged(index, dirtyEpochAtStart);
+        successfulAsyncCaptureCount++;
         if (toDispose.isNotEmpty) {
           _disposeImagesOnce(toDispose);
           toDispose.clear();
@@ -421,30 +498,28 @@ class PreRenderManager {
     _captureRetryCounts[index] = retries;
     _pendingRetryIndices.add(index);
 
-    // Store parameters only on first retry for this generation.
-    // Subsequent calls within the same generation share identical params;
-    // storing once prevents the last-call-wins overwrite race.
+    // A callback may already be queued for an older capture generation. Keep
+    // one callback, but always replace its work description with the latest
+    // generation so a stale callback cannot drop a newer refresh request.
+    _retryCurrentIndex = currentIndex;
+    _retryTotalPages = totalPages;
+    _retryOnCaptured = onSnapshotCaptured;
+    _retryGeneration = generation;
+    _retryIncludeCurrentSpread = includeCurrentSpread;
+    _retryCapturePageSnapshotClones = capturePageSnapshotClones;
+    _retryPixelRatio = pixelRatio;
+
     if (!_retryScheduled) {
-      _retryCurrentIndex = currentIndex;
-      _retryTotalPages = totalPages;
-      _retryOnCaptured = onSnapshotCaptured;
-      _retryGeneration = generation;
-      _retryIncludeCurrentSpread = includeCurrentSpread;
-      _retryCapturePageSnapshotClones = capturePageSnapshotClones;
-      _retryPixelRatio = pixelRatio;
       _retryScheduled = true;
+      final callbackToken = ++_retryCallbackToken;
 
       // Use addPostFrameCallback so the retry runs after layout/paint is complete.
       // This ensures the boundary is fully painted (debugNeedsPaint == false),
       // allowing the capture to succeed immediately on the first retry instead of
       // looping through frame callbacks.
       WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (callbackToken != _retryCallbackToken) return;
         _retryScheduled = false;
-        if (_isDisposed ||
-            generation != _captureGeneration ||
-            _pendingRetryIndices.isEmpty) {
-          return;
-        }
 
         final retryCurrent = _retryCurrentIndex;
         final retryTotal = _retryTotalPages;
@@ -453,20 +528,25 @@ class PreRenderManager {
         final retryIncludeSpread = _retryIncludeCurrentSpread;
         final retryCapturePageSnapshotClones = _retryCapturePageSnapshotClones;
         final retryRatio = _retryPixelRatio;
-        if (retryCurrent == null ||
+        if (_isDisposed ||
+            retryGen != _captureGeneration ||
+            _pendingRetryIndices.isEmpty ||
+            retryCurrent == null ||
             retryTotal == null ||
             retryCallback == null) {
           return;
         }
 
-        await _doCaptureSnapshots(
-          retryCurrent,
-          retryTotal,
-          retryCallback,
-          retryGen,
-          includeCurrentSpread: retryIncludeSpread,
-          capturePageSnapshotClones: retryCapturePageSnapshotClones,
-          pixelRatio: retryRatio,
+        await _enqueueCapture(
+          () => _doCaptureSnapshots(
+            retryCurrent,
+            retryTotal,
+            retryCallback,
+            retryGen,
+            includeCurrentSpread: retryIncludeSpread,
+            capturePageSnapshotClones: retryCapturePageSnapshotClones,
+            pixelRatio: retryRatio,
+          ),
         );
       });
     }
@@ -538,6 +618,16 @@ class PreRenderManager {
     try {
       final boundary = _findRepaintBoundary(key);
       if (boundary == null || !boundary.attached) return;
+      final dirtyEpochAtStart = _dirtyEpochs[index] ?? 0;
+
+      // Invalidate queued/in-flight async results before the synchronous
+      // correctness fallback publishes a newer image.
+      _debounceTimer?.cancel();
+      _captureGeneration++;
+      _retryCallbackToken++;
+      _retryScheduled = false;
+      _pendingRetryIndices.clear();
+      _captureRetryCounts.clear();
 
       // needsPaint removed in Flutter 3.44+. Proceed with toImageSync directly.
       // Stale frames are corrected on the next refresh cycle.
@@ -565,6 +655,8 @@ class PreRenderManager {
         if (old != null) toDispose.add(old);
       }
       _disposeImagesOnce(toDispose);
+      _clearDirtyIfUnchanged(index, dirtyEpochAtStart);
+      successfulSyncCaptureCount++;
     } on Object {
       return;
     }
@@ -580,6 +672,12 @@ class PreRenderManager {
     _disposeImagesOnce(toDispose);
   }
 
+  void _clearDirtyIfUnchanged(int index, int capturedEpoch) {
+    if ((_dirtyEpochs[index] ?? 0) != capturedEpoch) return;
+    _dirtyIndices.remove(index);
+    _dirtyEpochs.remove(index);
+  }
+
   /// Cancels any pending pre-render timer.
   void cancelPreRender() {
     _debounceTimer?.cancel();
@@ -589,6 +687,7 @@ class PreRenderManager {
   void dispose() {
     _isDisposed = true;
     _captureGeneration++;
+    _retryCallbackToken++;
     _retryScheduled = false;
     _retryCurrentIndex = null;
     _retryTotalPages = null;
@@ -598,6 +697,8 @@ class PreRenderManager {
     _activeCaptures.clear();
     _pendingRetryIndices.clear();
     _captureRetryCounts.clear();
+    _dirtyIndices.clear();
+    _dirtyEpochs.clear();
     _boundaryCache.clear();
     cancelPreRender();
     flushSnapshots();

@@ -44,6 +44,22 @@ enum DevicePerformanceProfile {
   low,
 }
 
+/// Controls when the current page snapshot is refreshed before a flip.
+enum PageFlipSnapshotRefreshPolicy {
+  /// Re-capture synchronously at every flip start.
+  ///
+  /// This preserves compatibility for arbitrary live content that changes
+  /// without notifying the engine, but it can add input latency on large pages.
+  always,
+
+  /// Reuse the cached snapshot until scrolling, [PageFlipWidget.contentRevision],
+  /// or [PageFlipController.markPageDirty] marks it stale.
+  ///
+  /// Dirty pages are pre-warmed asynchronously. A synchronous capture is used
+  /// only as a correctness fallback when a flip starts before pre-warming ends.
+  whenDirty,
+}
+
 /// Configuration for PageFlipWidget behavior and styling.
 ///
 /// ## Dark Mode Support
@@ -103,13 +119,25 @@ class PageFlipConfig {
     this.flapBackStrength = 0.0,
     this.doubleSpreadMidFoldBleed = 0.15,
     this.singlePageBackContentOpacity = 0.35,
+    this.enableSinglePageSettleReveal = true,
     this.performanceProfile = DevicePerformanceProfile.medium,
+    this.snapshotRefreshPolicy = PageFlipSnapshotRefreshPolicy.always,
+    this.maxSnapshotPixelRatio,
     this.hapticTexturePreset = PaperTexturePreset.standard,
     this.hapticQuality = HapticQuality.adaptive,
   });
 
   /// The performance profile to use for rendering quality.
   final DevicePerformanceProfile performanceProfile;
+
+  /// Policy used to keep rasterized flip snapshots in sync with live content.
+  final PageFlipSnapshotRefreshPolicy snapshotRefreshPolicy;
+
+  /// Optional upper bound for snapshot capture resolution.
+  ///
+  /// This affects only the moving page texture; the settled live page remains
+  /// at native device resolution. `null` keeps the profile's normal cap.
+  final double? maxSnapshotPixelRatio;
 
   /// The opacity of the page-flip flap (paper back side). Defaults to 1.0 (fully opaque).
   final double paperOpacity;
@@ -164,6 +192,16 @@ class PageFlipConfig {
   ///
   /// Has no effect in double-spread mode (see [flapBackStrength]).
   final double singlePageBackContentOpacity;
+
+  /// Whether single-page turns may reveal the destination texture before the
+  /// flip finalizes.
+  ///
+  /// The default keeps the existing 85–95% settle cross-fade. Set this to
+  /// false to keep the moving back face visually stable until the final live
+  /// page handoff: medium/low profiles remain blank, while high holds
+  /// [singlePageBackContentOpacity] instead of brightening it back to 1.0.
+  /// Double-spread turns always render their physical verso and are unaffected.
+  final bool enableSinglePageSettleReveal;
 
   /// Whether to enable haptic feedback.
   final bool enableHaptics;
@@ -270,12 +308,16 @@ class PageFlipConfig {
     double? flapBackStrength,
     double? doubleSpreadMidFoldBleed,
     double? singlePageBackContentOpacity,
+    bool? enableSinglePageSettleReveal,
     DevicePerformanceProfile? performanceProfile,
+    PageFlipSnapshotRefreshPolicy? snapshotRefreshPolicy,
+    double? maxSnapshotPixelRatio,
     PaperTexturePreset? hapticTexturePreset,
     HapticQuality? hapticQuality,
     bool clearSemanticBuilder = false,
     bool clearBackgroundColor = false,
     bool clearEffectHandler = false,
+    bool clearMaxSnapshotPixelRatio = false,
   }) =>
       PageFlipConfig(
         duration: duration ?? this.duration,
@@ -313,7 +355,14 @@ class PageFlipConfig {
             doubleSpreadMidFoldBleed ?? this.doubleSpreadMidFoldBleed,
         singlePageBackContentOpacity:
             singlePageBackContentOpacity ?? this.singlePageBackContentOpacity,
+        enableSinglePageSettleReveal:
+            enableSinglePageSettleReveal ?? this.enableSinglePageSettleReveal,
         performanceProfile: performanceProfile ?? this.performanceProfile,
+        snapshotRefreshPolicy:
+            snapshotRefreshPolicy ?? this.snapshotRefreshPolicy,
+        maxSnapshotPixelRatio: clearMaxSnapshotPixelRatio
+            ? null
+            : (maxSnapshotPixelRatio ?? this.maxSnapshotPixelRatio),
         hapticTexturePreset: hapticTexturePreset ?? this.hapticTexturePreset,
         hapticQuality: hapticQuality ?? this.hapticQuality,
       );
@@ -402,7 +451,10 @@ class PageFlipConfig {
         singlePageBackContentOpacity,
         defaultSettings.singlePageBackContentOpacity,
       ),
+      enableSinglePageSettleReveal: enableSinglePageSettleReveal,
       performanceProfile: performanceProfile,
+      snapshotRefreshPolicy: snapshotRefreshPolicy,
+      maxSnapshotPixelRatio: _safeOptionalPixelRatio(maxSnapshotPixelRatio),
       hapticTexturePreset: hapticTexturePreset,
       hapticQuality: hapticQuality,
     );
@@ -420,6 +472,11 @@ class PageFlipConfig {
 
   static double _safeUnitInterval(double value, double fallback) =>
       _safeRange(value, 0, 1, fallback);
+
+  static double? _safeOptionalPixelRatio(double? value) {
+    if (value == null || !value.isFinite || value <= 0) return null;
+    return value.clamp(0.25, 4.0).toDouble();
+  }
 
   static double _safeRange(
     double value,
@@ -463,7 +520,10 @@ class PageFlipConfig {
           flapBackStrength == other.flapBackStrength &&
           doubleSpreadMidFoldBleed == other.doubleSpreadMidFoldBleed &&
           singlePageBackContentOpacity == other.singlePageBackContentOpacity &&
+          enableSinglePageSettleReveal == other.enableSinglePageSettleReveal &&
           performanceProfile == other.performanceProfile &&
+          snapshotRefreshPolicy == other.snapshotRefreshPolicy &&
+          maxSnapshotPixelRatio == other.maxSnapshotPixelRatio &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
           edgeTapNextLabel == other.edgeTapNextLabel &&
           edgeTapPreviousHint == other.edgeTapPreviousHint &&
@@ -495,7 +555,10 @@ class PageFlipConfig {
         flapBackStrength,
         doubleSpreadMidFoldBleed,
         singlePageBackContentOpacity,
+        enableSinglePageSettleReveal,
         performanceProfile,
+        snapshotRefreshPolicy,
+        maxSnapshotPixelRatio,
         edgeTapPreviousLabel,
         edgeTapNextLabel,
         edgeTapPreviousHint,

@@ -152,6 +152,17 @@ void main() {
       expect(base.shouldRepaint(diff), isTrue);
     });
 
+    test('single-page settle reveal policy change returns true', () {
+      final diff = PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        enableSinglePageSettleReveal: false,
+      );
+      expect(base.shouldRepaint(diff), isTrue);
+    });
+
     test('flapFrontImage change returns true', () async {
       final img = await createTestImage();
       final diff = PageFlipPainter(

@@ -356,6 +356,37 @@ void main() {
       await tester.pumpAndSettle();
       expect(changedPage, 2);
     });
+
+    testWidgets('keyed replacement keeps a reused controller attached',
+        (tester) async {
+      final controller = PageFlipController();
+
+      Widget buildFlip(String keyName) => MaterialApp(
+            home: PageFlipWidget(
+              key: ValueKey<String>(keyName),
+              controller: controller,
+              itemCount: 5,
+              itemBuilder: (context, index) => Text('Page $index'),
+            ),
+          );
+
+      await tester.pumpWidget(buildFlip('old'));
+      await tester.pumpAndSettle();
+      expect(controller.isAttached, isTrue);
+
+      // Flutter attaches the new State before the deactivated old State is
+      // unmounted. The old dispose must not clear the newer attachment.
+      await tester.pumpWidget(buildFlip('new'));
+      await tester.pumpAndSettle();
+
+      expect(controller.isAttached, isTrue);
+      await controller.goToPage(2);
+      await tester.pumpAndSettle();
+      final state = tester.state<PageFlipWidgetState>(
+        find.byType(PageFlipWidget),
+      );
+      expect(state.controller.currentIndex, 2);
+    });
   });
 
   group('PageFlipWidget itemCount changes', () {

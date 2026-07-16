@@ -8,7 +8,12 @@ export 'src/controllers/page_flip_state_controller.dart' show PageFlipEvent;
 export 'src/effects/page_flip_engine.dart' show clipSpreadPageHalf;
 export 'src/models/haptic_quality.dart' show HapticQuality;
 export 'src/models/page_flip_config.dart'
-    show PageFlipConfig, PageFlipSpreadMode, PageFlipSpreadModeCompat;
+    show
+        DevicePerformanceProfile,
+        PageFlipConfig,
+        PageFlipSnapshotRefreshPolicy,
+        PageFlipSpreadMode,
+        PageFlipSpreadModeCompat;
 export 'src/models/page_flip_effect_handler.dart';
 export 'src/models/paper_texture_preset.dart';
 export 'src/page_flip_widget.dart';

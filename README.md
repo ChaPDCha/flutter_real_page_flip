@@ -107,6 +107,62 @@ PageFlipWidget(
 )
 ```
 
+## Single-page settle policy
+
+Single-page profiles normally relax the moving back face near the end of a
+completed turn so the final handoff stays continuous. For readers that need a
+stable back face until the page commits:
+
+```dart
+PageFlipWidget(
+  config: const PageFlipConfig(
+    enableSinglePageSettleReveal: false,
+  ),
+  itemCount: 10,
+  itemBuilder: (context, index) => MyPage(index),
+)
+```
+
+With this disabled, medium/low profiles keep the back blank and high keeps its
+configured `singlePageBackContentOpacity` instead of brightening at 85–95%.
+This affects **single-page** turns only. Double-spread mode always maps the
+physical verso and ignores this setting.
+
+## Snapshot refresh and thermal budget
+
+The compatibility default refreshes the current page synchronously at every
+flip start. For long, scrollable, or provider-heavy pages, opt into dirty-aware
+refreshing so clean flips reuse their pre-warmed texture:
+
+```dart
+final flipController = PageFlipController();
+
+PageFlipWidget(
+  controller: flipController,
+  contentRevision: documentRevision,
+  config: const PageFlipConfig(
+    snapshotRefreshPolicy: PageFlipSnapshotRefreshPolicy.whenDirty,
+    maxSnapshotPixelRatio: 2.25,
+  ),
+  itemCount: pages.length,
+  itemBuilder: (context, index) => pages[index],
+)
+
+// Prefer targeted invalidation when only one page changed.
+flipController.markPageDirty(changedPageIndex);
+
+// For rapidly changing transient state, mark dirty without an eager readback.
+// A later ScrollEnd can pre-warm it, or flip start uses the correctness fallback.
+flipController.markCurrentPageDirty(prewarm: false);
+```
+
+`whenDirty` automatically observes scrolling and pre-captures after scroll end.
+Use `contentRevision` for a declarative refresh of the visible page window, or
+`markPageDirty()` for one changed page. `maxSnapshotPixelRatio` limits only the
+moving raster texture; settled live content remains native-resolution. Changing
+the performance profile or snapshot DPR cap also refreshes the capture window
+without resetting the current page.
+
 ## Flip Sensitivity
 
 Control the drag-release threshold for completing page flips in each direction:
@@ -169,12 +225,15 @@ timing under rapid page turns:
 
 ```bash
 cd example
-flutter run --profile -t lib/performance_benchmark.dart --dart-define=PERFORMANCE_PROFILE=medium --dart-define=DOUBLE_SPREAD=false --dart-define=FLIPS=80
+flutter run --profile -t lib/performance_benchmark.dart --dart-define=PERFORMANCE_PROFILE=medium --dart-define=DOUBLE_SPREAD=false --dart-define=SNAPSHOT_REFRESH_POLICY=whenDirty --dart-define=MAX_SNAPSHOT_PIXEL_RATIO=2.25 --dart-define=FLIPS=80
 ```
 
 Use `DOUBLE_SPREAD=true` to measure two-page spread mode. The benchmark logs
-build/raster averages, P90/P99, max frame time, and jank count from
-`FrameTiming`.
+completed flips, request-to-page-change latency, build/raster averages,
+P90/P99, max frame time, and jank count from `FrameTiming`. Compare the
+optimized and compatibility paths with `SNAPSHOT_REFRESH_POLICY=whenDirty`
+and `SNAPSHOT_REFRESH_POLICY=always`; set `MAX_SNAPSHOT_PIXEL_RATIO=none` to
+remove the moving-texture DPR cap.
 
 ## Dark Mode Support
 

@@ -123,6 +123,7 @@ void main() {
       required double dragProgress,
       required bool isForward,
       int currentIndex = 0,
+      bool enableSinglePageSettleReveal = true,
     }) =>
         MaterialApp(
           home: Scaffold(
@@ -141,6 +142,7 @@ void main() {
                   for (var i = 0; i < 3; i++) i: GlobalKey(),
                 },
                 constrainedSize: canvasSize,
+                enableSinglePageSettleReveal: enableSinglePageSettleReveal,
                 itemBuilder: (context, index) => ColoredBox(
                   color: Colors.primaries[index % Colors.primaries.length],
                   child: Center(child: Text('Page $index')),
@@ -168,6 +170,27 @@ void main() {
       );
       expect(
         find.descendant(of: bottomClipper, matching: find.text('Page 2')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('disabled settle reveal keeps the forward middle layer opaque',
+        (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        pumpSinglePageLayerView(
+          dragProgress: 0.9,
+          isForward: true,
+          currentIndex: 1,
+          enableSinglePageSettleReveal: false,
+        ),
+      );
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is FadeTransition && widget.opacity.value < 0.999,
+        ),
         findsNothing,
       );
     });
