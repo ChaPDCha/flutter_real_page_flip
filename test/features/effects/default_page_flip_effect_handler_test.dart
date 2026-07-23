@@ -59,6 +59,25 @@ void main() {
     expect(output.samplesPerGrain, 0);
   });
 
+  test('perceptualGain scales paper output above authored maxAmplitude band', () {
+    final baseline = shapePaperHapticOutput(
+      preset: PaperTexturePreset.standard,
+      rawAmplitude: 0.5,
+      rawSharpness: 0.5,
+      speedFactor: 1,
+    );
+    final boosted = shapePaperHapticOutput(
+      preset: PaperTexturePreset.standard,
+      rawAmplitude: 0.5,
+      rawSharpness: 0.5,
+      speedFactor: 1,
+      perceptualGain: 1.3,
+    );
+
+    expect(boosted.amplitude, greaterThan(baseline.amplitude));
+    expect(boosted.amplitude, greaterThan(0.22)); // authored maxAmplitude
+  });
+
   test('settle and detent feedback scale across all four paper levels', () {
     const presets = [
       PaperTexturePreset.smooth,
@@ -344,7 +363,10 @@ void main() {
           },
         );
 
-        final handler = DefaultPageFlipEffectHandler();
+        // Pin iOS so device gain is the 1.0 reference (Android premium is 0.90).
+        final handler = DefaultPageFlipEffectHandler(
+          platform: TargetPlatform.iOS,
+        );
         await Future<void>.delayed(Duration.zero);
         await handler.onHandleEffect(PageFlipEvent.detentHaptic);
 

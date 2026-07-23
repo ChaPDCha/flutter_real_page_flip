@@ -7,6 +7,7 @@ library real_page_flip;
 export 'src/controllers/page_flip_state_controller.dart' show PageFlipEvent;
 export 'src/effects/page_flip_engine.dart' show clipSpreadPageHalf;
 export 'src/models/haptic_quality.dart' show HapticQuality;
+export 'src/models/haptic_strength.dart' show HapticStrength;
 export 'src/models/page_flip_config.dart'
     show
         DevicePerformanceProfile,
@@ -16,6 +17,7 @@ export 'src/models/page_flip_config.dart'
         PageFlipSpreadModeCompat;
 export 'src/models/page_flip_effect_handler.dart';
 export 'src/models/paper_texture_preset.dart';
+export 'src/models/perceptual_haptic_gain.dart' show PerceptualHapticGain;
 export 'src/page_flip_widget.dart';
 export 'src/physics/paper_physics.dart' show PaperPhysicsEngine;
 export 'src/physics/paper_physics_config.dart' show PaperPhysicsConfig;

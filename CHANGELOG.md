@@ -3,6 +3,12 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.13] - 2026-07-24
+
+### Added
+- **Perceptual haptic gain**: `HapticStrength` (light/medium/heavy) and `PerceptualHapticGain` scale authored amplitudes by resolved quality route + platform + user preference. Premium Android is slightly attenuated, standard waveform paths are boosted, and basic system-impact paths are softened so the same preset feels closer across devices.
+- **`PageFlipConfig.hapticStrength`** and matching `DefaultPageFlipEffectHandler` constructor / `updateConfig` wiring.
+
 ## [2.0.12] - 2026-07-23
 
 ### Fixed

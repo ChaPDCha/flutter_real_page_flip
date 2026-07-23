@@ -230,6 +230,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           performanceProfile: config.performanceProfile,
           hapticTexturePreset: config.hapticTexturePreset,
           hapticQuality: config.hapticQuality,
+          hapticStrength: config.hapticStrength,
         );
 
     // Warm snapshots immediately after first frame. Using immediate capture
@@ -323,17 +324,25 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         config.hapticTexturePreset != oldConfig.hapticTexturePreset;
     final hapticQualityChanged =
         config.hapticQuality != oldConfig.hapticQuality;
+    final hapticStrengthChanged =
+        config.hapticStrength != oldConfig.hapticStrength;
     if (effectHandlerChanged ||
         (config.effectHandler == null &&
-            (profileChanged || texturePresetChanged || hapticQualityChanged))) {
+            (profileChanged ||
+                texturePresetChanged ||
+                hapticQualityChanged ||
+                hapticStrengthChanged))) {
       if (_isInternalEffectHandler &&
           !effectHandlerChanged &&
           !profileChanged &&
-          (texturePresetChanged || hapticQualityChanged) &&
+          (texturePresetChanged ||
+              hapticQualityChanged ||
+              hapticStrengthChanged) &&
           _effectHandler is DefaultPageFlipEffectHandler) {
         (_effectHandler as DefaultPageFlipEffectHandler).updateConfig(
           hapticTexturePreset: config.hapticTexturePreset,
           hapticQuality: config.hapticQuality,
+          hapticStrength: config.hapticStrength,
         );
       } else {
         if (_isInternalEffectHandler) {
@@ -345,6 +354,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               performanceProfile: config.performanceProfile,
               hapticTexturePreset: config.hapticTexturePreset,
               hapticQuality: config.hapticQuality,
+              hapticStrength: config.hapticStrength,
             );
       }
     }
