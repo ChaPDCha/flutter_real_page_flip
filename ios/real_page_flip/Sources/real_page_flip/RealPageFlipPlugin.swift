@@ -33,6 +33,31 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     }
   }
 
+  /// iPhone SE machine identifiers (`utsname.machine`).
+  /// Continuous premium texture on these motors feels like a phone buzz.
+  private static let budgetHapticMachineIds: Set<String> = [
+    "iphone8,4",  // SE (1st generation)
+    "iphone12,8", // SE (2nd generation)
+    "iphone14,6", // SE (3rd generation)
+  ]
+
+  private static func currentMachineIdentifier() -> String {
+    var systemInfo = utsname()
+    uname(&systemInfo)
+    return withUnsafePointer(to: &systemInfo.machine) {
+      $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+        String(cString: $0)
+      }
+    }
+  }
+
+  private static func isBudgetHapticDevice() -> Bool {
+    let machine = currentMachineIdentifier()
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .lowercased()
+    return budgetHapticMachineIds.contains(machine)
+  }
+
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "playTransient":
@@ -64,12 +89,17 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       UIImpactFeedbackGenerator(style: .light).impactOccurred()
       result(nil)
     case "getHapticCapabilities":
+      // iPhone SE has Core Haptics, but continuous `.hapticContinuous` texture
+      // reads as a crude phone-call buzz on its Taptic Engine. Downgrade the
+      // capability flags so `HapticQuality.adaptive` resolves to `.basic`
+      // (settle/impulse only) instead of `.premium` continuous drag texture.
       let supportsCoreHaptics = hapticEngine != nil &&
         CHHapticEngine.capabilitiesForHardware().supportsHaptics
+      let allowAdvancedTexture = supportsCoreHaptics && !Self.isBudgetHapticDevice()
       result([
         "hasVibrator": true,
-        "hasAmplitudeControl": supportsCoreHaptics,
-        "hasAdvancedHaptics": supportsCoreHaptics,
+        "hasAmplitudeControl": allowAdvancedTexture,
+        "hasAdvancedHaptics": allowAdvancedTexture,
       ])
 
     // ── Continuous waveform API ──────────────────────────────────────

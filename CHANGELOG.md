@@ -3,6 +3,11 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.11] - 2026-07-23
+
+### Fixed
+- **iPhone SE continuous haptic buzz**: `getHapticCapabilities` now treats iPhone SE (1st/2nd/3rd gen: `iPhone8,4`, `iPhone12,8`, `iPhone14,6`) as budget haptic devices. Even though Core Haptics is present, continuous `.hapticContinuous` paper texture reads as a harsh phone-call buzz on SE Taptic Engines. The plugin reports `hasAmplitudeControl`/`hasAdvancedHaptics` as `false` on those machines so `HapticQuality.adaptive` resolves to `basic` (settle/impulse only) instead of `premium` continuous drag texture. Flagship devices are unchanged.
+
 ## [2.0.10] - 2026-07-15
 
 ### Added

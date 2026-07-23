@@ -14,6 +14,11 @@ enum HapticQuality {
 }
 
 /// Capability result returned by the native haptic implementation.
+///
+/// On iPhone SE, the iOS plugin reports [hasAmplitudeControl] and
+/// [hasAdvancedHaptics] as `false` even though Core Haptics exists, so
+/// [HapticQuality.adaptive] resolves to [HapticQuality.basic] (settle-only)
+/// instead of continuous premium drag texture that buzzes harshly.
 class HapticCapabilities {
   const HapticCapabilities({
     required this.hasVibrator,
