@@ -36,6 +36,22 @@ void main() {
       );
     });
 
+    test(
+      'iPhone SE capability profile (no advanced texture) resolves adaptive to basic',
+      () {
+        // Mirrors ios RealPageFlipPlugin.getHapticCapabilities for SE machines:
+        // hasVibrator=true, hasAmplitudeControl=false, hasAdvancedHaptics=false.
+        expect(
+          const HapticCapabilities(
+            hasVibrator: true,
+            hasAmplitudeControl: false,
+            hasAdvancedHaptics: false,
+          ).resolve(HapticQuality.adaptive),
+          HapticQuality.basic,
+        );
+      },
+    );
+
     test('explicit quality never exceeds hardware capability', () {
       const capabilities = HapticCapabilities.basic();
       expect(

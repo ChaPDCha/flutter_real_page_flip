@@ -1,10 +1,9 @@
 name: Verify Package
 
+# Manual only — do not auto-run on push/PR. Trigger via Actions UI or:
+#   gh workflow run "Verify Package"
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:

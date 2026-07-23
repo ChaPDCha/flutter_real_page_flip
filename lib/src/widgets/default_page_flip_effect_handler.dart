@@ -99,9 +99,13 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   double _viewportWidth = 400;
 
   // ---------------------------------------------------------------------------
-  // Continuous haptic buffer — replaces the discrete transient pipeline.
+  // Continuous haptic buffer — premium path only.
   // ---------------------------------------------------------------------------
   final ContinuousHapticBuffer _continuousBuffer = ContinuousHapticBuffer();
+
+  /// Throttle for [HapticQuality.standard] discrete drag ticks.
+  static const int _discreteTickGapMs = 36;
+  int _lastDiscreteTickMs = 0;
 
   @override
   set viewportWidth(double width) {
@@ -228,6 +232,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       case PageFlipEvent.stopHaptic:
         // Stop the continuous waveform session cleanly.
         unawaited(_continuousBuffer.stop());
+        _lastDiscreteTickMs = 0;
         if (pageIndex != null) {
           _physicsEngines[pageIndex]?.reset();
           _physicsEngines.removeWhere(
@@ -250,6 +255,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         break;
       case PageFlipEvent.continuousHaptic:
       case PageFlipEvent.texturedHaptic:
+        // basic: no drag texture. standard: discrete ticks. premium: continuous.
         if (_resolvedHapticQuality == HapticQuality.basic) break;
         if (pageIndex != null && texture != null) {
           _handlePhysicsHaptic(
@@ -321,11 +327,24 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
 
     if (kDebugMode) {
       print(
-        '[HAPTIC_DIAGNOSTIC] Dart Calc: pageIndex=$pageIndex, preset=$hapticTexturePreset, level=${hapticTexturePreset.hapticLevel}, rawAmp=${frame.amplitude}, outputAmp=${output.amplitude}, speedFactor=$speedFactor, sharpness=${output.sharpness}, grainMs=${output.samplesPerGrain * ContinuousHapticBuffer.sampleIntervalMs}, durationMs=${frame.durationMs}, slipBoost=${frame.stickSlipModulation?.amplitudeBoost.toStringAsFixed(3) ?? 'none'}',
+        '[HAPTIC_DIAGNOSTIC] Dart Calc: pageIndex=$pageIndex, preset=$hapticTexturePreset, level=${hapticTexturePreset.hapticLevel}, quality=$_resolvedHapticQuality, rawAmp=${frame.amplitude}, outputAmp=${output.amplitude}, speedFactor=$speedFactor, sharpness=${output.sharpness}, grainMs=${output.samplesPerGrain * ContinuousHapticBuffer.sampleIntervalMs}, durationMs=${frame.durationMs}, slipBoost=${frame.stickSlipModulation?.amplitudeBoost.toStringAsFixed(3) ?? 'none'}',
       );
     }
 
-    // ---- Continuous waveform pipeline (replaces discrete transients) ----
+    if (output.amplitude <= 0 || output.samplesPerGrain <= 0) {
+      return;
+    }
+
+    // Mid-tier motors: discrete ticks only — continuous waveform buzzes.
+    if (_resolvedHapticQuality != HapticQuality.premium) {
+      _emitDiscreteDragTick(
+        amplitude: output.amplitude,
+        sharpness: output.sharpness,
+      );
+      return;
+    }
+
+    // ---- Premium continuous waveform pipeline ----
     //
     // The old model:
     //   1. Check stick-slip → emit playSlipBurst → return (INTERRUPTS stream)
@@ -359,6 +378,24 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     if (_continuousBuffer.shouldFlush(nowMs)) {
       unawaited(_continuousBuffer.flush(nowMs: nowMs));
     }
+  }
+
+  void _emitDiscreteDragTick({
+    required double amplitude,
+    required double sharpness,
+  }) {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (nowMs - _lastDiscreteTickMs < _discreteTickGapMs) {
+      return;
+    }
+    _lastDiscreteTickMs = nowMs;
+    unawaited(
+      AdvancedHapticEngine.playTransient(
+        intensity: amplitude.clamp(0.05, 0.55),
+        sharpness: sharpness.clamp(0.2, 0.95),
+        durationMs: 10,
+      ),
+    );
   }
 
   Future<void> _playOnPlayer(AudioPlayer player, double volume) async {

@@ -33,6 +33,33 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     }
   }
 
+  /// Compact iPhones where continuous Core Haptics reads as a phone-call buzz.
+  /// SE + mini form factors share a small chassis / less refined continuous feel.
+  private static let budgetHapticMachineIds: Set<String> = [
+    "iphone8,4",  // SE (1st generation)
+    "iphone12,8", // SE (2nd generation)
+    "iphone14,6", // SE (3rd generation)
+    "iphone13,1", // 12 mini
+    "iphone14,4", // 13 mini
+  ]
+
+  private static func currentMachineIdentifier() -> String {
+    var systemInfo = utsname()
+    uname(&systemInfo)
+    return withUnsafePointer(to: &systemInfo.machine) {
+      $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+        String(cString: $0)
+      }
+    }
+  }
+
+  private static func isBudgetHapticDevice() -> Bool {
+    let machine = currentMachineIdentifier()
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .lowercased()
+    return budgetHapticMachineIds.contains(machine)
+  }
+
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "playTransient":
@@ -64,12 +91,17 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       UIImpactFeedbackGenerator(style: .light).impactOccurred()
       result(nil)
     case "getHapticCapabilities":
+      // Compact iPhones (SE, 12/13 mini) have Core Haptics, but continuous
+      // `.hapticContinuous` texture reads as a crude phone-call buzz. Downgrade
+      // capability flags so `HapticQuality.adaptive` resolves to `.basic`
+      // (settle/impulse only) instead of `.premium` continuous drag texture.
       let supportsCoreHaptics = hapticEngine != nil &&
         CHHapticEngine.capabilitiesForHardware().supportsHaptics
+      let allowAdvancedTexture = supportsCoreHaptics && !Self.isBudgetHapticDevice()
       result([
         "hasVibrator": true,
-        "hasAmplitudeControl": supportsCoreHaptics,
-        "hasAdvancedHaptics": supportsCoreHaptics,
+        "hasAmplitudeControl": allowAdvancedTexture,
+        "hasAdvancedHaptics": allowAdvancedTexture,
       ])
 
     // ── Continuous waveform API ──────────────────────────────────────
@@ -118,17 +150,17 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   private func ensureContinuousPlayer(engine: CHHapticEngine) -> CHHapticAdvancedPatternPlayer? {
     if let player = _continuousPlayer, _continuousStarted { return player }
     do {
-      // Base continuous event at full intensity; the dynamic intensity CONTROL
-      // parameter (0…1, multiplies the base) does the real modulation. A long
-      // duration + looping keeps it alive for the whole drag; stopContinuous
-      // ends it. loopEnabled guards against a drag longer than `duration`.
-      let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0)
+      // Base continuous event — dynamic intensity CONTROL (0…1) multiplies this
+      // base. Kept below 1.0 so small/mid motors do not start at full phone-buzz
+      // before the first parameter curve arrives. Long duration + looping keeps
+      // it alive for the whole drag; stopContinuous ends it.
+      let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.55)
       let sharpnessParam = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.45)
       let event = CHHapticEvent(
         eventType: .hapticContinuous,
         parameters: [intensityParam, sharpnessParam],
         relativeTime: 0,
-        duration: 30.0
+        duration: 8.0
       )
       let pattern = try CHHapticPattern(events: [event], parameters: [])
       let player = try engine.makeAdvancedPlayer(with: pattern)
