@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/models/advanced_haptic_engine.dart';
 import 'package:real_page_flip/src/models/haptic_quality.dart';
+import 'package:real_page_flip/src/models/haptic_strength.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
+import 'package:real_page_flip/src/models/perceptual_haptic_gain.dart';
 import 'package:real_page_flip/src/physics/continuous_haptic_buffer.dart';
 import 'package:real_page_flip/src/physics/paper_physics.dart';
 import 'package:real_page_flip/src/physics/paper_physics_config.dart';
@@ -26,6 +28,7 @@ double cappedFlipSoundVolume(double requestedVolume) {
   required double rawAmplitude,
   required double rawSharpness,
   required double speedFactor,
+  double perceptualGain = 1.0,
 }) {
   final profile = preset.hapticOutputProfile;
   if (!preset.hapticsEnabled) {
@@ -37,8 +40,10 @@ double cappedFlipSoundVolume(double requestedVolume) {
   final amplitudeBand = profile.minAmplitude +
       (profile.maxAmplitude - profile.minAmplitude) * speedCurve;
   final materialVariation = 0.9 + rawAmplitude.clamp(0.0, 1.0) * 0.1;
-  final amplitude =
-      (amplitudeBand * materialVariation).clamp(0.0, profile.maxAmplitude);
+  final amplitude = PerceptualHapticGain.apply(
+    (amplitudeBand * materialVariation).clamp(0.0, profile.maxAmplitude),
+    gain: perceptualGain,
+  );
   final sharpness =
       (profile.sharpness * 0.8 + rawSharpness.clamp(0.0, 1.0) * 0.2)
           .clamp(0.0, 1.0);
@@ -54,23 +59,29 @@ double cappedFlipSoundVolume(double requestedVolume) {
 double paperSettleIntensity({
   required PaperTexturePreset preset,
   required int controllerIntensity,
+  double perceptualGain = 1.0,
 }) {
   if (!preset.hapticsEnabled) return 0;
   final level = preset.hapticLevel / 4.0;
   final gesture = (controllerIntensity / 120.0).clamp(0.0, 1.0);
-  return (0.12 + level * 0.48 + gesture * 0.22).clamp(0.0, 0.82);
+  final raw = (0.12 + level * 0.48 + gesture * 0.22).clamp(0.0, 0.82);
+  return PerceptualHapticGain.apply(raw, gain: perceptualGain);
 }
 
 @visibleForTesting
 ({double intensity, double sharpness, int durationMs}) paperDetentOutput(
-  PaperTexturePreset preset,
-) {
+  PaperTexturePreset preset, {
+  double perceptualGain = 1.0,
+}) {
   if (!preset.hapticsEnabled) {
     return (intensity: 0, sharpness: 0, durationMs: 0);
   }
   final profile = preset.hapticOutputProfile;
   return (
-    intensity: 0.12 + preset.hapticLevel * 0.08,
+    intensity: PerceptualHapticGain.apply(
+      0.12 + preset.hapticLevel * 0.08,
+      gain: perceptualGain,
+    ),
     sharpness: profile.sharpness,
     durationMs: 6 + preset.hapticLevel * 3,
   );
@@ -81,12 +92,16 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     this.performanceProfile = DevicePerformanceProfile.medium,
     PaperTexturePreset hapticTexturePreset = PaperTexturePreset.standard,
     this.hapticQuality = HapticQuality.adaptive,
+    this.hapticStrength = HapticStrength.medium,
+    TargetPlatform? platform,
   })  : hapticTexturePreset = hapticTexturePreset,
+        _platform = platform ?? defaultTargetPlatform,
         _resolvedHapticQuality = hapticQuality == HapticQuality.adaptive
             ? HapticQuality.basic
             : hapticQuality,
         _physicsConfig =
             PaperPhysicsConfig.fromTexturePreset(hapticTexturePreset) {
+    _refreshPerceptualGain();
     _initAudio();
     _resolveHapticQuality();
   }
@@ -94,9 +109,18 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   final DevicePerformanceProfile performanceProfile;
   PaperTexturePreset hapticTexturePreset;
   HapticQuality hapticQuality;
+  HapticStrength hapticStrength;
+  final TargetPlatform _platform;
   HapticQuality _resolvedHapticQuality;
+  double _perceptualGain = 1.0;
   PaperPhysicsConfig _physicsConfig;
   double _viewportWidth = 400;
+
+  @visibleForTesting
+  double get debugPerceptualGain => _perceptualGain;
+
+  @visibleForTesting
+  HapticQuality get debugResolvedHapticQuality => _resolvedHapticQuality;
 
   // ---------------------------------------------------------------------------
   // Continuous haptic buffer — premium path only.
@@ -118,9 +142,12 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   void updateConfig({
     required PaperTexturePreset hapticTexturePreset,
     required HapticQuality hapticQuality,
+    HapticStrength? hapticStrength,
   }) {
+    final nextStrength = hapticStrength ?? this.hapticStrength;
     if (this.hapticTexturePreset == hapticTexturePreset &&
-        this.hapticQuality == hapticQuality) {
+        this.hapticQuality == hapticQuality &&
+        this.hapticStrength == nextStrength) {
       return;
     }
     if (kDebugMode) {
@@ -130,12 +157,22 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     }
     this.hapticTexturePreset = hapticTexturePreset;
     this.hapticQuality = hapticQuality;
+    this.hapticStrength = nextStrength;
     _physicsConfig = PaperPhysicsConfig.fromTexturePreset(hapticTexturePreset);
     _physicsEngines.clear();
     if (!hapticTexturePreset.hapticsEnabled) {
       unawaited(_continuousBuffer.stop());
     }
+    _refreshPerceptualGain();
     _resolveHapticQuality();
+  }
+
+  void _refreshPerceptualGain() {
+    _perceptualGain = PerceptualHapticGain.combined(
+      resolvedQuality: _resolvedHapticQuality,
+      platform: _platform,
+      strength: hapticStrength,
+    );
   }
 
   Future<void> _resolveHapticQuality() async {
@@ -149,6 +186,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       );
     }
     _resolvedHapticQuality = resolved;
+    _refreshPerceptualGain();
     if (resolved == HapticQuality.basic) {
       unawaited(_continuousBuffer.stop());
     }
@@ -242,10 +280,11 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         break;
       case PageFlipEvent.impulseHaptic:
         final targetIntensity = _resolvedHapticQuality == HapticQuality.basic
-            ? 0.35
+            ? PerceptualHapticGain.apply(0.35, gain: _perceptualGain)
             : paperSettleIntensity(
                 preset: hapticTexturePreset,
                 controllerIntensity: intensity ?? 90,
+                perceptualGain: _perceptualGain,
               );
         unawaited(
           AdvancedHapticEngine.playSettleThud(
@@ -277,8 +316,18 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         // texture, not a second event competing with it. Reuses the
         // existing discrete playTransient path (no new native surface).
         final detent = _resolvedHapticQuality == HapticQuality.basic
-            ? (intensity: 0.18, sharpness: 0.5, durationMs: 8)
-            : paperDetentOutput(hapticTexturePreset);
+            ? (
+                intensity: PerceptualHapticGain.apply(
+                  0.18,
+                  gain: _perceptualGain,
+                ),
+                sharpness: 0.5,
+                durationMs: 8,
+              )
+            : paperDetentOutput(
+                hapticTexturePreset,
+                perceptualGain: _perceptualGain,
+              );
         unawaited(
           AdvancedHapticEngine.playTransient(
             intensity: detent.intensity,
@@ -323,6 +372,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       rawAmplitude: frame.amplitude,
       rawSharpness: frame.sharpness,
       speedFactor: speedFactor,
+      perceptualGain: _perceptualGain,
     );
 
     if (kDebugMode) {
