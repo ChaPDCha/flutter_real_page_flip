@@ -33,12 +33,14 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     }
   }
 
-  /// iPhone SE machine identifiers (`utsname.machine`).
-  /// Continuous premium texture on these motors feels like a phone buzz.
+  /// Compact iPhones where continuous Core Haptics reads as a phone-call buzz.
+  /// SE + mini form factors share a small chassis / less refined continuous feel.
   private static let budgetHapticMachineIds: Set<String> = [
     "iphone8,4",  // SE (1st generation)
     "iphone12,8", // SE (2nd generation)
     "iphone14,6", // SE (3rd generation)
+    "iphone13,1", // 12 mini
+    "iphone14,4", // 13 mini
   ]
 
   private static func currentMachineIdentifier() -> String {
@@ -89,8 +91,8 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       UIImpactFeedbackGenerator(style: .light).impactOccurred()
       result(nil)
     case "getHapticCapabilities":
-      // iPhone SE has Core Haptics, but continuous `.hapticContinuous` texture
-      // reads as a crude phone-call buzz on its Taptic Engine. Downgrade the
+      // Compact iPhones (SE, 12/13 mini) have Core Haptics, but continuous
+      // `.hapticContinuous` texture reads as a crude phone-call buzz. Downgrade
       // capability flags so `HapticQuality.adaptive` resolves to `.basic`
       // (settle/impulse only) instead of `.premium` continuous drag texture.
       let supportsCoreHaptics = hapticEngine != nil &&
@@ -148,17 +150,17 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   private func ensureContinuousPlayer(engine: CHHapticEngine) -> CHHapticAdvancedPatternPlayer? {
     if let player = _continuousPlayer, _continuousStarted { return player }
     do {
-      // Base continuous event at full intensity; the dynamic intensity CONTROL
-      // parameter (0…1, multiplies the base) does the real modulation. A long
-      // duration + looping keeps it alive for the whole drag; stopContinuous
-      // ends it. loopEnabled guards against a drag longer than `duration`.
-      let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0)
+      // Base continuous event — dynamic intensity CONTROL (0…1) multiplies this
+      // base. Kept below 1.0 so small/mid motors do not start at full phone-buzz
+      // before the first parameter curve arrives. Long duration + looping keeps
+      // it alive for the whole drag; stopContinuous ends it.
+      let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.55)
       let sharpnessParam = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.45)
       let event = CHHapticEvent(
         eventType: .hapticContinuous,
         parameters: [intensityParam, sharpnessParam],
         relativeTime: 0,
-        duration: 30.0
+        duration: 8.0
       )
       let pattern = try CHHapticPattern(events: [event], parameters: [])
       let player = try engine.makeAdvancedPlayer(with: pattern)

@@ -191,6 +191,9 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
                 // at every ~40 ms batch boundary. Letting the fresh waveform take
                 // over directly keeps the friction texture continuous, the
                 // Android counterpart to the iOS persistent-player fix.
+                // repeat = -1 means play this waveform once (Android API).
+                // Values >= 0 loop from that timing index forever — never use
+                // 0 here or a missed stopContinuous leaves an endless buzz.
                 vibrator?.vibrate(
                     VibrationEffect.createWaveform(timings, amplitudes, -1)
                 )
