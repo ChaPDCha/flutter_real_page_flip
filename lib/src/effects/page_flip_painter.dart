@@ -276,9 +276,7 @@ class PageFlipPainter extends CustomPainter {
     canvas.transform(g.transform.storage);
 
     // Layer 1: Paper back underlay, then flap-front texture with late reveal.
-    final paperPaint = Paint()
-      ..color = resolvePaperUnderlayColor(paperBackColor, paperOpacity);
-    canvas.drawRect(flapPaintRect, paperPaint);
+    _drawPaperUnderlay(canvas, flapPaintRect);
 
     final normalizedProgress =
         normalizedFlapProgress(progress, isForward: isActualForward);
@@ -395,96 +393,7 @@ class PageFlipPainter extends CustomPainter {
       }
     }
 
-    // Edge / fold masks: hide stray, crushed texture fragments at the flap's
-    // free edge and at the fold crease where the mesh compresses.
-    //
-    // These paint the paper colour over the mesh boundary. On a LIGHT paper
-    // that is invisible (paper over paper). On a DARK paper (e.g. pure-black
-    // theme) a full-opacity paper-coloured strip wipes the light text in a hard
-    // vertical band — the "dark band at the paper edge". Two mitigations:
-    //   • keep the masks narrow, and
-    //   • on dark paper hold them below full opacity so the text bleeds through
-    //     faintly instead of being cut into a solid band.
-    // Single-page content is already dimmed by the thin-paper bleed overlay, so
-    // the crushed edge fragments are faint and need less aggressive masking.
-    //
-    // ORDER MATTERS: the masks cover CONTENT artifacts, so they must sit
-    // directly on the mesh — BEFORE the bend highlight / cylinder shading and
-    // the free-edge highlight below. When they were painted after the shading,
-    // the flat paper strip erased the curl shading across the last few px of
-    // the sheet, leaving a dark trough (dark paper) or a bare bright band
-    // (light paper) between the edge highlight and the shaded flap body — read
-    // as a light line detached from the page edge, widening as the turn
-    // progressed and peaking mid-flip on double spreads.
-    final maskPeak = edgeMaskPeakOpacity(isPaperDark: isPaperDark);
-
-    // Edge-fade: mask partial-text artifacts at the flap's free edge.
-    final edgeFadeWidth = edgeMaskWidth(
-      isPaperDark: isPaperDark,
-      devicePixelRatio: devicePixelRatio,
-    );
-    final edgeFadeBegin =
-        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-    final edgeFadeEnd =
-        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
-    final edgeFadePath = buildCurvedFlapBoundaryStripPath(
-      g,
-      atFold: false,
-      width: edgeFadeWidth,
-    );
-    final edgeFadeBounds = edgeFadePath.getBounds();
-    if (!edgeFadeBounds.isEmpty) {
-      canvas.drawPath(
-        edgeFadePath,
-        Paint()
-          // Fade to transparent PAPER, not Colors.transparent (transparent
-          // black), or the ramp's midpoint darkens toward black — this exact
-          // mask painted the dark pillar at the free edge on light paper.
-          ..shader = LinearGradient(
-            begin: edgeFadeBegin,
-            end: edgeFadeEnd,
-            colors: [
-              paperBackColor.withValues(alpha: maskPeak),
-              paperBackColor.withValues(alpha: 0),
-            ],
-          ).createShader(edgeFadeBounds),
-      );
-    }
-
-    // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
-    // As the flap narrows near the fold line, texture pixels compress and
-    // create visible fragments. This narrow gradient from paperBackColor →
-    // transparent softens the fold boundary edge.
-    final foldFadeWidth = foldMaskWidth(
-      isPaperDark: isPaperDark,
-      devicePixelRatio: devicePixelRatio,
-    );
-    final foldFadeBegin =
-        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
-    final foldFadeEnd =
-        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-    final foldFadePath = buildCurvedFlapBoundaryStripPath(
-      g,
-      atFold: true,
-      width: foldFadeWidth,
-    );
-    final foldFadeBounds = foldFadePath.getBounds();
-    if (!foldFadeBounds.isEmpty) {
-      canvas.drawPath(
-        foldFadePath,
-        Paint()
-          // Transparent PAPER endpoint (see edge-fade note): this mask's
-          // black-endpoint ramp painted the dark pillar at the fold line.
-          ..shader = LinearGradient(
-            begin: foldFadeBegin,
-            end: foldFadeEnd,
-            colors: [
-              paperBackColor.withValues(alpha: maskPeak),
-              paperBackColor.withValues(alpha: 0),
-            ],
-          ).createShader(foldFadeBounds),
-      );
-    }
+    _drawEdgeFoldMasks(canvas, g, isPaperDark);
 
     // Layer 2–3: Subtle paper-bend shading
     //
@@ -612,43 +521,7 @@ class PageFlipPainter extends CustomPainter {
       }
     }
 
-    // Free-edge highlight: a thin bright line right on the lifted edge, as the
-    // rounded paper edge catches ambient light. Together with the contact
-    // shadow below it sells the "lifted 3D edge" read instead of a flat cut.
-    // Matte and low-alpha (screen) so it never looks glassy; skipped on low.
-    if (g.shadowIntensity > 0.02 &&
-        performanceProfile != DevicePerformanceProfile.low) {
-      final edgeHighlightWidth = math.min(
-        g.flapVisibleWidth,
-        (isPaperDark ? 2.0 : 2.5) * (devicePixelRatio >= 2.0 ? 1.25 : 1.0),
-      );
-      final edgeHighlightPath = buildCurvedFlapBoundaryStripPath(
-        g,
-        atFold: false,
-        width: edgeHighlightWidth,
-      );
-      final edgeHighlightBounds = edgeHighlightPath.getBounds();
-      if (!edgeHighlightBounds.isEmpty) {
-        final highlightTone = flapHighlightTone(isPaperDark: isPaperDark);
-        // Dark paper: a 2px light line on near-black stock spikes ~2× above
-        // the surrounding moonlit shading and reads as a separate wire, not a
-        // lit paper edge — hold it closer to the crease/gutter glow level.
-        final highlightAlpha = (isPaperDark ? 0.06 : 0.16) * g.shadowIntensity;
-        canvas.drawPath(
-          edgeHighlightPath,
-          Paint()
-            ..blendMode = BlendMode.screen
-            ..shader = LinearGradient(
-              begin: edgeFadeBegin,
-              end: edgeFadeEnd,
-              colors: [
-                highlightTone.withValues(alpha: highlightAlpha),
-                highlightTone.withValues(alpha: 0),
-              ],
-            ).createShader(edgeHighlightBounds),
-        );
-      }
-    }
+    _drawFreeEdgeHighlight(canvas, g, isPaperDark);
 
     // Double-spread fold accent. In single-page mode the unified crease mesh
     // below owns both sides of the fold, so drawing this pass as well would
@@ -669,6 +542,10 @@ class PageFlipPainter extends CustomPainter {
       // between the highlight and the crease shadow. Low alpha keeps it a gentle
       // shade, not the old wide dark band; the revealed valley below is already
       // narrow+eased so the total crease stays thin.
+      final foldFadeWidth = foldMaskWidth(
+        isPaperDark: isPaperDark,
+        devicePixelRatio: devicePixelRatio,
+      );
       final foldDarkenWidth = math
           .min(
             g.flapVisibleWidth,
@@ -722,10 +599,14 @@ class PageFlipPainter extends CustomPainter {
       canvas.clipRect(Offset.zero & size);
       canvas.transform(g.transform.storage);
 
+      final creaseFoldFadeWidth = foldMaskWidth(
+        isPaperDark: isPaperDark,
+        devicePixelRatio: devicePixelRatio,
+      );
       final revealedWidth = kCreaseShadowWidth * 1.8 * g.shadowIntensity;
       final flapWidth = math.min(
         g.flapVisibleWidth,
-        math.max(foldFadeWidth, kCreaseFlapSideWidth) * g.shadowIntensity,
+        math.max(creaseFoldFadeWidth, kCreaseFlapSideWidth) * g.shadowIntensity,
       );
       // Dark paper renders the valley as moonlight on the sheet: the moonlit
       // tone + a lower peak keep it a soft spread instead of a white seam.
@@ -1001,69 +882,175 @@ class PageFlipPainter extends CustomPainter {
       canvas.restore();
     }
 
-    // Center binding gutter (double-spread): a symmetric valley centred on the
-    // spine, darkest at the binding and feathering out to BOTH sides.
-    //
-    // The previous groove painted a single one-sided band clipped hard to the
-    // flip half, so its full-alpha edge sat exactly on the spine while the
-    // stationary half stayed at zero. That step read as a knife-cut running
-    // straight down the middle of the spread — the "shadow sharply clipped at
-    // the body text" artifact. A real binding gutter darkens both facing pages,
-    // so the two feathered sides below share the same peak alpha at the spine
-    // and are therefore continuous across it (no centre seam). The lifting side
-    // reaches a little further (its page is pulling the gutter open) while the
-    // resting side stays narrow so the stationary page's text is barely grazed.
-    if (isDoubleSpread && progress > 0) {
-      // Dark paper: the gutter is lit, not shaded. srcOver white laid a flat
-      // veil over the text that read as a detached bright stripe down the
-      // spine; screen with the cool moonlight tone brightens the paper and
-      // text beneath instead, and the wider/dimmer band spreads the light
-      // out like a page catching moonlight at the binding.
-      final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
-      final shadowBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
-      final isLowProfileGutter =
-          performanceProfile == DevicePerformanceProfile.low;
-      // Shared peak at the spine (onset-eased so it fades in with the turn
-      // instead of snapping on in the middle of the spread).
-      final gutterPeak =
-          (isPaperDark ? 0.06 : 0.12) * g.shadowIntensity * shadowOnset;
+    _drawCenterGutter(canvas, g, size, isPaperDark, shadowOnset);
+  }
 
-      final gutterScale = glowBandWidthScale(isPaperDark: isPaperDark);
-      final flipSideWidth = 18.0 * gutterScale;
-      final stationarySideWidth = 13.0 * gutterScale;
+  void _drawCenterGutter(
+    Canvas canvas,
+    PageFlipGeometry g,
+    Size size,
+    bool isPaperDark,
+    double shadowOnset,
+  ) {
+    if (!isDoubleSpread || progress <= 0) return;
 
-      void drawGutterSide(double outward) {
-        if (gutterPeak <= 0.003 || outward == 0) return;
-        final outerX = g.spineX + outward;
-        final left = math.min(g.spineX, outerX);
-        final right = math.max(g.spineX, outerX);
-        if (right - left < 0.5) return;
-        final rect = Rect.fromLTRB(left, 0, right, size.height);
-        canvas.save();
-        canvas.clipRect(rect);
-        final paint = Paint()..blendMode = shadowBlend;
-        if (isLowProfileGutter) {
-          paint.color = shadowColor.withValues(alpha: gutterPeak * 0.5);
-        } else {
-          // Peak sits on the spine edge; transparent at the outer edge.
-          final peakAtLeft = outward > 0; // spine is the rect's left edge
-          paint.shader = LinearGradient(
-            begin: peakAtLeft ? Alignment.centerLeft : Alignment.centerRight,
-            end: peakAtLeft ? Alignment.centerRight : Alignment.centerLeft,
-            colors: [
-              shadowColor.withValues(alpha: gutterPeak),
-              shadowColor.withValues(alpha: 0),
-            ],
-          ).createShader(rect);
-        }
-        canvas.drawRect(rect, paint);
-        canvas.restore();
+    final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
+    final shadowBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
+    final isLowProfileGutter =
+        performanceProfile == DevicePerformanceProfile.low;
+    final gutterPeak =
+        (isPaperDark ? 0.06 : 0.12) * g.shadowIntensity * shadowOnset;
+
+    final gutterScale = glowBandWidthScale(isPaperDark: isPaperDark);
+    final flipSideWidth = 18.0 * gutterScale;
+    final stationarySideWidth = 13.0 * gutterScale;
+
+    void drawGutterSide(double outward) {
+      if (gutterPeak <= 0.003 || outward == 0) return;
+      final outerX = g.spineX + outward;
+      final left = math.min(g.spineX, outerX);
+      final right = math.max(g.spineX, outerX);
+      if (right - left < 0.5) return;
+      final rect = Rect.fromLTRB(left, 0, right, size.height);
+      canvas.save();
+      canvas.clipRect(rect);
+      final paint = Paint()..blendMode = shadowBlend;
+      if (isLowProfileGutter) {
+        paint.color = shadowColor.withValues(alpha: gutterPeak * 0.5);
+      } else {
+        final peakAtLeft = outward > 0;
+        paint.shader = LinearGradient(
+          begin: peakAtLeft ? Alignment.centerLeft : Alignment.centerRight,
+          end: peakAtLeft ? Alignment.centerRight : Alignment.centerLeft,
+          colors: [
+            shadowColor.withValues(alpha: gutterPeak),
+            shadowColor.withValues(alpha: 0),
+          ],
+        ).createShader(rect);
       }
+      canvas.drawRect(rect, paint);
+      canvas.restore();
+    }
 
-      // Flip side (page lifting away from the spine) reaches further; the
-      // stationary side is narrower. Directions mirror for backward turns.
-      drawGutterSide(g.isForward ? flipSideWidth : -flipSideWidth);
-      drawGutterSide(g.isForward ? -stationarySideWidth : stationarySideWidth);
+    drawGutterSide(g.isForward ? flipSideWidth : -flipSideWidth);
+    drawGutterSide(g.isForward ? -stationarySideWidth : stationarySideWidth);
+  }
+
+  void _drawPaperUnderlay(Canvas canvas, Rect flapPaintRect) {
+    canvas.drawRect(
+      flapPaintRect,
+      Paint()
+        ..color = resolvePaperUnderlayColor(paperBackColor, paperOpacity),
+    );
+  }
+
+  void _drawFreeEdgeHighlight(
+    Canvas canvas,
+    PageFlipGeometry g,
+    bool isPaperDark,
+  ) {
+    if (g.shadowIntensity <= 0.02 ||
+        performanceProfile == DevicePerformanceProfile.low) {
+      return;
+    }
+    final edgeFadeBegin =
+        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
+    final edgeFadeEnd =
+        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+    final edgeHighlightWidth = math.min(
+      g.flapVisibleWidth,
+      (isPaperDark ? 2.0 : 2.5) * (devicePixelRatio >= 2.0 ? 1.25 : 1.0),
+    );
+    final edgeHighlightPath = buildCurvedFlapBoundaryStripPath(
+      g,
+      atFold: false,
+      width: edgeHighlightWidth,
+    );
+    final edgeHighlightBounds = edgeHighlightPath.getBounds();
+    if (!edgeHighlightBounds.isEmpty) {
+      final highlightTone = flapHighlightTone(isPaperDark: isPaperDark);
+      final highlightAlpha = (isPaperDark ? 0.06 : 0.16) * g.shadowIntensity;
+      canvas.drawPath(
+        edgeHighlightPath,
+        Paint()
+          ..blendMode = BlendMode.screen
+          ..shader = LinearGradient(
+            begin: edgeFadeBegin,
+            end: edgeFadeEnd,
+            colors: [
+              highlightTone.withValues(alpha: highlightAlpha),
+              highlightTone.withValues(alpha: 0),
+            ],
+          ).createShader(edgeHighlightBounds),
+      );
+    }
+  }
+
+  void _drawEdgeFoldMasks(
+    Canvas canvas,
+    PageFlipGeometry g,
+    bool isPaperDark,
+  ) {
+    final maskPeak = edgeMaskPeakOpacity(isPaperDark: isPaperDark);
+
+    // Edge-fade: mask partial-text artifacts at the flap's free edge.
+    final edgeFadeWidth = edgeMaskWidth(
+      isPaperDark: isPaperDark,
+      devicePixelRatio: devicePixelRatio,
+    );
+    final edgeFadeBegin =
+        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
+    final edgeFadeEnd =
+        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+    final edgeFadePath = buildCurvedFlapBoundaryStripPath(
+      g,
+      atFold: false,
+      width: edgeFadeWidth,
+    );
+    final edgeFadeBounds = edgeFadePath.getBounds();
+    if (!edgeFadeBounds.isEmpty) {
+      canvas.drawPath(
+        edgeFadePath,
+        Paint()
+          ..shader = LinearGradient(
+            begin: edgeFadeBegin,
+            end: edgeFadeEnd,
+            colors: [
+              paperBackColor.withValues(alpha: maskPeak),
+              paperBackColor.withValues(alpha: 0),
+            ],
+          ).createShader(edgeFadeBounds),
+      );
+    }
+
+    // Fold-edge gradient: mask crushed texture artifacts at the fold crease.
+    final foldFadeWidth = foldMaskWidth(
+      isPaperDark: isPaperDark,
+      devicePixelRatio: devicePixelRatio,
+    );
+    final foldFadeBegin =
+        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
+    final foldFadeEnd =
+        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
+    final foldFadePath = buildCurvedFlapBoundaryStripPath(
+      g,
+      atFold: true,
+      width: foldFadeWidth,
+    );
+    final foldFadeBounds = foldFadePath.getBounds();
+    if (!foldFadeBounds.isEmpty) {
+      canvas.drawPath(
+        foldFadePath,
+        Paint()
+          ..shader = LinearGradient(
+            begin: foldFadeBegin,
+            end: foldFadeEnd,
+            colors: [
+              paperBackColor.withValues(alpha: maskPeak),
+              paperBackColor.withValues(alpha: 0),
+            ],
+          ).createShader(foldFadeBounds),
+      );
     }
   }
 
