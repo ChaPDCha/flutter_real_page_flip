@@ -16,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/effects/page_flip_constants.dart';
 export 'package:real_page_flip/src/effects/page_flip_constants.dart';
-import 'package:real_page_flip/src/effects/page_flip_shading.dart';
 export 'package:real_page_flip/src/effects/page_flip_shading.dart';
 import 'package:real_page_flip/src/effects/page_flip_geometry.dart';
 export 'package:real_page_flip/src/effects/page_flip_geometry.dart';
