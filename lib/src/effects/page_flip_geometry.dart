@@ -1,4 +1,8 @@
-part of 'page_flip_engine.dart';
+import 'dart:math' as math;
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:real_page_flip/src/effects/page_flip_constants.dart';
 
 // ---------------------------------------------------------------------------
 // Geometry & rendering constants
@@ -12,47 +16,47 @@ part of 'page_flip_engine.dart';
 /// screen clip, flap mesh, and spine/revealed layers all need enough room to
 /// agree on the same tilted fold. Keeping this intentionally conservative
 /// prevents edge-drag artifacts on tall, narrow, and double-spread viewports.
-const double _kAngleScale = 0.24;
+const double kAngleScale = 0.24;
 
 /// Absolute fold-angle cap shared by every layer derived from [PageFlipGeometry].
-const double _kMaxFoldAngle = 0.12;
+const double kMaxFoldAngle = 0.12;
 
 /// Worst-case curl control-point reservation, as a fraction of one page width.
-const double _kAngleCurveGuardFactor = 0.04;
+const double kAngleCurveGuardFactor = 0.04;
 
 /// Base multiplier for visible flap width during foreshortening.
-const double _kFlapWidthBase = 1;
+const double kFlapWidthBase = 1;
 
 /// Sine modulation amplitude for flap-width foreshortening.
 /// At mid-flip the visible flap width narrows by this fraction to simulate
 /// perspective foreshortening of the curling paper edge.
-const double _kFlapWidthModulation = 0.30;
+const double kFlapWidthModulation = 0.30;
 
 /// Maximum width (px) of the drop shadow cast by the revealed (new) page.
 ///
 /// This is the *layout guard* value: [conservativeFoldAngleLimit] reserves this
 /// much room on each side of the fold so no shadow band overflows the page.
-/// The actual painted crease shadow is narrower ([_kCreaseShadowWidth]); the
+/// The actual painted crease shadow is narrower ([kCreaseShadowWidth]); the
 /// guard stays generous so the tighter visual band always has headroom.
-const double _kRevealedShadowWidth = 36;
+const double kRevealedShadowWidth = 36;
 
 /// Maximum width (px) of the shadow on the stationary page edge.
-const double _kStationaryShadowWidth = 14;
+const double kStationaryShadowWidth = 14;
 
 /// Painted width (px) of the single unified crease shadow valley at the fold.
 ///
 /// The crease is modelled as ONE soft valley centred on the fold line rather
 /// than two competing dark bands (a flap-side darkening plus a revealed-side
 /// drop shadow) that visually stacked into one thick line. Narrower than the
-/// [_kRevealedShadowWidth] layout guard so the valley reads as a gentle
+/// [kRevealedShadowWidth] layout guard so the valley reads as a gentle
 /// crease, not a hard stroke.
-const double _kCreaseShadowWidth = 22;
+const double kCreaseShadowWidth = 22;
 
 /// Flap-side reach of the single-page crease valley.
 ///
 /// The lifted sheet needs a little shading on both sides of the fold, but the
 /// flap-side toe must stay narrow. A broad toe reads as another paper edge.
-const double _kCreaseFlapSideWidth = 8;
+const double kCreaseFlapSideWidth = 8;
 
 /// Painted width (px) of the contact (ambient-occlusion) shadow just outside
 /// the lifted free edge.
@@ -60,17 +64,17 @@ const double _kCreaseFlapSideWidth = 8;
 /// A real lifted page edge is grounded onto the sheet beneath it by a thin,
 /// soft contact shadow. Without it the flap reads as a flat sticker with a
 /// knife-cut border. Kept narrow so it grounds the edge without a visible band.
-const double _kFreeEdgeShadowWidth = 10;
+const double kFreeEdgeShadowWidth = 10;
 
 /// Eased gradient stops for the crease valley (paper darkest at the fold,
 /// feathering out). Replaces the hard `[0.0, 1.0]` ramp whose abrupt toe made
 /// the crease look like a drawn line instead of a soft fold.
-const List<double> _kCreaseValleyStops = [0.0, 0.32, 1.0];
+const List<double> kCreaseValleyStops = [0.0, 0.32, 1.0];
 
 /// Fraction of the flip (at each end) over which the discrete fold/gutter
 /// shadows ease in and out. Inside the plateau the envelope is 1.0, so mid-flip
 /// shading is unchanged.
-const double _kShadowOnsetRamp = 0.14;
+const double kShadowOnsetRamp = 0.14;
 
 /// Eased onset envelope (0 → 1 → 0) for the discrete fold, binding-gutter, and
 /// contact shadows so they fade in gently at the very start of a flip and out
@@ -85,22 +89,21 @@ const double _kShadowOnsetRamp = 0.14;
 /// [PageFlipGeometry.shadowIntensity]) untouched.
 ///
 /// Returns 1.0 across the plateau
-/// `[_kShadowOnsetRamp, 1 − _kShadowOnsetRamp]`, so mid-flip intensity is
-/// identical to before; only the first/last [_kShadowOnsetRamp] of progress is
+/// `[kShadowOnsetRamp, 1 − kShadowOnsetRamp]`, so mid-flip intensity is
+/// identical to before; only the first/last [kShadowOnsetRamp] of progress is
 /// eased.
-@visibleForTesting
 double flipShadowOnset(double progress) {
-  if (_kShadowOnsetRamp <= 0) return 1;
+  if (kShadowOnsetRamp <= 0) return 1;
   final p = progress.clamp(0.0, 1.0).toDouble();
-  final tIn = (p / _kShadowOnsetRamp).clamp(0.0, 1.0).toDouble();
-  final tOut = ((1.0 - p) / _kShadowOnsetRamp).clamp(0.0, 1.0).toDouble();
+  final tIn = (p / kShadowOnsetRamp).clamp(0.0, 1.0).toDouble();
+  final tOut = ((1.0 - p) / kShadowOnsetRamp).clamp(0.0, 1.0).toDouble();
   final t = math.min(tIn, tOut);
   return t * t * (3 - 2 * t);
 }
 
 /// Pre-computed identity matrix storage for [ui.ImageShader] transforms.
 /// Avoids allocating a new [Matrix4] + extracting storage every paint frame.
-final Float64List _identityMatrixStorage =
+final Float64List identityMatrixStorage =
     Float64List.fromList(Matrix4.identity().storage);
 
 /// Animation curve that models real paper page-turning physics.
@@ -194,7 +197,7 @@ class PageFlipGeometry {
     final normalizedTouchY = height <= 0
         ? 0.5
         : (touchOffset.dy / height).clamp(0.0, 1.0).toDouble();
-    final baseAngle = (normalizedTouchY - 0.5) * _kAngleScale * angleProfile;
+    final baseAngle = (normalizedTouchY - 0.5) * kAngleScale * angleProfile;
 
     // Limit angle so the flap stays within page bounds.
     // flapSideWidth: width on the flap side of foldX.
@@ -245,8 +248,8 @@ class PageFlipGeometry {
 
     // ── Flap dimensions ─────────────────────────────────────────────────────
     final flapVisibleWidth = flapMaterialWidth *
-        (_kFlapWidthBase -
-            _kFlapWidthModulation * math.sin(clampedProgress * math.pi));
+        (kFlapWidthBase -
+            kFlapWidthModulation * math.sin(clampedProgress * math.pi));
 
     // flapLeft = leftmost x of the visible flap region.
     // freeEdgeX = x of the lifted page edge (the one the user "holds").
@@ -443,7 +446,6 @@ class PageFlipGeometry {
 /// height. This is stricter than only checking the visible flap width, but it
 /// keeps clipping, shadows, and mesh edges parallel when the user's finger
 /// moves near the top or bottom edge on unusual aspect ratios.
-@visibleForTesting
 double conservativeFoldAngleLimit({
   required double flapSideWidth,
   required double revealedSideWidth,
@@ -454,8 +456,8 @@ double conservativeFoldAngleLimit({
   final halfHeight = safeHeight / 2;
   if (halfHeight <= 0) return 0;
 
-  final curveGuard = pageWidth.abs() * _kAngleCurveGuardFactor;
-  final sideGuard = math.max(_kRevealedShadowWidth, _kStationaryShadowWidth) +
+  final curveGuard = pageWidth.abs() * kAngleCurveGuardFactor;
+  final sideGuard = math.max(kRevealedShadowWidth, kStationaryShadowWidth) +
       kSpineRevealOverlapPx * 2 +
       curveGuard;
 
@@ -470,5 +472,5 @@ double conservativeFoldAngleLimit({
     angleLimitForSide(flapSideWidth),
     angleLimitForSide(revealedSideWidth),
   );
-  return math.min(_kMaxFoldAngle, math.max(0, layoutLimit)).toDouble();
+  return math.min(kMaxFoldAngle, math.max(0, layoutLimit)).toDouble();
 }

@@ -1,4 +1,4 @@
-part of 'page_flip_engine.dart';
+import 'package:flutter/gestures.dart';
 
 /// Shared horizontal-vs-vertical arbitration for page-flip drags.
 class PageFlipGestureArbitration {

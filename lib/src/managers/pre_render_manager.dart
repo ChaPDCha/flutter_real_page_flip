@@ -657,7 +657,8 @@ class PreRenderManager {
       _disposeImagesOnce(toDispose);
       _clearDirtyIfUnchanged(index, dirtyEpochAtStart);
       successfulSyncCaptureCount++;
-    } on Object {
+    } on Object catch (e, st) {
+      debugPrint('refreshIndexSync failed for index $index: $e\n$st');
       return;
     }
   }

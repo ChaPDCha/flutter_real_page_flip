@@ -1,4 +1,11 @@
-part of 'page_flip_engine.dart';
+import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/effects/page_flip_geometry.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 /// PERFORMANCE CRITICAL: This painter is called 60 times per second during animation.
 class PageFlipPainter extends CustomPainter {
@@ -270,11 +277,7 @@ class PageFlipPainter extends CustomPainter {
 
     // Layer 1: Paper back underlay, then flap-front texture with late reveal.
     final paperPaint = Paint()
-      ..color = paperBackColor.withValues(
-        alpha: paperOpacity == 1.0
-            ? 1.0
-            : (isPaperDark ? paperOpacity * 1.1 : paperOpacity).clamp(0.0, 1.0),
-      );
+      ..color = resolvePaperUnderlayColor(paperBackColor, paperOpacity);
     canvas.drawRect(flapPaintRect, paperPaint);
 
     final normalizedProgress =
@@ -344,7 +347,7 @@ class PageFlipPainter extends CustomPainter {
                   srcImage,
                   ui.TileMode.clamp,
                   ui.TileMode.clamp,
-                  _identityMatrixStorage,
+                  identityMatrixStorage,
                 )
                 ..filterQuality = FilterQuality.medium,
             );
@@ -719,10 +722,10 @@ class PageFlipPainter extends CustomPainter {
       canvas.clipRect(Offset.zero & size);
       canvas.transform(g.transform.storage);
 
-      final revealedWidth = _kCreaseShadowWidth * 1.8 * g.shadowIntensity;
+      final revealedWidth = kCreaseShadowWidth * 1.8 * g.shadowIntensity;
       final flapWidth = math.min(
         g.flapVisibleWidth,
-        math.max(foldFadeWidth, _kCreaseFlapSideWidth) * g.shadowIntensity,
+        math.max(foldFadeWidth, kCreaseFlapSideWidth) * g.shadowIntensity,
       );
       // Dark paper renders the valley as moonlight on the sheet: the moonlit
       // tone + a lower peak keep it a soft spread instead of a white seam.
@@ -763,13 +766,13 @@ class PageFlipPainter extends CustomPainter {
 
       // Single unified crease valley: darkest right at the fold, feathering out
       // across the revealed page. Narrower than the layout guard and eased with
-      // [_kCreaseValleyStops] so it reads as one soft fold, not a hard stroke.
+      // [kCreaseValleyStops] so it reads as one soft fold, not a hard stroke.
       //
       // Dark paper flips the valley from shadow to moonlight: the band widens
       // (glowBandWidthScale), the peak drops, the tone cools, and screen blend
       // brightens the paper/text beneath it — light falling ON the sheet, not
       // a white line floating over it.
-      final shadowWidth = _kCreaseShadowWidth *
+      final shadowWidth = kCreaseShadowWidth *
           glowBandWidthScale(isPaperDark: isPaperDark) *
           g.shadowIntensity;
       final revealedAlpha =
@@ -817,7 +820,7 @@ class PageFlipPainter extends CustomPainter {
                   shadowColor.withValues(alpha: revealedAlpha * 0.45),
                   shadowColor.withValues(alpha: 0),
                 ],
-                stops: _kCreaseValleyStops,
+                stops: kCreaseValleyStops,
               ).createShader(shadowBounds),
           );
 
@@ -874,7 +877,7 @@ class PageFlipPainter extends CustomPainter {
       );
       final contactSpread = 1.0 + liftGain * g.shadowIntensity;
       final contactWidth =
-          _kFreeEdgeShadowWidth * contactSpread * g.shadowIntensity;
+          kFreeEdgeShadowWidth * contactSpread * g.shadowIntensity;
       final contactAlpha = (isPaperDark ? 0.05 : 0.10) *
           (isDoubleSpread ? (isHighContact ? 1.25 : 1.08) : 1.0) *
           g.shadowIntensity *
@@ -945,7 +948,7 @@ class PageFlipPainter extends CustomPainter {
 
       // Dark paper: same moonlight treatment as the crease valley — wider,
       // dimmer, cool-toned, screen-blended (see discreteShadowTone).
-      final stationaryWidth = _kStationaryShadowWidth *
+      final stationaryWidth = kStationaryShadowWidth *
           glowBandWidthScale(isPaperDark: isPaperDark) *
           g.shadowIntensity;
       final stationaryAlpha =

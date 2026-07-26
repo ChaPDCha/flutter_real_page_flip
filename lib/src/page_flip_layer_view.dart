@@ -347,7 +347,7 @@ class PageFlipLayerView extends StatelessWidget {
 
     // Settle-phase flap content: shows the DESTINATION page instead of the
     // peeled page during Phase 3 (progress 0.85-0.95).
-    final flapSettleSpreadIndex = policy.flapSettleSnapshotSpreadIndex;
+    final flapSettleSpreadIndex = policy.flapSnapshotSpreadIndex;
     final flapFrontSettleImage = flapSettleSpreadIndex != null
         ? spreadSnapshots[flapSettleSpreadIndex]
         : null;
@@ -486,12 +486,9 @@ class PageFlipLayerView extends StatelessWidget {
   Widget _buildOpaquePaperUnderlay(BuildContext context) {
     final paperColor =
         paperFlapColor ?? Theme.of(context).scaffoldBackgroundColor;
-    final luminance = paperColor.computeLuminance();
-    final isPaperDark = luminance < 0.20;
-    final alpha = paperOpacity == 1.0
-        ? 1.0
-        : (isPaperDark ? paperOpacity * 1.1 : paperOpacity).clamp(0.0, 1.0);
-    return ColoredBox(color: paperColor.withValues(alpha: alpha));
+    return ColoredBox(
+      color: resolvePaperUnderlayColor(paperColor, paperOpacity),
+    );
   }
 
   /// Builds the content widget for a target page during an active flip.
