@@ -3,6 +3,12 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.14] - 2026-07-26
+
+### Refactored
+- **`PageFlipPainter.paint()` decomposed**: the monolithic 685-line `paint()` method has been broken into 10 focused private methods — `_drawPaperUnderlay`, `_drawEdgeFoldMasks`, `_drawFreeEdgeHighlight`, `_drawCenterGutter`, `_drawFoldAccent`, `_drawContactShadow`, `_drawStationaryShadow`, `_drawBendShading`, `_drawCreaseShadow`, `_drawFlapContentMesh`. Each pass now lives in its own method with explicit parameters. The remaining 111-line `paint()` body is pure orchestration: setup, clip, saveLayer, transform, then a flat sequence of pass calls.
+- **`part` directives removed**: the 4 `part` files (`page_flip_*.dart`) are now standalone importable modules. Helper functions extracted into `page_flip_constants.dart`, `page_flip_shading.dart`. DRY violations resolved (shared `resolvePaperUnderlayColor`), dead code eliminated.
+
 ## [2.0.13] - 2026-07-24
 
 ### Added
