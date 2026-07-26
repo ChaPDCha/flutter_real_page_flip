@@ -3,6 +3,17 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.15] - 2026-07-27
+
+### Refactored
+- **`page_flip_engine.dart` decomposed**: 1028 → 282 lines (73% reduction). Extracted flap texture source rect helpers into `page_flip_texture_rects.dart` (102 lines) and curve math, clip paths, shadow paths, crease mesh, flap bounds into `page_flip_path_builders.dart` (654 lines). The engine file is now a focused barrel with re-exports, mesh builders, widget helpers, and `flipSideShadowClipRect`.
+
+### Tests
+- Added 66 tests for `page_flip_shading.dart` covering all 13 public functions: edge masks, highlight tones, shadow tones, 3-phase opacity curves, monotonicity, backward normalization, DPR scaling, floor/clamp values.
+
+### Changed
+- Upgraded `flutter_lints` from `^2.0.0` to `^5.0.0`; resolved all new warnings.
+
 ## [2.0.14] - 2026-07-26
 
 ### Refactored
