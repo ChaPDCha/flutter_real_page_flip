@@ -3,6 +3,24 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.1.0] - 2026-07-27
+
+### Changed
+- **Native haptic plugin removed**: the custom native plugin (Android `RealPageFlipPlugin`, iOS `RealPageFlipPlugin`) has been removed. Haptic feedback now routes exclusively through Flutter's built-in `HapticFeedback` API — continuous waveform texture is no longer available, but settle thuds, detent ticks, and drag textures still fire through `lightImpact` / `mediumImpact` / `heavyImpact` on all platforms. This unlocks full platform support (see below).
+
+### Added
+- **6-platform support**: removing the native plugin from `pubspec.yaml` allows the package to work on all 6 Flutter platforms (Android, iOS, Web, Windows, macOS, Linux). The rendering engine and physics were always pure Dart; only the custom haptic channel restricted platform declaration.
+
+### Breaking
+- `RealPageFlipPlugin` (Android and iOS) no longer exists. Apps that manually registered the plugin must remove that registration. A `flutter clean` is recommended after upgrading.
+
+### Migration
+```bash
+flutter clean
+flutter pub get
+```
+No code changes required. Haptic quality configuration in `PageFlipConfig` is still honored — `HapticQuality.premium` now resolves to `standard` (discrete HapticFeedback ticks) on all platforms.
+
 ## [2.0.16] - 2026-07-27
 
 ### Fixed
