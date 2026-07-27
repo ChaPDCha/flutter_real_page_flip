@@ -14,8 +14,11 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 
 ## [2.1.0] - 2026-07-27
 
+### Fixed
+- **Continuous waveform haptic buzz (all iPhones, not just SE)**: the native plugin's `playContinuousWaveform` streamed amplitude arrays via MethodChannel at ~25 Hz, which causes a harsh phone-call-like buzz on every iPhone Taptic Engine regardless of chassis size. Previous versions worked around this by denylisting iPhone SE / 12 mini / 13 mini as budget haptic devices, but the root cause was the continuous waveform design, not the motor. Removing the native plugin eliminates the continuous waveform path entirely — all devices now use Flutter's built-in discrete `HapticFeedback` API (`lightImpact` / `mediumImpact` / `heavyImpact`), which the Taptic Engine handles cleanly.
+
 ### Changed
-- **Native haptic plugin removed**: the custom native plugin (Android `RealPageFlipPlugin`, iOS `RealPageFlipPlugin`) has been removed. Haptic feedback now routes exclusively through Flutter's built-in `HapticFeedback` API — continuous waveform texture is no longer available, but settle thuds, detent ticks, and drag textures still fire through `lightImpact` / `mediumImpact` / `heavyImpact` on all platforms. This unlocks full platform support (see below).
+- **Native haptic plugin removed**: the custom native plugin (Android `RealPageFlipPlugin`, iOS `RealPageFlipPlugin`) has been removed. Haptic feedback now routes exclusively through Flutter's built-in `HapticFeedback` API — continuous waveform texture is no longer available, but settle thuds, detent ticks, and impulse haptics still fire through `lightImpact` / `mediumImpact` / `heavyImpact` on all platforms. This also unlocks full platform support (see below).
 
 ### Added
 - **6-platform support**: removing the native plugin from `pubspec.yaml` allows the package to work on all 6 Flutter platforms (Android, iOS, Web, Windows, macOS, Linux). The rendering engine and physics were always pure Dart; only the custom haptic channel restricted platform declaration.

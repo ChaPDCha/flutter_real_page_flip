@@ -17,11 +17,15 @@ enum HapticQuality {
 
 /// Capability result returned by the native haptic implementation.
 ///
-/// On compact iPhones (SE, 12/13 mini), the iOS plugin reports
-/// [hasAmplitudeControl] and [hasAdvancedHaptics] as `false` even though Core
-/// Haptics exists, so [HapticQuality.adaptive] resolves to
-/// [HapticQuality.basic] (settle-only) instead of continuous premium drag
-/// texture that buzzes harshly on small Taptic Engines.
+/// On compact iPhones (SE, 12/13 mini), the iOS plugin previously reported
+/// [hasAmplitudeControl] and [hasAdvancedHaptics] as `false` so
+/// [HapticQuality.adaptive] resolved to [HapticQuality.basic] (settle-only).
+///
+/// As of v2.1.0 the native plugin has been removed and all platforms use
+/// Flutter's built-in [HapticFeedback] API. The continuous waveform buzz was
+/// not a compact-iPhone motor defect — it affects every iPhone Taptic Engine
+/// when a MethodChannel streams amplitude arrays at ~25 Hz. The plugin removal
+/// eliminates that path entirely, so all devices now get clean discrete ticks.
 class HapticCapabilities {
   const HapticCapabilities({
     required this.hasVibrator,
