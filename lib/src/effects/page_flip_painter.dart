@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
-import 'package:real_page_flip/src/effects/page_flip_geometry.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 /// PERFORMANCE CRITICAL: This painter is called 60 times per second during animation.

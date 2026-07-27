@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:real_page_flip/src/effects/page_flip_constants.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
-import 'package:real_page_flip/src/effects/page_flip_geometry.dart';
 
 /// CustomClipper that clips the stationary portion of the page during flip.
 class PageFlipClipper extends CustomClipper<Path> {

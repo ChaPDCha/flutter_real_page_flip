@@ -112,7 +112,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   HapticStrength hapticStrength;
   final TargetPlatform _platform;
   HapticQuality _resolvedHapticQuality;
-  double _perceptualGain = 1.0;
+  double _perceptualGain = 1;
   PaperPhysicsConfig _physicsConfig;
   double _viewportWidth = 400;
 

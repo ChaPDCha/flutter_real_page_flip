@@ -19,22 +19,21 @@ library;
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
-import 'package:real_page_flip/src/models/page_flip_config.dart';
-import 'package:real_page_flip/src/effects/page_flip_clippers.dart';
-export 'package:real_page_flip/src/effects/page_flip_clippers.dart';
-import 'package:real_page_flip/src/effects/page_flip_constants.dart';
-export 'package:real_page_flip/src/effects/page_flip_constants.dart';
 import 'package:real_page_flip/src/effects/page_flip_geometry.dart';
-export 'package:real_page_flip/src/effects/page_flip_geometry.dart';
 import 'package:real_page_flip/src/effects/page_flip_gesture.dart';
-export 'package:real_page_flip/src/effects/page_flip_gesture.dart';
 import 'package:real_page_flip/src/effects/page_flip_painter.dart';
-export 'package:real_page_flip/src/effects/page_flip_painter.dart';
 import 'package:real_page_flip/src/effects/page_flip_path_builders.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
+
+export 'package:real_page_flip/src/effects/page_flip_clippers.dart';
+export 'package:real_page_flip/src/effects/page_flip_constants.dart';
+export 'package:real_page_flip/src/effects/page_flip_geometry.dart';
+export 'package:real_page_flip/src/effects/page_flip_gesture.dart';
+export 'package:real_page_flip/src/effects/page_flip_painter.dart';
 export 'package:real_page_flip/src/effects/page_flip_path_builders.dart';
 export 'package:real_page_flip/src/effects/page_flip_shading.dart';
-import 'package:real_page_flip/src/effects/page_flip_texture_rects.dart';
 export 'package:real_page_flip/src/effects/page_flip_texture_rects.dart';
 
 // Path builders, curve math, clip paths, and shadow meshes are in
@@ -287,4 +286,3 @@ Widget buildViewportSnapshotImage(
     ),
   );
 }
-

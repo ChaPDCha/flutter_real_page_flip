@@ -6,6 +6,12 @@ description: >
 version: 2.0.15
 repository: https://github.com/ChaPDCha/flutter_real_page_flip.git
 homepage: https://github.com/ChaPDCha/flutter_real_page_flip
+topics:
+  - page-flip
+  - animation
+  - book
+  - ebook
+  - physics
 issue_tracker: https://github.com/ChaPDCha/flutter_real_page_flip/issues
 screenshots:
   - description: 'Four slow page turns in mobile single-page view using the high-quality rendering profile.'
