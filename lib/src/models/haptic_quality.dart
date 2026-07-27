@@ -21,11 +21,11 @@ enum HapticQuality {
 /// [hasAmplitudeControl] and [hasAdvancedHaptics] as `false` so
 /// [HapticQuality.adaptive] resolved to [HapticQuality.basic] (settle-only).
 ///
-/// As of v2.1.0 the native plugin has been removed and all platforms use
-/// Flutter's built-in [HapticFeedback] API. The continuous waveform buzz was
-/// not a compact-iPhone motor defect — it affects every iPhone Taptic Engine
-/// when a MethodChannel streams amplitude arrays at ~25 Hz. The plugin removal
-/// eliminates that path entirely, so all devices now get clean discrete ticks.
+/// As of v2.1.2 the adaptive quality caps at standard — discrete drag ticks with
+/// amplitude control, never continuous waveform. The continuous waveform path
+/// (MethodChannel at ~25 Hz) causes a harsh buzz on every iPhone Taptic Engine
+/// regardless of chassis size. Users who explicitly opt into [HapticQuality.premium]
+/// still get the continuous path with its known MethodChannel limitation.
 class HapticCapabilities {
   const HapticCapabilities({
     required this.hasVibrator,

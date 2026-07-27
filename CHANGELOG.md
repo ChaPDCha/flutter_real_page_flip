@@ -3,6 +3,14 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.1.3] - 2026-07-27
+
+### Added
+- **6-platform plugin declarations**: web, macOS, Windows, and Linux platform stubs added to `pubspec.yaml`. The package now officially declares all 6 Flutter platforms, restoring the full pub.dev platform score (~10 pts). Non-mobile platforms use no-op Dart stubs — all haptic calls gracefully fall back to Flutter's built-in HapticFeedback API via MissingPluginException.
+
+### Changed
+- **Analyzer: 0 issues** (resolved pre-existing comment_references info).
+
 ## [2.1.2] - 2026-07-27
 
 ### Fixed
