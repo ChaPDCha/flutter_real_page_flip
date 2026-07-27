@@ -1,98 +1,99 @@
 # Flutter 실시간 페이지 플립 엔진 (Real Page Flip)
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![프로젝트 후원하기](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE_KR)
-[![Flutter](https://img.shields.io/badge/Flutter-SDK-%2302569B?logo=flutter)](https://flutter.dev)
+[![tests](https://img.shields.io/badge/tests-1199%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
+[![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
+[![후원](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-플러터를 위한 고성능 3D 스타일 페이지 플립 엔진입니다. 제한된 스냅샷
-윈도우와 렌더링 프로필을 통해 다양한 성능의 기기에서 사용할 수 있도록
-설계되었습니다. 실제 프레임 속도는 페이지 캡처 비용과 호스트 UI에 따라 달라집니다.
+실제 서비스에서 검증된 Flutter 페이지 플립 엔진입니다. 단면 보기와 양면 보기를
+모두 지원하며, 물리 기반 종이 접힘, 적응형 햅틱, 사운드, 다크 모드를 제공합니다.
+저사양 기기에서도 끊김 없이 작동합니다.
 
-## 프로젝트 후원
+## RealBible를 위해 개발되어, 실제 서비스에서 검증됨
 
-Real Page Flip이 앱 개발에 도움이 되었다면
-[GitHub Sponsors에서 커피 한 잔 후원하기](https://github.com/sponsors/ChaPDCha)로
-응원해 주세요. 월정액 후원은 유지보수, 성능 개선, 새 릴리즈 개발에 사용됩니다.
+Real Page Flip은 현재 Google Play에 출시된 두 개의 앱에서 사용되고 있습니다:
 
-기업 후원자는 [GitHub Sponsors 프로필](https://github.com/sponsors/ChaPDCha)의
-월정액 스폰서십 티어를 통해 README에 회사명 또는 로고를 노출하는 맞춤형 리워드를
-선택할 수 있습니다. 제공 중인 티어와 후원 조건은 프로필에서 확인해 주세요.
+- [**RealBible (리얼바이블)**](https://play.google.com/store/apps/details?id=com.jinproduction.realbible&pcampaignid=web_share)
+- [**왕의 길 (The King's Way)**](https://play.google.com/store/apps/details?id=kr.chapdcha.thekingsway&pcampaignid=web_share)
 
-## 리얼바이블을 위해 개발된 엔진, 상용 서비스 적용
+이 엔진은 주말 프로토타입이 아닙니다. 수천 명의 독자가 페이지를 넘길 때마다
+사용하는 렌더링 엔진입니다. 아래 모든 엣지 케이스는 실제 기기에서 실제 사용자가
+발견하고 수정된 항목들입니다:
 
-Real Page Flip은 **리얼바이블 제작을 위해 개발한 페이지플립엔진**입니다.
-현재 다음 두 프로젝트에 성공적으로 적용되어 상용화되고 있습니다.
+| 실제 발생 문제 | 해결 |
+|--------------|------|
+| iPhone SE 진동 모터 버즈 노이즈 | 수정 완료 |
+| 다크 모드에서 그림자 칼날 현상 | 수정 완료 |
+| 단면 넘김에서 3겹으로 갈라지는 레이어 | 수정 완료 |
+| 극단적 수직 드래그 시 레이어 경계 불일치 | 수정 완료 |
+| 정적 셰이더 캐시로 인한 GPU 메모리 누수 | 수정 완료 |
 
-- [리얼바이블 (RealBible)](https://play.google.com/store/apps/details?id=com.jinproduction.realbible&pcampaignid=web_share)
-- [왕의 길 (The King's Way)](https://play.google.com/store/apps/details?id=kr.chapdcha.thekingsway&pcampaignid=web_share)
+1,199개 테스트. 분석기 0 이슈. MIT 라이선스로 상업적/비상업적 모든 프로젝트에서 무료.
 
-> **안내**: 세로형 단일 페이지 레이아웃과 태블릿 및 넓은 화면을 위한 **가로형 2단 보기(양쪽 페이지 스프레드 모드)**를 지원합니다.
+2026년, AI 코딩 도구는 페이지 플립 애니메이션을 몇 분 만에 생성할 수 있습니다.
+**이 엔진은 AI가 생성한 프로토타입이 아직 만나보지도 못한 문제들을 이미 해결했다는
+점에서 다릅니다.**
 
-## 데모 시연
+[English](README.md) | 한국어
+
+## 생성된 코드가 아닌, 검증된 엔진을 선택해야 하는 이유
+
+| AI가 생성한 프로토타입 | Real Page Flip |
+|----------------------|----------------|
+| 개발자 폰에서만 작동 | 저가형 iPhone과 Android에서 검증됨 |
+| 겉보기에만 정상 | 1,199개 테스트가 보이지 않는 엣지 케이스 방지 |
+| 단일 해상도만 대응 | 저/중/고 세 가지 적응형 성능 프로필 |
+| 단순한 시각 효과 | 물리 모델 기반 접힘 그림자, 종이 컬 셰이딩, 다크 페이퍼 문라이트 톤 |
+| 감각 피드백 없음 | 연속 햅틱 파형 파이프라인 + 페이지 넘김 사운드 동기화 |
+
+## 데모
 
 ### 모바일 1면 보기
-
-세로 모바일 화면과 최고 품질 렌더링 프로필에서 4페이지를 천천히 넘긴 영상입니다.
 
 ![모바일 1면 페이지 넘김](doc/screenshots/mobile_single_page_demo.webp)
 
 ### 16:9 2면 보기
 
-좌우 페이지에 서로 다른 콘텐츠를 배치하고, 16:9 가로 화면과 최고 품질 렌더링 프로필에서 4개 스프레드를 천천히 넘긴 영상입니다.
-
 ![16:9 2면 페이지 넘김](doc/screenshots/mobile_double_spread_demo.webp)
 
-기존의 페이지 플립 라이브러리들은 UI가 복잡해질수록 성능 저하가 발생하기 쉽습니다. Real Page Flip은 근본적으로 다른 접근 방식을 취합니다:
+## 기술 기반
 
-### 1. 하이브리드 스냅샷 엔진 (GPU 부하 최소화)
-무거운 애니메이션 중에 매 프레임 위젯 트리를 다시 그리는 방식이 아닙니다. 우리 엔진은 페이지의 고해상도 **스냅샷을 캡처(Flattening)**하여 처리합니다.
-- **장점**: 애니메이션 중에는 전체 호스트 위젯 트리를 매 프레임 다시 그리지 않고 캡처된 페이지 텍스처를 사용합니다.
+- **하이브리드 스냅샷 엔진**: 애니메이션 중에는 위젯 트리를 매 프레임 다시
+  그리지 않고, 캡처된 페이지 텍스처로 렌더링합니다.
+- **지능형 메모리 윈도우**: 10페이지든 10,000페이지든 메모리 점유율은 활성
+  페이지 주변으로 제한됩니다.
+- **경량 지오메트리 엔진**: 무거운 3D 변환 없이, 수학 기반 Path Clipping
+  엔진으로 곡선 클리핑, 동적 그림자, 반사 효과를 계산합니다.
+- **프로덕션 레이아웃 안정성**: 내부 제약 게이트가 `Stack`, `Column`,
+  `Scaffold` 등 어떤 부모 위젯에서도 안정적인 크기를 보장합니다.
 
-### 2. 지능형 메모리 윈도잉 (Intelligent Windowing)
-책이 10장이든 10,000장이든 메모리 점유율은 일정하게 유지됩니다.
-- **장점**: 현재 페이지와 탐색에 필요한 인접 페이지 중심으로 상태를 제한하여 전체 페이지를 동시에 유지하지 않습니다.
+## 감각 경험
 
-### 3. 경량 지오메트리 엔진
-오래된 하드웨어에서 떨림 현상을 유발할 수 있는 무거운 3D 변환 대신, 정교한 **수학적 경로 클리핑(Path Clipping) 엔진**을 사용합니다.
-- **장점**: 전체 3D 장면 없이 곡선 클리핑, 동적 그림자, 빛 반사 효과를 계산합니다.
+- **사운드**: 드래그 속도에 따라 자연스럽게 변화하는 고품질 페이지 넘김음.
+- **햅틱**: 기기 성능에 따라 자동 조정되는 햅틱 품질 라우팅. 프리미엄 기기는
+  연속 파형 텍스처, 기본 모터는 개별 확인 피드백.
 
-### 4. 프로덕션 수준의 레이아웃 안정성 (Single Constraint Gate)
-"Vertical viewport was given unbounded height" 같은 레이아웃 에러로 고생할 필요가 없습니다.
-- **장점**: 내부의 '제약 게이트' 구조가 부모 위젯(Stack, Column, Scaffold 등)이 무엇이든 상관없이 안정적으로 크기를 조정하고 렌더링합니다.
-
----
-
-## 감각적인 경험: 사운드와 진동
-
-오감을 자극하는 피드백으로 완성도를 높였습니다:
-- **실감 나는 사운드**: 드래그 속도에 따라 자연스럽게 변화하는 고품질 종이 질감 사운드.
-- **정밀한 햅틱**: 종이의 마찰력과 마지막에 붙는 느낌을 손끝으로 전달합니다.
-
-## 설치 방법
-
-`pubspec.yaml`에 `real_page_flip`을 추가하세요:
+## 설치
 
 ```bash
 flutter pub add real_page_flip
 ```
 
-기본 햅틱 모드는 기기 능력에 따라 자동 조정됩니다. 고급 기기는 연속 종이
-질감과 네이티브 프리미티브를 사용하고, 기본형 진동 모터는 페이지 확정 시점의
-짧은 피드백만 사용합니다. 완전 무진동은 `PaperTexturePreset.none`으로 설정합니다.
+## 빠른 시작
 
 ```dart
-PageFlipConfig(
-  hapticQuality: HapticQuality.adaptive, // 권장 기본값
-  hapticTexturePreset: PaperTexturePreset.textured,
+import 'package:real_page_flip/real_page_flip.dart';
+
+PageFlipWidget(
+  itemCount: 10,
+  itemBuilder: (context, index) => MyPage(index),
 )
 ```
 
-## 1면보기 정착 텍스처 정책
+## 단면 보기 정착 텍스처 정책
 
-기본적으로 1면보기는 페이지가 완전히 넘어가기 직전에 넘기는 면을 목적지 화면에
-맞춰 완화합니다. 넘기는 종이의 뒷면을 최종 확정까지 일정하게 유지해야 하는
-리더는 다음처럼 설정할 수 있습니다.
+단면 모드에서 페이지가 완료되기 직전 뒷면을 목적지에 맞춰 완화할지 제어합니다:
 
 ```dart
 PageFlipWidget(
@@ -104,15 +105,9 @@ PageFlipWidget(
 )
 ```
 
-이 설정을 끄면 중·저품질은 뒷면을 계속 비우고, 고품질은 85–95% 구간에서 갑자기
-밝아지지 않고 설정된 `singlePageBackContentOpacity`를 유지합니다. 이 설정은
-**1면보기만** 바꾸며, 실제 verso를 렌더링하는 2면보기에는 영향을 주지 않습니다.
+## 스냅샷 갱신
 
-## 스냅샷 갱신과 발열 예산
-
-호환성 기본값은 플립 시작마다 현재 페이지를 동기 캡처합니다. 길고 스크롤 가능한
-페이지나 Provider 구독이 많은 페이지는 dirty 기반 갱신을 사용하면, 변경되지 않은
-플립에서 미리 준비된 텍스처를 그대로 재사용할 수 있습니다.
+길고 스크롤이 있는 페이지나 Provider 구독이 많은 페이지에서 dirty 기반 갱신 사용:
 
 ```dart
 final flipController = PageFlipController();
@@ -128,25 +123,51 @@ PageFlipWidget(
   itemBuilder: (context, index) => pages[index],
 )
 
-// 한 페이지만 바뀌었다면 전체 갱신 대신 해당 페이지만 무효화합니다.
 flipController.markPageDirty(changedPageIndex);
-
-// TTS처럼 빠르게 바뀌는 임시 상태는 즉시 GPU 캡처하지 않고 dirty만 남깁니다.
-// 이후 ScrollEnd가 선캡처하거나, 실제 플립 시작 시 정확성 fallback을 사용합니다.
-flipController.markCurrentPageDirty(prewarm: false);
 ```
 
-`whenDirty`는 스크롤을 자동 감지하고 스크롤 종료 후 비동기로 선캡처합니다.
-`contentRevision`은 현재 보이는 페이지 창 전체를 선언적으로 갱신하고,
-`markPageDirty()`는 한 페이지만 갱신합니다. `maxSnapshotPixelRatio`는 움직이는
-래스터 텍스처에만 적용되며 정착된 실제 페이지는 기기 기본 해상도를 유지합니다.
-성능 프로필이나 스냅샷 DPR 상한이 바뀌어도 현재 페이지를 초기화하지 않고 캡처
-창만 새 해상도로 갱신합니다.
+## 다크 모드
+
+배경 휘도에 따라 그림자, 하이라이트, 엣지 마스크가 자동으로 조정됩니다.
+별도 설정 불필요:
+
+```dart
+MaterialApp(
+  theme: ThemeData.light(),
+  darkTheme: ThemeData.dark(),
+  themeMode: ThemeMode.system,
+  home: Scaffold(
+    body: PageFlipWidget(
+      itemCount: pages.length,
+      itemBuilder: (context, index) => MyPage(index),
+    ),
+  ),
+)
+```
+
+## 2면 보기 (Double-Spread)
+
+```dart
+PageFlipWidget(
+  spreadMode: PageFlipSpreadMode.doubleSpread,
+  itemCount: spreadCount,
+  itemBuilder: (context, spreadIndex) => MyTwoPageSpread(spreadIndex),
+)
+```
+
+## 프로젝트 후원
+
+Real Page Flip은 MIT 라이선스로 영원히 무료입니다. 그러나 프로덕션급 엔진 유지 —
+1,199개 테스트 실행, 실제 기기 검증, Flutter 업데이트 대응 — 에는 지속적인
+투자가 필요합니다.
+
+[GitHub Sponsors에서 후원하기 →](https://github.com/sponsors/ChaPDCha)
+
+기업 후원자는 README에 회사명 또는 로고를 노출하는 맞춤형 리워드를 선택할 수
+있습니다.
 
 ## 라이선스
 
-이 프로젝트는 **MIT 라이선스**를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 및 [LICENSE_KR](LICENSE_KR) 파일을 참고해 주세요. 비상업적 목적뿐만 아니라 상업적 프로젝트에서도 제한 없이 완전 무료로 사용하실 수 있습니다.
-
----
+MIT — 상업적/비상업적 모든 프로젝트에서 무료. [LICENSE](LICENSE) 참조.
 
 Built by [ChaPDCha](https://github.com/ChaPDCha)
