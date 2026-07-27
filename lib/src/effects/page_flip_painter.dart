@@ -634,7 +634,8 @@ class PageFlipPainter extends CustomPainter {
     canvas.save();
 
     if (!isDoubleSpread) {
-      canvas.clipRect(Offset.zero & size);
+      final bleed = size.height;
+      canvas.clipRect(Rect.fromLTRB(0, -bleed, size.width, size.height + bleed));
       canvas.transform(g.transform.storage);
 
       final creaseFoldFadeWidth = foldMaskWidth(
