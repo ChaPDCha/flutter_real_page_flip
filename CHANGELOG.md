@@ -3,6 +3,15 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.1.1] - 2026-07-27
+
+### Added
+- **6-platform support badge** in README with explicit platform list (Android, iOS, Web, Windows, macOS, Linux).
+- **Performance benchmark targets**: concrete frame-time thresholds (build <6ms, raster <5ms, P90 <10ms, P99 <12ms, 0 jank) added to README.
+
+### Changed
+- **Softened README tone**: replaced competitive comparison table with self-focused strengths list.
+
 ## [2.1.0] - 2026-07-27
 
 ### Changed
