@@ -5,6 +5,7 @@
 [![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![후원](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/demo-라이브%20웹%20미리보기-6C63FF?logo=flutter)](https://chapdcha.github.io/flutter_real_page_flip/)
 
 실제 서비스에서 검증된 Flutter 페이지 플립 엔진입니다. 단면 보기와 양면 보기를
 모두 지원하며, 물리 기반 종이 접힘, 적응형 햅틱, 사운드, 다크 모드를 제공합니다.
@@ -48,6 +49,14 @@ Real Page Flip은 현재 Google Play에 출시된 두 개의 앱에서 사용되
 | 감각 피드백 없음 | 연속 햅틱 파형 파이프라인 + 페이지 넘김 사운드 동기화 |
 
 ## 데모
+
+### 라이브 웹 미리보기
+
+**[브라우저에서 직접 체험하기 →](https://chapdcha.github.io/flutter_real_page_flip/)**
+
+페이지를 드래그하거나 탭하여 물리 엔진을 직접 느껴보세요. 단면/양면 보기 전환,
+민감도 및 종이 불투명도 조절, 햅틱 토글(실제 기기에서)까지 인앱 컨트롤 덱에서
+모두 조작할 수 있습니다.
 
 ### 모바일 1면 보기
 

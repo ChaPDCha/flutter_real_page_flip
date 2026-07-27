@@ -5,6 +5,7 @@
 [![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/demo-live%20web%20preview-6C63FF?logo=flutter)](https://chapdcha.github.io/flutter_real_page_flip/)
 
 A production-hardened page flip engine for Flutter. Single-page and double-spread.
 Physics-based paper fold, adaptive haptics, sound, dark mode. Runs on budget phones
@@ -49,6 +50,14 @@ English | [한국어](README_KR.md)
 | ~100 lines of demo code | 31 focused source files with documented architecture |
 
 ## Demos
+
+### Live Web Preview
+
+**[Try it in your browser →](https://chapdcha.github.io/flutter_real_page_flip/)**
+
+Drag or tap the pages to feel the physics. Switch between single-page and
+double-spread mode, tune sensitivity and paper opacity, or toggle haptics
+(on a real device) — all from the in-app control deck.
 
 ### Mobile single-page view
 
