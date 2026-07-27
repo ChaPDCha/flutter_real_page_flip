@@ -364,8 +364,11 @@ void main() {
         );
 
         // Pin iOS so device gain is the 1.0 reference (Android premium is 0.90).
+        // Use explicit premium to bypass adaptive→standard cap; this test
+        // targets the detent output math, not the quality routing policy.
         final handler = DefaultPageFlipEffectHandler(
           platform: TargetPlatform.iOS,
+          hapticQuality: HapticQuality.premium,
         );
         await Future<void>.delayed(Duration.zero);
         await handler.onHandleEffect(PageFlipEvent.detentHaptic);

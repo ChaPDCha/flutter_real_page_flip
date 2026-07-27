@@ -514,7 +514,6 @@ class PageFlipStateController {
     animationController.stop();
     animationController.value = 0.0;
     onEffectTrigger(PageFlipEvent.sound, volume: _kTapFlipSoundVolume);
-    onEffectTrigger(PageFlipEvent.impulseHaptic);
 
     animationController
         .animateTo(

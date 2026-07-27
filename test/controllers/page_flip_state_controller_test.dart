@@ -1489,9 +1489,11 @@ void main() {
 
       tapController.triggerTapFlip(isNext: true, totalPages: 5);
 
-      // Effects should fire immediately
+      // Sound fires synchronously from triggerTapFlip; impulseHaptic
+      // is deferred to _finalizePageChange (animation completion) to
+      // avoid double-firing (triggerTapFlip + _finalizePageChange).
       expect(soundFired, isTrue);
-      expect(hapticFired, isTrue);
+      expect(hapticFired, isFalse);
       tapController.dispose();
     });
   });

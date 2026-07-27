@@ -3,6 +3,15 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.1.2] - 2026-07-27
+
+### Fixed
+- **Adaptive haptic quality resolves to continuous waveform (all iPhones)**: `HapticCapabilities.resolve()` treated `adaptive` the same as `premium`, routing to the continuous waveform path on any iPhone with a Taptic Engine. That path streams amplitude arrays via MethodChannel at ~25 Hz, which causes a harsh buzz on every iPhone regardless of chassis size. The v2.1.0 fix (removing the native plugin) eliminated the buzz by collapsing all quality levels to basic discrete ticks, but also destroyed the mid-tier discrete-tick path (`standard`) that drives clean amplitude-aware drag texture. **Now fixed properly**: `adaptive` caps at `standard` — discrete drag ticks with amplitude control, never continuous waveform. Users who explicitly opt into `premium` still get the continuous path (with its known MethodChannel limitation).
+- **Tap flip fires impulse haptic twice**: `triggerTapFlip()` emitted `impulseHaptic` immediately, then `_finalizePageChange()` emitted it again ~300ms later when the animation completed. Removed the premature emission so only the settle thud at animation end fires.
+
+### Changed
+- **Native haptic plugin restored**: the `android/` and `ios/` plugin directories removed in v2.1.0 have been restored. The plugin is necessary for `AdvancedHapticEngine.getCapabilities()` to detect real motor capabilities (amplitude control, advanced haptics), which drives the quality routing in `HapticCapabilities.resolve()`. Without it, every platform falls back to `HapticCapabilities.basic()` (vibrator only, no amplitude), collapsing all quality levels to basic.
+
 ## [2.1.1] - 2026-07-27
 
 ### Added

@@ -44,8 +44,7 @@ class HapticCapabilities {
 
   HapticQuality resolve(HapticQuality requested) {
     if (requested == HapticQuality.basic) return HapticQuality.basic;
-    if ((requested == HapticQuality.premium ||
-            requested == HapticQuality.adaptive) &&
+    if (requested == HapticQuality.premium &&
         hasAdvancedHaptics &&
         hasAmplitudeControl) {
       return HapticQuality.premium;

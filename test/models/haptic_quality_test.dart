@@ -5,14 +5,17 @@ import 'package:real_page_flip/src/models/haptic_quality.dart'
 
 void main() {
   group('HapticCapabilities', () {
-    test('adaptive resolves the highest supported quality', () {
+    test('adaptive caps at standard, never premium (continuous waveform)', () {
+      // adaptive must never resolve to premium because the continuous
+      // waveform path (MethodChannel ~25Hz) buzzes on all iPhone Taptic
+      // Engines. Full hardware capabilities still cap at standard.
       expect(
         const HapticCapabilities(
           hasVibrator: true,
           hasAmplitudeControl: true,
           hasAdvancedHaptics: true,
         ).resolve(HapticQuality.adaptive),
-        HapticQuality.premium,
+        HapticQuality.standard,
       );
       expect(
         const HapticCapabilities(
