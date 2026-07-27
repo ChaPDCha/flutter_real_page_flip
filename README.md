@@ -6,10 +6,11 @@
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-live%20web%20preview-6C63FF?logo=flutter)](https://chapdcha.github.io/flutter_real_page_flip/)
+[![platforms](https://img.shields.io/badge/platforms-6%2F6-blue)](https://pub.dev/packages/real_page_flip)
 
 A production-hardened page flip engine for Flutter. Single-page and double-spread.
-Physics-based paper fold, adaptive haptics, sound, dark mode. Runs on budget phones
-without jank.
+Physics-based paper fold, adaptive haptics, sound, dark mode. Runs on Android, iOS,
+Web (CanvasKit + WASM), Windows, macOS, and Linux — all 6 Flutter platforms.
 
 ## Built for RealBible. Running in Production.
 

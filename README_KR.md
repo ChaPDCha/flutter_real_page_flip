@@ -6,10 +6,12 @@
 [![후원](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-라이브%20웹%20미리보기-6C63FF?logo=flutter)](https://chapdcha.github.io/flutter_real_page_flip/)
+[![platforms](https://img.shields.io/badge/platforms-6%2F6-blue)](https://pub.dev/packages/real_page_flip)
 
 실제 서비스에서 검증된 Flutter 페이지 플립 엔진입니다. 단면 보기와 양면 보기를
 모두 지원하며, 물리 기반 종이 접힘, 적응형 햅틱, 사운드, 다크 모드를 제공합니다.
-저사양 기기에서도 끊김 없이 작동합니다.
+Android, iOS, Web (CanvasKit + WASM), Windows, macOS, Linux — Flutter 6개 플랫폼
+전부에서 저사양 기기까지 끊김 없이 작동합니다.
 
 ## RealBible를 위해 개발되어, 실제 서비스에서 검증됨
 
