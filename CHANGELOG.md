@@ -3,6 +3,20 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.0.16] - 2026-07-27
+
+### Fixed
+- **Single-page crease shadow clipped at viewport edges during angled drags**: the crease shadow in single-page mode was hard-clipped to the viewport (`Offset.zero & size`), while the crease valley mesh, paper underlay, edge masks, and shading all use the shared extended vertical domain (`-H..2H`). At extreme vertical drag angles this created a visible seam where the shadow terminated abruptly at the top/bottom viewport edges. Extended the clip rect to `-H..2H`, matching `buildCurvedCreaseValleyPositions` and all other flap boundary paths.
+
+### Tests
+- Added 6 tests for extended vertical domain (`-H..2H`) consistency across `flapCurveBlendAt`, `buildCurvedCreaseValleyPositions`, and `buildFlapContentMesh`.
+- Added 35 tests for `ContinuousHapticBuffer` lifecycle, clamping, flush gating, reusability, boundary values, and rapid sampling stress.
+
+### Changed
+- Resolved all lint warnings (3 unused imports, directives ordering, unnecessary transitive imports, library names, prefer_int_literals). Lint: 35 → 16 issues (0 warnings).
+- Added `topics` field to `pubspec.yaml` for pub.dev discoverability.
+- Golden references updated for the crease shadow fix (4 single-page + 2 double-spread).
+
 ## [2.0.15] - 2026-07-27
 
 ### Refactored
