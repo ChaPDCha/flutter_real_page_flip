@@ -33,22 +33,19 @@ device, reported by a real user, and fixed:
 
 1,199 tests. 0 analyzer issues. Free (MIT) for any project, commercial or personal.
 
-In 2026, any AI coding tool can generate a page-flip animation in minutes.
-**This engine is different because it has already solved what a generated
-prototype has not even encountered yet.**
+**This engine is different because it has already solved edge cases that only
+surface after thousands of real-world page turns.**
 
 English | [한국어](README_KR.md)
 
-## Why This Engine (Not a Generated One)
+## What Sets This Engine Apart
 
-| Vibe-coded prototype | Real Page Flip |
-|----------------------|----------------|
-| Works on the developer's phone | Verified on budget iPhone and Android |
-| Looks correct at first glance | 1,199 tests catch edge cases you haven't seen |
-| Fixed resolution only | Three adaptive performance profiles (low/medium/high) |
-| Sterile visual output | Physics-modeled crease shadows, paper curl shading, dark-paper moonlight tones |
-| No sensory feedback | Continuous haptic waveform pipeline + synchronized page-rustle audio |
-| ~100 lines of demo code | 31 focused source files with documented architecture |
+- **Real-device verified**: Tested on budget iPhone SE and low-end Android devices — every listed bug was reported by an actual user and fixed.
+- **1,199 tests, 0 analyzer issues**: Covers gesture arbitration, geometry invariants, memory lifecycle, accessibility, and stress scenarios.
+- **Adaptive performance**: Three rendering profiles (low/medium/high) automatically scale to device capability.
+- **Physics-modeled visuals**: Crease shadows, paper curl shading, and dark-paper moonlight tones derived from physical paper behavior.
+- **Complete sensory feedback**: Continuous haptic waveform pipeline synchronized with speed-varying page-rustle audio.
+- **Production architecture**: 31 focused source files with documented structure.
 
 ## Demos
 
@@ -223,8 +220,20 @@ flutter run --profile -t lib/performance_benchmark.dart \
   --dart-define=FLIPS=80
 ```
 
-Logs completed flips, request-to-page-change latency, build/raster averages,
-P90/P99, max frame time, and jank count from `FrameTiming`.
+The benchmark runs 80 consecutive page flips on a real device and reports:
+
+| Metric | Target |
+|--------|--------|
+| Build time (avg) | < 6 ms |
+| Raster time (avg) | < 5 ms |
+| P90 frame time | < 10 ms |
+| P99 frame time | < 12 ms |
+| Max frame time | < 18 ms |
+| Jank count (80 flips) | 0 |
+
+Run across low/medium/high profiles to validate your target device tier. The
+benchmark is designed to catch regressions in snapshot capture, geometry
+computation, and shader performance before they reach users.
 
 ## Support the Project
 
