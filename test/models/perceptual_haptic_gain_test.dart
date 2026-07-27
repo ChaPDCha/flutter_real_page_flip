@@ -83,7 +83,7 @@ void main() {
 
     test('apply scales amplitude without exceeding soft ceiling', () {
       expect(
-        PerceptualHapticGain.apply(0.6, gain: 2.0),
+        PerceptualHapticGain.apply(0.6, gain: 2),
         equals(PerceptualHapticGain.amplitudeCeiling),
       );
       expect(PerceptualHapticGain.apply(0.1, gain: 1.3), closeTo(0.13, 1e-9));

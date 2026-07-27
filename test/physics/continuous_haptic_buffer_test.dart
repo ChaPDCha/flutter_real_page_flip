@@ -242,28 +242,28 @@ void main() {
     test('intensity at 0.0 is accepted', () {
       final buf = ContinuousHapticBuffer();
       buf.start();
-      buf.addSample(0.0);
+      buf.addSample(0);
       expect(buf.shouldFlush(100), isTrue);
     });
 
     test('intensity at 1.0 is accepted', () {
       final buf = ContinuousHapticBuffer();
       buf.start();
-      buf.addSample(1.0);
+      buf.addSample(1);
       expect(buf.shouldFlush(100), isTrue);
     });
 
     test('sharpness at 0.0 is accepted', () {
       final buf = ContinuousHapticBuffer();
       buf.start();
-      buf.addSample(0.5, sharpness: 0.0);
+      buf.addSample(0.5, sharpness: 0);
       expect(buf.shouldFlush(100), isTrue);
     });
 
     test('sharpness at 1.0 is accepted', () {
       final buf = ContinuousHapticBuffer();
       buf.start();
-      buf.addSample(0.5, sharpness: 1.0);
+      buf.addSample(0.5, sharpness: 1);
       expect(buf.shouldFlush(100), isTrue);
     });
   });

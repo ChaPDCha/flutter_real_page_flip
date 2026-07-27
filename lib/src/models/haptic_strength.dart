@@ -1,7 +1,7 @@
 /// User-facing perceived intensity preference for page-flip haptics.
 ///
-/// This is independent of [PaperTexturePreset] (material character) and
-/// [HapticQuality] (native fidelity route). It only scales output gain.
+/// This is independent of `PaperTexturePreset` (material character) and
+/// `HapticQuality` (native fidelity route). It only scales output gain.
 enum HapticStrength {
   /// Quieter scrape / settle — useful on high-output flagship motors.
   light('light'),

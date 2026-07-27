@@ -1582,8 +1582,6 @@ void main() {
         isRightToLeft: false,
         touchOffset: Offset.zero,
         size: const Size(400, 800),
-        isDoubleSpread: false,
-        isForward: true,
       );
       final positions = buildCurvedCreaseValleyPositions(
         geo,
@@ -1592,8 +1590,8 @@ void main() {
         segments: 4,
       );
       // positions is [rows × cols × 2] flat array; Y values are at odd indices.
-      double minY = double.infinity;
-      double maxY = double.negativeInfinity;
+      var minY = double.infinity;
+      var maxY = double.negativeInfinity;
       for (var i = 1; i < positions.length; i += 2) {
         final y = positions[i];
         if (y < minY) minY = y;
@@ -1610,8 +1608,6 @@ void main() {
         isRightToLeft: false,
         touchOffset: Offset.zero,
         size: const Size(400, 800),
-        isDoubleSpread: false,
-        isForward: true,
       );
       // The top and bottom rows should evaluate flapCurveBlendAt at -H and 2H
       // respectively, where the curve blend is zero — no X offset from fold.
@@ -1622,10 +1618,10 @@ void main() {
         revealedSideWidth: 50,
         segments: 2,
       );
-      final colCount = 3;
-      final rowLen = colCount * 2;
+      const colCount = 3;
+      const rowLen = colCount * 2;
       // First row (Y ≈ -H) and last row (Y ≈ 2H)
-      final firstRowBase = 0;
+      const firstRowBase = 0;
       final lastRowBase = (positions.length ~/ 2 - colCount) * 2;
       // All X values in first/last row should equal geo.foldX (no curve offset
       // because flapCurveBlendAt(-H) = flapCurveBlendAt(2H) = 0).

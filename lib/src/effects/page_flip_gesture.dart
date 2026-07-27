@@ -102,7 +102,7 @@ class PageFlipGestureRecognizer extends HorizontalDragGestureRecognizer {
   /// Eagerly wins the arena for horizontal page-flip intent only.
   ///
   /// Vertical/content gestures are not rejected here; [hasSufficientGlobalDistanceToAccept]
-  /// stays false so [SelectableText] and scrollables can win instead.
+  /// stays false so `SelectableText` and scrollables can win instead.
   void _acceptFlipArenaWhenReady() {
     if (_flipArenaAccepted) return;
 

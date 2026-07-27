@@ -71,7 +71,7 @@ Color discreteShadowTone({required bool isPaperDark}) =>
 /// the band — with its peak alpha lowered at the call sites — turns the accent
 /// into a soft moonlit falloff. Light paper keeps 1.0 (shadows already blend).
 /// The dark scale keeps the widened crease band (22px → ~35px) within the 36px
-/// revealed-shadow layout guard reserved by [conservativeFoldAngleLimit].
+/// revealed-shadow layout guard reserved by `conservativeFoldAngleLimit`.
 double glowBandWidthScale({required bool isPaperDark}) =>
     isPaperDark ? 1.6 : 1.0;
 

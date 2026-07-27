@@ -101,8 +101,8 @@ double flipShadowOnset(double progress) {
   return t * t * (3 - 2 * t);
 }
 
-/// Pre-computed identity matrix storage for [ui.ImageShader] transforms.
-/// Avoids allocating a new [Matrix4] + extracting storage every paint frame.
+/// Pre-computed identity matrix storage for `ui.ImageShader` transforms.
+/// Avoids allocating a new `Matrix4` + extracting storage every paint frame.
 final Float64List identityMatrixStorage =
     Float64List.fromList(Matrix4.identity().storage);
 

@@ -139,7 +139,7 @@ double foldCurveXAt(PageFlipGeometry geo, double localY) {
 
 /// Local-space x coordinate of the curved flap free edge at [localY].
 ///
-/// This matches the edge column produced by [buildFlapContentMesh]. Masks and
+/// This matches the edge column produced by `buildFlapContentMesh`. Masks and
 /// crease shading must use the same curve; otherwise the paper curls but its
 /// edge shadow remains a straight strip.
 double flapEdgeCurveXAt(PageFlipGeometry geo, double localY) {
@@ -506,7 +506,7 @@ Path buildCurvedFreeEdgeShadowPath(
   return path;
 }
 
-/// Local-space flap region clip used by [PageFlipPainter] (matches fold seam).
+/// Local-space flap region clip used by `PageFlipPainter` (matches fold seam).
 Path buildFlapClipPathLocal(
   PageFlipGeometry geo, {
   double foldEdgeBleedPx = kSpineRevealOverlapPx,
@@ -571,9 +571,9 @@ Rect buildFlapPaintBoundsLocal(
 }
 
 
-/// Screen-space flap region clip used by [PageFlipPainter] BEFORE canvas transform.
+/// Screen-space flap region clip used by `PageFlipPainter` BEFORE canvas transform.
 ///
-/// Unlike [buildFlapClipPathLocal] (which operates in transformed local space),
+/// Unlike `buildFlapClipPathLocal` (which operates in transformed local space),
 /// this path follows the actual fold line and flap edge in screen space so it
 /// exactly matches the clip of Layer 2 (stationary page), eliminating the seam
 /// where wrong content shows through.
