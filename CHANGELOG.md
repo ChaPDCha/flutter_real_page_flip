@@ -3,6 +3,15 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.1.5] - 2026-07-28
+
+### Fixed
+- **Legacy iPhone paper texture is now speed-responsive**: the basic-motor route no longer discards drag texture. Gentle drags emit sparse, very soft 10 ms ticks; faster drags increase both tick strength and cadence without using a continuous waveform.
+- **Safe UIKit fallback for pre-Core-Haptics hardware**: devices without a Core Haptics engine use selection feedback at the lowest tier and prepared light-impact feedback with bounded intensity above it.
+- **iOS release metadata aligned**: the CocoaPods spec version now matches the Flutter package release.
+
+### Tests
+- Added a basic-motor regression proving slow-to-fast drag ticks grow in intensity while never emitting a continuous waveform.
 ## [2.1.4] - 2026-07-28
 
 ### Fixed

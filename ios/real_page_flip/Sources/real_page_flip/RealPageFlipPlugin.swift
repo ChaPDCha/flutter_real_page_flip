@@ -243,12 +243,26 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   // MARK: - Legacy discrete methods (backward compatibility)
   // -----------------------------------------------------------------------
 
+  /// Fallback for iPhones that do not expose Core Haptics. Cadence is already
+  /// shaped in Dart; UIKit intensity adds a gentle slow-to-fast strength cue.
+  private func playLegacyPaperTick(intensity: Float) {
+    let clamped = min(max(intensity, 0.0), 1.0)
+    if clamped < 0.16 {
+      UISelectionFeedbackGenerator().selectionChanged()
+      return
+    }
+
+    let generator = UIImpactFeedbackGenerator(style: .light)
+    generator.prepare()
+    generator.impactOccurred(intensity: CGFloat(max(0.20, clamped)))
+  }
+
   private func playTransient(intensity: Float, sharpness: Float, durationMs: Int) {
     let clampedDurationMs = min(max(durationMs, 1), 500)
     let route = clampedDurationMs <= 25 ? "transient" : "continuous"
     print("[HAPTIC_DIAGNOSTIC] iOS playTransient: intensity=\(intensity), sharpness=\(sharpness), durationMs=\(clampedDurationMs), route=\(route)")
     guard let engine = hapticEngine else {
-      UIImpactFeedbackGenerator(style: .light).impactOccurred()
+      playLegacyPaperTick(intensity: intensity)
       return
     }
 
@@ -274,7 +288,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       let player = try engine.makePlayer(with: pattern)
       try player.start(atTime: CHHapticTimeImmediate)
     } catch {
-      UISelectionFeedbackGenerator().selectionChanged()
+      playLegacyPaperTick(intensity: intensity)
     }
   }
 

@@ -229,7 +229,9 @@ void main() {
       handler.dispose();
     });
 
-    test('basic quality never emits a drag waveform', () async {
+    test(
+        'basic quality uses speed-responsive discrete paper ticks, never a waveform',
+        () async {
       final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
@@ -246,18 +248,39 @@ void main() {
       final handler = DefaultPageFlipEffectHandler(
         hapticQuality: HapticQuality.basic,
       );
+      await Future<void>.delayed(Duration.zero);
       await handler.onHandleEffect(
         PageFlipEvent.texturedHaptic,
         pageIndex: 0,
         intensity: 84,
         texture: 1,
+        resistance: 0.1,
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await handler.onHandleEffect(
+        PageFlipEvent.texturedHaptic,
+        pageIndex: 0,
+        intensity: 84,
+        texture: 0.8,
         resistance: 1,
       );
 
+      final hapticCalls = calls
+          .where((call) => call.method != 'getHapticCapabilities')
+          .toList();
       expect(
-        calls.map((call) => call.method),
+        hapticCalls.map((call) => call.method),
         isNot(contains('playContinuousWaveform')),
       );
+      final ticks =
+          hapticCalls.where((call) => call.method == 'playTransient').toList();
+      expect(ticks, hasLength(2));
+      final slowIntensity =
+          (ticks.first.arguments as Map)['intensity'] as double;
+      final fastIntensity =
+          (ticks.last.arguments as Map)['intensity'] as double;
+      expect(fastIntensity, greaterThan(slowIntensity));
       handler.dispose();
     });
 

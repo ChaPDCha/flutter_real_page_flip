@@ -55,6 +55,16 @@ double cappedFlipSoundVolume(double requestedVolume) {
   );
 }
 
+/// Uses slower, sparser feedback for gentle drags and denser feedback for
+/// fast turns. This is the tactile speed cue on motors without amplitude
+/// control, where a continuous waveform would feel like an intrusive buzz.
+@visibleForTesting
+int discretePaperTickGapMs(double speedFactor) {
+  final speed = speedFactor.clamp(0.0, 1.0);
+  final curve = speed * speed * (3 - 2 * speed);
+  return (84 - 48 * curve).round();
+}
+
 @visibleForTesting
 double paperSettleIntensity({
   required PaperTexturePreset preset,
@@ -127,8 +137,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   // ---------------------------------------------------------------------------
   final ContinuousHapticBuffer _continuousBuffer = ContinuousHapticBuffer();
 
-  /// Throttle for [HapticQuality.standard] discrete drag ticks.
-  static const int _discreteTickGapMs = 36;
   int _lastDiscreteTickMs = 0;
 
   @override
@@ -307,8 +315,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         break;
       case PageFlipEvent.continuousHaptic:
       case PageFlipEvent.texturedHaptic:
-        // basic: no drag texture. standard: discrete ticks. premium: continuous.
-        if (_resolvedHapticQuality == HapticQuality.basic) break;
+        // Basic and standard devices use sparse discrete paper ticks; premium
+        // devices use the continuous waveform. This keeps legacy iPhones
+        // tactile without reintroducing a continuous buzz.
         if (pageIndex != null && texture != null) {
           _handlePhysicsHaptic(
             pageIndex: pageIndex,
@@ -403,6 +412,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       _emitDiscreteDragTick(
         amplitude: output.amplitude,
         sharpness: output.sharpness,
+        speedFactor: speedFactor,
       );
       return;
     }
@@ -446,9 +456,10 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   void _emitDiscreteDragTick({
     required double amplitude,
     required double sharpness,
+    required double speedFactor,
   }) {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    if (nowMs - _lastDiscreteTickMs < _discreteTickGapMs) {
+    if (nowMs - _lastDiscreteTickMs < discretePaperTickGapMs(speedFactor)) {
       return;
     }
     _lastDiscreteTickMs = nowMs;
