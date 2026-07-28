@@ -3,6 +3,14 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [2.1.4] - 2026-07-28
+
+### Fixed
+- **Adaptive paper texture follows real drag speed on every viewport**: haptic strength uses viewport-normalized page widths per second, so equivalent gestures keep the same tactile curve on phones, tablets, portrait, and landscape layouts.
+- **Legacy motor landing is now a single soft tick**: devices without amplitude control use one 8 ms low-intensity transient at page settle instead of a coarse settle-thud pattern.
+
+### Tests
+- Added slow-to-fast haptic output, equivalent-width gesture, and legacy-motor settle routing regressions.
 ## [2.1.3] - 2026-07-27
 
 ### Added
