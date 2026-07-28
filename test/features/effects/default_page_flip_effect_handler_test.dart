@@ -46,6 +46,30 @@ void main() {
     }
   });
 
+  test('slow and fast drags map to progressively stronger paper texture', () {
+    final slow = shapePaperHapticOutput(
+      preset: PaperTexturePreset.standard,
+      rawAmplitude: 0.5,
+      rawSharpness: 0.5,
+      speedFactor: 0.08,
+    );
+    final medium = shapePaperHapticOutput(
+      preset: PaperTexturePreset.standard,
+      rawAmplitude: 0.5,
+      rawSharpness: 0.5,
+      speedFactor: 0.5,
+    );
+    final fast = shapePaperHapticOutput(
+      preset: PaperTexturePreset.standard,
+      rawAmplitude: 0.5,
+      rawSharpness: 0.5,
+      speedFactor: 0.92,
+    );
+
+    expect(slow.amplitude, lessThan(medium.amplitude));
+    expect(medium.amplitude, lessThan(fast.amplitude));
+    expect(fast.amplitude, greaterThan(slow.amplitude * 2.4));
+  });
   test('none preset produces no haptic waveform samples', () {
     final output = shapePaperHapticOutput(
       preset: PaperTexturePreset.none,
@@ -59,7 +83,8 @@ void main() {
     expect(output.samplesPerGrain, 0);
   });
 
-  test('perceptualGain scales paper output above authored maxAmplitude band', () {
+  test('perceptualGain scales paper output above authored maxAmplitude band',
+      () {
     final baseline = shapePaperHapticOutput(
       preset: PaperTexturePreset.standard,
       rawAmplitude: 0.5,
@@ -236,6 +261,43 @@ void main() {
       handler.dispose();
     });
 
+    test('basic quality settles with one short transient, never a thud',
+        () async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('com.chapdcha.real_page_flip/haptics'),
+        (call) async {
+          calls.add(call);
+          if (call.method == 'getHapticCapabilities') {
+            return {
+              'hasVibrator': true,
+              'hasAmplitudeControl': false,
+              'hasAdvancedHaptics': false,
+            };
+          }
+          return null;
+        },
+      );
+      final handler = DefaultPageFlipEffectHandler(
+        hapticQuality: HapticQuality.basic,
+      );
+      await handler.onHandleEffect(
+        PageFlipEvent.impulseHaptic,
+        pageIndex: 0,
+        intensity: 120,
+      );
+
+      final hapticCalls = calls
+          .where((call) => call.method != 'getHapticCapabilities')
+          .toList();
+      expect(hapticCalls, hasLength(1));
+      expect(hapticCalls.single.method, 'playTransient');
+      final args = hapticCalls.single.arguments as Map;
+      expect(args['intensity'], lessThan(0.35));
+      expect(args['durationMs'], 8);
+      handler.dispose();
+    });
     test('standard quality uses discrete ticks, never continuous waveform',
         () async {
       final calls = <MethodCall>[];

@@ -18,7 +18,7 @@ enum PageFlipEvent {
   continuousHaptic,
 
   /// 피드 포워드 햅틱 이벤트 (velocity + fold angle).
-  /// texture: 폴드 각도 (0~1), resistance: 페이지 저항감 (0~1)
+  /// texture: 폴드 각도 (0~1), resistance: 방향과 무관한 정규화 드래그 속도 (0~1)
   texturedHaptic,
 
   /// A single crisp micro-tick fired the instant a drag crosses the success

@@ -457,6 +457,62 @@ void main() {
       expect(fast.speed, inInclusiveRange(0, 1));
     });
 
+    test(
+        'equivalent page-relative drags keep the same haptic curve across widths',
+        () {
+      ({int intensity, double speed}) sample({
+        required double width,
+        required double delta,
+      }) {
+        int? capturedIntensity;
+        double? capturedSpeed;
+        final local = PageFlipStateController(
+          vsync: const TestVSync(),
+          animationDuration: const Duration(milliseconds: 300),
+          onUpdate: () {},
+          onPageFinalized: (_) {},
+          onEffectTrigger: (
+            effect, {
+            intensity,
+            pageIndex,
+            resistance,
+            texture,
+            timestampMs,
+            volume,
+          }) {
+            if (effect == PageFlipEvent.texturedHaptic) {
+              capturedIntensity = intensity;
+              capturedSpeed = resistance;
+            }
+          },
+        )..updateCachedWidth(width);
+        local.onDragStart(
+          DragStartDetails(
+            localPosition: Offset.zero,
+            sourceTimeStamp: Duration.zero,
+          ),
+          5,
+        );
+        local.onDragUpdate(
+          DragUpdateDetails(
+            primaryDelta: -delta,
+            delta: Offset(-delta, 0),
+            globalPosition: Offset.zero,
+            localPosition: Offset.zero,
+            sourceTimeStamp: const Duration(milliseconds: 40),
+          ),
+          5,
+        );
+        local.dispose();
+        return (intensity: capturedIntensity!, speed: capturedSpeed!);
+      }
+
+      final phone = sample(width: 360, delta: 12);
+      final tablet = sample(width: 800, delta: 800 / 30);
+
+      expect(tablet.intensity, phone.intensity);
+      expect(tablet.speed, closeTo(phone.speed, 1e-9));
+    });
     test('drag sound fires only when release commits the page flip', () {
       final events = <PageFlipEvent>[];
       final volumes = <double>[];

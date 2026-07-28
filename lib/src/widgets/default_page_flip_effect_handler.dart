@@ -279,18 +279,31 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         }
         break;
       case PageFlipEvent.impulseHaptic:
-        final targetIntensity = _resolvedHapticQuality == HapticQuality.basic
+        final isBasicMotor = _resolvedHapticQuality == HapticQuality.basic;
+        final targetIntensity = isBasicMotor
             ? PerceptualHapticGain.apply(0.35, gain: _perceptualGain)
             : paperSettleIntensity(
                 preset: hapticTexturePreset,
                 controllerIntensity: intensity ?? 90,
                 perceptualGain: _perceptualGain,
               );
-        unawaited(
-          AdvancedHapticEngine.playSettleThud(
-            intensity: targetIntensity,
-          ),
-        );
+        if (isBasicMotor) {
+          // Legacy motors cannot shape a paper landing safely. A single short
+          // tick acknowledges the turn without turning into a coarse buzz.
+          unawaited(
+            AdvancedHapticEngine.playTransient(
+              intensity: targetIntensity,
+              sharpness: 0.25,
+              durationMs: 8,
+            ),
+          );
+        } else {
+          unawaited(
+            AdvancedHapticEngine.playSettleThud(
+              intensity: targetIntensity,
+            ),
+          );
+        }
         break;
       case PageFlipEvent.continuousHaptic:
       case PageFlipEvent.texturedHaptic:
