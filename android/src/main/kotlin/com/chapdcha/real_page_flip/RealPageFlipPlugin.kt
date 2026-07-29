@@ -121,22 +121,25 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         lastVibrateAt = 0L
     }
 
-    private fun supportsRequiredPrimitives(): Boolean {
+    private fun supportsPrimitives(vararg primitives: Int): Boolean {
         if (!isVibratorAvailable ||
             !hasAmplitudeControl ||
             Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return false
         }
         return try {
-            vibrator?.arePrimitivesSupported(
-                VibrationEffect.Composition.PRIMITIVE_TICK,
-                VibrationEffect.Composition.PRIMITIVE_CLICK,
-                VibrationEffect.Composition.PRIMITIVE_THUD
-            )?.all { it } == true
+            vibrator?.arePrimitivesSupported(*primitives)?.all { it } == true
         } catch (_: Exception) {
             false
         }
     }
+
+    private fun supportsRequiredPrimitives(): Boolean = supportsPrimitives(
+        VibrationEffect.Composition.PRIMITIVE_TICK,
+        VibrationEffect.Composition.PRIMITIVE_CLICK,
+        VibrationEffect.Composition.PRIMITIVE_THUD,
+        VibrationEffect.Composition.PRIMITIVE_LOW_TICK
+    )
 
     private fun shouldEmitVibration(force: Boolean = false): Boolean {
         val now = SystemClock.uptimeMillis()
@@ -220,7 +223,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun playPaperTick(scale: Double) {
         if (!shouldEmitVibration()) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (supportsPrimitives(VibrationEffect.Composition.PRIMITIVE_TICK)) {
             val clamped = scale.toFloat().coerceIn(0.03f, 0.48f)
             try {
                 val effect = VibrationEffect.startComposition()
@@ -246,7 +249,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
             playFallback(clampedDuration.toLong(), amplitude)
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (supportsPrimitives(VibrationEffect.Composition.PRIMITIVE_TICK)) {
             val scale = (intensity * 0.85).toFloat().coerceIn(0.03f, 0.48f)
             try {
                 val effect = VibrationEffect.startComposition()
@@ -266,7 +269,7 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         val shouldEmit = shouldEmitVibration()
         android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playThud: intensity=$intensity, shouldEmit=$shouldEmit")
         if (!shouldEmit) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (supportsPrimitives(VibrationEffect.Composition.PRIMITIVE_THUD)) {
             val scale = (intensity * 0.55).toFloat().coerceIn(0.08f, 0.5f)
             try {
                 val effect = VibrationEffect.startComposition()
@@ -287,7 +290,10 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         val shouldEmit = shouldEmitVibration(force = true)
         android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playSlipBurst: intensity=$intensity, shouldEmit=$shouldEmit")
         if (!shouldEmit) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (supportsPrimitives(
+                VibrationEffect.Composition.PRIMITIVE_CLICK,
+                VibrationEffect.Composition.PRIMITIVE_TICK
+            )) {
             val scale1 = (intensity * 0.8).toFloat().coerceIn(0.05f, 0.65f)
             val scale2 = (intensity * 0.55).toFloat().coerceIn(0.05f, 0.55f)
             try {
@@ -322,7 +328,10 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         val shouldEmit = shouldEmitVibration(force = true)
         android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playSettleThud: intensity=$intensity, shouldEmit=$shouldEmit")
         if (!shouldEmit) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (supportsPrimitives(
+                VibrationEffect.Composition.PRIMITIVE_THUD,
+                VibrationEffect.Composition.PRIMITIVE_LOW_TICK
+            )) {
             val scaleThud = (intensity * 0.6).toFloat().coerceIn(0.08f, 0.6f)
             val scaleTick = (intensity * 0.35).toFloat().coerceIn(0.05f, 0.45f)
             try {
