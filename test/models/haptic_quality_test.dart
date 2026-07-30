@@ -5,17 +5,17 @@ import 'package:real_page_flip/src/models/haptic_quality.dart'
 
 void main() {
   group('HapticCapabilities', () {
-    test('adaptive caps at standard, never premium (continuous waveform)', () {
-      // adaptive must never resolve to premium because the continuous
-      // waveform path (MethodChannel ~25Hz) buzzes on all iPhone Taptic
-      // Engines. Full hardware capabilities still cap at standard.
+    test('adaptive uses premium continuous texture when hardware allows', () {
+      // Capable motors (flagship phones with Core Haptics / composition
+      // primitives) restore the paper-scrape continuous path. Compact
+      // iPhones still report no advanced flags and stay on basic.
       expect(
         const HapticCapabilities(
           hasVibrator: true,
           hasAmplitudeControl: true,
           hasAdvancedHaptics: true,
         ).resolve(HapticQuality.adaptive),
-        HapticQuality.standard,
+        HapticQuality.premium,
       );
       expect(
         const HapticCapabilities(
@@ -60,6 +60,25 @@ void main() {
       expect(
         capabilities.resolve(HapticQuality.premium),
         HapticQuality.basic,
+      );
+    });
+
+    test('explicit premium still requires advanced + amplitude', () {
+      expect(
+        const HapticCapabilities(
+          hasVibrator: true,
+          hasAmplitudeControl: true,
+          hasAdvancedHaptics: false,
+        ).resolve(HapticQuality.premium),
+        HapticQuality.standard,
+      );
+      expect(
+        const HapticCapabilities(
+          hasVibrator: true,
+          hasAmplitudeControl: true,
+          hasAdvancedHaptics: true,
+        ).resolve(HapticQuality.premium),
+        HapticQuality.premium,
       );
     });
   });

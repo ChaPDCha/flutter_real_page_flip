@@ -17,15 +17,14 @@ enum HapticQuality {
 
 /// Capability result returned by the native haptic implementation.
 ///
-/// On compact iPhones (SE, 12/13 mini), the iOS plugin previously reported
-/// [hasAmplitudeControl] and [hasAdvancedHaptics] as `false` so
-/// [HapticQuality.adaptive] resolved to [HapticQuality.basic] (settle-only).
+/// Compact iPhones (SE, 12/13 mini) report [hasAmplitudeControl] and
+/// [hasAdvancedHaptics] as `false`, so [HapticQuality.adaptive] resolves to
+/// [HapticQuality.basic] (sparse discrete ticks only).
 ///
-/// As of v2.1.2 the adaptive quality caps at standard — discrete drag ticks with
-/// amplitude control, never continuous waveform. The continuous waveform path
-/// (MethodChannel at ~25 Hz) causes a harsh buzz on every iPhone Taptic Engine
-/// regardless of chassis size. Users who explicitly opt into [HapticQuality.premium]
-/// still get the continuous path with its known MethodChannel limitation.
+/// On capable motors, adaptive restores continuous paper texture
+/// ([HapticQuality.premium]). Mid-tier amplitude-only motors stay on
+/// [HapticQuality.standard] discrete ticks. Continuous sessions must still be
+/// stopped on pointer-up via session invalidation and native stopContinuous.
 class HapticCapabilities {
   const HapticCapabilities({
     required this.hasVibrator,
@@ -44,7 +43,8 @@ class HapticCapabilities {
 
   HapticQuality resolve(HapticQuality requested) {
     if (requested == HapticQuality.basic) return HapticQuality.basic;
-    if (requested == HapticQuality.premium &&
+    if ((requested == HapticQuality.premium ||
+            requested == HapticQuality.adaptive) &&
         hasAdvancedHaptics &&
         hasAmplitudeControl) {
       return HapticQuality.premium;

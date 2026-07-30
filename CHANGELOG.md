@@ -1,13 +1,26 @@
+## [2.1.7] - 2026-07-30
+
+### Changed
+- **Adaptive restores continuous paper scrape on capable motors**: `HapticQuality.adaptive` again resolves to `premium` when amplitude control and advanced haptics are both present. Compact iPhones still report downgraded capabilities and stay on sparse basic ticks.
+- **Settle landing is a soft 8 ms transient** (≤0.22 intensity) instead of `playSettleThud`, so page-complete feedback stays below the drag scrape.
+
+### Fixed
+- **iPhone continuous vibration that outlived pointer-up**: `ContinuousHapticBuffer` invalidates in-flight flushes with a session id and re-issues `stopContinuous` if a late waveform invoke already started. iOS `stopContinuous` / `cancel` now silence intensity, disable looping, then stop the advanced player.
+
+### Tests
+- Adaptive→premium continuous routing, soft-settle (no thud), and stop/flush race regressions.
+
+# Changelog
+
+All notable changes to the `real_page_flip` **package** will be documented here.
+For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
+
 ## [2.1.6] - 2026-07-29
 
 ### Fixed
 
 - Android page-turn haptics now check each composition primitive before use. Devices that expose Android 11+ APIs but do not support Tick, Click, Thud, or Low Tick immediately use the bounded one-shot/waveform fallback instead of silently producing no feedback.
 - Kept the existing drag paper-grain, detent, tap impulse, and settle profiles intact while making their fallback route reliable on partial-primitive hardware.
-# Changelog
-
-All notable changes to the `real_page_flip` **package** will be documented here.
-For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
 ## [2.1.5] - 2026-07-28
 

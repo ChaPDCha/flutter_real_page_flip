@@ -74,7 +74,9 @@ double paperSettleIntensity({
   if (!preset.hapticsEnabled) return 0;
   final level = preset.hapticLevel / 4.0;
   final gesture = (controllerIntensity / 120.0).clamp(0.0, 1.0);
-  final raw = (0.12 + level * 0.48 + gesture * 0.22).clamp(0.0, 0.82);
+  // Soft landing tick only — scrape carries the tactile story; settle is a
+  // quiet "page arrived" cue that must stay well below drag texture peaks.
+  final raw = (0.08 + level * 0.10 + gesture * 0.06).clamp(0.06, 0.22);
   return PerceptualHapticGain.apply(raw, gain: perceptualGain);
 }
 
@@ -287,31 +289,22 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         }
         break;
       case PageFlipEvent.impulseHaptic:
-        final isBasicMotor = _resolvedHapticQuality == HapticQuality.basic;
-        final targetIntensity = isBasicMotor
-            ? PerceptualHapticGain.apply(0.35, gain: _perceptualGain)
+        // Soft landing tick for every quality route — never the old settle
+        // thud, which competed with paper scrape and read as a spare buzz.
+        final targetIntensity = _resolvedHapticQuality == HapticQuality.basic
+            ? PerceptualHapticGain.apply(0.18, gain: _perceptualGain)
             : paperSettleIntensity(
                 preset: hapticTexturePreset,
                 controllerIntensity: intensity ?? 90,
                 perceptualGain: _perceptualGain,
               );
-        if (isBasicMotor) {
-          // Legacy motors cannot shape a paper landing safely. A single short
-          // tick acknowledges the turn without turning into a coarse buzz.
-          unawaited(
-            AdvancedHapticEngine.playTransient(
-              intensity: targetIntensity,
-              sharpness: 0.25,
-              durationMs: 8,
-            ),
-          );
-        } else {
-          unawaited(
-            AdvancedHapticEngine.playSettleThud(
-              intensity: targetIntensity,
-            ),
-          );
-        }
+        unawaited(
+          AdvancedHapticEngine.playTransient(
+            intensity: targetIntensity,
+            sharpness: 0.22,
+            durationMs: 8,
+          ),
+        );
         break;
       case PageFlipEvent.continuousHaptic:
       case PageFlipEvent.texturedHaptic:

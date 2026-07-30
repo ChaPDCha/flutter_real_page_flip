@@ -132,6 +132,13 @@ void main() {
       ),
       0,
     );
+    expect(
+      paperSettleIntensity(
+        preset: PaperTexturePreset.kraft,
+        controllerIntensity: 120,
+      ),
+      lessThanOrEqualTo(0.22),
+    );
   });
 
   setUpAll(() {
@@ -319,6 +326,85 @@ void main() {
       final args = hapticCalls.single.arguments as Map;
       expect(args['intensity'], lessThan(0.35));
       expect(args['durationMs'], 8);
+      handler.dispose();
+    });
+
+    test('capable settle uses soft transient, never playSettleThud', () async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('com.chapdcha.real_page_flip/haptics'),
+        (call) async {
+          calls.add(call);
+          if (call.method == 'getHapticCapabilities') {
+            return {
+              'hasVibrator': true,
+              'hasAmplitudeControl': true,
+              'hasAdvancedHaptics': true,
+            };
+          }
+          return null;
+        },
+      );
+      final handler = DefaultPageFlipEffectHandler(
+        hapticQuality: HapticQuality.premium,
+      );
+      await Future<void>.delayed(Duration.zero);
+      await handler.onHandleEffect(
+        PageFlipEvent.impulseHaptic,
+        pageIndex: 0,
+        intensity: 120,
+      );
+
+      final hapticCalls = calls
+          .where((call) => call.method != 'getHapticCapabilities')
+          .toList();
+      expect(hapticCalls.map((c) => c.method), isNot(contains('playSettleThud')));
+      expect(hapticCalls, hasLength(1));
+      expect(hapticCalls.single.method, 'playTransient');
+      final args = hapticCalls.single.arguments as Map;
+      expect(args['intensity'], lessThanOrEqualTo(0.22));
+      expect(args['durationMs'], 8);
+      handler.dispose();
+    });
+
+    test('adaptive quality restores continuous waveform on capable motors',
+        () async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('com.chapdcha.real_page_flip/haptics'),
+        (call) async {
+          calls.add(call);
+          if (call.method == 'getHapticCapabilities') {
+            return {
+              'hasVibrator': true,
+              'hasAmplitudeControl': true,
+              'hasAdvancedHaptics': true,
+            };
+          }
+          return null;
+        },
+      );
+      final handler = DefaultPageFlipEffectHandler(
+        hapticQuality: HapticQuality.adaptive,
+      );
+      await Future<void>.delayed(Duration.zero);
+      for (var i = 0; i < 8; i++) {
+        await handler.onHandleEffect(
+          PageFlipEvent.texturedHaptic,
+          pageIndex: 0,
+          intensity: 84,
+          texture: 0.5,
+          resistance: 0.8,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 8));
+      }
+
+      expect(
+        calls.map((call) => call.method),
+        contains('playContinuousWaveform'),
+      );
       handler.dispose();
     });
     test('standard quality uses discrete ticks, never continuous waveform',

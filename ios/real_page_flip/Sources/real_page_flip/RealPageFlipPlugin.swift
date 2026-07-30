@@ -118,7 +118,20 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       result(nil)
 
     case "cancel":
-      try? _continuousPlayer?.stop(atTime: CHHapticTimeImmediate)
+      do {
+        if let player = _continuousPlayer {
+          let silence = CHHapticDynamicParameter(
+            parameterID: .hapticIntensityControl,
+            value: 0,
+            relativeTime: 0
+          )
+          try player.sendParameters([silence], atTime: CHHapticTimeImmediate)
+          player.loopEnabled = false
+          try player.stop(atTime: CHHapticTimeImmediate)
+        }
+      } catch {
+        try? _continuousPlayer?.stop(atTime: CHHapticTimeImmediate)
+      }
       _continuousPlayer = nil
       _continuousStarted = false
       result(nil)
@@ -234,6 +247,19 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       _continuousStarted = false
       return
     }
+    // Drive intensity to silence first so a delayed stop cannot leave a
+    // looped continuous event ringing after pointer-up (iPhone-only bug).
+    do {
+      let silence = CHHapticDynamicParameter(
+        parameterID: .hapticIntensityControl,
+        value: 0,
+        relativeTime: 0
+      )
+      try player.sendParameters([silence], atTime: CHHapticTimeImmediate)
+    } catch {
+      // Fall through to stop even if parameter send fails.
+    }
+    player.loopEnabled = false
     try? player.stop(atTime: CHHapticTimeImmediate)
     _continuousPlayer = nil
     _continuousStarted = false

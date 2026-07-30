@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/physics/continuous_haptic_buffer.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('ContinuousHapticBuffer constants', () {
     test('sampleIntervalMs is 5', () {
       expect(ContinuousHapticBuffer.sampleIntervalMs, equals(5));
@@ -288,6 +292,51 @@ void main() {
         await buf.flush(nowMs: cycle * 40 + 50);
       }
       expect(buf.isActive, isTrue);
+    });
+  });
+
+  group('stop invalidates in-flight flush', () {
+    test('late flush after stop does not leave a live continuous session',
+        () async {
+      final calls = <MethodCall>[];
+      final playStarted = Completer<void>();
+      final allowPlayFinish = Completer<void>();
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('com.chapdcha.real_page_flip/haptics'),
+        (call) async {
+          calls.add(call);
+          if (call.method == 'playContinuousWaveform') {
+            if (!playStarted.isCompleted) playStarted.complete();
+            await allowPlayFinish.future;
+          }
+          return null;
+        },
+      );
+
+      final buf = ContinuousHapticBuffer();
+      buf.start();
+      buf.addSample(0.6);
+      final flushFuture = buf.flush(nowMs: 50);
+      await playStarted.future;
+
+      await buf.stop();
+      expect(buf.isActive, isFalse);
+
+      allowPlayFinish.complete();
+      await flushFuture;
+
+      final methods = calls.map((c) => c.method).toList();
+      expect(methods.where((m) => m == 'stopContinuous'), isNotEmpty);
+      // stop must outrank the in-flight play: last continuous-related call
+      // after the race settles should be a stop.
+      final continuousRelated = methods
+          .where(
+            (m) => m == 'playContinuousWaveform' || m == 'stopContinuous',
+          )
+          .toList();
+      expect(continuousRelated.last, 'stopContinuous');
     });
   });
 }

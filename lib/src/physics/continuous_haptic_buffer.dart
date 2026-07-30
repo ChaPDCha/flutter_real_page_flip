@@ -19,6 +19,13 @@ import 'package:real_page_flip/src/models/advanced_haptic_engine.dart';
 /// separate native event with a gap between them. A continuous waveform with
 /// smoothly varying amplitude reads as one uninterrupted paper-friction
 /// texture — the difference between a strobe light and a dimmer.
+///
+/// ## Session invalidation
+///
+/// [stop] bumps a session id before awaiting the native tear-down. In-flight
+/// [flush] calls capture the id at entry and refuse to start a new waveform
+/// (and re-issue [AdvancedHapticEngine.stopContinuous] if a late invoke
+/// already started) so iOS looped continuous players cannot outlive pointer-up.
 class ContinuousHapticBuffer {
   /// Sample interval (ms) for one amplitude value in the native waveform.
   ///
@@ -44,12 +51,18 @@ class ContinuousHapticBuffer {
   final List<double> _intensities = [];
   bool _active = false;
   int _lastFlushTime = 0;
+  int _sessionId = 0;
 
   /// Whether a continuous session is active (between [start] and [stop]).
   bool get isActive => _active;
 
+  /// Monotonic session counter — exposed for stop/flush race tests.
+  @visibleForTesting
+  int get debugSessionId => _sessionId;
+
   /// Begins a new continuous haptic session.
   void start() {
+    _sessionId++;
     _active = true;
     _intensities.clear();
     _lastIntensity = 0;
@@ -80,10 +93,13 @@ class ContinuousHapticBuffer {
   Future<void> flush({required int nowMs}) async {
     if (!_active || _intensities.isEmpty) return;
 
+    final session = _sessionId;
     final batch = List<double>.from(_intensities);
     final totalDurationMs = (batch.length * sampleIntervalMs).toDouble();
     _intensities.clear();
     _lastFlushTime = nowMs;
+
+    if (!_active || session != _sessionId) return;
 
     try {
       await AdvancedHapticEngine.playContinuousWaveform(
@@ -96,6 +112,18 @@ class ContinuousHapticBuffer {
         debugPrint('[ContinuousHapticBuffer] flush error: $e');
       }
     }
+
+    // A stop that landed during the await must re-kill any player the late
+    // flush may have (re)started on iOS.
+    if (!_active || session != _sessionId) {
+      try {
+        await AdvancedHapticEngine.stopContinuous();
+      } on Object catch (e) {
+        if (kDebugMode) {
+          debugPrint('[ContinuousHapticBuffer] late-stop error: $e');
+        }
+      }
+    }
   }
 
   /// Drops unsent samples and tears down the session immediately.
@@ -105,7 +133,7 @@ class ContinuousHapticBuffer {
   Future<void> stop() async {
     if (!_active) return;
     _active = false;
-
+    _sessionId++;
     _intensities.clear();
     _lastIntensity = 0;
     _lastSharpness = 0.45;
@@ -123,6 +151,7 @@ class ContinuousHapticBuffer {
   /// Useful when the session is abandoned unexpectedly.
   void reset() {
     _active = false;
+    _sessionId++;
     _intensities.clear();
     _lastIntensity = 0;
     _lastSharpness = 0.45;
