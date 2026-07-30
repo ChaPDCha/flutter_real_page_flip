@@ -1,3 +1,11 @@
+## [2.1.8] - 2026-07-30
+
+### Fixed
+- **Flutter web registration restored**: the no-op web implementation now exposes the `registerWith` entry point required by Flutter's generated plugin registrant, so host apps compile for web without changing mobile rendering or haptics.
+
+### Tests
+- Added a regression test that fails when the generated web registration entry point is missing.
+
 ## [2.1.7] - 2026-07-30
 
 ### Changed
