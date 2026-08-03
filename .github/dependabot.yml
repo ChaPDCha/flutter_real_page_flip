@@ -1,0 +1,36 @@
+# Low-noise dependency updates for a pub package + Actions pins.
+# Weekly only; few open PRs — avoids burning review/CI attention across AI agents.
+version: 2
+updates:
+  - package-ecosystem: 'pub'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Asia/Seoul'
+    open-pull-requests-limit: 2
+    labels:
+      - 'dependencies'
+
+  - package-ecosystem: 'pub'
+    directory: '/example'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Asia/Seoul'
+    open-pull-requests-limit: 1
+    labels:
+      - 'dependencies'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Asia/Seoul'
+    open-pull-requests-limit: 1
+    labels:
+      - 'dependencies'

@@ -1,14 +1,26 @@
 name: Verify
 
-# Manual only — vibe default is local: dart run tool/verify.dart
+# Hybrid (solo + multi-machine AI):
+# - Daily work: local `dart run tool/verify.dart` (no push/PR CI — saves minutes)
+# - Weekly safety net: cheap package gate on ubuntu (SDK/dep drift)
+# - On demand: workflow_dispatch; platforms only when explicitly enabled
+#
 #   gh workflow run "Verify"
+#   gh workflow run "Verify" -f platforms=true
 on:
+  schedule:
+    # Weekly Mon 00:00 KST (Sun 15:00 UTC) — package job only
+    - cron: '0 15 * * 0'
   workflow_dispatch:
     inputs:
       platforms:
         description: 'Also build example web + Android debug APK'
         type: boolean
         default: false
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   package:
@@ -23,11 +35,11 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Local gate
+      - name: Package gate
         run: dart run tool/verify.dart
 
   platforms:
-    if: ${{ inputs.platforms }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.platforms }}
     needs: package
     runs-on: ubuntu-latest
     steps:
