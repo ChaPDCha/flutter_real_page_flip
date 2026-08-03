@@ -7,7 +7,7 @@ AI_DEBUG_PROMPT.md
 PLAN_TEST_COVERAGE.md
 community_pitches.md
 
-# AI test harness (DeepSeek/Claude tooling)
+# Legacy DeepSeek/Claude harness (do not revive). Use: dart run tool/verify.dart
 tool/harness/
 
 # Example app deployment config (Play Store / Fastlane)

@@ -1,68 +1,51 @@
-name: Verify Package
+name: Verify
 
-# Manual only — do not auto-run on push/PR. Trigger via Actions UI or:
-#   gh workflow run "Verify Package"
+# Manual only — vibe default is local: dart run tool/verify.dart
+#   gh workflow run "Verify"
 on:
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Also build example web + Android debug APK'
+        type: boolean
+        default: false
 
 jobs:
-  build:
+  package:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+      - run: flutter pub get
 
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
+      - name: Local gate
+        run: dart run tool/verify.dart
 
-      - name: Analyze project
-        run: flutter analyze
+  platforms:
+    if: ${{ inputs.platforms }}
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Run tests with coverage
-        run: flutter test --coverage
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
 
-      - name: Generate coverage summary
-        run: |
-          echo "Coverage report generated at coverage/lcov.info"
-          if command -v lcov &> /dev/null; then
-            genhtml coverage/lcov.info -o coverage/html
-            echo "HTML coverage report available at coverage/html/index.html"
-          else
-            echo "lcov not installed; skipping HTML report generation."
-          fi
+      - run: flutter pub get
+      - run: flutter pub get
+        working-directory: example
 
-      - name: Test count regression check
-        run: |
-          BASELINE=1035
-          MINIMUM=1020
-          TEST_OUTPUT=$(flutter test 2>&1 | tail -5)
-          echo "$TEST_OUTPUT"
-          # Extract number of passed tests from output line like "+448" or "448 tests passed"
-          if echo "$TEST_OUTPUT" | grep -qE '\+[0-9]+'; then
-            COUNT=$(echo "$TEST_OUTPUT" | grep -oE '\+([0-9]+)' | grep -oE '[0-9]+' | head -1)
-          elif echo "$TEST_OUTPUT" | grep -qE '([0-9]+) tests? passed'; then
-            COUNT=$(echo "$TEST_OUTPUT" | grep -oE '[0-9]+ tests? passed' | grep -oE '[0-9]+')
-          else
-            COUNT=0
-          fi
-          echo "Test count: $COUNT"
-          if [ "$COUNT" -lt "$MINIMUM" ]; then
-            echo "ERROR: Test count ($COUNT) dropped below minimum ($MINIMUM)"
-            exit 1
-          fi
-          if [ "$COUNT" -lt "$BASELINE" ]; then
-            echo "WARNING: Test count ($COUNT) is below baseline ($BASELINE) — consider adding tests for new code."
-          else
-            echo "Test count ($COUNT) at or above baseline ($BASELINE)."
-          fi
+      - name: Build web
+        working-directory: example
+        run: flutter build web --no-pub
 
-      - name: Check publishing readiness
-        run: dart pub publish --dry-run
+      - name: Build Android debug APK
+        working-directory: example
+        run: flutter build apk --debug --no-pub
