@@ -26,16 +26,18 @@ class PerceptualHapticGain {
     final isCupertino = platform == TargetPlatform.iOS ||
         platform == TargetPlatform.macOS;
     return switch (resolvedQuality) {
-      // Flagship Core Haptics / composition: keep near the authored bands.
-      // Android primitives often read hotter than iOS for the same scale.
-      HapticQuality.premium => isCupertino ? 1.0 : 0.90,
+      // Flagship Core Haptics reads thinner than Android LRA waveforms at the
+      // same authored 0–1 scale. Boost Cupertino premium toward LRA parity;
+      // Android stays slightly attenuated so composition primitives do not
+      // overshoot.
+      HapticQuality.premium => isCupertino ? 1.35 : 0.90,
       // Waveform amplitude control without premium primitives tends to feel
       // thin on mid-range LRAs — lift the band toward the reference.
-      HapticQuality.standard => isCupertino ? 1.18 : 1.30,
+      HapticQuality.standard => isCupertino ? 1.28 : 1.30,
       // System light/medium/heavy impacts are coarse and often too punchy.
       HapticQuality.basic => isCupertino ? 0.82 : 0.78,
       // Requested adaptive should already be resolved before calling here.
-      HapticQuality.adaptive => isCupertino ? 1.0 : 0.90,
+      HapticQuality.adaptive => isCupertino ? 1.35 : 0.90,
     };
   }
 

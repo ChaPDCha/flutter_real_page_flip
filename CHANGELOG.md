@@ -1,3 +1,16 @@
+## [2.1.9] - 2026-08-04
+
+### Fixed
+- **iOS continuous waveform no longer goes silent on soft paper scrape**: when the advanced continuous player cannot start or schedule a curve, iOS always emits a floored discrete tick (same role as Android's median one-shot). The old `median > 0.6` / `intensity > 0.6` gates left standard/kraft drag texture mute because authored amplitudes stay ≤ 0.55.
+- **Continuous base intensity maps 1:1 with Dart control curves**: the persistent player base is now `1.0` (was `0.55`, which double-attenuated scrape) and starts silenced until the first intensity curve arrives.
+
+### Changed
+- **Cupertino premium/adaptive perceptual gain raised to 1.35** so Core Haptics paper scrape tracks closer to Android LRA waveform loudness at the same authored bands. Standard Cupertino gain is 1.28.
+
+### Tests
+- Source contract locking `playContinuousFallback`, no `> 0.6` continuous gate, base intensity `1.0`, and schedule-failure fallback.
+- Updated perceptual-gain expectations for the boosted iOS premium path.
+
 ## [2.1.8] - 2026-07-30
 
 ### Fixed

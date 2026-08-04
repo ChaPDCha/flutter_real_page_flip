@@ -21,17 +21,17 @@ void main() {
   });
 
   group('PerceptualHapticGain.deviceGain', () {
-    test('premium iOS stays near reference (1.0)', () {
+    test('premium iOS is boosted toward Android LRA parity', () {
       expect(
         PerceptualHapticGain.deviceGain(
           resolvedQuality: HapticQuality.premium,
           platform: TargetPlatform.iOS,
         ),
-        closeTo(1.0, 0.001),
+        closeTo(1.35, 0.001),
       );
     });
 
-    test('premium Android is slightly attenuated vs iOS reference', () {
+    test('premium Android is attenuated vs boosted iOS reference', () {
       final ios = PerceptualHapticGain.deviceGain(
         resolvedQuality: HapticQuality.premium,
         platform: TargetPlatform.iOS,
@@ -42,6 +42,9 @@ void main() {
       );
       expect(android, lessThan(ios));
       expect(android, greaterThan(0.8));
+      // Threat: regressing iOS premium back to 1.0 reopens the "dead scrape"
+      // gap vs Android waveform amplitudes.
+      expect(ios, greaterThan(1.2));
     });
 
     test('standard path is boosted for weak waveform motors', () {
