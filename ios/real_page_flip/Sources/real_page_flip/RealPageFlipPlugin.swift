@@ -163,11 +163,11 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   private func ensureContinuousPlayer(engine: CHHapticEngine) -> CHHapticAdvancedPatternPlayer? {
     if let player = _continuousPlayer, _continuousStarted { return player }
     do {
-      // Base continuous event — dynamic intensity CONTROL (0…1) multiplies this
-      // base. Kept below 1.0 so small/mid motors do not start at full phone-buzz
-      // before the first parameter curve arrives. Long duration + looping keeps
-      // it alive for the whole drag; stopContinuous ends it.
-      let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.55)
+      // Base continuous event intensity is 1.0 so `hapticIntensityControl`
+      // from Dart maps 1:1 (Android waveform amplitudes already do). Start
+      // silenced immediately after player.start so the brief window before the
+      // first curve cannot ring at full phone-buzz.
+      let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0)
       let sharpnessParam = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.45)
       let event = CHHapticEvent(
         eventType: .hapticContinuous,
@@ -180,6 +180,12 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       player.loopEnabled = true
       try engine.start()
       try player.start(atTime: CHHapticTimeImmediate)
+      let silence = CHHapticDynamicParameter(
+        parameterID: .hapticIntensityControl,
+        value: 0,
+        relativeTime: 0
+      )
+      try player.sendParameters([silence], atTime: CHHapticTimeImmediate)
       _continuousPlayer = player
       _continuousStarted = true
       return player
@@ -190,21 +196,31 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     }
   }
 
+  /// Discrete fallback when the advanced continuous player cannot run.
+  ///
+  /// Paper-scrape intensities are typically 0.07–0.55. Gating on median > 0.6
+  /// left drag texture completely silent — unlike Android, which always emits
+  /// a median-amplitude one-shot when waveform creation fails.
+  private func playContinuousFallback(intensities: [Double], totalDurationMs: Double) {
+    guard !intensities.isEmpty else { return }
+    let median = Float(intensities.sorted()[intensities.count / 2])
+    // Floor above the UIKit selection-only tier so soft scrape batches still
+    // produce a tangible tick (Android coerces one-shot amplitude ≥ 20/255).
+    let floored = max(min(median, 1.0), 0.22)
+    let durationMs = Int(min(max(totalDurationMs.rounded(), 8), 25))
+    playTransient(intensity: floored, sharpness: 0.45, durationMs: durationMs)
+  }
+
   private func playContinuousWaveform(intensities: [Double], totalDurationMs: Double, sharpness: Double) {
-    guard let engine = hapticEngine,
-          !intensities.isEmpty,
-          totalDurationMs >= 4 else {
-      if intensities.contains(where: { $0 > 0.6 }) {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-      }
+    guard !intensities.isEmpty else { return }
+
+    guard let engine = hapticEngine, totalDurationMs >= 4 else {
+      playContinuousFallback(intensities: intensities, totalDurationMs: totalDurationMs)
       return
     }
 
     guard let player = ensureContinuousPlayer(engine: engine) else {
-      let median = intensities.sorted()[intensities.count / 2]
-      if median > 0.6 {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-      }
+      playContinuousFallback(intensities: intensities, totalDurationMs: totalDurationMs)
       return
     }
 
@@ -236,9 +252,11 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
       )
       try player.sendParameters([sharpnessControl], atTime: CHHapticTimeImmediate)
     } catch {
-      // Drop the player so the next flush recreates it cleanly.
+      // Drop the player so the next flush recreates it cleanly, and emit a
+      // discrete tick so this batch is never silent.
       _continuousPlayer = nil
       _continuousStarted = false
+      playContinuousFallback(intensities: intensities, totalDurationMs: totalDurationMs)
     }
   }
 
