@@ -295,7 +295,13 @@ class PageFlipPainter extends CustomPainter {
     _drawContactShadow(canvas, g, size, isPaperDark, shadowOnset);
 
     _drawStationaryShadow(
-        canvas, g, size, isPaperDark, shadowOnset, verticalPaintBleed);
+      canvas,
+      g,
+      size,
+      isPaperDark,
+      shadowOnset,
+      verticalPaintBleed,
+    );
 
     _drawCenterGutter(canvas, g, size, isPaperDark, shadowOnset);
   }

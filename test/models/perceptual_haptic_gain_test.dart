@@ -7,11 +7,15 @@ import 'package:real_page_flip/src/models/perceptual_haptic_gain.dart';
 void main() {
   group('HapticStrength', () {
     test('user gains are ordered light < medium < heavy around 1.0', () {
-      expect(HapticStrength.light.userGain,
-          lessThan(HapticStrength.medium.userGain));
+      expect(
+        HapticStrength.light.userGain,
+        lessThan(HapticStrength.medium.userGain),
+      );
       expect(HapticStrength.medium.userGain, equals(1.0));
-      expect(HapticStrength.heavy.userGain,
-          greaterThan(HapticStrength.medium.userGain));
+      expect(
+        HapticStrength.heavy.userGain,
+        greaterThan(HapticStrength.medium.userGain),
+      );
     });
 
     test('fromKey falls back to medium for unknown values', () {

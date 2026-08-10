@@ -360,7 +360,9 @@ void main() {
           .where((call) => call.method != 'getHapticCapabilities')
           .toList();
       expect(
-          hapticCalls.map((c) => c.method), isNot(contains('playSettleThud')));
+        hapticCalls.map((c) => c.method),
+        isNot(contains('playSettleThud')),
+      );
       expect(hapticCalls, hasLength(1));
       expect(hapticCalls.single.method, 'playTransient');
       final args = hapticCalls.single.arguments as Map;
