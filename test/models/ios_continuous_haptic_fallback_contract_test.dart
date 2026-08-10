@@ -28,7 +28,8 @@ void main() {
     expect(
       swiftSource,
       contains('max(min(median, 1.0), 0.22)'),
-      reason: 'Fallback must floor soft scrape intensities above selection-only',
+      reason:
+          'Fallback must floor soft scrape intensities above selection-only',
     );
   });
 
@@ -36,10 +37,11 @@ void main() {
     expect(
       swiftSource.contains('if median > 0.6'),
       isFalse,
-      reason: 'median > 0.6 left kraft/standard scrape silent on player failure',
+      reason:
+          'median > 0.6 left kraft/standard scrape silent on player failure',
     );
     expect(
-      swiftSource.contains('intensities.contains(where: { \$0 > 0.6 })'),
+      swiftSource.contains(r'intensities.contains(where: { $0 > 0.6 })'),
       isFalse,
     );
   });

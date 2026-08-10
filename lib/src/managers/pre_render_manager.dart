@@ -239,7 +239,6 @@ class PreRenderManager {
   Set<int> get dirtyIndices => Set<int>.unmodifiable(_dirtyIndices);
 
   /// Caps requested snapshot scale to the package's memory budget.
-  @visibleForTesting
   double effectiveSnapshotPixelRatio(
     Size logicalSize,
     double requestedPixelRatio,

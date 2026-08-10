@@ -1,3 +1,13 @@
+## [2.1.11] - 2026-08-10
+
+### Fixed
+- **Release metadata and package analysis are aligned**: the iOS Podspec and
+  example lockfile now match the package version, and the snapshot-ratio helper
+  is correctly available to production capture code without analyzer errors.
+
+### Tests
+- Cleared the package analyzer findings in the haptic regression contracts.
+
 ## [2.1.10] - 2026-08-10
 
 ### Added

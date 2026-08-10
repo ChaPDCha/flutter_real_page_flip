@@ -359,7 +359,8 @@ void main() {
       final hapticCalls = calls
           .where((call) => call.method != 'getHapticCapabilities')
           .toList();
-      expect(hapticCalls.map((c) => c.method), isNot(contains('playSettleThud')));
+      expect(
+          hapticCalls.map((c) => c.method), isNot(contains('playSettleThud')));
       expect(hapticCalls, hasLength(1));
       expect(hapticCalls.single.method, 'playTransient');
       final args = hapticCalls.single.arguments as Map;
@@ -386,9 +387,7 @@ void main() {
           return null;
         },
       );
-      final handler = DefaultPageFlipEffectHandler(
-        hapticQuality: HapticQuality.adaptive,
-      );
+      final handler = DefaultPageFlipEffectHandler();
       await Future<void>.delayed(Duration.zero);
       for (var i = 0; i < 8; i++) {
         await handler.onHandleEffect(
