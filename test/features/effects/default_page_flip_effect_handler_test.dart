@@ -535,7 +535,7 @@ void main() {
           },
         );
 
-        // Pin iOS so device gain is the 1.0 reference (Android premium is 0.90).
+        // Pin iOS premium to assert the Cupertino perceptual gain is applied.
         // Use explicit premium to bypass adaptive→standard cap; this test
         // targets the detent output math, not the quality routing policy.
         final handler = DefaultPageFlipEffectHandler(
@@ -554,7 +554,8 @@ void main() {
         // Deliberately subtle: well below the settle-thud intensity range, a
         // short duration so it reads as a tick layered on top of the ongoing
         // friction texture rather than a competing event.
-        expect(args['intensity'], closeTo(0.28, 1e-6));
+        // Standard-texture detent base (0.28) × iOS premium gain (1.35).
+        expect(args['intensity'], closeTo(0.378, 1e-6));
         expect(args['sharpness'], closeTo(0.68, 1e-6));
         expect(args['durationMs'], 12);
       });
