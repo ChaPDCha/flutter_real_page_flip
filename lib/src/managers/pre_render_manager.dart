@@ -121,6 +121,19 @@ class PreRenderManager {
     for (final key in removedKeys) {
       _boundaryCache.remove(key);
     }
+
+    // Invalidation metadata follows the same bounded capture window as the
+    // images and keys. Keeping an off-window dirty epoch after a page turn can
+    // accumulate stale work across long reading sessions and cause an
+    // unrelated recapture when that index is visited again.
+    _dirtyIndices.removeWhere((index) => !targetIndices.contains(index));
+    _dirtyEpochs.removeWhere((index, _) => !targetIndices.contains(index));
+    _pendingRetryIndices.removeWhere(
+      (index) => !targetIndices.contains(index),
+    );
+    _captureRetryCounts.removeWhere(
+      (index, _) => !targetIndices.contains(index),
+    );
   }
 
   void _disposeImagesOnce(Set<ui.Image> images) {

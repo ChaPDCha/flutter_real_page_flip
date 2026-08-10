@@ -256,6 +256,15 @@ void main() {
       expect(a.hashCode == b.hashCode, isFalse);
     });
 
+    test('equality respects snapshotPerformanceProfile', () {
+      const a = PageFlipConfig();
+      const b = PageFlipConfig(
+        snapshotPerformanceProfile: DevicePerformanceProfile.high,
+      );
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
     test('equality respects hapticTexturePreset', () {
       const a = PageFlipConfig();
       const b = PageFlipConfig(
@@ -309,6 +318,9 @@ void main() {
         const PageFlipConfig(flapBackStrength: 0.5),
         const PageFlipConfig(
           performanceProfile: DevicePerformanceProfile.low,
+        ),
+        const PageFlipConfig(
+          snapshotPerformanceProfile: DevicePerformanceProfile.high,
         ),
         const PageFlipConfig(
           hapticTexturePreset: PaperTexturePreset.kraft,

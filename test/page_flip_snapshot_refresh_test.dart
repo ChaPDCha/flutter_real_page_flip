@@ -8,6 +8,7 @@ void main() {
     required Object contentRevision,
     DevicePerformanceProfile performanceProfile =
         DevicePerformanceProfile.medium,
+    DevicePerformanceProfile? snapshotPerformanceProfile,
     double? maxSnapshotPixelRatio,
   }) =>
       MaterialApp(
@@ -27,6 +28,7 @@ void main() {
               skipTapAnimation: false,
               snapshotRefreshPolicy: PageFlipSnapshotRefreshPolicy.whenDirty,
               performanceProfile: performanceProfile,
+              snapshotPerformanceProfile: snapshotPerformanceProfile,
               maxSnapshotPixelRatio: maxSnapshotPixelRatio,
             ),
             itemBuilder: (context, index) => ColoredBox(
@@ -267,13 +269,29 @@ void main() {
 
   test('snapshot refresh config is copied and normalized', () {
     const config = PageFlipConfig(
+      performanceProfile: DevicePerformanceProfile.low,
+      snapshotPerformanceProfile: DevicePerformanceProfile.medium,
       snapshotRefreshPolicy: PageFlipSnapshotRefreshPolicy.whenDirty,
       maxSnapshotPixelRatio: 2.25,
     );
 
     expect(
+      config.effectiveSnapshotPerformanceProfile,
+      DevicePerformanceProfile.medium,
+    );
+    expect(
       config.copyWith().snapshotRefreshPolicy,
       PageFlipSnapshotRefreshPolicy.whenDirty,
+    );
+    expect(
+      config.copyWith().snapshotPerformanceProfile,
+      DevicePerformanceProfile.medium,
+    );
+    expect(
+      config
+          .copyWith(clearSnapshotPerformanceProfile: true)
+          .effectiveSnapshotPerformanceProfile,
+      DevicePerformanceProfile.low,
     );
     expect(config.copyWith().maxSnapshotPixelRatio, 2.25);
     expect(

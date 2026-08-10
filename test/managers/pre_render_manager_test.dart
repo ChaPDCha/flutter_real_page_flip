@@ -64,6 +64,20 @@ void main() {
       expect(mgr.pageKeys.containsKey(6), isTrue);
     });
 
+    test('cleanup prunes dirty metadata outside the next capture window', () {
+      final mgr = PreRenderManager();
+      mgr.markDirtyWindow(5, 10);
+      expect(mgr.dirtyIndices, {4, 5, 6});
+
+      mgr.cleanup(6, 10);
+
+      expect(
+        mgr.dirtyIndices,
+        {5, 6},
+        reason: 'Index 4 left the bounded 5/6/7 capture window.',
+      );
+    });
+
     test('reset clears all keys and snapshots', () {
       final mgr = PreRenderManager();
       mgr.prepareKeys(5, 10);

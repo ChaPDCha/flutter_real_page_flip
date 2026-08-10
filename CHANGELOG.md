@@ -1,3 +1,20 @@
+## [2.1.10] - 2026-08-10
+
+### Added
+- **Independent snapshot quality profile**: hosts can keep animation mesh and
+  shadow work on a low-cost profile while retaining a higher-resolution page
+  snapshot for readable text.
+
+### Fixed
+- Snapshot refreshes now compare the effective physical capture ratio, avoiding
+  redundant GPU readbacks when a configuration change produces the same raster.
+- Deferred dirty and retry metadata is pruned with the bounded capture window,
+  preventing stale work from accumulating across long reading sessions.
+
+### Tests
+- Added physical-pixel widget coverage for snapshot resolution, active-flip
+  deferral, and post-settle capture behavior.
+
 ## [2.1.8] - 2026-07-30
 
 ### Fixed

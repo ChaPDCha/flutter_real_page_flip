@@ -122,6 +122,7 @@ class PageFlipConfig {
     this.singlePageBackContentOpacity = 0.35,
     this.enableSinglePageSettleReveal = true,
     this.performanceProfile = DevicePerformanceProfile.medium,
+    this.snapshotPerformanceProfile,
     this.snapshotRefreshPolicy = PageFlipSnapshotRefreshPolicy.always,
     this.maxSnapshotPixelRatio,
     this.hapticTexturePreset = PaperTexturePreset.standard,
@@ -131,6 +132,21 @@ class PageFlipConfig {
 
   /// The performance profile to use for rendering quality.
   final DevicePerformanceProfile performanceProfile;
+
+  /// Optional profile that controls only raster snapshot resolution.
+  ///
+  /// When omitted, snapshots follow [performanceProfile], preserving the
+  /// original single-profile behavior. Supplying a higher profile keeps text
+  /// legible while a lower [performanceProfile] still reduces mesh and shadow
+  /// work for the animation itself.
+  final DevicePerformanceProfile? snapshotPerformanceProfile;
+
+  /// Effective profile used by snapshot capture.
+  ///
+  /// This is intentionally separate from [performanceProfile] so a host can
+  /// independently tune moving-page clarity and per-frame rendering cost.
+  DevicePerformanceProfile get effectiveSnapshotPerformanceProfile =>
+      snapshotPerformanceProfile ?? performanceProfile;
 
   /// Policy used to keep rasterized flip snapshots in sync with live content.
   final PageFlipSnapshotRefreshPolicy snapshotRefreshPolicy;
@@ -315,6 +331,7 @@ class PageFlipConfig {
     double? singlePageBackContentOpacity,
     bool? enableSinglePageSettleReveal,
     DevicePerformanceProfile? performanceProfile,
+    DevicePerformanceProfile? snapshotPerformanceProfile,
     PageFlipSnapshotRefreshPolicy? snapshotRefreshPolicy,
     double? maxSnapshotPixelRatio,
     PaperTexturePreset? hapticTexturePreset,
@@ -324,6 +341,7 @@ class PageFlipConfig {
     bool clearBackgroundColor = false,
     bool clearEffectHandler = false,
     bool clearMaxSnapshotPixelRatio = false,
+    bool clearSnapshotPerformanceProfile = false,
   }) =>
       PageFlipConfig(
         duration: duration ?? this.duration,
@@ -364,6 +382,9 @@ class PageFlipConfig {
         enableSinglePageSettleReveal:
             enableSinglePageSettleReveal ?? this.enableSinglePageSettleReveal,
         performanceProfile: performanceProfile ?? this.performanceProfile,
+        snapshotPerformanceProfile: clearSnapshotPerformanceProfile
+            ? null
+            : (snapshotPerformanceProfile ?? this.snapshotPerformanceProfile),
         snapshotRefreshPolicy:
             snapshotRefreshPolicy ?? this.snapshotRefreshPolicy,
         maxSnapshotPixelRatio: clearMaxSnapshotPixelRatio
@@ -460,6 +481,7 @@ class PageFlipConfig {
       ),
       enableSinglePageSettleReveal: enableSinglePageSettleReveal,
       performanceProfile: performanceProfile,
+      snapshotPerformanceProfile: snapshotPerformanceProfile,
       snapshotRefreshPolicy: snapshotRefreshPolicy,
       maxSnapshotPixelRatio: _safeOptionalPixelRatio(maxSnapshotPixelRatio),
       hapticTexturePreset: hapticTexturePreset,
@@ -531,6 +553,7 @@ class PageFlipConfig {
           singlePageBackContentOpacity == other.singlePageBackContentOpacity &&
           enableSinglePageSettleReveal == other.enableSinglePageSettleReveal &&
           performanceProfile == other.performanceProfile &&
+          snapshotPerformanceProfile == other.snapshotPerformanceProfile &&
           snapshotRefreshPolicy == other.snapshotRefreshPolicy &&
           maxSnapshotPixelRatio == other.maxSnapshotPixelRatio &&
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
@@ -567,6 +590,7 @@ class PageFlipConfig {
         singlePageBackContentOpacity,
         enableSinglePageSettleReveal,
         performanceProfile,
+        snapshotPerformanceProfile,
         snapshotRefreshPolicy,
         maxSnapshotPixelRatio,
         edgeTapPreviousLabel,

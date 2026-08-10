@@ -202,6 +202,15 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   int get debugSyncSnapshotCaptureCount =>
       _preRenderManager.successfulSyncCaptureCount;
 
+  /// Physical raster size retained for [index], exposed for resolution tests.
+  @visibleForTesting
+  ({int width, int height})? debugSnapshotPixelSize(int index) {
+    final image = _preRenderManager.spreadSnapshots[index] ??
+        _preRenderManager.pageSnapshots[index];
+    if (image == null) return null;
+    return (width: image.width, height: image.height);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -318,8 +327,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         config.effectHandler != oldConfig.effectHandler;
     final profileChanged =
         config.performanceProfile != oldConfig.performanceProfile;
-    final snapshotResolutionChanged = profileChanged ||
-        config.maxSnapshotPixelRatio != oldConfig.maxSnapshotPixelRatio;
+    final snapshotResolutionChanged =
+        _capturePixelRatioFor(config) != _capturePixelRatioFor(oldConfig);
     final texturePresetChanged =
         config.hapticTexturePreset != oldConfig.hapticTexturePreset;
     final hapticQualityChanged =
@@ -426,17 +435,25 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   }
 
   /// Device pixel ratio for snapshot capture, scaled down by performance profile.
-  double _capturePixelRatio() {
+  double _capturePixelRatio() => _capturePixelRatioFor(_config);
+
+  double _capturePixelRatioFor(PageFlipConfig config) {
     final mediaQuery = MediaQuery.maybeOf(context);
     final pixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
-    final profileRatio = switch (_config.performanceProfile) {
+    final profileRatio = switch (config.effectiveSnapshotPerformanceProfile) {
       DevicePerformanceProfile.low => pixelRatio.clamp(1.0, 1.25),
       DevicePerformanceProfile.medium => pixelRatio.clamp(1.0, 2.0),
       DevicePerformanceProfile.high => pixelRatio,
     };
-    final maxRatio = _config.maxSnapshotPixelRatio;
-    if (maxRatio != null && profileRatio > maxRatio) return maxRatio;
-    return profileRatio;
+    final maxRatio = config.maxSnapshotPixelRatio;
+    final requestedRatio =
+        maxRatio != null && profileRatio > maxRatio ? maxRatio : profileRatio;
+    final constrainedSize = _lastConstrainedSize;
+    if (constrainedSize == null) return requestedRatio;
+    return _preRenderManager.effectiveSnapshotPixelRatio(
+      constrainedSize,
+      requestedRatio,
+    );
   }
 
   bool get _isFlipActive =>
