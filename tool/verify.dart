@@ -3,7 +3,8 @@
 import 'dart:io';
 
 Future<int> _run(String exe, List<String> args, {String? cwd}) async {
-  stdout.writeln('\n> $exe ${args.join(' ')}${cwd == null ? '' : '  (in $cwd)'}');
+  stdout
+      .writeln('\n> $exe ${args.join(' ')}${cwd == null ? '' : '  (in $cwd)'}');
   final proc = await Process.start(
     exe,
     args,
@@ -29,23 +30,27 @@ Future<void> _step(String name, Future<int> Function() fn) async {
 Future<void> main() async {
   final root = Directory.current.path;
 
-  await _step('format', () => _run('dart', [
-        'format',
-        '--output=none',
-        '--set-exit-if-changed',
-        '.',
-      ]));
+  await _step(
+      'format',
+      () => _run('dart', [
+            'format',
+            '--output=none',
+            '--set-exit-if-changed',
+            '.',
+          ]));
 
   await _step('analyze (package)', () => _run('flutter', ['analyze']));
 
   await _step(
     'analyze (example)',
-    () => _run('flutter', ['analyze'], cwd: '$root${Platform.pathSeparator}example'),
+    () => _run('flutter', ['analyze'],
+        cwd: '$root${Platform.pathSeparator}example'),
   );
 
   await _step('test', () => _run('flutter', ['test']));
 
-  await _step('publish dry-run', () => _run('dart', ['pub', 'publish', '--dry-run']));
+  await _step(
+      'publish dry-run', () => _run('dart', ['pub', 'publish', '--dry-run']));
 
   stdout.writeln('\nALL GATES PASSED');
 }

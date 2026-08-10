@@ -23,8 +23,8 @@ class PerceptualHapticGain {
     required HapticQuality resolvedQuality,
     required TargetPlatform platform,
   }) {
-    final isCupertino = platform == TargetPlatform.iOS ||
-        platform == TargetPlatform.macOS;
+    final isCupertino =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
     return switch (resolvedQuality) {
       // Flagship Core Haptics reads thinner than Android LRA waveforms at the
       // same authored 0–1 scale. Boost Cupertino premium toward LRA parity;

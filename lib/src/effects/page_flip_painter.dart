@@ -294,7 +294,8 @@ class PageFlipPainter extends CustomPainter {
 
     _drawContactShadow(canvas, g, size, isPaperDark, shadowOnset);
 
-    _drawStationaryShadow(canvas, g, size, isPaperDark, shadowOnset, verticalPaintBleed);
+    _drawStationaryShadow(
+        canvas, g, size, isPaperDark, shadowOnset, verticalPaintBleed);
 
     _drawCenterGutter(canvas, g, size, isPaperDark, shadowOnset);
   }
@@ -365,8 +366,7 @@ class PageFlipPainter extends CustomPainter {
         g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
     final freeDarkenAlign =
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-    final foldDarkenBlend =
-        isPaperDark ? BlendMode.screen : BlendMode.multiply;
+    final foldDarkenBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
     final foldDarkenColor = isPaperDark ? Colors.white : Colors.black;
     final foldShadow = (isPaperDark ? 0.02 : 0.05) * bendStrength;
     final foldFadeWidth = foldMaskWidth(
@@ -554,9 +554,8 @@ class PageFlipPainter extends CustomPainter {
         performanceProfile == DevicePerformanceProfile.low) {
       return;
     }
-    final foldAlign = g.flapRightOfFold
-        ? Alignment.centerLeft
-        : Alignment.centerRight;
+    final foldAlign =
+        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
     final freeAlign =
         g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
 
@@ -590,8 +589,7 @@ class PageFlipPainter extends CustomPainter {
 
     if (performanceProfile == DevicePerformanceProfile.high) {
       final cylinderColor = discreteShadowTone(isPaperDark: isPaperDark);
-      final cylinderBlend =
-          isPaperDark ? BlendMode.screen : BlendMode.multiply;
+      final cylinderBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
       final cylinderAlpha = isDoubleSpread
           ? (isPaperDark ? 0.09 : 0.15) * bendStrength
           : (isPaperDark ? 0.05 : 0.08) * bendStrength;
@@ -635,7 +633,8 @@ class PageFlipPainter extends CustomPainter {
 
     if (!isDoubleSpread) {
       final bleed = size.height;
-      canvas.clipRect(Rect.fromLTRB(0, -bleed, size.width, size.height + bleed));
+      canvas
+          .clipRect(Rect.fromLTRB(0, -bleed, size.width, size.height + bleed));
       canvas.transform(g.transform.storage);
 
       final creaseFoldFadeWidth = foldMaskWidth(
@@ -851,8 +850,7 @@ class PageFlipPainter extends CustomPainter {
   void _drawPaperUnderlay(Canvas canvas, Rect flapPaintRect) {
     canvas.drawRect(
       flapPaintRect,
-      Paint()
-        ..color = resolvePaperUnderlayColor(paperBackColor, paperOpacity),
+      Paint()..color = resolvePaperUnderlayColor(paperBackColor, paperOpacity),
     );
   }
 

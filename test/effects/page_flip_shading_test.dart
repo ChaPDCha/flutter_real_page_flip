@@ -9,7 +9,8 @@ void main() {
     test('dark paper returns 0.7 (partial mask, avoids hard band)', () {
       expect(edgeMaskPeakOpacity(isPaperDark: true), 0.7);
     });
-    test('light paper returns 1.0 (full mask, invisible on matching paper)', () {
+    test('light paper returns 1.0 (full mask, invisible on matching paper)',
+        () {
       expect(edgeMaskPeakOpacity(isPaperDark: false), 1.0);
     });
   });
@@ -228,25 +229,34 @@ void main() {
       );
       // Even backward flip.
       expect(
-        flapFrontContentRevealOpacity(0.3,
-            isDoubleSpread: true, isForward: false,),
+        flapFrontContentRevealOpacity(
+          0.3,
+          isDoubleSpread: true,
+          isForward: false,
+        ),
         1.0,
       );
     });
 
     // ── Single-page keep-content-visible path ──
-    test(
-        'single-page keepSinglePageContentVisible=true returns 1 throughout', () {
+    test('single-page keepSinglePageContentVisible=true returns 1 throughout',
+        () {
       expect(
-        flapFrontContentRevealOpacity(0,),
+        flapFrontContentRevealOpacity(
+          0,
+        ),
         1.0,
       );
       expect(
-        flapFrontContentRevealOpacity(0.5,),
+        flapFrontContentRevealOpacity(
+          0.5,
+        ),
         1.0,
       );
       expect(
-        flapFrontContentRevealOpacity(1,),
+        flapFrontContentRevealOpacity(
+          1,
+        ),
         1.0,
       );
     });
@@ -254,15 +264,19 @@ void main() {
     // ── Disabled settle reveal ──
     test('single-page enableSinglePageSettleReveal=false returns 0', () {
       expect(
-        flapFrontContentRevealOpacity(0.3,
-            keepSinglePageContentVisible: false,
-            enableSinglePageSettleReveal: false,),
+        flapFrontContentRevealOpacity(
+          0.3,
+          keepSinglePageContentVisible: false,
+          enableSinglePageSettleReveal: false,
+        ),
         0,
       );
       expect(
-        flapFrontContentRevealOpacity(0.9,
-            keepSinglePageContentVisible: false,
-            enableSinglePageSettleReveal: false,),
+        flapFrontContentRevealOpacity(
+          0.9,
+          keepSinglePageContentVisible: false,
+          enableSinglePageSettleReveal: false,
+        ),
         0,
       );
     });
@@ -310,8 +324,11 @@ void main() {
         var prev = reveal(0.85);
         for (final p in [0.87, 0.89, 0.91, 0.93, 0.95]) {
           final curr = reveal(p);
-          expect(curr, greaterThanOrEqualTo(prev - 0.001),
-              reason: 'p=$p should be >= p=${p - 0.02}',);
+          expect(
+            curr,
+            greaterThanOrEqualTo(prev - 0.001),
+            reason: 'p=$p should be >= p=${p - 0.02}',
+          );
           prev = curr;
         }
       });
@@ -383,8 +400,11 @@ void main() {
       var prev = middleLayerOpacity(0.85, isForward: true);
       for (final p in [0.87, 0.89, 0.91, 0.93, 0.95]) {
         final curr = middleLayerOpacity(p, isForward: true);
-        expect(curr, lessThanOrEqualTo(prev + 0.001),
-            reason: 'p=$p should be <= p-0.02',);
+        expect(
+          curr,
+          lessThanOrEqualTo(prev + 0.001),
+          reason: 'p=$p should be <= p-0.02',
+        );
         prev = curr;
       }
     });
@@ -445,12 +465,9 @@ void main() {
     });
 
     test('eases smoothly from backOpacity to 1.0 in settle window', () {
-      final atStart =
-          singlePageBackDim(0.85, backOpacity: 0.35);
-      final atMid =
-          singlePageBackDim(0.90, backOpacity: 0.35);
-      final atEnd =
-          singlePageBackDim(0.95, backOpacity: 0.35);
+      final atStart = singlePageBackDim(0.85, backOpacity: 0.35);
+      final atMid = singlePageBackDim(0.90, backOpacity: 0.35);
+      final atEnd = singlePageBackDim(0.95, backOpacity: 0.35);
 
       expect(atStart, closeTo(0.35, 0.001));
       expect(atMid, inInclusiveRange(0.36, 0.99));
@@ -461,8 +478,11 @@ void main() {
       var prev = singlePageBackDim(0.85, backOpacity: 0.35);
       for (final p in [0.87, 0.89, 0.91, 0.93, 0.95]) {
         final curr = singlePageBackDim(p, backOpacity: 0.35);
-        expect(curr, greaterThanOrEqualTo(prev - 0.001),
-            reason: 'p=$p should be >= previous',);
+        expect(
+          curr,
+          greaterThanOrEqualTo(prev - 0.001),
+          reason: 'p=$p should be >= previous',
+        );
         prev = curr;
       }
     });
@@ -491,8 +511,10 @@ void main() {
 
     test('returns 1.0 when both strengths are 0', () {
       expect(
-        flapOpacityModulator(0.5,
-            thinPaperStrength: 0,),
+        flapOpacityModulator(
+          0.5,
+          thinPaperStrength: 0,
+        ),
         1.0,
       );
     });
@@ -509,10 +531,8 @@ void main() {
     });
 
     test('endReveal fade near the finish', () {
-      final at92 =
-          flapOpacityModulator(0.92, endRevealStrength: 0.5);
-      final at98 =
-          flapOpacityModulator(0.98, endRevealStrength: 0.5);
+      final at92 = flapOpacityModulator(0.92, endRevealStrength: 0.5);
+      final at98 = flapOpacityModulator(0.98, endRevealStrength: 0.5);
       expect(at98, lessThan(at92)); // closer to end = more transparent
     });
 
@@ -528,16 +548,15 @@ void main() {
 
     test('backward flip inverts progress', () {
       // p=0.1 forward (early) vs p=0.9 backward (also early after normalization).
-      final fwd =
-          flapOpacityModulator(0.1, thinPaperStrength: 0.3);
+      final fwd = flapOpacityModulator(0.1, thinPaperStrength: 0.3);
       final bwd =
           flapOpacityModulator(0.9, isForward: false, thinPaperStrength: 0.3);
       expect(fwd, closeTo(bwd, 0.001));
     });
 
-    test('mid-flip backward: raw p=0.5, normalized p=0.5 (same as forward)', () {
-      final fwd =
-          flapOpacityModulator(0.5, thinPaperStrength: 0.3);
+    test('mid-flip backward: raw p=0.5, normalized p=0.5 (same as forward)',
+        () {
+      final fwd = flapOpacityModulator(0.5, thinPaperStrength: 0.3);
       final bwd =
           flapOpacityModulator(0.5, isForward: false, thinPaperStrength: 0.3);
       expect(fwd, closeTo(bwd, 0.001));
@@ -550,8 +569,11 @@ void main() {
           thinPaperStrength: 0.3,
           endRevealStrength: 0.5,
         );
-        expect(result, inInclusiveRange(0.05, 1.0),
-            reason: 'p=$p returned $result',);
+        expect(
+          result,
+          inInclusiveRange(0.05, 1.0),
+          reason: 'p=$p returned $result',
+        );
       }
       // Backward too.
       for (final p in [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]) {
@@ -561,8 +583,11 @@ void main() {
           endRevealStrength: 0.5,
           isForward: false,
         );
-        expect(result, inInclusiveRange(0.05, 1.0),
-            reason: 'backward p=$p returned $result',);
+        expect(
+          result,
+          inInclusiveRange(0.05, 1.0),
+          reason: 'backward p=$p returned $result',
+        );
       }
     });
   });

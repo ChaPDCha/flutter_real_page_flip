@@ -41,8 +41,6 @@ export 'package:real_page_flip/src/effects/page_flip_texture_rects.dart';
 //
 // Remaining in this file: flap content mesh, widget helpers, shadow clip rect.
 
-
-
 ({int segments, int columns}) flapMeshDensityForPerformance(
   DevicePerformanceProfile profile,
 ) =>

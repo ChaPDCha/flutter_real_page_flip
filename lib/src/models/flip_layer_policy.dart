@@ -111,5 +111,4 @@ class FlipLayerPolicy {
     }
     return currentIndex > 0 ? currentIndex - 1 : null;
   }
-
 }

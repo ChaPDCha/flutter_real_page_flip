@@ -570,7 +570,6 @@ Rect buildFlapPaintBoundsLocal(
   );
 }
 
-
 /// Screen-space flap region clip used by `PageFlipPainter` BEFORE canvas transform.
 ///
 /// Unlike `buildFlapClipPathLocal` (which operates in transformed local space),
