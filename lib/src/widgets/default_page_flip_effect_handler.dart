@@ -76,7 +76,12 @@ double paperSettleIntensity({
   final gesture = (controllerIntensity / 120.0).clamp(0.0, 1.0);
   // Soft landing tick only — scrape carries the tactile story; settle is a
   // quiet "page arrived" cue that must stay well below drag texture peaks.
-  final raw = (0.08 + level * 0.10 + gesture * 0.06).clamp(0.06, 0.22);
+  //
+  // The band tracks the authored texture bands: the old 0.06–0.22 window was
+  // set when drag peaked at 0.22, so settle sat at parity with the scrape and
+  // had to be held down. Against the current bands it is the single most
+  // noticed event in the flip and was landing under 0.26 on iOS.
+  final raw = (0.16 + level * 0.18 + gesture * 0.10).clamp(0.14, 0.44);
   return PerceptualHapticGain.apply(raw, gain: perceptualGain);
 }
 
@@ -91,7 +96,7 @@ double paperSettleIntensity({
   final profile = preset.hapticOutputProfile;
   return (
     intensity: PerceptualHapticGain.apply(
-      0.12 + preset.hapticLevel * 0.08,
+      0.16 + preset.hapticLevel * 0.075,
       gain: perceptualGain,
     ),
     sharpness: profile.sharpness,
@@ -292,7 +297,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         // Soft landing tick for every quality route — never the old settle
         // thud, which competed with paper scrape and read as a spare buzz.
         final targetIntensity = _resolvedHapticQuality == HapticQuality.basic
-            ? PerceptualHapticGain.apply(0.18, gain: _perceptualGain)
+            ? PerceptualHapticGain.apply(0.40, gain: _perceptualGain)
             : paperSettleIntensity(
                 preset: hapticTexturePreset,
                 controllerIntensity: intensity ?? 90,
@@ -333,7 +338,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         final detent = _resolvedHapticQuality == HapticQuality.basic
             ? (
                 intensity: PerceptualHapticGain.apply(
-                  0.18,
+                  0.34,
                   gain: _perceptualGain,
                 ),
                 sharpness: 0.5,
@@ -458,7 +463,11 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     _lastDiscreteTickMs = nowMs;
     unawaited(
       AdvancedHapticEngine.playTransient(
-        intensity: amplitude.clamp(0.05, 0.55),
+        // Upper bound is the shared soft ceiling, not 0.55: `amplitude` has
+        // already passed through PerceptualHapticGain.apply, so a lower cap
+        // here re-flattened heavy back onto medium for every texture above
+        // `standard` on the discrete (non-premium) route.
+        intensity: amplitude.clamp(0.05, PerceptualHapticGain.amplitudeCeiling),
         sharpness: sharpness.clamp(0.2, 0.95),
         durationMs: 10,
       ),

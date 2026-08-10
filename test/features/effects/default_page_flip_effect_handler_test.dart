@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/models/haptic_quality.dart';
+import 'package:real_page_flip/src/models/haptic_strength.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
+import 'package:real_page_flip/src/models/perceptual_haptic_gain.dart';
 import 'package:real_page_flip/src/widgets/default_page_flip_effect_handler.dart';
 
 void main() {
@@ -70,6 +72,98 @@ void main() {
     expect(medium.amplitude, lessThan(fast.amplitude));
     expect(fast.amplitude, greaterThan(slow.amplitude * 2.4));
   });
+
+  group('strength ladder separation', () {
+    // Regression: light/medium/heavy once differed only by a 0.72/1.0/1.38
+    // amplitude gain over bands that peaked at 0.22. Absolute steps landed
+    // around 0.08 in the most compressive part of the motor response, so all
+    // three settings felt the same and the whole ladder read as "weak".
+    ({double light, double medium, double heavy}) peaksFor(
+      PaperTexturePreset preset,
+      TargetPlatform platform,
+    ) {
+      double peak(HapticStrength strength) => shapePaperHapticOutput(
+            preset: preset,
+            rawAmplitude: 1,
+            rawSharpness: 0.5,
+            speedFactor: 1,
+            perceptualGain: PerceptualHapticGain.combined(
+              resolvedQuality: HapticQuality.premium,
+              platform: platform,
+              strength: strength,
+            ),
+          ).amplitude;
+      return (
+        light: peak(HapticStrength.light),
+        medium: peak(HapticStrength.medium),
+        heavy: peak(HapticStrength.heavy),
+      );
+    }
+
+    for (final platform in [TargetPlatform.iOS, TargetPlatform.android]) {
+      test('steps stay far apart on the default texture — $platform', () {
+        final peaks = peaksFor(PaperTexturePreset.standard, platform);
+
+        // Each step must clear the vibrotactile difference threshold by a
+        // wide margin. 0.10 absolute is roughly 3x a conservative JND.
+        expect(peaks.medium - peaks.light, greaterThan(0.10));
+        expect(peaks.heavy - peaks.medium, greaterThan(0.10));
+
+        // Nothing on the default texture may reach the soft ceiling: two
+        // settings clipping to the same value is how the ladder collapsed.
+        expect(
+          peaks.heavy,
+          lessThan(PerceptualHapticGain.amplitudeCeiling),
+        );
+      });
+
+      test('medium uses the middle of the motor range — $platform', () {
+        final peaks = peaksFor(PaperTexturePreset.standard, platform);
+        expect(peaks.medium, greaterThan(0.4));
+        expect(peaks.medium, lessThan(0.7));
+      });
+    }
+
+    test('every texture keeps medium and heavy distinguishable', () {
+      for (final preset in [
+        PaperTexturePreset.smooth,
+        PaperTexturePreset.standard,
+        PaperTexturePreset.textured,
+        PaperTexturePreset.kraft,
+      ]) {
+        for (final platform in [TargetPlatform.iOS, TargetPlatform.android]) {
+          final peaks = peaksFor(preset, platform);
+          expect(
+            peaks.heavy - peaks.medium,
+            greaterThan(0.05),
+            reason: '$preset on $platform collapsed heavy onto medium',
+          );
+          expect(
+            peaks.medium - peaks.light,
+            greaterThan(0.05),
+            reason: '$preset on $platform collapsed medium onto light',
+          );
+        }
+      }
+    });
+
+    test('slow drag at the lightest setting stays perceptible', () {
+      for (final platform in [TargetPlatform.iOS, TargetPlatform.android]) {
+        final slowest = shapePaperHapticOutput(
+          preset: PaperTexturePreset.standard,
+          rawAmplitude: 0,
+          rawSharpness: 0.5,
+          speedFactor: 0,
+          perceptualGain: PerceptualHapticGain.combined(
+            resolvedQuality: HapticQuality.premium,
+            platform: platform,
+            strength: HapticStrength.light,
+          ),
+        ).amplitude;
+        expect(slowest, greaterThan(0.05), reason: 'inaudible on $platform');
+      }
+    });
+  });
   test('none preset produces no haptic waveform samples', () {
     final output = shapePaperHapticOutput(
       preset: PaperTexturePreset.none,
@@ -100,7 +194,12 @@ void main() {
     );
 
     expect(boosted.amplitude, greaterThan(baseline.amplitude));
-    expect(boosted.amplitude, greaterThan(0.22)); // authored maxAmplitude
+    expect(
+      boosted.amplitude,
+      greaterThan(
+        PaperTexturePreset.standard.hapticOutputProfile.maxAmplitude,
+      ),
+    );
   });
 
   test('settle and detent feedback scale across all four paper levels', () {
@@ -132,12 +231,22 @@ void main() {
       ),
       0,
     );
+    // Settle is a "page arrived" cue layered under the drag scrape — it must
+    // stay below the same preset's fast-drag peak, whatever the bands are
+    // calibrated to.
     expect(
       paperSettleIntensity(
         preset: PaperTexturePreset.kraft,
         controllerIntensity: 120,
       ),
-      lessThanOrEqualTo(0.22),
+      lessThan(
+        shapePaperHapticOutput(
+          preset: PaperTexturePreset.kraft,
+          rawAmplitude: 1,
+          rawSharpness: 0.5,
+          speedFactor: 1,
+        ).amplitude,
+      ),
     );
   });
 
@@ -324,7 +433,9 @@ void main() {
       expect(hapticCalls, hasLength(1));
       expect(hapticCalls.single.method, 'playTransient');
       final args = hapticCalls.single.arguments as Map;
-      expect(args['intensity'], lessThan(0.35));
+      // Perceptible on a coarse motor, but still a landing tick and not a thud.
+      expect(args['intensity'], greaterThan(0.2));
+      expect(args['intensity'], lessThan(0.5));
       expect(args['durationMs'], 8);
       handler.dispose();
     });
@@ -366,7 +477,20 @@ void main() {
       expect(hapticCalls, hasLength(1));
       expect(hapticCalls.single.method, 'playTransient');
       final args = hapticCalls.single.arguments as Map;
-      expect(args['intensity'], lessThanOrEqualTo(0.22));
+      // Soft landing, not a thud: below the standard preset's fast-drag peak.
+      expect(args['intensity'], greaterThan(0.2));
+      expect(
+        args['intensity'],
+        lessThan(
+          shapePaperHapticOutput(
+            preset: PaperTexturePreset.standard,
+            rawAmplitude: 1,
+            rawSharpness: 0.5,
+            speedFactor: 1,
+            perceptualGain: 1.10,
+          ).amplitude,
+        ),
+      );
       expect(args['durationMs'], 8);
       handler.dispose();
     });
@@ -535,9 +659,9 @@ void main() {
           },
         );
 
-        // Pin iOS premium to assert the Cupertino perceptual gain is applied.
-        // Use explicit premium to bypass adaptive→standard cap; this test
-        // targets the detent output math, not the quality routing policy.
+        // Pin iOS premium so the route is a single known device gain. Use
+        // explicit premium to bypass adaptive→standard cap; this test targets
+        // the detent output math, not the quality routing policy.
         final handler = DefaultPageFlipEffectHandler(
           platform: TargetPlatform.iOS,
           hapticQuality: HapticQuality.premium,
@@ -554,8 +678,19 @@ void main() {
         // Deliberately subtle: well below the settle-thud intensity range, a
         // short duration so it reads as a tick layered on top of the ongoing
         // friction texture rather than a competing event.
-        // Standard-texture detent base (0.28) × iOS premium gain (1.35).
-        expect(args['intensity'], closeTo(0.378, 1e-6));
+        expect(
+          args['intensity'],
+          closeTo(
+            paperDetentOutput(
+              PaperTexturePreset.standard,
+              perceptualGain: PerceptualHapticGain.deviceGain(
+                resolvedQuality: HapticQuality.premium,
+                platform: TargetPlatform.iOS,
+              ),
+            ).intensity,
+            1e-6,
+          ),
+        );
         expect(args['sharpness'], closeTo(0.68, 1e-6));
         expect(args['durationMs'], 12);
       });

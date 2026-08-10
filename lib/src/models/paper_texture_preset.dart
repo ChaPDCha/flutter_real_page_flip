@@ -58,6 +58,20 @@ extension PaperTexturePresetHaptics on PaperTexturePreset {
 
   /// Deliberately separated amplitude bands and pulse widths remain
   /// distinguishable on high-output flagship phone haptic motors.
+  ///
+  /// ## Band calibration
+  ///
+  /// Texture owns *character* (sharpness, grain density, physics roughness);
+  /// `HapticStrength` owns *loudness*. Earlier bands spanned 5.5x from smooth
+  /// to kraft (0.10 -> 0.55), which spent the whole amplitude budget on the
+  /// texture axis and left every strength step crammed into the compressive
+  /// low end of the motor curve. The spread is now ~2.1x so strength has room
+  /// to separate.
+  ///
+  /// `minAmplitude` (slow drag) keeps the ~2.5x slow-to-fast span that carries
+  /// the drag-speed cue, but the floor is lifted off zero: a slow drag used to
+  /// resolve to 0.07 authored, which falls under the perceptual floor on most
+  /// LRAs once the light user gain is applied.
   PaperHapticOutputProfile get hapticOutputProfile => switch (this) {
         PaperTexturePreset.none => const PaperHapticOutputProfile(
             level: 0,
@@ -68,29 +82,29 @@ extension PaperTexturePresetHaptics on PaperTexturePreset {
           ),
         PaperTexturePreset.smooth => const PaperHapticOutputProfile(
             level: 1,
-            minAmplitude: 0.025,
-            maxAmplitude: 0.10,
+            minAmplitude: 0.11,
+            maxAmplitude: 0.28,
             sharpness: 0.92,
             samplesPerGrain: 1,
           ),
         PaperTexturePreset.standard => const PaperHapticOutputProfile(
             level: 2,
-            minAmplitude: 0.07,
-            maxAmplitude: 0.22,
+            minAmplitude: 0.16,
+            maxAmplitude: 0.41,
             sharpness: 0.68,
             samplesPerGrain: 2,
           ),
         PaperTexturePreset.textured => const PaperHapticOutputProfile(
             level: 3,
-            minAmplitude: 0.14,
-            maxAmplitude: 0.38,
+            minAmplitude: 0.20,
+            maxAmplitude: 0.50,
             sharpness: 0.48,
             samplesPerGrain: 3,
           ),
         PaperTexturePreset.kraft => const PaperHapticOutputProfile(
             level: 4,
             minAmplitude: 0.24,
-            maxAmplitude: 0.55,
+            maxAmplitude: 0.60,
             sharpness: 0.24,
             samplesPerGrain: 4,
           ),

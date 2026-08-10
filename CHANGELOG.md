@@ -1,3 +1,46 @@
+## [2.2.0] - 2026-08-10
+
+### Changed
+- **Page-flip haptics recalibrated to use the motor's real range.** Successive
+  fixes for a continuous-buzz complaint (2.1.5–2.1.7) walked authored output
+  down until the whole system peaked at ~0.41 of the 0.95 soft ceiling, with
+  the default `standard` texture topping out near 0.30 on iOS and 0.20 on
+  Android. Over half the usable range was unreachable at any setting.
+  - Texture amplitude bands raised and their spread compressed from 5.5x to
+    ~2.1x: texture now carries *character* (sharpness, grain density, physics
+    roughness) and `HapticStrength` carries *loudness*. `standard` goes
+    0.07–0.22 → 0.16–0.41. The ~2.5x slow-to-fast span that encodes drag speed
+    is preserved, but the floor is lifted off the perceptual threshold.
+  - `HapticStrength.userGain` widened from 0.72 / 1.0 / 1.38 to
+    0.55 / 1.0 / 1.45. The old ladder put adjacent steps ~0.08 apart in
+    absolute amplitude — at or under the vibrotactile difference threshold in
+    the compressive part of the LRA/Taptic response — so light, medium, and
+    heavy were not distinguishable.
+  - Android premium `deviceGain` 0.90 → 1.10. At 0.67x of the Cupertino
+    reference, Android devices were audibly weaker than iPhones at the same
+    setting; this closes the gap to 0.81x while keeping iOS the louder route.
+  - Basic-route `deviceGain` 0.82/0.78 → 0.95/0.92. Compact iPhones (SE, mini)
+    fell under the perceptual floor once the light user gain applied.
+  - Settle band 0.06–0.22 → 0.14–0.44 and detent `0.12 + level*0.08` →
+    `0.16 + level*0.075`. Both were pinned low when drag itself peaked at
+    0.22; settle still lands below the same preset's fast-drag peak.
+
+### Fixed
+- **Heavy no longer collapses onto medium on the discrete (non-premium) route.**
+  `_emitDiscreteDragTick` capped intensity at 0.55 *after* the perceptual gain
+  had already been applied and soft-clipped, so every texture above `standard`
+  flattened to the same value across strength settings. The cap is now the
+  shared `PerceptualHapticGain.amplitudeCeiling`.
+
+### Tests
+- New `strength ladder separation` group: locks a >0.10 absolute gap between
+  adjacent strength steps on the default texture for both platforms, medium
+  landing in the middle of the motor range, no texture collapsing heavy onto
+  medium, and slow-drag-at-light staying perceptible.
+- Settle/detent assertions rebased off the authored bands and
+  `PerceptualHapticGain.deviceGain` instead of hard-coded magic numbers, so a
+  future recalibration cannot leave them silently stale.
+
 ## [2.1.11] - 2026-08-10
 
 ### Fixed
