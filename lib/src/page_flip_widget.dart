@@ -236,7 +236,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     _isInternalEffectHandler = config.effectHandler == null;
     _effectHandler = config.effectHandler ??
         DefaultPageFlipEffectHandler(
-          performanceProfile: config.performanceProfile,
           hapticTexturePreset: config.hapticTexturePreset,
           hapticQuality: config.hapticQuality,
           hapticStrength: config.hapticStrength,
@@ -360,7 +359,6 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         _isInternalEffectHandler = config.effectHandler == null;
         _effectHandler = config.effectHandler ??
             DefaultPageFlipEffectHandler(
-              performanceProfile: config.performanceProfile,
               hapticTexturePreset: config.hapticTexturePreset,
               hapticQuality: config.hapticQuality,
               hapticStrength: config.hapticStrength,

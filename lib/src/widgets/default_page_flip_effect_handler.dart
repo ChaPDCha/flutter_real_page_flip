@@ -6,7 +6,6 @@ import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/models/advanced_haptic_engine.dart';
 import 'package:real_page_flip/src/models/haptic_quality.dart';
 import 'package:real_page_flip/src/models/haptic_strength.dart';
-import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 import 'package:real_page_flip/src/models/perceptual_haptic_gain.dart';
@@ -106,7 +105,6 @@ double paperSettleIntensity({
 
 class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
   DefaultPageFlipEffectHandler({
-    this.performanceProfile = DevicePerformanceProfile.medium,
     PaperTexturePreset hapticTexturePreset = PaperTexturePreset.standard,
     this.hapticQuality = HapticQuality.adaptive,
     this.hapticStrength = HapticStrength.medium,
@@ -123,7 +121,6 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     _resolveHapticQuality();
   }
 
-  final DevicePerformanceProfile performanceProfile;
   PaperTexturePreset hapticTexturePreset;
   HapticQuality hapticQuality;
   HapticStrength hapticStrength;

@@ -794,47 +794,14 @@ void main() {
       });
     });
 
-    group('performance profiles', () {
-      test('low profile does not throw', () async {
-        final handler = DefaultPageFlipEffectHandler(
-          performanceProfile: DevicePerformanceProfile.low,
-        );
-        await Future<void>.delayed(Duration.zero);
-        await handler.onHandleEffect(
-          PageFlipEvent.texturedHaptic,
-          pageIndex: 20,
-          intensity: 80,
-          texture: 0.9,
-          resistance: 0.5,
-        );
-      });
-
-      test('medium profile does not throw', () async {
-        final handler = DefaultPageFlipEffectHandler();
-        await Future<void>.delayed(Duration.zero);
-        await handler.onHandleEffect(
-          PageFlipEvent.texturedHaptic,
-          pageIndex: 21,
-          intensity: 150,
-          texture: 0.9,
-          resistance: 0.5,
-        );
-      });
-
-      test('high profile does not throw', () async {
-        final handler = DefaultPageFlipEffectHandler(
-          performanceProfile: DevicePerformanceProfile.high,
-        );
-        await Future<void>.delayed(Duration.zero);
-        await handler.onHandleEffect(
-          PageFlipEvent.texturedHaptic,
-          pageIndex: 22,
-          intensity: 200,
-          texture: 0.9,
-          resistance: 0.5,
-        );
-      });
-    });
+    // The "performance profiles" group that lived here (low/medium/high, each
+    // asserting only "does not throw") tested a `performanceProfile`
+    // constructor parameter on this class that no other code ever read: the
+    // discrete-tick throttle it was added for (b5d0362) was replaced by the
+    // continuous haptic waveform pipeline (e2ce6ca) without removing the now
+    // inert parameter. Removed with the parameter itself — the widget-level
+    // `PageFlipConfig.performanceProfile` (mesh density / shadow quality) is
+    // the real, still-used counterpart and keeps its own coverage.
 
     test('dispose does not throw', () {
       final handler = DefaultPageFlipEffectHandler();

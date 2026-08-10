@@ -1,3 +1,33 @@
+## [2.2.1] - 2026-08-10
+
+### Changed
+- **Removed the inert `performanceProfile` parameter from
+  `DefaultPageFlipEffectHandler`.** It was added in b5d0362 to throttle
+  discrete haptic ticks on low-end devices, but that throttle
+  (`_lastTextureTick`) was replaced by the continuous haptic waveform pipeline
+  in e2ce6ca without removing the now-unread parameter. `PageFlipWidget`
+  faithfully forwarded `config.performanceProfile` into it at both of its
+  internal-effect-handler construction sites, and any host app supplying its
+  own effect handler could pass it too — but nothing inside the class ever
+  read the value, so every caller's low/medium/high choice silently did
+  nothing. The widget-level `PageFlipConfig.performanceProfile` itself (mesh
+  density / shadow quality) is the real, unrelated, still-used control and is
+  unaffected — only the dead forwarding into the haptic handler is gone.
+- **Golden test tolerance widened from 0.15% to 2%** for
+  `page_flip_layer_view_golden_test.dart`. The prior tolerance was calibrated
+  for Linux-vs-Windows drift only; on macOS, per-glyph text-rasterization
+  differences against the Linux-CI-captured baselines (CoreText vs
+  FreeType/Fontconfig) produce a legitimate 0.80%–1.36% diff with no geometry
+  change — confirmed via `test/failures/*_isolatedDiff.png`, which shows only
+  glyph-edge-outline pixels, none on the crease, shadow, or flap boundary. 2%
+  keeps a >1.4x margin over the largest observed cross-platform noise.
+
+### Tests
+- Removed the `performance profiles` group (low/medium/high "does not throw"),
+  which asserted only that the removed parameter didn't crash construction —
+  it had no ability to catch a regression since nothing downstream read the
+  value.
+
 ## [2.2.0] - 2026-08-10
 
 ### Changed
