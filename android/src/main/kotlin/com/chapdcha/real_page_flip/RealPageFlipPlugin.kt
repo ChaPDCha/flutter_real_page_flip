@@ -13,6 +13,48 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import kotlin.math.roundToInt
 
+internal data class TransientEnvelope(
+    val timings: LongArray,
+    val amplitudes: IntArray
+)
+
+/**
+ * Turns the generic transient controls into a motor envelope. Android's
+ * one-shot API has no sharpness parameter, so a shaped amplitude waveform is
+ * required to preserve both the paper edge and its decaying weight.
+ */
+internal fun buildTransientEnvelope(
+    intensity: Double,
+    sharpness: Double,
+    durationMs: Int
+): TransientEnvelope {
+    val duration = durationMs.coerceIn(4, 500)
+    val edge = sharpness.coerceIn(0.0, 1.0)
+    val baseAmplitude = (intensity.coerceIn(0.0, 1.0) * 255.0)
+        .roundToInt()
+        .coerceIn(1, 255)
+    val requestedAttackMs = (7.0 - edge * 4.0).roundToInt().coerceIn(3, 7)
+    val attackMs = requestedAttackMs.coerceAtMost((duration - 2).coerceAtLeast(1))
+    val requestedTailMs = (5.0 + (1.0 - edge) * 5.0)
+        .roundToInt()
+        .coerceIn(5, 10)
+    val tailMs = requestedTailMs.coerceAtMost((duration - attackMs - 1).coerceAtLeast(1))
+    val bodyMs = (duration - attackMs - tailMs).coerceAtLeast(1)
+
+    fun scaled(scale: Double): Int = (baseAmplitude * scale)
+        .roundToInt()
+        .coerceIn(1, 255)
+
+    return TransientEnvelope(
+        timings = longArrayOf(attackMs.toLong(), bodyMs.toLong(), tailMs.toLong()),
+        amplitudes = intArrayOf(
+            scaled(0.72 + edge * 0.28),
+            scaled(0.70 + (1.0 - edge) * 0.18),
+            scaled(0.18 + (1.0 - edge) * 0.42)
+        )
+    )
+}
+
 class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
     private var vibrator: Vibrator? = null
@@ -242,14 +284,11 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         val shouldEmit = shouldEmitVibration()
         val clampedDuration = durationMs.coerceIn(1, 500)
         val amplitude = (intensity * 255).toInt().coerceIn(1, 255)
-        val route = if (clampedDuration <= 16) "primitive_tick" else "one_shot"
+        val route = if (clampedDuration <= 16) "primitive_or_envelope" else "envelope"
         android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playTransient: intensity=$intensity, sharpness=$sharpness, durationMs=$clampedDuration, amplitude=$amplitude, route=$route, shouldEmit=$shouldEmit")
         if (!shouldEmit) return
-        if (clampedDuration > 16) {
-            playFallback(clampedDuration.toLong(), amplitude)
-            return
-        }
-        if (supportsPrimitives(VibrationEffect.Composition.PRIMITIVE_TICK)) {
+        if (clampedDuration <= 16 &&
+            supportsPrimitives(VibrationEffect.Composition.PRIMITIVE_TICK)) {
             val scale = (intensity * 0.85).toFloat().coerceIn(0.03f, 0.48f)
             try {
                 val effect = VibrationEffect.startComposition()
@@ -259,6 +298,18 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
                 return
             } catch (e: Exception) {
                 // fallback
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && hasAmplitudeControl) {
+            try {
+                val envelope = buildTransientEnvelope(intensity, sharpness, clampedDuration)
+                vibrator?.vibrate(
+                    VibrationEffect.createWaveform(envelope.timings, envelope.amplitudes, -1)
+                )
+                return
+            } catch (_: Exception) {
+                // Fall through to the widest compatible one-shot.
             }
         }
 

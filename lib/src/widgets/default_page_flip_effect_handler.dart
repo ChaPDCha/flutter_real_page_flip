@@ -500,6 +500,9 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
       player.dispose();
     }
     _physicsEngines.clear();
-    _continuousBuffer.reset();
+    // `reset()` only clears Dart state. A premium iOS drag owns a looped
+    // CHHaptic player, so disposal must cross the platform boundary before
+    // abandoning the buffer or the native session can outlive this handler.
+    unawaited(_continuousBuffer.stop());
   }
 }

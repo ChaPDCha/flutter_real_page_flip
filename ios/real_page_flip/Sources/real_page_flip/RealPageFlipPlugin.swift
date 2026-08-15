@@ -303,7 +303,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
 
   private func playTransient(intensity: Float, sharpness: Float, durationMs: Int) {
     let clampedDurationMs = min(max(durationMs, 1), 500)
-    let route = clampedDurationMs <= 25 ? "transient" : "continuous"
+    let route = clampedDurationMs <= 25 ? "transient" : "weighted_transient"
     print("[HAPTIC_DIAGNOSTIC] iOS playTransient: intensity=\(intensity), sharpness=\(sharpness), durationMs=\(clampedDurationMs), route=\(route)")
     guard let engine = hapticEngine else {
       playLegacyPaperTick(intensity: intensity)
@@ -313,22 +313,50 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     // Modulate sharpness dynamically: soft at low intensity, crisp at high intensity
     let modulatedSharpness = min(max(sharpness * 0.7 + intensity * 0.3, 0.0), 1.0)
 
-    let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
+    let clampedIntensity = min(max(intensity, 0.0), 1.0)
+    let clampedSharpness = min(max(sharpness, 0.0), 1.0)
+    let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: clampedIntensity)
     let sharpnessParam = CHHapticEventParameter(parameterID: .hapticSharpness, value: modulatedSharpness)
-    let event: CHHapticEvent
-    if clampedDurationMs <= 25 {
-      event = CHHapticEvent(eventType: .hapticTransient, parameters: [intensityParam, sharpnessParam], relativeTime: 0)
-    } else {
-      event = CHHapticEvent(
-        eventType: .hapticContinuous,
-        parameters: [intensityParam, sharpnessParam],
-        relativeTime: 0,
-        duration: Double(clampedDurationMs) / 1000.0
-      )
-    }
+    let transientEdge = CHHapticEvent(
+      eventType: .hapticTransient,
+      parameters: [intensityParam, sharpnessParam],
+      relativeTime: 0
+    )
 
     do {
-      let pattern = try CHHapticPattern(events: [event], parameters: [])
+      let pattern: CHHapticPattern
+      if clampedDurationMs <= 25 {
+        pattern = try CHHapticPattern(events: [transientEdge], parameters: [])
+      } else {
+        let durationSeconds = Double(clampedDurationMs) / 1000.0
+        let tailIntensity = clampedIntensity * (0.45 + (1.0 - clampedSharpness) * 0.25)
+        let tailIntensityParam = CHHapticEventParameter(
+          parameterID: .hapticIntensity,
+          value: tailIntensity
+        )
+        let tailSharpnessParam = CHHapticEventParameter(
+          parameterID: .hapticSharpness,
+          value: modulatedSharpness * 0.45
+        )
+        let continuousTail = CHHapticEvent(
+          eventType: .hapticContinuous,
+          parameters: [tailIntensityParam, tailSharpnessParam],
+          relativeTime: 0,
+          duration: durationSeconds
+        )
+        let decayCurve = CHHapticParameterCurve(
+          parameterID: .hapticIntensityControl,
+          controlPoints: [
+            CHHapticParameterCurve.ControlPoint(relativeTime: 0, value: 1.0),
+            CHHapticParameterCurve.ControlPoint(relativeTime: durationSeconds, value: 0.12)
+          ],
+          relativeTime: 0
+        )
+        pattern = try CHHapticPattern(
+          events: [continuousTail, transientEdge],
+          parameterCurves: [decayCurve]
+        )
+      }
       let player = try engine.makePlayer(with: pattern)
       try player.start(atTime: CHHapticTimeImmediate)
     } catch {

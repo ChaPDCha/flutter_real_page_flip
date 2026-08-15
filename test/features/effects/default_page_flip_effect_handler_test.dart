@@ -621,6 +621,50 @@ void main() {
       handler.dispose();
     });
 
+    test('dispose stops an active native continuous session', () async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('com.chapdcha.real_page_flip/haptics'),
+        (call) async {
+          calls.add(call);
+          if (call.method == 'getHapticCapabilities') {
+            return {
+              'hasVibrator': true,
+              'hasAmplitudeControl': true,
+              'hasAdvancedHaptics': true,
+            };
+          }
+          return null;
+        },
+      );
+      final handler = DefaultPageFlipEffectHandler(
+        hapticQuality: HapticQuality.premium,
+      );
+      await Future<void>.delayed(Duration.zero);
+      await handler.onHandleEffect(
+        PageFlipEvent.texturedHaptic,
+        pageIndex: 0,
+        intensity: 84,
+        texture: 0.5,
+        resistance: 0.8,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(
+        calls.map((call) => call.method),
+        contains('playContinuousWaveform'),
+      );
+
+      handler.dispose();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(
+        calls.map((call) => call.method),
+        contains('stopContinuous'),
+        reason: 'Disposal must not leave the native looped player running',
+      );
+    });
+
     group('onHandleEffect event routing', () {
       test('startHaptic does not throw', () async {
         final handler = DefaultPageFlipEffectHandler();
