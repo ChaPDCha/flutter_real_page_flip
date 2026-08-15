@@ -276,7 +276,13 @@ class PageFlipPainter extends CustomPainter {
     // Layer 1: Paper back underlay, then flap-front texture with late reveal.
     _drawPaperUnderlay(canvas, flapPaintRect);
 
-    _drawFlapContentMesh(canvas, g, flapPaintRect, size);
+    _drawFlapContentMesh(
+      canvas,
+      g,
+      flapPaintRect,
+      size,
+      verticalPaintBleed,
+    );
 
     _drawEdgeFoldMasks(canvas, g, isPaperDark);
 
@@ -763,6 +769,7 @@ class PageFlipPainter extends CustomPainter {
     PageFlipGeometry g,
     Rect flapPaintRect,
     Size size,
+    double verticalPaintBleed,
   ) {
     final normalizedProgress =
         normalizedFlapProgress(progress, isForward: isActualForward);
@@ -813,6 +820,7 @@ class PageFlipPainter extends CustomPainter {
       segments: density.segments,
       columns: density.columns,
       flipHorizontal: !isDoubleSpread || !isForward,
+      verticalBleed: verticalPaintBleed,
     );
     try {
       canvas.drawVertices(

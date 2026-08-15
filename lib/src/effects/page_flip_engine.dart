@@ -66,6 +66,10 @@ export 'package:real_page_flip/src/effects/page_flip_texture_rects.dart';
 ///
 /// [segments] vertical subdivisions (higher = smoother, default 16).
 /// [columns] horizontal subdivisions (0 = fold-to-flap only, 4+ recommended).
+/// [verticalBleed] extends the textured surface above and below the page.
+/// Angled flips need this because their screen-space clip can expose local
+/// coordinates outside `0..size.height`. UVs deliberately extend with the
+/// geometry and rely on the painter's clamped image shader at the outer rows.
 ui.Vertices buildFlapContentMesh({
   required Size size,
   required double foldX,
@@ -75,6 +79,7 @@ ui.Vertices buildFlapContentMesh({
   int segments = 16,
   int columns = 4,
   bool flipHorizontal = false,
+  double verticalBleed = 0,
 }) {
   final safeSegments = math.max(segments, 0);
   final safeColumns = math.max(columns, 0);
@@ -87,8 +92,17 @@ ui.Vertices buildFlapContentMesh({
   }
 
   final height = size.height;
+  final bleed = verticalBleed.isFinite ? math.max(verticalBleed, 0) : 0.0;
+  final verticalSpan = height + bleed * 2;
+  // Preserve the requested rows-per-page density across the extended mesh.
+  // Reusing only [segments] over a 3H bleed span would turn smooth curl into
+  // visibly coarse strips during the exact extreme drags this fixes.
+  final effectiveSegments = math.max(
+    safeSegments,
+    (safeSegments * verticalSpan / height).ceil(),
+  );
   final totalCols = safeColumns + 2; // fold + interior + flap edge columns
-  final rows = safeSegments + 1;
+  final rows = effectiveSegments + 1;
   final vertexCount = rows * totalCols;
   if (vertexCount > 0x10000) {
     throw ArgumentError.value(
@@ -122,10 +136,11 @@ ui.Vertices buildFlapContentMesh({
   final colScale = 1.0 / (totalCols - 1);
 
   for (var i = 0; i < rows; i++) {
-    final t = i / safeSegments;
-    final y = height * t;
-    // Use the same extended vertical domain as the screen clip. UVs still use
-    // the visible 0..1 [t] below; only the projected paper position is curved.
+    final spanT = i / effectiveSegments;
+    final y = -bleed + verticalSpan * spanT;
+    final textureT = y / height;
+    // Use the same extended vertical domain as the screen clip. Texture UVs
+    // extend with it and the painter's clamp shader holds the page edge color.
     final b = flapCurveBlendAt(y, height);
     final rowBase = i * totalCols;
 
@@ -153,7 +168,7 @@ ui.Vertices buildFlapContentMesh({
       texCoords[coord] = flipHorizontal
           ? srcRect.left + s * srcRect.width
           : srcRect.right - s * srcRect.width;
-      texCoords[coord + 1] = srcRect.top + t * srcRect.height;
+      texCoords[coord + 1] = srcRect.top + textureT * srcRect.height;
     }
   }
 
@@ -172,11 +187,11 @@ ui.Vertices buildFlapContentMesh({
   // pairs. This preserves the exact mesh topology while avoiding duplicated
   // position/UV payload for every triangle.
   // -----------------------------------------------------------------------
-  final indexCount = safeSegments * (totalCols - 1) * 6;
+  final indexCount = effectiveSegments * (totalCols - 1) * 6;
   final indices = Uint16List(indexCount);
   var offset = 0;
 
-  for (var i = 0; i < safeSegments; i++) {
+  for (var i = 0; i < effectiveSegments; i++) {
     final row0 = i * totalCols;
     final row1 = (i + 1) * totalCols;
     for (var j = 0; j < totalCols - 1; j++) {

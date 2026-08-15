@@ -331,6 +331,113 @@ void main() {
       image.dispose();
     });
 
+    test('vertical bleed keeps rotated flap texture continuous off-page',
+        () async {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder)..translate(0, size.height);
+      final mesh = buildFlapContentMesh(
+        size: size,
+        foldX: 300,
+        flapLeft: 50,
+        curveOffset: 0,
+        srcRect: srcRect,
+        segments: 8,
+        verticalBleed: size.height,
+      );
+
+      canvas.drawVertices(
+        mesh,
+        BlendMode.srcOver,
+        Paint()..color = const Color(0xFFFF0000),
+      );
+
+      final image = await recorder.endRecording().toImage(400, 1800);
+      final byteData = await image.toByteData();
+      expect(byteData, isNotNull);
+
+      const sampleX = 175;
+      const stride = 400 * 4;
+      for (final sampleY in [2, 900, 1797]) {
+        final offset = sampleY * stride + sampleX * 4;
+        expect(
+          byteData!.getUint8(offset),
+          greaterThan(0),
+          reason: 'The textured mesh must cover the full rotated bleed',
+        );
+      }
+
+      mesh.dispose();
+      image.dispose();
+    });
+
+    test('vertical bleed does not rescale snapshot UVs inside the page',
+        () async {
+      final sourceRecorder = ui.PictureRecorder();
+      final sourceCanvas = Canvas(sourceRecorder);
+      const stripeColors = [
+        Color(0xFFFF0000),
+        Color(0xFF00FF00),
+        Color(0xFF0000FF),
+        Color(0xFFFFFF00),
+      ];
+      for (var i = 0; i < stripeColors.length; i++) {
+        sourceCanvas.drawRect(
+          Rect.fromLTWH(0, i * 150, 400, 150),
+          Paint()..color = stripeColors[i],
+        );
+      }
+      final source = await sourceRecorder.endRecording().toImage(400, 600);
+
+      Future<ui.Image> render({required double verticalBleed}) async {
+        final recorder = ui.PictureRecorder();
+        final mesh = buildFlapContentMesh(
+          size: size,
+          foldX: 300,
+          flapLeft: 50,
+          curveOffset: 0,
+          srcRect: srcRect,
+          verticalBleed: verticalBleed,
+        );
+        Canvas(recorder).drawVertices(
+          mesh,
+          BlendMode.srcOver,
+          Paint()
+            ..shader = ui.ImageShader(
+              source,
+              ui.TileMode.clamp,
+              ui.TileMode.clamp,
+              identityMatrixStorage,
+            )
+            ..filterQuality = FilterQuality.none,
+        );
+        mesh.dispose();
+        return recorder.endRecording().toImage(400, 600);
+      }
+
+      final baseline = await render(verticalBleed: 0);
+      final extended = await render(verticalBleed: size.height);
+      final baselinePixels = await baseline.toByteData();
+      final extendedPixels = await extended.toByteData();
+      expect(baselinePixels, isNotNull);
+      expect(extendedPixels, isNotNull);
+
+      const stride = 400 * 4;
+      for (final y in [75, 225, 375, 525]) {
+        final offset = y * stride + 175 * 4;
+        for (var channel = 0; channel < 4; channel++) {
+          expect(
+            extendedPixels!.getUint8(offset + channel),
+            closeTo(baselinePixels!.getUint8(offset + channel), 1),
+            reason: 'Bleed must not stretch snapshot content at y=$y',
+          );
+        }
+      }
+
+      source.dispose();
+      baseline.dispose();
+      extended.dispose();
+    });
+
     test('mesh does not crash with extreme parameters on render', () async {
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);

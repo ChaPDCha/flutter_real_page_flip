@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/page_flip_layer_view.dart';
 
 void main() {
@@ -81,6 +82,83 @@ void main() {
         expect(bounds.top, lessThanOrEqualTo(-size.height));
         expect(bounds.bottom, greaterThanOrEqualTo(size.height * 2));
         expect(bounds.width, greaterThan(0));
+      }
+    });
+
+    test('painter keeps textured flap over the underlay at extreme angles',
+        () async {
+      const size = Size(800, 600);
+      final textureRecorder = ui.PictureRecorder();
+      Canvas(textureRecorder).drawRect(
+        Offset.zero & size,
+        Paint()..color = const Color(0xFFFF00FF),
+      );
+      final texture = await textureRecorder.endRecording().toImage(800, 600);
+      addTearDown(texture.dispose);
+
+      for (final isForward in [true, false]) {
+        for (final touchY in [-size.height * 4, size.height * 5]) {
+          final geo = PageFlipGeometry(
+            progress: 0.5,
+            isRightToLeft: true,
+            touchOffset: Offset(size.width / 2, touchY),
+            size: size,
+            isDoubleSpread: true,
+            isForward: isForward,
+          );
+          final recorder = ui.PictureRecorder();
+          PageFlipPainter(
+            progress: 0.5,
+            isRightToLeft: true,
+            touchOffset: Offset(size.width / 2, touchY),
+            paperBackColor: const Color(0xFF00FF00),
+            flapFrontImage: texture,
+            flapFrontSrcRect: Offset.zero & size,
+            isDoubleSpread: true,
+            isForward: isForward,
+            geo: geo,
+            performanceProfile: DevicePerformanceProfile.high,
+          ).paint(Canvas(recorder), size);
+          final frame = await recorder.endRecording().toImage(800, 600);
+          final pixels = await frame.toByteData();
+          expect(pixels, isNotNull);
+
+          final flapClip = buildFlapScreenClipPath(geo);
+          var flapSamples = 0;
+          var textureSamples = 0;
+          var exposedUnderlaySamples = 0;
+          const stride = 800 * 4;
+          for (var y = 2; y < 598; y += 3) {
+            for (var x = 2; x < 798; x += 3) {
+              if (!flapClip.contains(Offset(x + 0.5, y + 0.5))) continue;
+              final offset = y * stride + x * 4;
+              final r = pixels!.getUint8(offset);
+              final g = pixels.getUint8(offset + 1);
+              final b = pixels.getUint8(offset + 2);
+              final a = pixels.getUint8(offset + 3);
+              if (a < 200) continue;
+              flapSamples++;
+              if (r > g + 30 && b > g + 30) textureSamples++;
+              if (g > r + 40 && g > b + 40) exposedUnderlaySamples++;
+            }
+          }
+
+          expect(flapSamples, greaterThan(100));
+          expect(
+            textureSamples / flapSamples,
+            greaterThan(0.70),
+            reason: 'Most of the visible flap must retain its snapshot texture '
+                'for forward=$isForward touchY=$touchY',
+          );
+          expect(
+            exposedUnderlaySamples / flapSamples,
+            lessThan(0.02),
+            reason: 'The green paper underlay is exposed where the rotated '
+                'texture mesh should cover it for forward=$isForward '
+                'touchY=$touchY',
+          );
+          frame.dispose();
+        }
       }
     });
   });
