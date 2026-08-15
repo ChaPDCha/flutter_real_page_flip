@@ -1,3 +1,13 @@
+## [2.2.2] - 2026-08-15
+
+### Fixed
+- **Prevent extreme vertical flap seams and exposed paper underlay.**
+  Added off-page vertical bleed support to `buildFlapContentMesh` and `PageFlipPainter`. During steep diagonal or vertical drag gestures, the rotated mesh now remains continuous off-viewport without distorting on-page texture UVs or exposing the paper background underlay at steep angles.
+- **Natural native haptic transient feedback on iOS and Android.**
+  - On iOS, weighted paper tick landings now combine a crisp transient edge with an exponentially decaying continuous tail (`CHHapticParameterCurve`) rather than a flat, synthetic-feeling buzz.
+  - On Android, `buildTransientEnvelope` structures waveform timing and amplitude to preserve sharp attack while allowing weighted arrivals without collapsing into flat one-shot primitives.
+  - `DefaultPageFlipEffectHandler.dispose` now properly invokes `_continuousBuffer.stop()` across the platform channel, ensuring active native continuous haptic sessions do not leak or persist beyond widget lifecycle.
+
 ## [2.2.1] - 2026-08-10
 
 ### Changed
