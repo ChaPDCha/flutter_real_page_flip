@@ -41,8 +41,14 @@ abstract class PaperResistanceModel {
 
     /// Stribeck velocity threshold for the friction transition.
     double stribeckV0 = 0.08,
-  }) =>
-      muKinetic + (muStatic - muKinetic) * exp(-velocity / stribeckV0);
+  }) {
+    // Guard: stribeckV0 <= 0 causes division by zero → NaN propagation.
+    // At v0→0 the Stribeck transition collapses to pure static friction.
+    if (stribeckV0 <= 0) return muStatic;
+    final result =
+        muKinetic + (muStatic - muKinetic) * exp(-velocity / stribeckV0);
+    return result.isFinite ? result : muStatic;
+  }
 
   /// Calculates the haptic amplitude from velocity, friction, texture, and resistance.
   static double hapticAmplitude({
@@ -91,9 +97,9 @@ abstract class PaperResistanceModel {
     final baseDuration = minDurationMs.toDouble() +
         (resistance * (maxDurationMs - minDurationMs));
     final frictionBonus = friction * 20;
-    return (baseDuration + frictionBonus).round().clamp(
-          minDurationMs,
-          maxDurationMs,
-        );
+    final raw = baseDuration + frictionBonus;
+    // Guard: NaN/Infinity from upstream arithmetic must not reach .round().
+    if (!raw.isFinite) return minDurationMs;
+    return raw.round().clamp(minDurationMs, maxDurationMs);
   }
 }
