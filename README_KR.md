@@ -1,7 +1,7 @@
 # Flutter 실시간 페이지 플립 엔진 (Real Page Flip)
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![tests](https://img.shields.io/badge/tests-1199%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
+[![tests](https://img.shields.io/badge/tests-1227%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![후원](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -32,7 +32,7 @@ Real Page Flip은 현재 Google Play에 출시된 두 개의 앱에서 사용되
 | 극단적 수직 드래그 시 레이어 경계 불일치 | 수정 완료 |
 | 정적 셰이더 캐시로 인한 GPU 메모리 누수 | 수정 완료 |
 
-1,199개 테스트. 분석기 0 이슈. MIT 라이선스로 상업적/비상업적 모든 프로젝트에서 무료.
+1,227개 테스트. 분석기 0 이슈. MIT 라이선스로 상업적/비상업적 모든 프로젝트에서 무료.
 
 **이 엔진은 수천 번의 실제 페이지 넘김에서만 드러나는 엣지 케이스를
 이미 해결했다는 점에서 다릅니다.**
@@ -42,7 +42,7 @@ Real Page Flip은 현재 Google Play에 출시된 두 개의 앱에서 사용되
 ## 이 엔진의 차별점
 
 - **실제 기기 검증**: 저가형 iPhone SE와 보급형 Android 기기에서 테스트 — 아래 모든 버그는 실제 사용자가 신고하고 수정한 항목입니다.
-- **1,199개 테스트, 0 analyzer 이슈**: 제스처 중재, 기하학 불변속성, 메모리 생명주기, 접근성, 스트레스 시나리오까지 포괄.
+- **1,227개 테스트, 0 analyzer 이슈**: 제스처 중재, 기하학 불변속성, 메모리 생명주기, 접근성, 스트레스 시나리오까지 포괄.
 - **적응형 성능**: 저/중/고 세 가지 렌더링 프로필이 기기 성능에 자동으로 맞춰집니다.
 - **물리 기반 비주얼**: 실제 종이 동작에서 유도된 접힘 그림자, 종이 컬 셰이딩, 다크 페이퍼 문라이트 톤.
 - **완전한 감각 피드백**: 속도에 따라 변화하는 페이지 넘김 사운드와 연속 햅틱 파형 파이프라인이 동기화됩니다.
@@ -190,7 +190,7 @@ flutter run --profile -t lib/performance_benchmark.dart \
 ## 프로젝트 후원
 
 Real Page Flip은 MIT 라이선스로 영원히 무료입니다. 그러나 프로덕션급 엔진 유지 —
-1,199개 테스트 실행, 실제 기기 검증, Flutter 업데이트 대응 — 에는 지속적인
+1,227개 테스트 실행, 실제 기기 검증, Flutter 업데이트 대응 — 에는 지속적인
 투자가 필요합니다.
 
 [GitHub Sponsors에서 후원하기 →](https://github.com/sponsors/ChaPDCha)
