@@ -3,7 +3,7 @@
 
 ## Test plan
 <!-- How did you test this? -->
-- [ ] `flutter test` passes (all 448 tests)
+- [ ] `flutter test` passes (all 1,230 tests)
 - [ ] `flutter analyze` passes
 - [ ] Visual verification on device
 

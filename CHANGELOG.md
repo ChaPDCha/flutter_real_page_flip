@@ -1,3 +1,11 @@
+## [2.2.6] - 2026-08-23
+
+### Changed
+- Strengthened the centre-gutter occlusion regression contract across sampled
+  turn progress, direction, and vertical touch positions.
+- Refreshed the published test-count badges and contribution checklist to
+  match the verified suite.
+
 ## [2.2.5] - 2026-08-23
 
 ### Fixed
@@ -9,6 +17,8 @@
 ### Tests
 - Added forward and backward flap-occlusion coverage for the centre-gutter
   clip and spread snapshot spine separation.
+- Added sampled complement invariants across turn progress, direction, and
+  vertical touch positions.
 
 ## [2.2.4] - 2026-08-23
 

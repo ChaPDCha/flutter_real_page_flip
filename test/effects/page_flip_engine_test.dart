@@ -32,6 +32,43 @@ void main() {
       expect(clip.contains(flap.getBounds().center), isFalse);
       expect(clip.contains(const Offset(400, 10)), isTrue);
     });
+
+    test('is the exact flap complement across sampled turn states', () {
+      const size = Size(800, 600);
+      const progressSamples = <double>[0.05, 0.25, 0.5, 0.75, 0.95];
+      const touchYSamples = <double>[5, 300, 595];
+      const sampleXs = <double>[5, 105, 205, 305, 495, 595, 695, 795];
+      const sampleYs = <double>[5, 105, 205, 305, 495, 595];
+
+      for (final isForward in <bool>[true, false]) {
+        for (final progress in progressSamples) {
+          for (final touchY in touchYSamples) {
+            final geo = PageFlipGeometry(
+              progress: progress,
+              isRightToLeft: true,
+              touchOffset: Offset(400, touchY),
+              size: size,
+              isDoubleSpread: true,
+              isForward: isForward,
+            );
+            final flap = buildFlapScreenClipPath(geo);
+            final gutterClip = buildCenterGutterOcclusionClipPath(geo);
+
+            for (final y in sampleYs) {
+              for (final x in sampleXs) {
+                final point = Offset(x, y);
+                expect(
+                  gutterClip.contains(point),
+                  equals(!flap.contains(point)),
+                  reason: 'inverse flap clip mismatch at forward=$isForward '
+                      'progress=$progress touchY=$touchY point=$point',
+                );
+              }
+            }
+          }
+        }
+      }
+    });
   });
 
   // ===========================================================================

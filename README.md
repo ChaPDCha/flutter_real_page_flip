@@ -1,7 +1,7 @@
 # Real Page Flip Engine for Flutter
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![tests](https://img.shields.io/badge/tests-1227%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
+[![tests](https://img.shields.io/badge/tests-1230%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -31,7 +31,7 @@ device, reported by a real user, and fixed:
 | Extreme vertical drag causing layer seams | Fixed |
 | GPU memory leak from static shader cache | Fixed |
 
-1,227 tests. 0 analyzer issues. Free (MIT) for any project, commercial or personal.
+1,230 tests. 0 analyzer issues. Free (MIT) for any project, commercial or personal.
 
 **This engine is different because it has already solved edge cases that only
 surface after thousands of real-world page turns.**
@@ -41,7 +41,7 @@ English | [한국어](README_KR.md)
 ## What Sets This Engine Apart
 
 - **Real-device verified**: Tested on budget iPhone SE and low-end Android devices — every listed bug was reported by an actual user and fixed.
-- **1,227 tests, 0 analyzer issues**: Covers gesture arbitration, geometry invariants, memory lifecycle, accessibility, and stress scenarios.
+- **1,230 tests, 0 analyzer issues**: Covers gesture arbitration, geometry invariants, memory lifecycle, accessibility, and stress scenarios.
 - **Adaptive performance**: Three rendering profiles (low/medium/high) automatically scale to device capability.
 - **Physics-modeled visuals**: Crease shadows, paper curl shading, and dark-paper moonlight tones derived from physical paper behavior.
 - **Complete sensory feedback**: Continuous haptic waveform pipeline synchronized with speed-varying page-rustle audio.
@@ -238,7 +238,7 @@ computation, and shader performance before they reach users.
 ## Support the Project
 
 Real Page Flip is free (MIT) and always will be. Maintaining a production-grade
-engine — running 1,227 tests, verifying fixes across real devices, and keeping
+engine — running 1,230 tests, verifying fixes across real devices, and keeping
 pace with Flutter releases — requires sustained investment.
 
 [Sponsor on GitHub →](https://github.com/sponsors/ChaPDCha)
