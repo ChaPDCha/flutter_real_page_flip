@@ -1,3 +1,15 @@
+## [2.2.4] - 2026-08-23
+
+### Fixed
+- **Prevent non-finite paper physics values from reaching haptic timing.**
+  Invalid Stribeck velocity thresholds and non-finite friction/resistance
+  arithmetic now fall back to finite, bounded values instead of propagating
+  `NaN` or `Infinity` into duration rounding.
+
+### Tests
+- Added regression coverage for zero and non-finite Stribeck calculations and
+  non-finite haptic-duration inputs.
+
 ## [2.2.2] - 2026-08-15
 
 ### Fixed
