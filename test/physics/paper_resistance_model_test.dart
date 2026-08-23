@@ -65,6 +65,24 @@ void main() {
         prev = f;
       }
     });
+
+    test('zero Stribeck velocity falls back to static friction', () {
+      final result = PaperResistanceModel.frictionCoefficient(
+        velocity: 0.4,
+        stribeckV0: 0,
+      );
+      expect(result, equals(0.6));
+      expect(result.isFinite, isTrue);
+    });
+
+    test('non-finite Stribeck calculation falls back to static friction', () {
+      final result = PaperResistanceModel.frictionCoefficient(
+        velocity: double.negativeInfinity,
+        stribeckV0: double.nan,
+      );
+      expect(result, equals(0.6));
+      expect(result.isFinite, isTrue);
+    });
   });
 
   group('PaperResistanceModel.hapticAmplitude', () {
@@ -148,6 +166,19 @@ void main() {
         maxDurationMs: 30,
       );
       expect(d, equals(30));
+    });
+
+    test('non-finite inputs return the minimum duration', () {
+      final infinite = PaperResistanceModel.hapticDuration(
+        resistance: double.infinity,
+        friction: 0.5,
+      );
+      final nan = PaperResistanceModel.hapticDuration(
+        resistance: double.nan,
+        friction: 0.5,
+      );
+      expect(infinite, equals(8));
+      expect(nan, equals(8));
     });
   });
 
