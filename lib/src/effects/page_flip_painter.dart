@@ -327,13 +327,22 @@ class PageFlipPainter extends CustomPainter {
         performanceProfile == DevicePerformanceProfile.low;
     final gutterPeak =
         (isPaperDark ? 0.06 : 0.12) * g.shadowIntensity * shadowOnset;
+    if (gutterPeak <= 0.003) return;
 
     final gutterScale = glowBandWidthScale(isPaperDark: isPaperDark);
     final flipSideWidth = 18.0 * gutterScale;
     final stationarySideWidth = 13.0 * gutterScale;
 
+    // The gutter is painted after the flap effects so it remains visible on
+    // the exposed stationary pages. Restrict it to the inverse flap region;
+    // otherwise this late pass draws the centre shadow over the opaque sheet
+    // and makes the binding appear to pierce the turning layer.
+    final gutterOcclusionClip = buildCenterGutterOcclusionClipPath(g);
+    canvas.save();
+    canvas.clipPath(gutterOcclusionClip);
+
     void drawGutterSide(double outward) {
-      if (gutterPeak <= 0.003 || outward == 0) return;
+      if (outward == 0) return;
       final outerX = g.spineX + outward;
       final left = math.min(g.spineX, outerX);
       final right = math.max(g.spineX, outerX);
@@ -361,6 +370,7 @@ class PageFlipPainter extends CustomPainter {
 
     drawGutterSide(g.isForward ? flipSideWidth : -flipSideWidth);
     drawGutterSide(g.isForward ? -stationarySideWidth : stationarySideWidth);
+    canvas.restore();
   }
 
   void _drawFoldAccent(

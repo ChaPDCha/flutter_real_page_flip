@@ -1148,8 +1148,9 @@ void main() {
 
       // isRightToLeft = false → stationary shadow skipped (requires true).
       // Spine: isDoubleSpread && progress > 0 → true, but NOT gated on isRightToLeft.
-      // clipPaths: flap + revealed crease + free-edge contact = 3.
-      expect(canvas.clipPathCount, equals(3));
+      // clipPaths: flap + revealed crease + free-edge contact + the inverse
+      // flap clip that keeps the centre gutter behind the turning sheet = 4.
+      expect(canvas.clipPathCount, equals(4));
       // save/restore balanced
       expect(canvas.saveCount, equals(canvas.restoreCount));
       // Spine uses BlendMode.multiply
@@ -1175,8 +1176,9 @@ void main() {
       ).paint(canvas, size);
 
       // isRightToLeft && isDoubleSpread → stationary shadow IS drawn.
-      // clipPaths: flap + revealed crease + free-edge contact + stationary = 4.
-      expect(canvas.clipPathCount, equals(4));
+      // clipPaths: flap + revealed crease + free-edge contact + stationary +
+      // the inverse flap clip for the centre gutter = 5.
+      expect(canvas.clipPathCount, equals(5));
       expect(canvas.saveCount, equals(canvas.restoreCount));
       expect(
         canvas.hasDrawRectWith(blendMode: BlendMode.multiply, hasShader: true),

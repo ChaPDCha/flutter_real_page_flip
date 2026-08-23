@@ -5,6 +5,35 @@ import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 void main() {
+  group('buildCenterGutterOcclusionClipPath', () {
+    PageFlipGeometry geometry({required bool isForward}) => PageFlipGeometry(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: const Offset(400, 300),
+          size: const Size(800, 600),
+          isDoubleSpread: true,
+          isForward: isForward,
+        );
+
+    test('excludes the forward flap from the gutter paint region', () {
+      final geo = geometry(isForward: true);
+      final clip = buildCenterGutterOcclusionClipPath(geo);
+      final flap = buildFlapScreenClipPath(geo);
+
+      expect(clip.contains(flap.getBounds().center), isFalse);
+      expect(clip.contains(const Offset(400, 10)), isTrue);
+    });
+
+    test('excludes the backward flap from the gutter paint region', () {
+      final geo = geometry(isForward: false);
+      final clip = buildCenterGutterOcclusionClipPath(geo);
+      final flap = buildFlapScreenClipPath(geo);
+
+      expect(clip.contains(flap.getBounds().center), isFalse);
+      expect(clip.contains(const Offset(400, 10)), isTrue);
+    });
+  });
+
   // ===========================================================================
   // flapFrontSourceRect / flapBackSourceRect / flapFrontSettleSourceRect
   // ===========================================================================

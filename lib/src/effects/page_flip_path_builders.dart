@@ -651,3 +651,17 @@ Path buildFlapScreenClipPath(
   path.close();
   return path;
 }
+
+/// Returns the viewport region where the stationary centre-gutter shading may
+/// be painted without appearing through the turning sheet.
+///
+/// The painter draws the gutter after the flap so the gutter remains visible
+/// on the exposed page halves. That ordering must be paired with this inverse
+/// flap clip; otherwise the gutter is composited on top of the opaque flap and
+/// looks like a dark line punched through the paper.
+Path buildCenterGutterOcclusionClipPath(PageFlipGeometry geo) {
+  final viewport = Path()..addRect(Offset.zero & geo.size);
+  final flap = buildFlapScreenClipPath(geo);
+  if (flap.getBounds().isEmpty) return viewport;
+  return Path.combine(PathOperation.difference, viewport, flap);
+}

@@ -1,3 +1,15 @@
+## [2.2.5] - 2026-08-23
+
+### Fixed
+- **Keep the centre-gutter shadow behind the turning sheet.** The double-spread
+  gutter is now clipped to the inverse flap region, and hosts can keep settled
+  spread overlays outside captured page snapshots so binding shadows cannot
+  bleed through an opaque turning page.
+
+### Tests
+- Added forward and backward flap-occlusion coverage for the centre-gutter
+  clip and spread snapshot spine separation.
+
 ## [2.2.4] - 2026-08-23
 
 ### Fixed
