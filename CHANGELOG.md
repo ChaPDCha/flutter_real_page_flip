@@ -1,3 +1,27 @@
+## [2.2.7] - 2026-08-26
+
+### Fixed
+- **Stop treating an unchanged `initialIndex` as an external jump.** After the
+  engine advanced a page on its own, any unrelated host rebuild — an inherited
+  widget changing, or the host's own `onFlipStart` handler calling `setState` —
+  arrived carrying an `initialIndex` that simply had not caught up yet (a host
+  cannot move it until `onPageChanged` tells it to). That was obeyed as a
+  navigation request: the engine rewound the page turn it had just performed
+  and `PreRenderManager.reset()` cleared `pageKeys`, so `_LivePageCaptureLayer`
+  skipped both adjacent indices and unmounted them for a frame. Text-heavy
+  pages re-shaped every `RenderParagraph` on the next frame, which readers saw
+  as the text blinking out and back on every page turn. An external jump now
+  requires `initialIndex` to have actually changed.
+- **Never leave the key window empty for a frame.** The hard-reset branch now
+  repopulates `pageKeys` synchronously instead of waiting for its post-frame
+  callback, so a genuine reset (a real jump, an `itemCount` change) keeps the
+  adjacent pages mounted — and lets a host that keys its own page subtrees
+  re-parent them rather than rebuilding them.
+
+### Tests
+- Added host-rebuild-during-flip coverage for both spread modes, asserting on
+  element identity (not mere presence) so a silent re-inflation still fails.
+
 ## [2.2.6] - 2026-08-23
 
 ### Changed
