@@ -366,8 +366,30 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       }
     }
 
+    // An external jump is the host ASKING for a different page, which it can
+    // only express by CHANGING [initialIndex]. Comparing the incoming
+    // `initialIndex` against `_controller.currentIndex` alone cannot tell that
+    // apart from the ordinary, correct state of affairs after the engine has
+    // advanced a page on its own: the host's own notion of position does not
+    // move until `onPageChanged` tells it to, and hosts routinely take another
+    // frame (or an async hop) to act on that. Any unrelated rebuild in that
+    // window — an inherited-widget change, or the host's own `onFlipStart`
+    // handler calling `setState` — then arrived carrying an `initialIndex`
+    // that merely had not caught up yet, and was obeyed as a jump: the engine
+    // rewound the page turn it had just performed AND `reset()` cleared
+    // `pageKeys`, so `_LivePageCaptureLayer` skipped every adjacent index
+    // (`if (pageKey == null) continue;`) and unmounted both neighbours for a
+    // frame. Text-heavy pages then re-shaped every `RenderParagraph` on the
+    // next frame, which readers see as the text blinking out and back.
+    // Regression coverage: page_flip_host_rebuild_during_flip_test.dart.
+    //
+    // Requiring `initialIndex` to have actually changed keeps every genuine
+    // external navigation working (a host jumping somewhere must change it by
+    // definition) while making the engine indifferent to rebuilds that say
+    // nothing new about position.
     final indexChangedExternally =
-        widget.initialIndex != _controller.currentIndex;
+        widget.initialIndex != oldWidget.initialIndex &&
+            widget.initialIndex != _controller.currentIndex;
     final contentRevisionChanged =
         widget.contentRevision != oldWidget.contentRevision;
     // Do not reset on itemBuilder identity: hosts often pass a new closure each
@@ -384,6 +406,17 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
       // Reset pre-render manager to avoid using stale keys or snapshots
       _preRenderManager.reset();
+
+      // Repopulate the key window SYNCHRONOUSLY, before this frame builds.
+      // The post-frame callback below is too late on its own: `reset()` empties
+      // `pageKeys`, and `_LivePageCaptureLayer` skips any adjacent index whose
+      // key is missing, so an empty map for even one frame unmounts both
+      // neighbours — and the next frame inflates them from scratch. Restoring
+      // the window here keeps them in the tree across the reset, which also
+      // lets a host that keys its own page subtrees re-parent them instead of
+      // rebuilding. The post-frame call is still needed for the capture pass
+      // and is harmless: `prepareKeys` is `putIfAbsent`-based.
+      _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
 
       // Schedule a new capture frame
       WidgetsBinding.instance.addPostFrameCallback((_) {
