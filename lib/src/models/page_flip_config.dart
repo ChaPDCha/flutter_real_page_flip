@@ -128,7 +128,33 @@ class PageFlipConfig {
     this.hapticTexturePreset = PaperTexturePreset.standard,
     this.hapticQuality = HapticQuality.adaptive,
     this.hapticStrength = HapticStrength.medium,
+    this.stationaryOverlayPainter,
   });
+
+  /// Host decoration painted on the STATIONARY layer, above page content and
+  /// automatically occluded by the turning sheet.
+  ///
+  /// A host that draws its own book furniture over the viewport — a binding
+  /// gutter, a fore-edge falloff, a page-edge stack — faces a problem it
+  /// cannot solve from outside: painted in the host's own `Stack` above this
+  /// widget, that decoration is composited on top of the opaque flap and reads
+  /// as a dark line punched through the paper, making the turning sheet look
+  /// translucent. Painted below, it is hidden by the page entirely. Removing it
+  /// for the duration of a flip trades that artifact for a worse one — the
+  /// decoration blinks out at touch-down and pops back when the turn lands.
+  ///
+  /// Handing the painter here resolves all three: it is drawn in this widget's
+  /// own paint order, using the SAME inverse-flap clip the engine already
+  /// applies to its centre gutter, so it stays at full strength on every
+  /// stationary page and is simply absent where the sheet is in the air. The
+  /// clip eases in and out with the engine's own `flipShadowOnset`, so a sheet
+  /// that is still flat (the first and last moments of a turn) does not have
+  /// the decoration cut off it — one owner, no handoff, no blink.
+  ///
+  /// Painted with `size` equal to the flip viewport, in untransformed viewport
+  /// coordinates. Never hit-tested. `null` (default) draws nothing and leaves
+  /// every existing host unaffected.
+  final CustomPainter? stationaryOverlayPainter;
 
   /// The performance profile to use for rendering quality.
   final DevicePerformanceProfile performanceProfile;
@@ -337,11 +363,13 @@ class PageFlipConfig {
     PaperTexturePreset? hapticTexturePreset,
     HapticQuality? hapticQuality,
     HapticStrength? hapticStrength,
+    CustomPainter? stationaryOverlayPainter,
     bool clearSemanticBuilder = false,
     bool clearBackgroundColor = false,
     bool clearEffectHandler = false,
     bool clearMaxSnapshotPixelRatio = false,
     bool clearSnapshotPerformanceProfile = false,
+    bool clearStationaryOverlayPainter = false,
   }) =>
       PageFlipConfig(
         duration: duration ?? this.duration,
@@ -393,6 +421,9 @@ class PageFlipConfig {
         hapticTexturePreset: hapticTexturePreset ?? this.hapticTexturePreset,
         hapticQuality: hapticQuality ?? this.hapticQuality,
         hapticStrength: hapticStrength ?? this.hapticStrength,
+        stationaryOverlayPainter: clearStationaryOverlayPainter
+            ? null
+            : (stationaryOverlayPainter ?? this.stationaryOverlayPainter),
       );
 
   /// Runtime-safe view of this configuration.
@@ -487,6 +518,7 @@ class PageFlipConfig {
       hapticTexturePreset: hapticTexturePreset,
       hapticQuality: hapticQuality,
       hapticStrength: hapticStrength,
+      stationaryOverlayPainter: stationaryOverlayPainter,
     );
 
     return normalizedConfig == this ? this : normalizedConfig;
@@ -559,7 +591,8 @@ class PageFlipConfig {
           edgeTapPreviousLabel == other.edgeTapPreviousLabel &&
           edgeTapNextLabel == other.edgeTapNextLabel &&
           edgeTapPreviousHint == other.edgeTapPreviousHint &&
-          edgeTapNextHint == other.edgeTapNextHint;
+          edgeTapNextHint == other.edgeTapNextHint &&
+          stationaryOverlayPainter == other.stationaryOverlayPainter;
 
   @override
   int get hashCode => Object.hashAll([
@@ -597,5 +630,6 @@ class PageFlipConfig {
         edgeTapNextLabel,
         edgeTapPreviousHint,
         edgeTapNextHint,
+        stationaryOverlayPainter,
       ]);
 }

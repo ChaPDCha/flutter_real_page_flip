@@ -91,6 +91,10 @@ class PageFlipPainter extends CustomPainter {
 
     /// Performance profile to control mesh density and shadows.
     this.performanceProfile = DevicePerformanceProfile.medium,
+
+    /// Host decoration for the stationary layer — see
+    /// [PageFlipConfig.stationaryOverlayPainter].
+    this.stationaryOverlayPainter,
   }) : isActualForward = isActualForward ?? isForward;
 
   /// Normalised flip progress from 0.0 to 1.0.
@@ -180,6 +184,10 @@ class PageFlipPainter extends CustomPainter {
   /// Performance profile to control mesh density and shadows.
   final DevicePerformanceProfile performanceProfile;
 
+  /// Host decoration painted last, occluded by the turning sheet.
+  /// See [PageFlipConfig.stationaryOverlayPainter].
+  final CustomPainter? stationaryOverlayPainter;
+
   // Edge-fade shader fields: cache at instance level across paint() calls.
   // CustomPainter is reallocated every build frame, but within a single paint()
   // call both edge and fold shaders are created once and reused inline.
@@ -190,6 +198,17 @@ class PageFlipPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (progress <= kFlipProgressEpsilon ||
         progress >= 1.0 - kFlipProgressEpsilon) {
+      // The sheet is flat at both extremes, so there is nothing to occlude and
+      // the host's decoration covers the whole viewport — byte-for-byte what
+      // the idle layer draws.
+      //
+      // This is NOT a redundant corner: the layer stays mounted while
+      // `dragProgress > 0 && isDragging`, but the painter is handed
+      // `floatProgress`, which is `1 - dragProgress` for a BACKWARD turn. Both
+      // ends of both directions therefore land in this branch mid-gesture, and
+      // returning without painting would blink the host's fold out for exactly
+      // those frames — the artifact this hook exists to remove.
+      stationaryOverlayPainter?.paint(canvas, size);
       return;
     }
 
@@ -310,6 +329,64 @@ class PageFlipPainter extends CustomPainter {
     );
 
     _drawCenterGutter(canvas, g, size, isPaperDark, shadowOnset);
+
+    _drawStationaryOverlay(canvas, g, size, shadowOnset);
+  }
+
+  /// Paints the host's stationary decoration so the turning sheet occludes it.
+  ///
+  /// Two passes rather than one clip, and the second is what keeps the ends of
+  /// a turn seamless. The inverse-flap region always gets the decoration at
+  /// full strength — that is the whole point, a binding gutter does not dim
+  /// because a page is in the air. The flap region gets it back at
+  /// `1 - shadowOnset`, which is 0 across the plateau (sheet genuinely up, so
+  /// the decoration must not show through it) and rises to 1 at both ends,
+  /// where the sheet is lying flat again and a gutter shadow belongs ON it.
+  ///
+  /// Without that second pass, a turn would end with the decoration missing
+  /// from the half the sheet just landed on until this layer unmounts — the
+  /// same one-frame pop the host was trying to escape by handing the painter
+  /// over in the first place.
+  void _drawStationaryOverlay(
+    Canvas canvas,
+    PageFlipGeometry g,
+    Size size,
+    double shadowOnset,
+  ) {
+    final overlay = stationaryOverlayPainter;
+    if (overlay == null || size.isEmpty) return;
+
+    final flap = buildFlapScreenClipPath(g);
+    final flapBounds = flap.getBounds();
+
+    // Nothing is in the air yet (or any more): one plain unclipped pass, which
+    // is byte-for-byte what the host's own idle overlay draws.
+    if (flapBounds.isEmpty) {
+      overlay.paint(canvas, size);
+      return;
+    }
+
+    canvas.save();
+    canvas.clipPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addRect(Offset.zero & size),
+        flap,
+      ),
+    );
+    overlay.paint(canvas, size);
+    canvas.restore();
+
+    final onFlap = 1.0 - shadowOnset;
+    if (onFlap <= 0.004) return;
+
+    canvas.saveLayer(
+      flapBounds.intersect(Offset.zero & size).inflate(2),
+      Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: onFlap),
+    );
+    canvas.clipPath(flap);
+    overlay.paint(canvas, size);
+    canvas.restore();
   }
 
   void _drawCenterGutter(
@@ -1013,5 +1090,9 @@ class PageFlipPainter extends CustomPainter {
           singlePageBackContentOpacity ||
       oldDelegate.enableSinglePageSettleReveal !=
           enableSinglePageSettleReveal ||
-      oldDelegate.performanceProfile != performanceProfile;
+      oldDelegate.performanceProfile != performanceProfile ||
+      // A host painter with a value `==` repaints only when its content really
+      // changed; one with identity equality repaints on every new instance.
+      // Either way this is the correct answer, so it needs no second question.
+      oldDelegate.stationaryOverlayPainter != stationaryOverlayPainter;
 }

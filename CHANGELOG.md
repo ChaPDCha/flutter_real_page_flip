@@ -1,3 +1,30 @@
+## [2.2.8] - 2026-08-27
+
+### Added
+- **`PageFlipConfig.stationaryOverlayPainter` — host chrome that the turning
+  sheet occludes.** A host that draws its own book furniture over the viewport
+  (a binding gutter, a fore-edge falloff, a page-edge stack) previously had no
+  correct place to put it. Stacked above `PageFlipWidget`, it composited on top
+  of the opaque flap and read as a dark line punched through the paper, making
+  the turning sheet look translucent; stacked below, the page hid it entirely;
+  removed for the duration of a flip, it blinked out at touch-down and popped
+  back on landing, because the engine's own centre gutter is scaled by
+  `sin(progress * pi)` and therefore draws nothing at either end of a turn.
+  Handing the painter to the engine resolves all three: it is drawn in the
+  engine's own paint order behind the SAME inverse-flap clip already used for
+  the centre gutter, so it holds full strength on every stationary page and is
+  simply absent where the sheet is in the air. The clip eases out with
+  `flipShadowOnset`, so a sheet that is still flat — the first and last moments
+  of a turn, and both ends of a backward turn, where the painter is handed
+  `1 - dragProgress` — keeps the decoration on it rather than having it cut
+  away. Defaults to `null`, so no existing host changes behaviour.
+
+### Tests
+- Added `stationary_overlay_occlusion_test.dart`: rasterises a flood-fill host
+  painter and asserts on actual pixel coverage — cut away mid-flip, whole
+  viewport at rest, and restored onto the sheet as it lands — rather than on a
+  golden image.
+
 ## [2.2.7] - 2026-08-26
 
 ### Fixed

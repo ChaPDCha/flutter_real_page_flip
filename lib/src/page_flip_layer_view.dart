@@ -98,6 +98,10 @@ class PageFlipLayerView extends StatelessWidget {
     /// through the paper during mid-fold (0.0–1.0).
     this.doubleSpreadMidFoldBleed = 0.0,
 
+    /// Host decoration for the stationary layer — see
+    /// [PageFlipConfig.stationaryOverlayPainter].
+    this.stationaryOverlayPainter,
+
     /// Single-page only: opacity of the peeled page's own content mid-flip.
     this.singlePageBackContentOpacity = 0.35,
 
@@ -179,6 +183,10 @@ class PageFlipLayerView extends StatelessWidget {
   /// through the paper during mid-fold (0.0–1.0).
   final double doubleSpreadMidFoldBleed;
 
+  /// Host decoration painted above page content and occluded by the
+  /// turning sheet — see [PageFlipConfig.stationaryOverlayPainter].
+  final CustomPainter? stationaryOverlayPainter;
+
   /// Single-page only: opacity of the peeled page's own content mid-flip
   /// (1.0 = crisp, lower = faint thin-paper bleed-through).
   final double singlePageBackContentOpacity;
@@ -230,7 +238,7 @@ class PageFlipLayerView extends StatelessWidget {
           const <Widget>[],
         );
       }
-      return stableLivePageLayer;
+      return _withStationaryOverlay(stableLivePageLayer);
     }
 
     // Current page: always present at this Stack position.
@@ -270,9 +278,39 @@ class PageFlipLayerView extends StatelessWidget {
     }
 
     // Non-drag: current page visible, adjacent pages offstage.
+    //
+    // The host overlay rides here too, unclipped: with nothing in the air
+    // there is nothing to occlude it, so this draws exactly what the clipped
+    // drag-path pass converges to at progress 0 and 1. Keeping ONE owner
+    // across both paths is the entire point — a host that mounted its own
+    // overlay for the idle case and let the engine take over for the flip
+    // would be back to a handoff, and handoffs are where the blink lives.
+    return _withStationaryOverlay(
+      Stack(
+        fit: StackFit.expand,
+        children: [...backgroundWidgets, currentPage],
+      ),
+    );
+  }
+
+  /// Lays the host's stationary decoration over a settled book.
+  ///
+  /// Both idle returns go through here — the live-capture path AND the
+  /// snapshot-only fallback — because a decoration that appeared on one but not
+  /// the other would blink every time the engine switched between them.
+  Widget _withStationaryOverlay(Widget child) {
+    final painter = stationaryOverlayPainter;
+    if (painter == null) return child;
     return Stack(
       fit: StackFit.expand,
-      children: [...backgroundWidgets, currentPage],
+      children: [
+        child,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(size: constrainedSize, painter: painter),
+          ),
+        ),
+      ],
     );
   }
 
@@ -427,6 +465,7 @@ class PageFlipLayerView extends StatelessWidget {
               isActualForward: isForward,
               devicePixelRatio:
                   MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0,
+              stationaryOverlayPainter: stationaryOverlayPainter,
               paperOpacity: paperOpacity,
               flapContentFadeOutEnd: flapContentFadeOutEnd,
               thinPaperStrength: thinPaperStrength,
