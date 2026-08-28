@@ -29,10 +29,12 @@ void main() {
       pageKeys = {for (var i = 0; i < 6; i++) i: GlobalKey()};
     });
 
-    Element? elementForPage(int index) =>
-        find.byKey(pageKeys[index]!, skipOffstage: false).evaluate().isEmpty
-            ? null
-            : find.byKey(pageKeys[index]!, skipOffstage: false).evaluate().first;
+    Element? elementForPage(int index) => find
+            .byKey(pageKeys[index]!, skipOffstage: false)
+            .evaluate()
+            .isEmpty
+        ? null
+        : find.byKey(pageKeys[index]!, skipOffstage: false).evaluate().first;
 
     /// Mounts a host that can be forced to rebuild on demand, handing the
     /// engine the SAME `initialIndex` every time — the realistic case, since a
