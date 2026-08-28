@@ -137,6 +137,31 @@ void main() {
       expect(landing, greaterThan(0.95));
     });
 
+    testWidgets(
+        'a sheet still visibly in the air never gets the overlay back on it',
+        (tester) async {
+      final overlay = _FloodPainter();
+
+      // Regression: the restore pass used to key off `flipShadowOnset`, whose
+      // ramp is 14% of progress. At 0.9 that had already returned the host's
+      // fold to ~half strength while the sheet was plainly still tilted —
+      // reported as "the fold suddenly punches through the paper near the end
+      // of the turn". Liftedness, not a progress ramp, decides this.
+      final lateFlip = await tester.runAsync(
+        () => _coverage(_painterAt(0.9, overlay: overlay, size: size), size),
+      );
+      final plateau = await tester.runAsync(
+        () => _coverage(_painterAt(0.5, overlay: overlay, size: size), size),
+      );
+
+      expect(
+        lateFlip,
+        lessThan(0.9),
+        reason: 'the sheet is still lifted at 0.9 — nothing may show through',
+      );
+      expect(lateFlip, closeTo(plateau!, 0.35));
+    });
+
     test('a null overlay leaves every pre-existing host untouched', () {
       expect(PageFlipConfig.defaultSettings.stationaryOverlayPainter, isNull);
     });

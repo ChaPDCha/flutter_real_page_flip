@@ -572,11 +572,10 @@ void main() {
       );
     });
 
-    // ── Cylinder curl lighting (HIGH profile only) ─────────────
+    // ── Cylinder curl lighting (MEDIUM and HIGH) ─────────────
 
-    test(
-        'cylinder curl shading draws an extra gradient rect on HIGH profile '
-        'only', () {
+    test('cylinder bend shading is drawn on MEDIUM too, not withheld for HIGH',
+        () {
       int shadedRectCount(RecordingCanvas c) => c.records
           .where(
             (r) =>
@@ -601,14 +600,20 @@ void main() {
         performanceProfile: DevicePerformanceProfile.high,
       ).paint(highCanvas, size);
 
-      // High profile adds exactly one extra shaded drawRect (the cylinder
-      // terminator-shading gradient) versus medium, at identical geometry.
+      // The bend shadow is what makes a turning sheet read as curled rather
+      // than as a flat slab sliding sideways, and in double-spread the
+      // geometry conveys almost no curl on its own. Withholding it for HIGH
+      // meant every tablet — where the host's canvas policy routinely steps
+      // HIGH down to MEDIUM — turned pages that looked flat. It is one
+      // gradient rect next to a full mesh warp, so MEDIUM now draws it too and
+      // the two profiles emit the same shaded-rect count.
       expect(
-        shadedRectCount(highCanvas),
-        equals(shadedRectCount(mediumCanvas) + 1),
-        reason: 'High profile should draw exactly one additional shaded rect '
-            '(cylinder curl shading) versus medium',
+        shadedRectCount(mediumCanvas),
+        equals(shadedRectCount(highCanvas)),
+        reason: 'MEDIUM must not be missing the bend shading that makes the '
+            'sheet read as curved',
       );
+      expect(shadedRectCount(mediumCanvas), greaterThan(0));
     });
 
     test('cylinder curl shading never fires when bend strength is near zero',
@@ -617,8 +622,8 @@ void main() {
       // painter still runs its full body, but shadowIntensity/bendStrength =
       // sin(0.0015π) ≈ 0.0047, just BELOW the shared `bendStrength > 0.005`
       // guard. Even on HIGH profile, the cylinder gradient (and every other
-      // bend-linked draw) must stay silent — the guard, not the profile,
-      // gates it here.
+      // bend-linked draw) must stay silent — the shared strength guard, not
+      // the profile, is what gates it here.
       final canvas = RecordingCanvas();
       PageFlipPainter(
         progress: 0.0015,

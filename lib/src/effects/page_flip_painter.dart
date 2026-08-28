@@ -188,6 +188,25 @@ class PageFlipPainter extends CustomPainter {
   /// See [PageFlipConfig.stationaryOverlayPainter].
   final CustomPainter? stationaryOverlayPainter;
 
+  /// Stops across the flap for the bend (cylinder) shadow. The profile is
+  /// smooth everywhere, so a dozen uniform samples already resolve it below
+  /// one 8-bit alpha step — see [bendShadowSampleStops].
+  static const int _bendSampleCount = 12;
+
+  /// How lifted the sheet may still be while the host's stationary decoration
+  /// is allowed back onto it, as a fraction of full lift.
+  ///
+  /// `PageFlipGeometry.shadowIntensity` is `sin(progress * pi)`, so this is a
+  /// band around BOTH ends of a turn: below it the sheet is within a few
+  /// percent of lying flat on the page, which is the only state where a gutter
+  /// shadow belongs on the sheet rather than being occluded by it.
+  ///
+  /// Tight on purpose. An earlier version keyed this to `flipShadowOnset`,
+  /// whose ramp is 14% of progress — wide enough that the decoration faded
+  /// back in while the sheet was still visibly tilted, which is precisely the
+  /// "shadow punching through the paper" the occlusion clip exists to prevent.
+  static const double _settledLiftBand = 0.12;
+
   // Edge-fade shader fields: cache at instance level across paint() calls.
   // CustomPainter is reallocated every build frame, but within a single paint()
   // call both edge and fold shaders are created once and reused inline.
@@ -330,28 +349,28 @@ class PageFlipPainter extends CustomPainter {
 
     _drawCenterGutter(canvas, g, size, isPaperDark, shadowOnset);
 
-    _drawStationaryOverlay(canvas, g, size, shadowOnset);
+    _drawStationaryOverlay(canvas, g, size);
   }
 
   /// Paints the host's stationary decoration so the turning sheet occludes it.
   ///
-  /// Two passes rather than one clip, and the second is what keeps the ends of
-  /// a turn seamless. The inverse-flap region always gets the decoration at
-  /// full strength — that is the whole point, a binding gutter does not dim
-  /// because a page is in the air. The flap region gets it back at
-  /// `1 - shadowOnset`, which is 0 across the plateau (sheet genuinely up, so
-  /// the decoration must not show through it) and rises to 1 at both ends,
-  /// where the sheet is lying flat again and a gutter shadow belongs ON it.
+  /// Two passes rather than one clip. The inverse-flap region always gets the
+  /// decoration at full strength — that is the whole point, a binding gutter
+  /// does not dim because a page is in the air. The flap region gets it back
+  /// only once the sheet is within [_settledLiftBand] of lying flat, so the
+  /// decoration returns to the half a turn just landed on instead of popping
+  /// in when this layer unmounts.
   ///
-  /// Without that second pass, a turn would end with the decoration missing
-  /// from the half the sheet just landed on until this layer unmounts — the
-  /// same one-frame pop the host was trying to escape by handing the painter
-  /// over in the first place.
+  /// The gate is `PageFlipGeometry.shadowIntensity` (how LIFTED the sheet is),
+  /// not `flipShadowOnset` (a fixed 14%-of-progress ramp). They are not
+  /// interchangeable: the onset ramp reaches half strength while the sheet is
+  /// still plainly tilted in the air, which put the host's fold shadow back on
+  /// top of a raised sheet — the exact "shadow punched through the paper"
+  /// artifact this clip exists to prevent.
   void _drawStationaryOverlay(
     Canvas canvas,
     PageFlipGeometry g,
     Size size,
-    double shadowOnset,
   ) {
     final overlay = stationaryOverlayPainter;
     if (overlay == null || size.isEmpty) return;
@@ -377,7 +396,13 @@ class PageFlipPainter extends CustomPainter {
     overlay.paint(canvas, size);
     canvas.restore();
 
-    final onFlap = 1.0 - shadowOnset;
+    // `shadowIntensity` is 0 when the sheet lies flat and 1 at full lift, so
+    // this opens only in the last breath of a turn (and the first), easing in
+    // rather than switching, and stays shut for everything in between.
+    final lift = g.shadowIntensity;
+    if (lift >= _settledLiftBand) return;
+    final t = (lift / _settledLiftBand).clamp(0.0, 1.0);
+    final onFlap = 1.0 - t * t * (3 - 2 * t);
     if (onFlap <= 0.004) return;
 
     canvas.saveLayer(
@@ -686,36 +711,34 @@ class PageFlipPainter extends CustomPainter {
         ).createShader(flapPaintRect),
     );
 
-    if (performanceProfile == DevicePerformanceProfile.high) {
-      final cylinderColor = discreteShadowTone(isPaperDark: isPaperDark);
-      final cylinderBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
-      final cylinderAlpha = isDoubleSpread
-          ? (isPaperDark ? 0.09 : 0.15) * bendStrength
-          : (isPaperDark ? 0.05 : 0.08) * bendStrength;
-      final cylinderColors = isDoubleSpread
-          ? <Color>[
-              cylinderColor.withValues(alpha: cylinderAlpha),
-              cylinderColor.withValues(alpha: cylinderAlpha * 0.5),
-              cylinderColor.withValues(alpha: 0),
-              cylinderColor.withValues(alpha: 0),
-            ]
-          : <Color>[
-              cylinderColor.withValues(alpha: cylinderAlpha),
-              cylinderColor.withValues(alpha: 0),
-              cylinderColor.withValues(alpha: 0),
-            ];
-      final cylinderStops = isDoubleSpread
-          ? const <double>[0, 0.28, 0.62, 1]
-          : const <double>[0, 0.45, 1];
+    // The cylinder body. Deliberately NOT gated to the HIGH profile any more:
+    // this is one gradient rect next to a full mesh warp, and withholding it
+    // was what made a double-spread turn on a tablet — where the canvas policy
+    // routinely steps HIGH down to MEDIUM — read as a flat slab sliding
+    // sideways, since spread geometry conveys almost no curl on its own.
+    // LOW still skips it via this method's own early return.
+    final bendColor = discreteShadowTone(isPaperDark: isPaperDark);
+    final bendPeak = flapBendShadowPeak(
+          isPaperDark: isPaperDark,
+          isDoubleSpread: isDoubleSpread,
+        ) *
+        bendStrength;
+    if (bendPeak > 0.004) {
+      final bendStops = bendShadowSampleStops(_bendSampleCount);
       canvas.drawRect(
         flapPaintRect,
         Paint()
-          ..blendMode = cylinderBlend
+          ..blendMode = isPaperDark ? BlendMode.screen : BlendMode.multiply
           ..shader = LinearGradient(
             begin: freeAlign,
             end: foldAlign,
-            colors: cylinderColors,
-            stops: cylinderStops,
+            colors: <Color>[
+              for (final u in bendStops)
+                bendColor.withValues(
+                  alpha: bendPeak * flapBendShadowAlphaAt(u),
+                ),
+            ],
+            stops: bendStops,
           ).createShader(flapPaintRect),
       );
     }

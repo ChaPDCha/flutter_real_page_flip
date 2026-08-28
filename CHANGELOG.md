@@ -1,3 +1,42 @@
+## [2.2.9] - 2026-08-28
+
+### Fixed
+- **The stationary overlay could punch back through a still-lifted sheet near
+  the end of a turn.** The restore pass (added in 2.2.8) keyed off
+  `flipShadowOnset`, a fixed 14%-of-progress ramp — at progress 0.9 it had
+  already returned the host's fold decoration to roughly half strength while
+  the sheet was plainly still tilted in the air, reproducing exactly the
+  "shadow punched through the paper" artifact the occlusion clip exists to
+  prevent. The gate is now `PageFlipGeometry.shadowIntensity` (how LIFTED the
+  sheet actually is, `sin(progress·π)`) inside a tight 12% near-flat band, so
+  the decoration returns only once the sheet is genuinely back down — not on
+  a fixed schedule that ignores where the sheet is.
+- **A turning sheet in double-spread read as a flat slab, not a curved page.**
+  The broad "cylinder" bend shadow — the term that models the sheet as curling
+  in space rather than pivoting like a stiff board — was gated to the HIGH
+  performance profile only. `PageFlipConfig`'s own canvas-safety policy
+  routinely steps HIGH down to MEDIUM on tablets, so every double-spread turn
+  on exactly the devices where a spread is widest — and therefore needs the
+  MOST help reading as curved — got NONE of this shading. The profile itself
+  also faded out by roughly two-thirds across the flap, leaving the third
+  nearest the binding — where a real page bends hardest — completely flat.
+  `flapBendShadowAlphaAt` now draws on MEDIUM too (LOW still skips it), and
+  reaches the fold with a monotonic ramp instead of dying mid-flap.
+
+### Tests
+- `flap_bend_shading_test.dart`: asserts the bend profile's shape (reaches the
+  fold, monotonic over the back half, a distinct free-edge lobe, stays in
+  [0, 1]) rather than pixel-matching a golden.
+- `stationary_overlay_occlusion_test.dart`: added a regression test at
+  progress 0.9 confirming the overlay stays clipped while the sheet is still
+  visibly lifted.
+- `paint_rendering_test.dart`: updated the profile-gating contract — MEDIUM
+  and HIGH now emit the same shaded-rect count instead of HIGH emitting one
+  more.
+- Re-froze the 8 provisional page-flip goldens (captured in a Linux container
+  matching the ubuntu-latest CI image, not the local host) to the new bend
+  shading — the visual change here is the intended fix, not a regression.
+
 ## [2.2.8] - 2026-08-27
 
 ### Added

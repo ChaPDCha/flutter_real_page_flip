@@ -63,6 +63,63 @@ double flapHighlightMidBase({required bool isPaperDark}) =>
 Color discreteShadowTone({required bool isPaperDark}) =>
     isPaperDark ? const Color(0xFFE8E8F0) : Colors.black;
 
+// ─── Flap bend (cylinder) shading ───
+
+/// Peak alpha of the broad shadow that models the turning sheet as a CURLED
+/// surface rather than a flat slab.
+///
+/// 비유: 책장을 손으로 집어 넘길 때 그 낱장은 판자처럼 꺾이지 않는다. 원통
+/// 처럼 완만하게 말리면서, 자유단(손이 잡은 쪽)은 살짝 그늘지고, 가운데는
+/// 빛을 받아 밝고, 제본 쪽으로 갈수록 깊이 파고들며 어두워진다. 이 세 구간이
+/// 한 화면에 같이 보여야 종이가 "휘었다"고 읽힌다.
+///
+/// In double-spread the flap barely moves in geometry — its material width
+/// grows and it takes a small `rotateZ` from the touch point, and that is all.
+/// The entire sense of a sheet bending in space therefore has to come from
+/// shading, which is why this term is not an optional garnish: without it a
+/// two-page turn reads as a flat rectangle sliding sideways.
+double flapBendShadowPeak({
+  required bool isPaperDark,
+  required bool isDoubleSpread,
+}) {
+  if (isDoubleSpread) return isPaperDark ? 0.10 : 0.17;
+  return isPaperDark ? 0.06 : 0.10;
+}
+
+/// Shadow alpha across the flap at normalised distance [u] from the FREE edge
+/// (`0`) to the FOLD (`1`), as a fraction of [flapBendShadowPeak].
+///
+/// Two lobes, because a curled sheet is dark in two different places for two
+/// different reasons:
+/// - a soft lobe at the free edge, where the lifted lip turns away from the
+///   light and carries its own thickness shadow, and
+/// - a broad, deepening ramp into the fold, where the sheet dives into the
+///   binding valley and loses the sky almost entirely.
+///
+/// Between them sits the lit crest, kept deliberately shallow so the separate
+/// screen-blend highlight still reads as the brightest thing on the sheet.
+///
+/// The ramp reaching all the way to `u == 1` is the point of the whole
+/// function: the previous profile faded out by `u ≈ 0.62`, leaving the third
+/// of the flap nearest the binding completely unshaded — the flattest possible
+/// place to leave flat, since that is exactly where a real page bends hardest.
+double flapBendShadowAlphaAt(double u) {
+  if (u < 0 || u > 1) return 0;
+  final freeEdgeLobe = 0.55 * math.exp(-math.pow(u / 0.34, 2).toDouble());
+  final foldRamp = 0.95 * math.pow(u, 1.6).toDouble();
+  return (freeEdgeLobe + foldRamp).clamp(0.0, 1.0);
+}
+
+/// Normalised sample positions for the bend-shadow gradient.
+///
+/// Uniform: unlike the binding crease, this profile has no sub-pixel feature
+/// to resolve — it is smooth everywhere, so a dozen evenly spaced stops already
+/// sit below one 8-bit alpha step across a full flap width.
+List<double> bendShadowSampleStops(int count) {
+  assert(count >= 2, 'a gradient needs at least two stops');
+  return <double>[for (var i = 0; i < count; i++) i / (count - 1)];
+}
+
 /// Width multiplier for the discrete glow bands on dark paper.
 ///
 /// A light accent on near-black stock carries far more perceived contrast than
