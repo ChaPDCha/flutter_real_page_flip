@@ -1,5 +1,5 @@
 // Light local gate for vibe coding. Mirrors the manual "Verify" workflow.
-// Usage: dart run tool/verify.dart
+// Usage: dart tool/verify.dart
 import 'dart:io';
 
 Future<int> _run(String exe, List<String> args, {String? cwd}) async {

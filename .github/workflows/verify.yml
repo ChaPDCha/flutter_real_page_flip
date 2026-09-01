@@ -1,7 +1,7 @@
 name: Verify
 
 # Hybrid (solo + multi-machine AI):
-# - Daily work: local `dart run tool/verify.dart` (no push/PR CI — saves minutes)
+# - Daily work: local `dart tool/verify.dart` (no push/PR CI — saves minutes)
 # - Weekly safety net: cheap package gate on ubuntu (SDK/dep drift)
 # - On demand: workflow_dispatch; platforms only when explicitly enabled
 #
@@ -36,7 +36,9 @@ jobs:
       - run: flutter pub get
 
       - name: Package gate
-        run: dart run tool/verify.dart
+        # Avoid `dart run`: its build hook can modify the worktree before the
+        # verifier's clean-HEAD preflight executes.
+        run: dart tool/verify.dart
 
   platforms:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.platforms }}
