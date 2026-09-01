@@ -1,3 +1,15 @@
+## [2.2.11] - 2026-09-01
+
+### Fixed
+- **GitHub Verify now validates the exact committed package in a clean,
+  Git-free temporary clone.** Recent Flutter toolchains on GitHub's Linux
+  runners could report an untouched `analysis_options.yaml` as dirty during
+  `dart pub publish --dry-run`, turning an otherwise successful package gate
+  red. The verification script now rejects an actually dirty source worktree
+  before validation, then runs the same pub dry-run on a temporary clone of
+  `HEAD` without `.git`. This preserves the real clean-tree guarantee while
+  removing the toolchain's false Git-status probe from the validation path.
+
 ## [2.2.10] - 2026-09-01
 
 ### Fixed
