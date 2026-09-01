@@ -1,7 +1,7 @@
 # Real Page Flip Engine for Flutter
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![tests](https://img.shields.io/badge/tests-1233%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
+[![tests](https://img.shields.io/badge/tests-1266%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

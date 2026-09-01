@@ -1,3 +1,26 @@
+## [2.2.10] - 2026-09-01
+
+### Fixed
+- **A double-spread turn split the host's centre fold in two as it landed.**
+  Near landing, the stationary binding shadow was cut at the moving sheet's
+  crease while that crease was still several pixels from the spine. The final
+  composite therefore contained both the real spine valley and a separate
+  moving-crease valley. The engine now treats them as one ownership handoff:
+  binding contact fades in only inside a narrow centre band, its mask is
+  continuous on the fold line, and the moving crease fades out over the same
+  interval. Fore-edge and page-stack decoration remain occluded until the sheet
+  is actually flat, and single-page rendering is unchanged.
+
+### Tests
+- `spread_fold_continuity_test.dart` checks both the host-overlay contribution
+  and the actual final pixels for forward/backward turns at five late progress
+  values. It requires the darkest point to stay on the spine and rejects any
+  second valley. A separate non-zero-angle shader test verifies that the
+  contact mask follows the true fold normal.
+- Engine and painter regressions cover monotonic shadow handoff, no contact at
+  the outer edge, centre-band containment, lifted-sheet occlusion, and unchanged
+  single-page behavior.
+
 ## [2.2.9] - 2026-08-28
 
 ### Fixed

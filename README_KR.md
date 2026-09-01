@@ -1,7 +1,7 @@
 # Flutter 실시간 페이지 플립 엔진 (Real Page Flip)
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![tests](https://img.shields.io/badge/tests-1230%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
+[![tests](https://img.shields.io/badge/tests-1266%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![후원](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
