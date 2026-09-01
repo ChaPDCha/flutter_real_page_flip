@@ -50,6 +50,28 @@ Future<int> _requireCleanWorktree() async {
   return 1;
 }
 
+/// Best-effort cleanup for a temporary package clone.
+///
+/// Windows can keep a handle to a just-finished pub process briefly. Cleanup
+/// must never replace the result of the package validation itself.
+Future<void> _deleteTemporaryClone(Directory clone) async {
+  for (var attempt = 0; attempt != 5; attempt++) {
+    try {
+      await clone.delete(recursive: true);
+      return;
+    } on FileSystemException catch (error) {
+      if (attempt == 4) {
+        stderr.writeln(
+          'WARNING: could not remove temporary publish clone '
+          '(${clone.path}): $error',
+        );
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+  }
+}
+
 /// Runs pub's full validation against the exact committed package contents.
 ///
 /// The temporary clone has no `.git` directory, so pub cannot mistake a
@@ -67,10 +89,10 @@ Future<int> _publishDryRunFromCleanClone(String root) async {
 
     await Directory('${clone.path}${Platform.pathSeparator}.git')
         .delete(recursive: true);
-    return _run('dart', <String>['pub', 'publish', '--dry-run'],
+    return await _run('dart', <String>['pub', 'publish', '--dry-run'],
         cwd: clone.path);
   } finally {
-    if (await clone.exists()) await clone.delete(recursive: true);
+    if (await clone.exists()) await _deleteTemporaryClone(clone);
   }
 }
 
