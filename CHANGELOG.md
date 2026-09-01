@@ -1,3 +1,13 @@
+## [2.2.12] - 2026-09-01
+
+### Fixed
+
+- **GitHub Verify no longer starts Dart build hooks before checking the
+  release worktree.** The package gate now invokes the standalone verifier
+  with `dart tool/verify.dart`, so the clean-HEAD preflight runs before any
+  tool can rewrite tracked files. This completes the v2.2.11 clean-clone
+  package-validation fix on GitHub's Linux runners.
+
 ## [2.2.11] - 2026-09-01
 
 ### Fixed
