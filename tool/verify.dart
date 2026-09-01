@@ -77,6 +77,11 @@ Future<int> _publishDryRunFromCleanClone(String root) async {
 Future<void> main() async {
   final root = Directory.current.path;
 
+  // Check the developer's input before Flutter can refresh generated files
+  // such as example/pubspec.lock. The release dry-run below always uses a
+  // fresh clone of HEAD, so later tool side effects cannot alter its contents.
+  await _step('clean worktree for release validation', _requireCleanWorktree);
+
   await _step(
       'format',
       () => _run('dart', [
@@ -96,7 +101,6 @@ Future<void> main() async {
 
   await _step('test', () => _run('flutter', ['test']));
 
-  await _step('clean worktree for release validation', _requireCleanWorktree);
   await _step(
     'publish dry-run (clean committed package)',
     () => _publishDryRunFromCleanClone(root),
