@@ -33,11 +33,19 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # Flutter 3.47 can rewrite a few tracked files during `pub get`; prove
+      # the checked-out release input is clean before that tool side effect.
+      - name: Clean release input
+        run: test -z "$(git status --porcelain --untracked-files=all)"
+
       - run: flutter pub get
 
       - name: Package gate
         # Avoid `dart run`: its build hook can modify the worktree before the
-        # verifier's clean-HEAD preflight executes.
+        # verifier's clean-HEAD preflight executes. The clean release input
+        # was already verified before dependency setup above.
+        env:
+          VERIFY_CLEAN_WORKTREE_PRECHECKED: 'true'
         run: dart tool/verify.dart
 
   platforms:

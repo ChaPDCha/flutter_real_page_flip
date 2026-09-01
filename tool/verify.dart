@@ -35,6 +35,11 @@ Future<void> _step(String name, Future<int> Function() fn) async {
 /// clone below, so a real dirty worktree still fails while the toolchain's
 /// false-positive Git probe cannot hide package validation.
 Future<int> _requireCleanWorktree() async {
+  if (Platform.environment['VERIFY_CLEAN_WORKTREE_PRECHECKED'] == 'true') {
+    stdout.writeln('Clean worktree was verified before dependency setup.');
+    return 0;
+  }
+
   final result = await Process.run(
     'git',
     const <String>['status', '--porcelain', '--untracked-files=all'],
