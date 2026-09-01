@@ -5,6 +5,50 @@ import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 
 void main() {
+  group('stationary binding handoff', () {
+    PageFlipGeometry geometry({
+      required double progress,
+      bool isDoubleSpread = true,
+    }) =>
+        PageFlipGeometry(
+          progress: progress,
+          isRightToLeft: true,
+          touchOffset: const Offset(400, 300),
+          size: const Size(800, 600),
+          isDoubleSpread: isDoubleSpread,
+        );
+
+    test('opens only near the centre spine of a double spread', () {
+      expect(spineContactOpacity(geometry(progress: 0.8)), 0);
+      expect(
+        spineContactOpacity(geometry(progress: 0.9)),
+        inExclusiveRange(0, 1),
+      );
+      expect(spineContactOpacity(geometry(progress: 1)), 1);
+      expect(
+        spineContactOpacity(
+          geometry(progress: 0.95, isDoubleSpread: false),
+        ),
+        0,
+      );
+    });
+
+    test('moving crease fades monotonically as binding contact increases', () {
+      final far = movingFoldShadowOpacity(geometry(progress: 0.8));
+      final approaching = movingFoldShadowOpacity(geometry(progress: 0.9));
+      final landed = movingFoldShadowOpacity(geometry(progress: 1));
+      expect(far, 1);
+      expect(approaching, inExclusiveRange(0, 1));
+      expect(approaching, lessThan(far));
+      expect(landed, 0);
+    });
+
+    test('fold feather never opens at the outer edge of a turn', () {
+      expect(foldContactFeatherWidth(geometry(progress: 0.05)), 0);
+      expect(foldContactFeatherWidth(geometry(progress: 0.95)), greaterThan(0));
+    });
+  });
+
   group('buildCenterGutterOcclusionClipPath', () {
     PageFlipGeometry geometry({required bool isForward}) => PageFlipGeometry(
           progress: 0.5,

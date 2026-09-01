@@ -207,6 +207,16 @@ class PageFlipPainter extends CustomPainter {
   /// "shadow punching through the paper" the occlusion clip exists to prevent.
   static const double _settledLiftBand = 0.12;
 
+  /// Eased strength of the host's stationary decoration across the WHOLE
+  /// turning sheet, from [lift] (`PageFlipGeometry.shadowIntensity`).
+  ///
+  /// 0 while the sheet is meaningfully raised, easing to 1 as it lands flat.
+  static double _settledChromeOpacity(double lift) {
+    if (lift >= _settledLiftBand) return 0;
+    final t = (lift / _settledLiftBand).clamp(0.0, 1.0);
+    return 1.0 - t * t * (3 - 2 * t);
+  }
+
   // Edge-fade shader fields: cache at instance level across paint() calls.
   // CustomPainter is reallocated every build frame, but within a single paint()
   // call both edge and fold shaders are created once and reused inline.
@@ -328,7 +338,12 @@ class PageFlipPainter extends CustomPainter {
 
     _drawFreeEdgeHighlight(canvas, g, isPaperDark);
 
-    _drawFoldAccent(canvas, g, isPaperDark, g.shadowIntensity);
+    _drawFoldAccent(
+      canvas,
+      g,
+      isPaperDark,
+      g.shadowIntensity * movingFoldShadowOpacity(g),
+    );
 
     if (didSaveLayer) canvas.restore();
 
@@ -367,6 +382,15 @@ class PageFlipPainter extends CustomPainter {
   /// still plainly tilted in the air, which put the host's fold shadow back on
   /// top of a raised sheet — the exact "shadow punched through the paper"
   /// artifact this clip exists to prevent.
+  ///
+  /// The flap pass is masked rather than flat-faded. A binding fold is anchored
+  /// to the spine, and near the end of a spread turn the sheet's own crease
+  /// lands a few px away from it — so a hard cut at the crease leaves the fold
+  /// full-strength on one side and near-absent on the other, and that step
+  /// reads as a SECOND fold running parallel to the real one. See
+  /// [buildFoldContactMaskShader]: the mask is opaque on the fold line, which
+  /// makes the two passes meet continuously there, and relaxes to the settled
+  /// alpha across the sheet.
   void _drawStationaryOverlay(
     Canvas canvas,
     PageFlipGeometry g,
@@ -396,21 +420,110 @@ class PageFlipPainter extends CustomPainter {
     overlay.paint(canvas, size);
     canvas.restore();
 
-    // `shadowIntensity` is 0 when the sheet lies flat and 1 at full lift, so
-    // this opens only in the last breath of a turn (and the first), easing in
-    // rather than switching, and stays shut for everything in between.
-    final lift = g.shadowIntensity;
-    if (lift >= _settledLiftBand) return;
-    final t = (lift / _settledLiftBand).clamp(0.0, 1.0);
-    final onFlap = 1.0 - t * t * (3 - 2 * t);
-    if (onFlap <= 0.004) return;
+    // Restore the WHOLE host overlay only from actual settledness. Binding
+    // contact is deliberately a separate, centre-bounded pass below: a host
+    // painter may also contain fore-edge/page-stack decoration, and returning
+    // all of that merely because the centre hinge is landing would make those
+    // unrelated pixels punch through the turning sheet.
+    final settled = _settledChromeOpacity(g.shadowIntensity);
+    final contact = spineContactOpacity(g);
+    final feather = foldContactFeatherWidth(g);
+    if (settled <= 0.004 && contact <= 0.004 && feather < 0.5) return;
 
-    canvas.saveLayer(
-      flapBounds.intersect(Offset.zero & size).inflate(2),
-      Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: onFlap),
+    final layerBounds = flapBounds.intersect(Offset.zero & size).inflate(2);
+    if (layerBounds.isEmpty) return;
+
+    if (settled > 0.004) {
+      _paintStationaryOverlayOnFlap(
+        canvas,
+        flap: flap,
+        layerBounds: layerBounds,
+        overlay: overlay,
+        size: size,
+        opacity: settled,
+      );
+    }
+
+    // Compose the contact pass over the settled pass so the resulting flat
+    // alpha is exactly `max(settled, contact)`, not the brighter sum of two
+    // independent overlays. The feather may still add a narrow 1 -> settled
+    // bridge at the hinge when contact itself is below settled.
+    final remaining = 1.0 - settled;
+    final extraContact = remaining <= 0.004
+        ? 0.0
+        : ((contact - settled) / remaining).clamp(0.0, 1.0).toDouble();
+    final contactMask = buildFoldContactMaskShader(
+      g,
+      baseOpacity: extraContact,
+      featherWidth: feather,
     );
+    if (extraContact <= 0.004 && contactMask == null) return;
+
+    final pageWidth = size.width / 2;
+    final contactHalfWidth = pageWidth * kSpineContactReach;
+    final contactBand = Rect.fromLTRB(
+      g.spineX - contactHalfWidth,
+      0,
+      g.spineX + contactHalfWidth,
+      size.height,
+    ).intersect(Offset.zero & size);
+    if (contactBand.isEmpty) return;
+
+    _paintStationaryOverlayOnFlap(
+      canvas,
+      flap: flap,
+      layerBounds: layerBounds,
+      overlay: overlay,
+      size: size,
+      opacity: extraContact,
+      mask: contactMask,
+      additionalClip: contactBand,
+    );
+  }
+
+  void _paintStationaryOverlayOnFlap(
+    Canvas canvas, {
+    required Path flap,
+    required Rect layerBounds,
+    required CustomPainter overlay,
+    required Size size,
+    required double opacity,
+    ui.Shader? mask,
+    Rect? additionalClip,
+  }) {
+    if (opacity <= 0.004 && mask == null) return;
+
+    if (mask == null) {
+      canvas.saveLayer(
+        layerBounds,
+        Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: opacity),
+      );
+      canvas.clipPath(flap);
+      if (additionalClip != null) canvas.clipRect(additionalClip);
+      overlay.paint(canvas, size);
+      canvas.restore();
+      return;
+    }
+
+    canvas.saveLayer(layerBounds, Paint());
+    canvas.save();
     canvas.clipPath(flap);
+    if (additionalClip != null) canvas.clipRect(additionalClip);
     overlay.paint(canvas, size);
+    canvas.restore();
+
+    // Apply the mask OUTSIDE the anti-aliased flap clip. Keeping that clip for
+    // both the overlay draw and dstIn would square its edge coverage (c -> c²)
+    // and manufacture the very seam this handoff exists to remove.
+    canvas.save();
+    if (additionalClip != null) canvas.clipRect(additionalClip);
+    canvas.drawRect(
+      layerBounds,
+      Paint()
+        ..blendMode = BlendMode.dstIn
+        ..shader = mask,
+    );
+    canvas.restore();
     canvas.restore();
   }
 
@@ -617,8 +730,10 @@ class PageFlipPainter extends CustomPainter {
     final stationaryWidth = kStationaryShadowWidth *
         glowBandWidthScale(isPaperDark: isPaperDark) *
         g.shadowIntensity;
-    final stationaryAlpha =
-        (isPaperDark ? 0.045 : 0.06) * g.shadowIntensity * shadowOnset;
+    final stationaryAlpha = (isPaperDark ? 0.045 : 0.06) *
+        g.shadowIntensity *
+        shadowOnset *
+        movingFoldShadowOpacity(g);
     if (stationaryAlpha > 0.01 && stationaryWidth > 1) {
       final stationaryRect = g.flapRightOfFold
           ? Rect.fromLTWH(
@@ -803,8 +918,11 @@ class PageFlipPainter extends CustomPainter {
       final shadowWidth = kCreaseShadowWidth *
           glowBandWidthScale(isPaperDark: isPaperDark) *
           g.shadowIntensity;
-      final revealedAlpha =
-          (isPaperDark ? 0.055 : 0.15) * g.shadowIntensity * shadowOnset;
+      final foldHandoff = movingFoldShadowOpacity(g);
+      final revealedAlpha = (isPaperDark ? 0.055 : 0.15) *
+          g.shadowIntensity *
+          shadowOnset *
+          foldHandoff;
       if (revealedAlpha > 0.01 && shadowWidth > 1) {
         final shadowPath = buildCurvedFoldShadowPath(
           g,
@@ -851,8 +969,10 @@ class PageFlipPainter extends CustomPainter {
             isForward: isForward,
             shadowWidth: ambientWidth,
           );
-          final ambientAlpha =
-              (isPaperDark ? 0.015 : 0.035) * g.shadowIntensity * shadowOnset;
+          final ambientAlpha = (isPaperDark ? 0.015 : 0.035) *
+              g.shadowIntensity *
+              shadowOnset *
+              foldHandoff;
           canvas.drawPath(
             ambientPath,
             Paint()

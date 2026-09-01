@@ -144,12 +144,13 @@ class PageFlipConfig {
   /// decoration blinks out at touch-down and pops back when the turn lands.
   ///
   /// Handing the painter here resolves all three: it is drawn in this widget's
-  /// own paint order, using the SAME inverse-flap clip the engine already
-  /// applies to its centre gutter, so it stays at full strength on every
-  /// stationary page and is simply absent where the sheet is in the air. The
-  /// clip eases in and out with the engine's own `flipShadowOnset`, so a sheet
-  /// that is still flat (the first and last moments of a turn) does not have
-  /// the decoration cut off it — one owner, no handoff, no blink.
+  /// own paint order and clipped by the same turning-sheet geometry as the
+  /// engine's centre gutter. It therefore stays at full strength on stationary
+  /// pages and is absent where the sheet is lifted. In double-spread mode a
+  /// narrow centre band cross-fades back onto the sheet as its hinge reaches
+  /// the spine, while the moving crease fades out; the two shadows remain one
+  /// continuous fold instead of briefly appearing as parallel folds. Other
+  /// host chrome remains occluded until the sheet has actually settled.
   ///
   /// Painted with `size` equal to the flip viewport, in untransformed viewport
   /// coordinates. Never hit-tested. `null` (default) draws nothing and leaves

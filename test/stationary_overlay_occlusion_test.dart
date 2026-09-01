@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/real_page_flip.dart';
-import 'package:real_page_flip/src/effects/page_flip_painter.dart';
+import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 
 /// Records what the engine let it paint, so a test can ask WHERE the host's
 /// stationary decoration actually landed rather than eyeballing a golden.
@@ -62,17 +62,31 @@ Future<double> _coverage(CustomPainter painter, Size size) async {
 
 PageFlipPainter _painterAt(
   double progress, {
-  required CustomPainter overlay,
+  required CustomPainter? overlay,
   required Size size,
+  bool isDoubleSpread = true,
 }) =>
     PageFlipPainter(
       progress: progress,
       isRightToLeft: true,
       touchOffset: Offset(size.width * 0.9, size.height / 2),
       paperBackColor: const Color(0xFFFFFFFF),
-      isDoubleSpread: true,
+      isDoubleSpread: isDoubleSpread,
       stationaryOverlayPainter: overlay,
     );
+
+Future<int> _redAt(
+  CustomPainter painter,
+  Size size,
+  Offset point,
+) async {
+  final image = await _renderPainter(painter, size);
+  final bytes = await image.toByteData();
+  image.dispose();
+  final x = point.dx.round().clamp(0, size.width.round() - 1);
+  final y = point.dy.round().clamp(0, size.height.round() - 1);
+  return bytes!.getUint8((y * size.width.round() + x) * 4);
+}
 
 void main() {
   const size = Size(400, 300);
@@ -138,15 +152,14 @@ void main() {
     });
 
     testWidgets(
-        'a sheet still visibly in the air never gets the overlay back on it',
+        'a sheet still visibly in the air never gets the whole overlay back',
         (tester) async {
       final overlay = _FloodPainter();
 
-      // Regression: the restore pass used to key off `flipShadowOnset`, whose
-      // ramp is 14% of progress. At 0.9 that had already returned the host's
-      // fold to ~half strength while the sheet was plainly still tilted —
-      // reported as "the fold suddenly punches through the paper near the end
-      // of the turn". Liftedness, not a progress ramp, decides this.
+      // Regression: the old restore pass returned EVERY host pixel near the
+      // end of a turn. The centre binding may now cross-fade inside its narrow
+      // contact band, but unrelated chrome across the rest of the raised sheet
+      // must remain occluded (proved at pixel level by the next test).
       final lateFlip = await tester.runAsync(
         () => _coverage(_painterAt(0.9, overlay: overlay, size: size), size),
       );
@@ -157,9 +170,78 @@ void main() {
       expect(
         lateFlip,
         lessThan(0.9),
-        reason: 'the sheet is still lifted at 0.9 — nothing may show through',
+        reason: 'the raised sheet received the whole host overlay',
       );
       expect(lateFlip, closeTo(plateau!, 0.35));
+    });
+
+    testWidgets(
+        'late binding contact restores only the centre band, not all chrome',
+        (tester) async {
+      final overlay = _FloodPainter();
+      const outsideBinding = Offset(100, 150);
+      const onBinding = Offset(200, 150);
+
+      final geo = PageFlipGeometry(
+        progress: 0.9,
+        isRightToLeft: true,
+        touchOffset: const Offset(360, 150),
+        size: size,
+        isDoubleSpread: true,
+      );
+      final flap = buildFlapScreenClipPath(geo);
+      expect(flap.contains(outsideBinding), isTrue);
+      expect(flap.contains(onBinding), isTrue);
+
+      final withOverlay = _painterAt(0.9, overlay: overlay, size: size);
+      final withoutOverlay = _painterAt(0.9, overlay: null, size: size);
+      final values = await tester.runAsync(
+        () async => (
+          outsideWith: await _redAt(withOverlay, size, outsideBinding),
+          outsideWithout: await _redAt(withoutOverlay, size, outsideBinding),
+          bindingWith: await _redAt(withOverlay, size, onBinding),
+          bindingWithout: await _redAt(withoutOverlay, size, onBinding),
+        ),
+      );
+
+      expect(
+        (values!.outsideWith - values.outsideWithout).abs(),
+        lessThanOrEqualTo(1),
+        reason: 'centre contact leaked unrelated overlay across the flap',
+      );
+      expect(
+        values.bindingWithout - values.bindingWith,
+        greaterThan(8),
+        reason: 'the binding itself did not return during contact',
+      );
+    });
+
+    testWidgets('spine contact never changes single-page overlay occlusion',
+        (tester) async {
+      final overlay = _FloodPainter();
+      const point = Offset(20, 150);
+      final withOverlay = _painterAt(
+        0.9,
+        overlay: overlay,
+        size: size,
+        isDoubleSpread: false,
+      );
+      final withoutOverlay = _painterAt(
+        0.9,
+        overlay: null,
+        size: size,
+        isDoubleSpread: false,
+      );
+      final values = await tester.runAsync(
+        () async => (
+          withOverlay: await _redAt(withOverlay, size, point),
+          withoutOverlay: await _redAt(withoutOverlay, size, point),
+        ),
+      );
+      expect(
+        (values!.withOverlay - values.withoutOverlay).abs(),
+        lessThanOrEqualTo(1),
+      );
     });
 
     test('a null overlay leaves every pre-existing host untouched', () {

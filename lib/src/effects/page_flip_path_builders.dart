@@ -652,6 +652,93 @@ Path buildFlapScreenClipPath(
   return path;
 }
 
+/// Strength of binding-anchored chrome across the WHOLE turning sheet, from how
+/// close the sheet's own fold line has come to the binding.
+///
+/// 1 once the hinge has arrived at the spine, easing to 0 as the crease moves
+/// [kSpineContactReach] of a page width away from it. This is a flat, uniform
+/// factor on purpose: it dims the host's decoration without reshaping it, so
+/// the valley it draws keeps its own profile and cannot grow a new maximum
+/// somewhere out on the sheet — which is exactly what a distance-varying mask
+/// alone does when it cuts off the peak and passes the tail.
+double spineContactOpacity(PageFlipGeometry geo) {
+  if (!geo.isDoubleSpread) return 0;
+  final pageWidth =
+      geo.isDoubleSpread ? geo.size.width / 2 : geo.size.width.toDouble();
+  final reach = pageWidth * kSpineContactReach;
+  if (reach <= 0) return 0;
+  final gap = (geo.foldX - geo.spineX).abs();
+  if (gap >= reach) return 0;
+  final t = (gap / reach).clamp(0.0, 1.0).toDouble();
+  return 1.0 - t * t * (3 - 2 * t);
+}
+
+/// Opacity of the moving fold's own crease as it hands visual ownership to
+/// the stationary binding.
+///
+/// The two shadows must cross-fade as one system. Leaving the moving crease at
+/// full strength while the binding returns produces two separate valleys near
+/// landing. A quartic falloff keeps the crease unchanged while contact is
+/// negligible, then removes its last visible ridge decisively as the binding
+/// takes ownership.
+double movingFoldShadowOpacity(PageFlipGeometry geo) {
+  final remaining = 1.0 - spineContactOpacity(geo);
+  final squared = remaining * remaining;
+  return squared * squared;
+}
+
+/// Distance (px) over which stationary chrome is handed back to the turning
+/// sheet at its fold line, for this frame's geometry.
+///
+/// Zero above [kFoldContactLiftBand], so a sheet that is genuinely in the air
+/// keeps the hard inverse-flap cut it has always had. Below the band it opens
+/// smoothly to [kFoldContactFeather] as the sheet settles, and never exceeds
+/// the flap's own visible width — a hinge strip wider than the sheet would
+/// spill the decoration past the free edge onto the page beneath.
+double foldContactFeatherWidth(PageFlipGeometry geo) {
+  if (spineContactOpacity(geo) <= 0) return 0;
+  final lift = geo.shadowIntensity.clamp(0.0, 1.0).toDouble();
+  if (lift >= kFoldContactLiftBand) return 0;
+  final t = (lift / kFoldContactLiftBand).clamp(0.0, 1.0).toDouble();
+  final settled = 1.0 - t * t * (3 - 2 * t);
+  final flapWidth = geo.flapVisibleWidth.clamp(0.0, double.infinity).toDouble();
+  return math.min(kFoldContactFeather * settled, flapWidth);
+}
+
+/// `dstIn` mask that carries stationary chrome across the fold line onto the
+/// settling sheet, instead of cutting it off there.
+///
+/// Full alpha ON the fold line — which is what makes the composite continuous
+/// across it, and therefore what stops a centre fold from reading as two
+/// parallel folds when the sheet's crease lands beside it — decaying to
+/// [baseOpacity] one [foldContactFeatherWidth] into the flap. The ramp runs
+/// along [PageFlipGeometry.foldNormal] so it stays parallel to a tilted fold,
+/// and `TileMode.clamp` holds [baseOpacity] across the rest of the sheet, which
+/// is exactly the flat alpha the caller would otherwise have applied alone.
+///
+/// Returns null when the feather has collapsed; the caller then falls back to
+/// that flat alpha and this frame composites as it always did.
+ui.Shader? buildFoldContactMaskShader(
+  PageFlipGeometry geo, {
+  required double baseOpacity,
+  double? featherWidth,
+}) {
+  final feather = featherWidth ?? foldContactFeatherWidth(geo);
+  if (feather < 0.5) return null;
+
+  const white = Color(0xFFFFFFFF);
+  // The hinge is the rotation centre, so it needs no transform to reach screen
+  // space — the fold pivots about exactly this point.
+  final hinge = Offset(geo.foldX, geo.size.height / 2);
+  final inward = geo.foldNormal * (geo.flapRightOfFold ? 1.0 : -1.0);
+  return ui.Gradient.linear(
+    hinge,
+    hinge + inward * feather,
+    <Color>[white, white.withValues(alpha: baseOpacity.clamp(0.0, 1.0))],
+    <double>[0, 1],
+  );
+}
+
 /// Returns the viewport region where the stationary centre-gutter shading may
 /// be painted without appearing through the turning sheet.
 ///

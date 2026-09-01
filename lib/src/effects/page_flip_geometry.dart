@@ -71,6 +71,50 @@ const double kFreeEdgeShadowWidth = 10;
 /// the crease look like a drawn line instead of a soft fold.
 const List<double> kCreaseValleyStops = [0.0, 0.32, 1.0];
 
+/// How far (px) stationary chrome carries onto the turning sheet, measured
+/// from the fold line into the flap.
+///
+/// A sheet's fold line is the one place on it that is still touching the page
+/// underneath — that is what a hinge *is*. Cutting stationary decoration off
+/// with a hard edge exactly there therefore claims the sheet is at full height
+/// at its own hinge, and the alpha step that claim leaves behind reads as a
+/// second, parallel fold beside the real one. Handing the decoration back
+/// across this distance makes the composite continuous at the fold and lets it
+/// fade out as the sheet rises away.
+///
+/// Sized like [kCreaseShadowWidth] on purpose: this is the same fold-scale
+/// falloff the engine's own crease valley uses, so the two read as one system
+/// instead of two differently-sized bands meeting at the crease.
+const double kFoldContactFeather = 22;
+
+/// How lifted the sheet may still be while stationary chrome is carried across
+/// its fold line, as a fraction of full lift.
+///
+/// Wider than the painter's settled-lift band (which restores the decoration
+/// to the WHOLE sheet) because this only ever affects a
+/// [kFoldContactFeather]-wide strip at the hinge, and the artifact it removes —
+/// a centre fold split in two near the end of a spread turn — is already
+/// obvious while the sheet is still a little raised. Above this band the
+/// feather is zero, so mid-flip compositing is byte-for-byte unchanged.
+const double kFoldContactLiftBand = 0.35;
+
+/// How far the fold line may sit from the binding, as a fraction of ONE page
+/// width, while chrome anchored to the binding still reaches the sheet.
+///
+/// A binding gutter is anchored to the spine, not to the sheet, so the question
+/// "may this sheet carry it?" is really "has this sheet's hinge arrived at the
+/// binding?" — not "how high is the sheet?". The two answers differ exactly at
+/// the end of a spread turn, where the sheet is already flat but its crease is
+/// still a few percent of a page short of the spine: keying only on lift leaves
+/// the gutter at full strength on the revealed side and near-zero on the sheet,
+/// and that alpha step beside the real fold is what reads as a SECOND fold.
+///
+/// 0.18 starts the cross-fade before a 30–40px moving crease can remain as a
+/// second visible valley on tablet spreads. The painter still confines this
+/// early handoff to the centre band; unrelated fore-edge and page-stack chrome
+/// remains occluded until the sheet is actually settled.
+const double kSpineContactReach = 0.18;
+
 /// Fraction of the flip (at each end) over which the discrete fold/gutter
 /// shadows ease in and out. Inside the plateau the envelope is 1.0, so mid-flip
 /// shading is unchanged.
