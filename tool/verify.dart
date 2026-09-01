@@ -27,6 +27,53 @@ Future<void> _step(String name, Future<int> Function() fn) async {
   }
 }
 
+/// Refuses to validate a release from content that is not exactly [HEAD].
+///
+/// `dart pub publish --dry-run` normally performs this check itself, but recent
+/// Flutter toolchains can report an untouched `analysis_options.yaml` as dirty
+/// on GitHub's Linux runners. Check it explicitly and then validate a Git-free
+/// clone below, so a real dirty worktree still fails while the toolchain's
+/// false-positive Git probe cannot hide package validation.
+Future<int> _requireCleanWorktree() async {
+  final result = await Process.run(
+    'git',
+    const <String>['status', '--porcelain', '--untracked-files=all'],
+    runInShell: true,
+  );
+  if (result.exitCode != 0) {
+    stderr.write(result.stderr);
+    return result.exitCode;
+  }
+  if ((result.stdout as String).trim().isEmpty) return 0;
+  stderr.writeln('FAILED: release validation requires a clean worktree.');
+  stderr.write(result.stdout);
+  return 1;
+}
+
+/// Runs pub's full validation against the exact committed package contents.
+///
+/// The temporary clone has no `.git` directory, so pub cannot mistake a
+/// toolchain-written Git status for a package warning. The preceding clean-tree
+/// check makes this equivalent to validating [HEAD], not a partial checkout.
+Future<int> _publishDryRunFromCleanClone(String root) async {
+  final clone =
+      await Directory.systemTemp.createTemp('real_page_flip_publish_');
+  try {
+    final cloneCode = await _run(
+      'git',
+      <String>['clone', '--no-local', '--depth', '1', root, clone.path],
+    );
+    if (cloneCode != 0) return cloneCode;
+
+    await Directory('${clone.path}${Platform.pathSeparator}.git')
+        .delete(recursive: true);
+    return _run('dart', <String>['pub', 'publish', '--dry-run'],
+        cwd: clone.path);
+  } finally {
+    if (await clone.exists()) await clone.delete(recursive: true);
+  }
+}
+
 Future<void> main() async {
   final root = Directory.current.path;
 
@@ -49,8 +96,11 @@ Future<void> main() async {
 
   await _step('test', () => _run('flutter', ['test']));
 
+  await _step('clean worktree for release validation', _requireCleanWorktree);
   await _step(
-      'publish dry-run', () => _run('dart', ['pub', 'publish', '--dry-run']));
+    'publish dry-run (clean committed package)',
+    () => _publishDryRunFromCleanClone(root),
+  );
 
   stdout.writeln('\nALL GATES PASSED');
 }
