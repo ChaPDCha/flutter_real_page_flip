@@ -1,3 +1,13 @@
+## [2.2.13] - 2026-09-01
+
+### Fixed
+
+- **GitHub Verify now checks a clean checkout before Flutter dependency setup.**
+  Recent Linux Flutter tooling can refresh tracked metadata during `flutter pub
+  get`; the workflow proves the release input is clean first, then passes that
+  completed preflight to the standalone verifier. The final publish dry-run
+  still validates a Git-free clone of `HEAD`.
+
 ## [2.2.12] - 2026-09-01
 
 ### Fixed
