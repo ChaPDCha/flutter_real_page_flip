@@ -758,6 +758,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               flapBackStrength: config.flapBackStrength,
               doubleSpreadMidFoldBleed: config.doubleSpreadMidFoldBleed,
               stationaryOverlayPainter: config.stationaryOverlayPainter,
+              stationaryOverlayOwnsCenterGutter:
+                  config.stationaryOverlayOwnsCenterGutter,
               singlePageBackContentOpacity: config.singlePageBackContentOpacity,
               enableSinglePageSettleReveal: config.enableSinglePageSettleReveal,
               constrainedSize: constrainedSize,

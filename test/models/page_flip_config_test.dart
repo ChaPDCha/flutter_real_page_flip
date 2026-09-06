@@ -326,6 +326,7 @@ void main() {
           hapticTexturePreset: PaperTexturePreset.kraft,
         ),
         const PageFlipConfig(hapticQuality: HapticQuality.basic),
+        const PageFlipConfig(stationaryOverlayOwnsCenterGutter: true),
       ];
       for (final v in variants) {
         expect(

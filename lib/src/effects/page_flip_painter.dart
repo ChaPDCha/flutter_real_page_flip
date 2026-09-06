@@ -95,6 +95,10 @@ class PageFlipPainter extends CustomPainter {
     /// Host decoration for the stationary layer — see
     /// [PageFlipConfig.stationaryOverlayPainter].
     this.stationaryOverlayPainter,
+
+    /// Whether [stationaryOverlayPainter] owns the double-spread binding
+    /// fold — see [PageFlipConfig.stationaryOverlayOwnsCenterGutter].
+    this.stationaryOverlayOwnsCenterGutter = false,
   }) : isActualForward = isActualForward ?? isForward;
 
   /// Normalised flip progress from 0.0 to 1.0.
@@ -187,6 +191,9 @@ class PageFlipPainter extends CustomPainter {
   /// Host decoration painted last, occluded by the turning sheet.
   /// See [PageFlipConfig.stationaryOverlayPainter].
   final CustomPainter? stationaryOverlayPainter;
+
+  /// See [PageFlipConfig.stationaryOverlayOwnsCenterGutter].
+  final bool stationaryOverlayOwnsCenterGutter;
 
   /// Stops across the flap for the bend (cylinder) shadow. The profile is
   /// smooth everywhere, so a dozen uniform samples already resolve it below
@@ -535,6 +542,17 @@ class PageFlipPainter extends CustomPainter {
     double shadowOnset,
   ) {
     if (!isDoubleSpread || progress <= 0) return;
+
+    // A host that owns the binding fold itself already painted its own
+    // shadow at the SAME x-position (both default to the viewport centre) —
+    // stacking this pass on top would composite two independent `multiply`
+    // valleys into one that reads ~2x darker for the whole turn, then
+    // relaxes back once it lands. Not filling the gap with anything else is
+    // deliberate: where the turning sheet crosses the fold, the correct
+    // thing to see is the sheet's own paper, not a shadow with no owner.
+    if (stationaryOverlayOwnsCenterGutter && stationaryOverlayPainter != null) {
+      return;
+    }
 
     final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
     final shadowBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
@@ -1237,5 +1255,7 @@ class PageFlipPainter extends CustomPainter {
       // A host painter with a value `==` repaints only when its content really
       // changed; one with identity equality repaints on every new instance.
       // Either way this is the correct answer, so it needs no second question.
-      oldDelegate.stationaryOverlayPainter != stationaryOverlayPainter;
+      oldDelegate.stationaryOverlayPainter != stationaryOverlayPainter ||
+      oldDelegate.stationaryOverlayOwnsCenterGutter !=
+          stationaryOverlayOwnsCenterGutter;
 }

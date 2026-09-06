@@ -102,6 +102,9 @@ class PageFlipLayerView extends StatelessWidget {
     /// [PageFlipConfig.stationaryOverlayPainter].
     this.stationaryOverlayPainter,
 
+    /// See [PageFlipConfig.stationaryOverlayOwnsCenterGutter].
+    this.stationaryOverlayOwnsCenterGutter = false,
+
     /// Single-page only: opacity of the peeled page's own content mid-flip.
     this.singlePageBackContentOpacity = 0.35,
 
@@ -186,6 +189,9 @@ class PageFlipLayerView extends StatelessWidget {
   /// Host decoration painted above page content and occluded by the
   /// turning sheet — see [PageFlipConfig.stationaryOverlayPainter].
   final CustomPainter? stationaryOverlayPainter;
+
+  /// See [PageFlipConfig.stationaryOverlayOwnsCenterGutter].
+  final bool stationaryOverlayOwnsCenterGutter;
 
   /// Single-page only: opacity of the peeled page's own content mid-flip
   /// (1.0 = crisp, lower = faint thin-paper bleed-through).
@@ -466,6 +472,8 @@ class PageFlipLayerView extends StatelessWidget {
               devicePixelRatio:
                   MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0,
               stationaryOverlayPainter: stationaryOverlayPainter,
+              stationaryOverlayOwnsCenterGutter:
+                  stationaryOverlayOwnsCenterGutter,
               paperOpacity: paperOpacity,
               flapContentFadeOutEnd: flapContentFadeOutEnd,
               thinPaperStrength: thinPaperStrength,

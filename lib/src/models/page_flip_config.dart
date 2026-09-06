@@ -129,6 +129,7 @@ class PageFlipConfig {
     this.hapticQuality = HapticQuality.adaptive,
     this.hapticStrength = HapticStrength.medium,
     this.stationaryOverlayPainter,
+    this.stationaryOverlayOwnsCenterGutter = false,
   });
 
   /// Host decoration painted on the STATIONARY layer, above page content and
@@ -156,6 +157,27 @@ class PageFlipConfig {
   /// coordinates. Never hit-tested. `null` (default) draws nothing and leaves
   /// every existing host unaffected.
   final CustomPainter? stationaryOverlayPainter;
+
+  /// Whether [stationaryOverlayPainter] paints the double-spread binding
+  /// fold itself, so the engine's own `_drawCenterGutter` pass must stay out
+  /// of the way instead of compositing a second shadow on top of it.
+  ///
+  /// Without this, a host that hands in its own fold painter still gets the
+  /// engine's centre-gutter shading layered over it at the SAME x-position
+  /// (both default to the viewport's geometric centre) every double-spread
+  /// turn: two independent `multiply` passes at ~0.12 peak alpha each
+  /// composite to ~0.23 — the fold reads as flat at rest and visibly
+  /// darkens for the duration of every turn, then relaxes back when it
+  /// ends. Setting this to `true` skips the engine's own pass entirely
+  /// when a [stationaryOverlayPainter] is present, leaving that painter as
+  /// the fold's single owner throughout the gesture. It does NOT redraw
+  /// anything to fill the gap — while the turning sheet crosses the fold
+  /// the correct thing to see there is the sheet's own paper, not a shadow.
+  ///
+  /// Defaults to `false`, so every existing host that supplies a
+  /// [stationaryOverlayPainter] without this flag renders byte-for-byte as
+  /// before.
+  final bool stationaryOverlayOwnsCenterGutter;
 
   /// The performance profile to use for rendering quality.
   final DevicePerformanceProfile performanceProfile;
@@ -365,6 +387,7 @@ class PageFlipConfig {
     HapticQuality? hapticQuality,
     HapticStrength? hapticStrength,
     CustomPainter? stationaryOverlayPainter,
+    bool? stationaryOverlayOwnsCenterGutter,
     bool clearSemanticBuilder = false,
     bool clearBackgroundColor = false,
     bool clearEffectHandler = false,
@@ -425,6 +448,8 @@ class PageFlipConfig {
         stationaryOverlayPainter: clearStationaryOverlayPainter
             ? null
             : (stationaryOverlayPainter ?? this.stationaryOverlayPainter),
+        stationaryOverlayOwnsCenterGutter: stationaryOverlayOwnsCenterGutter ??
+            this.stationaryOverlayOwnsCenterGutter,
       );
 
   /// Runtime-safe view of this configuration.
@@ -520,6 +545,7 @@ class PageFlipConfig {
       hapticQuality: hapticQuality,
       hapticStrength: hapticStrength,
       stationaryOverlayPainter: stationaryOverlayPainter,
+      stationaryOverlayOwnsCenterGutter: stationaryOverlayOwnsCenterGutter,
     );
 
     return normalizedConfig == this ? this : normalizedConfig;
@@ -593,7 +619,9 @@ class PageFlipConfig {
           edgeTapNextLabel == other.edgeTapNextLabel &&
           edgeTapPreviousHint == other.edgeTapPreviousHint &&
           edgeTapNextHint == other.edgeTapNextHint &&
-          stationaryOverlayPainter == other.stationaryOverlayPainter;
+          stationaryOverlayPainter == other.stationaryOverlayPainter &&
+          stationaryOverlayOwnsCenterGutter ==
+              other.stationaryOverlayOwnsCenterGutter;
 
   @override
   int get hashCode => Object.hashAll([
@@ -632,5 +660,6 @@ class PageFlipConfig {
         edgeTapPreviousHint,
         edgeTapNextHint,
         stationaryOverlayPainter,
+        stationaryOverlayOwnsCenterGutter,
       ]);
 }

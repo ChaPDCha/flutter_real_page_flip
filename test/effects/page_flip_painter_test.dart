@@ -122,6 +122,155 @@ void main() {
       );
       expect(painter1.shouldRepaint(painter2), isTrue);
     });
+
+    test(
+      'shouldRepaint returns true when stationaryOverlayOwnsCenterGutter '
+      'changes',
+      () {
+        final painter1 = PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          isDoubleSpread: true,
+          stationaryOverlayPainter: _NoOpPainter(),
+        );
+        final painter2 = PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          isDoubleSpread: true,
+          stationaryOverlayPainter: _NoOpPainter(),
+          stationaryOverlayOwnsCenterGutter: true,
+        );
+        expect(painter1.shouldRepaint(painter2), isTrue);
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------
+  // Plan SA-P2-T4 (docs/plans/2026-09-06_spread_spine_alignment_plan.md,
+  // flutter_real_page_flip side): `stationaryOverlayOwnsCenterGutter` must
+  // (a) default to false so every existing host renders unchanged, and
+  // (b) when true AND a stationaryOverlayPainter is present, skip the
+  // engine's own `_drawCenterGutter` pass so a host that already painted
+  // its own fold shadow does not get a second `multiply` valley stacked at
+  // the same x-position on top of it.
+  // ---------------------------------------------------------------------
+  group('PageFlipPainter — stationaryOverlayOwnsCenterGutter (plan SA-P2)', () {
+    // _drawCenterGutter (page_flip_painter.dart) calls `drawGutterSide`
+    // exactly twice when gutterPeak > 0.003 (isDoubleSpread, progress ~0.5,
+    // default light-paper alpha 0.12 comfortably clears that), and both
+    // calls draw (outward is never 0 for either side) — so it contributes
+    // EXACTLY 2 to drawRectCount whenever it runs at all.
+    const centerGutterDrawRectContribution = 2;
+
+    int drawRectCountFor({required bool ownsCenterGutter}) {
+      final canvas = MockCanvas();
+      PageFlipPainter(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: Offset.zero,
+        paperBackColor: Colors.white,
+        isDoubleSpread: true,
+        stationaryOverlayPainter: _NoOpPainter(),
+        stationaryOverlayOwnsCenterGutter: ownsCenterGutter,
+      ).paint(canvas, const Size(800, 600));
+      return canvas.drawRectCount;
+    }
+
+    test(
+      'defaults to false — a host painter with no explicit flag renders '
+      'byte-for-byte as before this field existed (same drawRectCount as '
+      'explicitly passing false)',
+      () {
+        final canvas = MockCanvas();
+        PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          isDoubleSpread: true,
+          stationaryOverlayPainter: _NoOpPainter(),
+          // stationaryOverlayOwnsCenterGutter omitted — must equal false.
+        ).paint(canvas, const Size(800, 600));
+
+        expect(
+          canvas.drawRectCount,
+          drawRectCountFor(ownsCenterGutter: false),
+        );
+      },
+    );
+
+    test(
+      'true skips exactly the centre-gutter drawRect calls, leaving every '
+      'other pass (paper underlay, edge/fold masks, shadows) untouched',
+      () {
+        final countWhenOwned = drawRectCountFor(ownsCenterGutter: false);
+        final countWhenSkipped = drawRectCountFor(ownsCenterGutter: true);
+
+        expect(
+          countWhenOwned - countWhenSkipped,
+          centerGutterDrawRectContribution,
+        );
+      },
+    );
+
+    test(
+      'true has no effect without a stationaryOverlayPainter — the guard '
+      'requires BOTH conditions, so a host that sets the flag without '
+      'wiring a painter still gets its centre gutter (fails safe: a '
+      'missing painter should never silently blank the fold)',
+      () {
+        final withoutPainter = MockCanvas();
+        PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          isDoubleSpread: true,
+          stationaryOverlayOwnsCenterGutter: true,
+        ).paint(withoutPainter, const Size(800, 600));
+
+        final flagFalseNoPainter = MockCanvas();
+        PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          isDoubleSpread: true,
+        ).paint(flagFalseNoPainter, const Size(800, 600));
+
+        expect(
+          withoutPainter.drawRectCount,
+          flagFalseNoPainter.drawRectCount,
+        );
+      },
+    );
+
+    test('single-page mode is unaffected regardless of the flag', () {
+      int singlePageDrawRectCountFor({required bool ownsCenterGutter}) {
+        final canvas = MockCanvas();
+        PageFlipPainter(
+          progress: 0.5,
+          isRightToLeft: true,
+          touchOffset: Offset.zero,
+          paperBackColor: Colors.white,
+          stationaryOverlayPainter: _NoOpPainter(),
+          stationaryOverlayOwnsCenterGutter: ownsCenterGutter,
+        ).paint(canvas, const Size(800, 600));
+        return canvas.drawRectCount;
+      }
+
+      // _drawCenterGutter's own `!isDoubleSpread` early return already
+      // means single-page mode never draws a centre gutter to begin with,
+      // so the flag must be a true no-op there.
+      expect(
+        singlePageDrawRectCountFor(ownsCenterGutter: true),
+        singlePageDrawRectCountFor(ownsCenterGutter: false),
+      );
+    });
   });
 
   group('PageFlipClipper', () {
@@ -981,4 +1130,15 @@ class MockCanvas extends Fake implements Canvas {
     ui.ClipOp clipOp = ui.ClipOp.intersect,
     bool doAntiAlias = true,
   }) {}
+}
+
+/// Stand-in host decoration for [PageFlipConfig.stationaryOverlayPainter] —
+/// only its presence (non-null) matters to the guard under test, never what
+/// it actually paints.
+class _NoOpPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {}
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

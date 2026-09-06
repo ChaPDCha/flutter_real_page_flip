@@ -206,6 +206,21 @@ void main() {
       expect(copy.hapticQuality, HapticQuality.basic);
     });
 
+    test('copyWith stationaryOverlayOwnsCenterGutter', () {
+      final copy = base.copyWith(stationaryOverlayOwnsCenterGutter: true);
+      expect(copy.stationaryOverlayOwnsCenterGutter, isTrue);
+    });
+
+    test(
+      'stationaryOverlayOwnsCenterGutter defaults to false and is preserved '
+      'by an unrelated copyWith call',
+      () {
+        expect(base.stationaryOverlayOwnsCenterGutter, isFalse);
+        final copy = base.copyWith(duration: const Duration(milliseconds: 200));
+        expect(copy.stationaryOverlayOwnsCenterGutter, isFalse);
+      },
+    );
+
     test('copyWith preserves unmodified fields', () {
       final copy = base.copyWith(duration: const Duration(milliseconds: 200));
       // All other fields should match base

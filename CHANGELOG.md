@@ -1,3 +1,19 @@
+## [Unreleased]
+
+### Added
+
+- **`PageFlipConfig.stationaryOverlayOwnsCenterGutter`** — lets a host that
+  supplies its own `stationaryOverlayPainter` fold shadow tell the engine to
+  skip its own `_drawCenterGutter` pass for a double-spread turn, instead of
+  compositing a second `multiply` valley on top of the host's at the same
+  x-position. Without this, a host fold painter and the engine's own centre
+  gutter darken together for the duration of every turn (two ~0.12-peak
+  passes compose to ~0.23) and relax back once it lands, reading as the fold
+  flickering darker mid-turn even though it is static at rest. Defaults to
+  `false`; every existing host that supplies a `stationaryOverlayPainter`
+  without this flag renders unchanged (confirmed byte-for-byte via
+  `drawRectCount` parity in `page_flip_painter_test.dart`).
+
 ## [2.2.13] - 2026-09-01
 
 ### Fixed
