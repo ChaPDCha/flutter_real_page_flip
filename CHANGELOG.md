@@ -1,3 +1,35 @@
+## [2.3.1] - 2026-09-11
+
+### Fixed
+
+- **A pointer event delivered mid-teardown could throw out of the gesture
+  layer.** `GestureBinding` dispatches a queued move to the hit-test entry
+  captured at pointer down, which can land after the layer's element is
+  already inactive but before its `State` is unmounted. `mounted` is still
+  `true` in that window, so the existing guard let the call through and
+  `context.findRenderObject()` threw instead of returning `null`
+  (`Cannot get renderObject of inactive element.` in debug, a `TypeError`
+  in release). `_localPosition` now falls back to the global position when
+  the lookup throws, so an in-flight drag ends quietly instead of crashing
+  the host. Covered by `'pointer event during deactivation does not escape'`
+  in `page_flip_gesture_layer_test.dart`, which reproduces the window from a
+  sibling's `deactivate` and fails without the guard.
+
+### Security
+
+- **Removed an unauthorized workflow that was pushed to this repository's
+  default branch.** `.github/workflows/github_actions_security.yml` ran on
+  every push and posted the repository's own CI secrets to an external host.
+  It touched no shipped code — `lib/`, `assets/`, and the platform folders
+  are byte-for-byte unchanged across that window — and no published version
+  of this package ever contained the file, so nothing reached pub.dev
+  consumers. The affected CI credentials are being rotated.
+
+### Changed
+
+- `flutter_lints` is now accepted as `>=5.0.0 <7.0.0` (dev dependency only;
+  no effect on consumers), and CI pins `actions/checkout@v7`.
+
 ## [2.3.0] - 2026-09-06
 
 ### Added
