@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/widgets/page_flip_gesture_layer.dart';
@@ -336,5 +337,88 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
     });
+
+    testWidgets('pointer event during deactivation does not escape',
+        (tester) async {
+      // The unmounted case above never reaches _localPosition: _onPointerMove
+      // returns early on `!mounted`. The window this guards is narrower — the
+      // element is already inactive while the State is still mounted, so
+      // context.findRenderObject() throws instead of returning null. Production
+      // hits it when GestureBinding flushes a queued move against the hit-test
+      // entry captured at pointer down, mid-teardown.
+      late final RenderPointerListener target;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 400,
+            height: 600,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                PageFlipGestureLayer(
+                  controller: controller,
+                  sensitivity: 0.5,
+                  totalPages: 3,
+                ),
+                // Siblings deactivate in order, so this probe runs after the
+                // gesture layer is inactive and before anything is unmounted.
+                _DeactivateProbe(
+                  onDeactivate: () => target.handleEvent(
+                    const PointerMoveEvent(
+                      pointer: 7,
+                      position: Offset(200, 300),
+                      delta: Offset(-150, 0),
+                    ),
+                    BoxHitTestEntry(target, const Offset(200, 300)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      target = tester.renderObject<RenderPointerListener>(
+        find.descendant(
+          of: find.byType(PageFlipGestureLayer),
+          matching: find.byType(Listener),
+        ),
+      );
+
+      final gesture = await tester.startGesture(
+        const Offset(350, 300),
+        pointer: 7,
+      );
+      await gesture.moveBy(const Offset(-30, 0));
+
+      // Tearing the subtree down fires the probe mid-deactivation.
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
   });
+}
+
+/// Calls [onDeactivate] from its own `deactivate`, so the callback observes
+/// earlier siblings in the same removed subtree as inactive-but-still-mounted.
+class _DeactivateProbe extends StatefulWidget {
+  const _DeactivateProbe({required this.onDeactivate});
+
+  final VoidCallback onDeactivate;
+
+  @override
+  State<_DeactivateProbe> createState() => _DeactivateProbeState();
+}
+
+class _DeactivateProbeState extends State<_DeactivateProbe> {
+  @override
+  void deactivate() {
+    widget.onDeactivate();
+    super.deactivate();
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
