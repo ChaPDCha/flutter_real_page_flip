@@ -516,8 +516,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   void _applyStructuralChange(_StructuralChange change) {
     final previousIndex = _controller.currentIndex;
     _controller.setIndex(change.jumpTo ?? previousIndex, _totalPages);
-    final pageIdentityChanged = change.layoutChanged ||
-        _controller.currentIndex != previousIndex;
+    final pageIdentityChanged =
+        change.layoutChanged || _controller.currentIndex != previousIndex;
 
     if (!pageIdentityChanged) {
       _preRenderManager
