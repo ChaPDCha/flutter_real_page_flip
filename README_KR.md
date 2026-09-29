@@ -135,6 +135,34 @@ PageFlipWidget(
 flipController.markPageDirty(changedPageIndex);
 ```
 
+## 사운드 커스터마이즈
+
+엔진에는 기본 페이지 넘김음 하나가 들어 있습니다. 사운드는 부가 기능이라
+햅틱은 그대로 두고 사운드만 교체할 수 있습니다.
+
+```dart
+// 기본 플레이어에 앱의 음원만 교체 (pubspec에 asset 선언 필요)
+PageFlipConfig(soundPlayer: DefaultPageFlipSound(asset: 'assets/sounds/flip.mp3'))
+
+// 또는 원하는 오디오 백엔드로 직접 구현
+class MyFlipSound implements PageFlipSoundPlayer {
+  @override
+  Future<void> warmUp() async {/* 미리 로드 */}
+
+  @override
+  Future<void> play({required double volume}) async {/* 재생 */}
+
+  @override
+  void dispose() {}
+}
+```
+
+- `volume`은 넘기는 속도에 따라 조절된 `0.0..1.0` 권장값입니다.
+- `enableSound: false`면 어떤 플레이어도 로드·재생하지 않습니다.
+- 직접 넘긴 플레이어의 dispose는 앱이 책임집니다. 엔진은 dispose하지 않습니다.
+- 기본 플레이어는 처음 쓸 때 로드됩니다. 사운드를 끄거나 커스텀 플레이어를
+  쓰면 오디오 플레이어를 아예 만들지 않습니다.
+
 ## 다크 모드
 
 배경 휘도에 따라 그림자, 하이라이트, 엣지 마스크가 자동으로 조정됩니다.
