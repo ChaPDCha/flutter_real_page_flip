@@ -9,6 +9,7 @@ import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/managers/pre_render_manager.dart';
 import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/models/page_flip_sound_player.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 import 'package:real_page_flip/src/page_flip_layer_view.dart';
 import 'package:real_page_flip/src/widgets/default_page_flip_effect_handler.dart';
@@ -267,8 +268,50 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _captureSnapshots(immediate: true);
+        _warmUpSound();
       }
     });
+  }
+
+  /// The player that will receive [PageFlipEvent.sound], if the engine knows
+  /// it: the host's `soundPlayer`, else the default handler's own player.
+  /// A custom `effectHandler` manages its own audio and is not warmed here.
+  PageFlipSoundPlayer? get _activeSoundPlayer {
+    final hostSound = _config.soundPlayer;
+    if (hostSound != null) return hostSound;
+    final handler = _effectHandler;
+    return handler is DefaultPageFlipEffectHandler ? handler.soundPlayer : null;
+  }
+
+  /// Preloads the active sound so the first turn is not silent. Loading is
+  /// idempotent for the default player; nothing loads while sound is off or
+  /// when [PageFlipWidget.onHandleEffect] takes over all effects.
+  void _warmUpSound() {
+    if (!_config.enableSound || widget.onHandleEffect != null) return;
+    final player = _activeSoundPlayer;
+    if (player == null) return;
+    try {
+      final result = player.warmUp();
+      if (result is Future<void>) {
+        unawaited(
+          result.catchError((Object error, StackTrace stackTrace) {
+            _reportEffectError(
+              PageFlipEvent.sound,
+              error,
+              stackTrace,
+              'soundPlayer.warmUp',
+            );
+          }),
+        );
+      }
+    } on Object catch (error, stackTrace) {
+      _reportEffectError(
+        PageFlipEvent.sound,
+        error,
+        stackTrace,
+        'soundPlayer.warmUp',
+      );
+    }
   }
 
   void _onFlipStart() {
@@ -396,6 +439,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         config.hapticQuality != oldConfig.hapticQuality;
     final hapticStrengthChanged =
         config.hapticStrength != oldConfig.hapticStrength;
+    var handlerRecreated = false;
     if (effectHandlerChanged ||
         (config.effectHandler == null &&
             (profileChanged ||
@@ -415,6 +459,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           hapticStrength: config.hapticStrength,
         );
       } else {
+        handlerRecreated = true;
         if (_isInternalEffectHandler) {
           _effectHandler.dispose();
         }
@@ -426,6 +471,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               hapticStrength: config.hapticStrength,
             );
       }
+    }
+
+    if (handlerRecreated ||
+        config.enableSound != oldConfig.enableSound ||
+        config.soundPlayer != oldConfig.soundPlayer ||
+        widget.onHandleEffect != oldWidget.onHandleEffect) {
+      _warmUpSound();
     }
 
     // An external jump is the host ASKING for a different page, which it can
@@ -717,6 +769,25 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       return;
     }
     if (effect == PageFlipEvent.sound && !config.enableSound) return;
+
+    // A host sound player replaces only the sound; haptics keep flowing to
+    // the effect handler (default or custom).
+    final hostSound = config.soundPlayer;
+    if (effect == PageFlipEvent.sound && hostSound != null) {
+      try {
+        final result = hostSound.play(volume: volume ?? 1.0);
+        if (result is Future<void>) {
+          unawaited(
+            result.catchError((Object error, StackTrace stackTrace) {
+              _reportEffectError(effect, error, stackTrace, 'soundPlayer');
+            }),
+          );
+        }
+      } on Object catch (error, stackTrace) {
+        _reportEffectError(effect, error, stackTrace, 'soundPlayer');
+      }
+      return;
+    }
 
     try {
       final handlerResult = _effectHandler.onHandleEffect(

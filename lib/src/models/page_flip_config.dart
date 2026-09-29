@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/models/haptic_quality.dart';
 import 'package:real_page_flip/src/models/haptic_strength.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/models/page_flip_sound_player.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 import 'package:real_page_flip/src/page_flip_widget.dart';
 
@@ -111,6 +112,7 @@ class PageFlipConfig {
     this.enableHaptics = true,
     this.enableSound = true,
     this.effectHandler,
+    this.soundPlayer,
     this.paperOpacity = 1.0,
     this.thinPaperStrength = 0.15,
     this.endRevealStrength = 0.0,
@@ -291,6 +293,18 @@ class PageFlipConfig {
   /// Custom handler for effects. If null, a default implementation is used.
   final PageFlipEffectHandler? effectHandler;
 
+  /// Replaces the page-turn sound without replacing haptics.
+  ///
+  /// When null, the default handler plays the bundled sound
+  /// (`DefaultPageFlipSound`). Use `DefaultPageFlipSound(asset: ...)` to keep
+  /// the default player with your own asset, or implement
+  /// [PageFlipSoundPlayer] for a different audio backend.
+  ///
+  /// Takes precedence over [effectHandler] for `PageFlipEvent.sound` and is
+  /// still gated by [enableSound]. The host owns this player and must dispose
+  /// it; the engine never does.
+  final PageFlipSoundPlayer? soundPlayer;
+
   /// Duration of the flip animation.
   final Duration duration;
 
@@ -374,6 +388,7 @@ class PageFlipConfig {
     bool? enableHaptics,
     bool? enableSound,
     PageFlipEffectHandler? effectHandler,
+    PageFlipSoundPlayer? soundPlayer,
     double? paperOpacity,
     double? thinPaperStrength,
     double? endRevealStrength,
@@ -396,6 +411,7 @@ class PageFlipConfig {
     bool clearSemanticBuilder = false,
     bool clearBackgroundColor = false,
     bool clearEffectHandler = false,
+    bool clearSoundPlayer = false,
     bool clearMaxSnapshotPixelRatio = false,
     bool clearSnapshotPerformanceProfile = false,
     bool clearStationaryOverlayPainter = false,
@@ -423,6 +439,8 @@ class PageFlipConfig {
         enableSound: enableSound ?? this.enableSound,
         effectHandler:
             clearEffectHandler ? null : (effectHandler ?? this.effectHandler),
+        soundPlayer:
+            clearSoundPlayer ? null : (soundPlayer ?? this.soundPlayer),
         paperOpacity: paperOpacity ?? this.paperOpacity,
         thinPaperStrength: thinPaperStrength ?? this.thinPaperStrength,
         endRevealStrength: endRevealStrength ?? this.endRevealStrength,
@@ -514,6 +532,7 @@ class PageFlipConfig {
       enableHaptics: enableHaptics,
       enableSound: enableSound,
       effectHandler: effectHandler,
+      soundPlayer: soundPlayer,
       paperOpacity: _safeUnitInterval(
         paperOpacity,
         defaultSettings.paperOpacity,
@@ -606,6 +625,7 @@ class PageFlipConfig {
           hapticQuality == other.hapticQuality &&
           hapticStrength == other.hapticStrength &&
           effectHandler == other.effectHandler &&
+          soundPlayer == other.soundPlayer &&
           paperOpacity == other.paperOpacity &&
           thinPaperStrength == other.thinPaperStrength &&
           endRevealStrength == other.endRevealStrength &&
@@ -646,6 +666,7 @@ class PageFlipConfig {
         hapticQuality,
         hapticStrength,
         effectHandler,
+        soundPlayer,
         paperOpacity,
         thinPaperStrength,
         endRevealStrength,

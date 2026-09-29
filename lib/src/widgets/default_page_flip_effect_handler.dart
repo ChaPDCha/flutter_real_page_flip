@@ -1,24 +1,21 @@
 import 'dart:async';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:real_page_flip/src/controllers/page_flip_state_controller.dart';
 import 'package:real_page_flip/src/models/advanced_haptic_engine.dart';
 import 'package:real_page_flip/src/models/haptic_quality.dart';
 import 'package:real_page_flip/src/models/haptic_strength.dart';
 import 'package:real_page_flip/src/models/page_flip_effect_handler.dart';
+import 'package:real_page_flip/src/models/page_flip_sound_player.dart';
 import 'package:real_page_flip/src/models/paper_texture_preset.dart';
 import 'package:real_page_flip/src/models/perceptual_haptic_gain.dart';
 import 'package:real_page_flip/src/physics/continuous_haptic_buffer.dart';
 import 'package:real_page_flip/src/physics/paper_physics.dart';
 import 'package:real_page_flip/src/physics/paper_physics_config.dart';
+import 'package:real_page_flip/src/widgets/default_page_flip_sound.dart';
 
-/// Final player-volume guard shared by drag and tap flips.
-@visibleForTesting
-double cappedFlipSoundVolume(double requestedVolume) {
-  final safeVolume = requestedVolume.isFinite ? requestedVolume : 0.0;
-  return (safeVolume.clamp(0.0, 1.0) * 0.4).clamp(0.04, 0.22);
-}
+export 'package:real_page_flip/src/widgets/default_page_flip_sound.dart'
+    show cappedFlipSoundVolume;
 
 @visibleForTesting
 ({double amplitude, double sharpness, int samplesPerGrain})
@@ -109,7 +106,10 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     this.hapticQuality = HapticQuality.adaptive,
     this.hapticStrength = HapticStrength.medium,
     TargetPlatform? platform,
+    PageFlipSoundPlayer? soundPlayer,
   })  : hapticTexturePreset = hapticTexturePreset,
+        _soundPlayer = soundPlayer ?? DefaultPageFlipSound(),
+        _ownsSoundPlayer = soundPlayer == null,
         _platform = platform ?? defaultTargetPlatform,
         _resolvedHapticQuality = hapticQuality == HapticQuality.adaptive
             ? HapticQuality.basic
@@ -117,9 +117,18 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
         _physicsConfig =
             PaperPhysicsConfig.fromTexturePreset(hapticTexturePreset) {
     _refreshPerceptualGain();
-    _initAudio();
     _resolveHapticQuality();
   }
+
+  /// Plays the turn sound. The default loads lazily on first use, so a
+  /// handler whose sound is disabled never allocates an audio player.
+  final PageFlipSoundPlayer _soundPlayer;
+
+  /// Whether [_soundPlayer] was created here (and must be disposed here).
+  final bool _ownsSoundPlayer;
+
+  /// The sound player this handler routes [PageFlipEvent.sound] to.
+  PageFlipSoundPlayer get soundPlayer => _soundPlayer;
 
   PaperTexturePreset hapticTexturePreset;
   HapticQuality hapticQuality;
@@ -204,49 +213,7 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     }
   }
 
-  static const int _audioPoolSize = 3;
-
-  final List<AudioPlayer> _audioPool = List.generate(
-    _audioPoolSize,
-    (_) => AudioPlayer(),
-  );
-  int _audioPoolIndex = 0;
-  bool _audioReady = false;
-  Source? _audioSource;
-
   final Map<int, PaperPhysicsEngine> _physicsEngines = {};
-
-  Future<void> _initAudio() async {
-    var atLeastOneSuccess = false;
-    for (final player in _audioPool) {
-      try {
-        await player.setPlayerMode(PlayerMode.lowLatency);
-        player.audioCache.prefix = '';
-        await player.setSource(
-          AssetSource('packages/real_page_flip/assets/sounds/page_flip.opus'),
-        );
-        await player.setReleaseMode(ReleaseMode.stop);
-        _audioSource ??= AssetSource(
-          'packages/real_page_flip/assets/sounds/page_flip.opus',
-        );
-        atLeastOneSuccess = true;
-      } on Object {
-        try {
-          await player.setSource(
-            AssetSource('packages/real_page_flip/assets/sounds/page_flip.mp3'),
-          );
-          await player.setReleaseMode(ReleaseMode.stop);
-          _audioSource ??= AssetSource(
-            'packages/real_page_flip/assets/sounds/page_flip.mp3',
-          );
-          atLeastOneSuccess = true;
-        } on Object {
-          // Ignore asset load exceptions for secondary formats (mp3 fallback)
-        }
-      }
-    }
-    _audioReady = atLeastOneSuccess;
-  }
 
   @override
   FutureOr<void> onHandleEffect(
@@ -471,34 +438,20 @@ class DefaultPageFlipEffectHandler implements PageFlipEffectHandler {
     );
   }
 
-  Future<void> _playOnPlayer(AudioPlayer player, double volume) async {
-    try {
-      await player.stop();
-      await player.setVolume(volume);
-      await player.seek(Duration.zero);
-      await player.resume();
-    } on Object {
-      // Ignore audio playback errors to prevent unhandled exceptions.
-    }
-  }
-
   void _playSound(double volume) {
-    if (!_audioReady || _audioSource == null) return;
-
-    final cappedVolume = cappedFlipSoundVolume(volume);
-
-    final player = _audioPool[_audioPoolIndex];
-    _audioPoolIndex = (_audioPoolIndex + 1) % _audioPoolSize;
-
-    unawaited(_playOnPlayer(player, cappedVolume));
+    try {
+      final result = _soundPlayer.play(volume: volume);
+      if (result is Future<void>) {
+        unawaited(result.catchError((Object _) {}));
+      }
+    } on Object {
+      // Sound is optional: a failing player must never affect navigation.
+    }
   }
 
   @override
   void dispose() {
-    _audioReady = false;
-    for (final player in _audioPool) {
-      player.dispose();
-    }
+    if (_ownsSoundPlayer) _soundPlayer.dispose();
     _physicsEngines.clear();
     // `reset()` only clears Dart state. A premium iOS drag owns a looped
     // CHHaptic player, so disposal must cross the platform boundary before

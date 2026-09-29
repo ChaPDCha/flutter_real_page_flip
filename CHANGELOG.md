@@ -1,3 +1,27 @@
+## [2.5.0] - 2026-09-29
+
+### Added
+
+- **`PageFlipSoundPlayer`** — a sound-only extension point. Replace the
+  page-turn sound (or its audio backend) without reimplementing haptics:
+  `PageFlipConfig(soundPlayer: ...)`. It takes precedence over
+  `effectHandler` for `PageFlipEvent.sound`, is still gated by
+  `enableSound`, and is owned (disposed) by the host.
+- **`DefaultPageFlipSound`** — the bundled sound as a standalone player;
+  `DefaultPageFlipSound(asset: 'assets/...')` keeps the default player with
+  the app's own recording. `DefaultPageFlipEffectHandler` accepts a
+  `soundPlayer:` too.
+
+### Changed
+
+- **The default sound loads lazily.** `DefaultPageFlipEffectHandler` used to
+  create three `AudioPlayer`s in its constructor, even with sound disabled or
+  a custom handler supplied. Players are now created on warm-up (after the
+  first frame, only when sound is enabled) or on first play. A play request
+  that arrives before loading finishes is skipped rather than played late.
+- Sound playback failures from a host player are reported through
+  `onEffectError` (source `soundPlayer`).
+
 ## [2.4.0] - 2026-09-29
 
 ### Fixed

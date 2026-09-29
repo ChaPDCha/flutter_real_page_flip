@@ -157,6 +157,34 @@ flipController.markCurrentPageDirty(prewarm: false);
 `maxSnapshotPixelRatio` caps only the moving raster texture; settled content
 remains at native resolution.
 
+## Custom sound
+
+The engine ships one default page-turn sound. Sound is optional, so it is
+fully replaceable without touching haptics:
+
+```dart
+// Keep the default player, use your own asset (declared in your pubspec).
+PageFlipConfig(soundPlayer: DefaultPageFlipSound(asset: 'assets/sounds/flip.mp3'))
+
+// Or bring your own audio backend.
+class MyFlipSound implements PageFlipSoundPlayer {
+  @override
+  Future<void> warmUp() async {/* preload */}
+
+  @override
+  Future<void> play({required double volume}) async {/* play */}
+
+  @override
+  void dispose() {}
+}
+```
+
+- `volume` is a velocity-scaled suggestion in `0.0..1.0`.
+- `enableSound: false` disables any player; nothing is loaded.
+- A player you pass in is yours to dispose — the engine never disposes it.
+- The default player loads lazily: apps with sound off, or with a custom
+  player, never allocate an audio player.
+
 ## Flip Sensitivity
 
 Independent forward/backward drag thresholds and gesture sensitivity:

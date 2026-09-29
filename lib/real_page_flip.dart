@@ -15,6 +15,7 @@ export 'src/models/page_flip_config.dart'
         PageFlipSpreadMode,
         PageFlipSpreadModeCompat;
 export 'src/models/page_flip_effect_handler.dart';
+export 'src/models/page_flip_sound_player.dart';
 export 'src/models/paper_texture_preset.dart';
 export 'src/models/perceptual_haptic_gain.dart' show PerceptualHapticGain;
 export 'src/page_flip_widget.dart';
@@ -23,3 +24,4 @@ export 'src/physics/paper_physics_config.dart' show PaperPhysicsConfig;
 export 'src/physics/paper_physics_frame.dart' show PaperPhysicsFrame;
 export 'src/widgets/default_page_flip_effect_handler.dart'
     show DefaultPageFlipEffectHandler;
+export 'src/widgets/default_page_flip_sound.dart' show DefaultPageFlipSound;
