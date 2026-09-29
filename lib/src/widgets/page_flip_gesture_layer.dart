@@ -88,9 +88,16 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
       )) {
         return;
       }
+      // A previous turn is still settling: its outcome is already decided.
+      // Disown this pointer for the rest of its sequence instead of letting
+      // its release re-decide (or restart) the settling turn.
+      if (widget.controller.isSettling) {
+        _resetPointer();
+        return;
+      }
       _flipActive = true;
       widget.controller.beginPointerCapture();
-      widget.controller.onDragStart(
+      final accepted = widget.controller.onDragStart(
         DragStartDetails(
           sourceTimeStamp: event.timeStamp,
           globalPosition: event.position,
@@ -99,6 +106,11 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
         widget.totalPages,
         accumulatedTotalDx: _totalDx,
       );
+      if (!accepted) {
+        widget.controller.endPointerCapture();
+        _resetPointer();
+        return;
+      }
     }
 
     // After flip is active, continuously monitor whether the gesture has
@@ -117,7 +129,7 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
       DragUpdateDetails(
         sourceTimeStamp: event.timeStamp,
         delta: event.delta,
-        primaryDelta: _axisAlignedPrimaryDelta(event.delta),
+        primaryDelta: horizontalPrimaryDelta(event.delta),
         globalPosition: event.position,
         localPosition: local,
       ),
@@ -147,7 +159,7 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
         widget.controller.onDragEnd(
           DragEndDetails(
             primaryVelocity:
-                _axisAlignedPrimaryVelocity(velocity.pixelsPerSecond),
+                horizontalPrimaryVelocity(velocity.pixelsPerSecond),
             velocity: velocity,
           ),
           widget.totalPages,
@@ -156,6 +168,12 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
       widget.controller.endPointerCapture();
     }
 
+    _resetPointer();
+  }
+
+  /// Forgets the tracked pointer. Remaining events of that pointer are
+  /// ignored because they no longer match [_activePointer].
+  void _resetPointer() {
     _activePointer = null;
     _flipActive = false;
     _totalDx = 0;
@@ -164,16 +182,22 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
   }
 }
 
-/// [DragUpdateDetails.primaryDelta] must be null or match a single axis of [delta].
-double? _axisAlignedPrimaryDelta(Offset delta) {
-  if (delta.dy == 0.0) return delta.dx;
-  if (delta.dx == 0.0) return delta.dy;
-  return null;
-}
+/// Horizontal primary delta, or null when [delta] is not purely horizontal.
+///
+/// Page flips are a horizontal axis. [DragUpdateDetails.primaryDelta] must be
+/// null or match an axis whose other component is zero; the controller falls
+/// back to `delta.dx` when it is null. Never report the VERTICAL component
+/// here: a purely vertical move (`dx == 0`) used to be forwarded as
+/// `primaryDelta = dy`, so sliding the finger straight down mid-turn changed
+/// the flip progress as if it were horizontal travel.
+@visibleForTesting
+double? horizontalPrimaryDelta(Offset delta) =>
+    delta.dy == 0.0 ? delta.dx : null;
 
-/// [DragEndDetails.primaryVelocity] must be null or match a single axis of velocity.
-double? _axisAlignedPrimaryVelocity(Offset pixelsPerSecond) {
-  if (pixelsPerSecond.dy == 0.0) return pixelsPerSecond.dx;
-  if (pixelsPerSecond.dx == 0.0) return pixelsPerSecond.dy;
-  return null;
-}
+/// Horizontal primary velocity, or null when not purely horizontal.
+///
+/// Same contract as [horizontalPrimaryDelta]: a purely vertical release must
+/// not be read as a horizontal fling.
+@visibleForTesting
+double? horizontalPrimaryVelocity(Offset pixelsPerSecond) =>
+    pixelsPerSecond.dy == 0.0 ? pixelsPerSecond.dx : null;

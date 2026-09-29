@@ -174,6 +174,9 @@ class PageFlipWidget extends StatefulWidget {
 class PageFlipWidgetState extends State<PageFlipWidget>
     with TickerProviderStateMixin {
   late final PageFlipStateController _controller;
+
+  /// Fires for every flip frame: progress ticks and touch movement.
+  late final Listenable _flipFrameListenable;
   final PreRenderManager _preRenderManager = PreRenderManager();
   Size? _lastConstrainedSize;
   bool _isInternalEffectHandler = false;
@@ -230,6 +233,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       onFlipStart: _onFlipStart,
       onFlipEnd: _onFlipEnd,
     );
+    _flipFrameListenable = Listenable.merge(<Listenable>[
+      _controller.progressNotifier,
+      _controller.touchNotifier,
+    ]);
     _controller.setIndex(widget.initialIndex, _totalPages);
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
     // Initialize Effect Handler
@@ -319,6 +326,16 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     widget.controller?._state = this;
     final config = _config;
     final oldConfig = oldWidget.config.normalized;
+
+    if (config.duration != oldConfig.duration ||
+        config.cutoffForward != oldConfig.cutoffForward ||
+        config.cutoffPrevious != oldConfig.cutoffPrevious) {
+      _controller.updateSettings(
+        animationDuration: config.duration,
+        cutoffForward: config.cutoffForward,
+        cutoffPrevious: config.cutoffPrevious,
+      );
+    }
 
     // Update effect handler if changed in config, or if we are using the default
     // handler and the performance profile or texture preset has changed.
@@ -712,6 +729,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
               _pendingLayoutCallback = false;
               if (mounted) {
                 _controller.updateCachedWidth(flipDragExtent);
+                _controller.updateCachedHeight(maxH);
                 _effectHandler.viewportWidth = flipDragExtent;
                 _handleSizeChange(constrainedSize);
               }
@@ -734,14 +752,17 @@ class PageFlipWidgetState extends State<PageFlipWidget>
             isDragging: () => _controller.isDragging,
             onCurrentPageScroll: _onCurrentPageScroll,
           );
-          final animatedFlipLayer = ValueListenableBuilder<double>(
-            valueListenable: _controller.progressNotifier,
+          // Rebuild on touch movement too, not only on progress: the fold angle
+          // is steered by the touch's vertical position, and a purely vertical
+          // finger movement leaves progress unchanged.
+          final animatedFlipLayer = AnimatedBuilder(
+            animation: _flipFrameListenable,
             child: livePageLayer,
-            builder: (context, progress, livePages) => PageFlipLayerView(
+            builder: (context, livePages) => PageFlipLayerView(
               itemBuilder: widget.itemBuilder,
               itemCount: _totalPages,
               currentIndex: _controller.currentIndex,
-              dragProgress: progress,
+              dragProgress: _controller.progressNotifier.value,
               isDragging: _controller.isDragging,
               isForward: _controller.isForward,
               touchPosition: _controller.touchPosition,

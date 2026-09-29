@@ -68,6 +68,35 @@ double releaseSoundVolumeForVelocity({
       (_kMaxReleaseSoundVolume - _kMinReleaseSoundVolume) * eased;
 }
 
+/// Release speed (px/s) above which a flick decides the outcome on its own,
+/// regardless of how far the page has been dragged.
+const double kFlingVelocityThreshold = 300;
+
+/// Decides whether a released drag commits the page turn.
+///
+/// [releaseVelocityPxPerSecond] is the signed horizontal velocity in screen
+/// space (negative = leftward). A forward turn travels leftward, so its
+/// "toward completion" velocity is the negated value.
+///
+/// - A fast flick toward completion commits even from a small drag.
+/// - A fast flick AWAY from completion cancels even from a large drag — the
+///   user changed their mind and threw the page back.
+/// - Otherwise the drag distance is compared against [threshold].
+@visibleForTesting
+bool shouldCommitFlip({
+  required bool isForward,
+  required double progress,
+  required double releaseVelocityPxPerSecond,
+  required double threshold,
+}) {
+  final velocity =
+      releaseVelocityPxPerSecond.isFinite ? releaseVelocityPxPerSecond : 0.0;
+  final towardCompletion = isForward ? -velocity : velocity;
+  if (towardCompletion > kFlingVelocityThreshold) return true;
+  if (towardCompletion < -kFlingVelocityThreshold) return false;
+  return progress > threshold;
+}
+
 /// Manages the state and animation of the PageFlip widget.
 class PageFlipStateController {
   /// Creates a [PageFlipStateController] with the given callbacks and thresholds.
@@ -76,7 +105,7 @@ class PageFlipStateController {
     required this.vsync,
 
     /// Duration of the flip animation.
-    required this.animationDuration,
+    required Duration animationDuration,
 
     /// Callback invoked on every animation tick or drag update.
     required this.onUpdate,
@@ -95,12 +124,14 @@ class PageFlipStateController {
 
     /// Forward drag threshold. Drag must exceed this progress to complete
     /// a forward flip. Range [0, 1]. Default 0.4.
-    this.cutoffForward = 0.4,
+    double cutoffForward = 0.4,
 
     /// Backward drag threshold. Drag must exceed this progress to complete
     /// a backward flip. Range [0, 1]. Default 0.4.
-    this.cutoffPrevious = 0.4,
-  }) {
+    double cutoffPrevious = 0.4,
+  })  : _animationDuration = animationDuration,
+        _cutoffForward = cutoffForward,
+        _cutoffPrevious = cutoffPrevious {
     animationController = AnimationController(
       vsync: vsync,
       duration: animationDuration,
@@ -111,8 +142,10 @@ class PageFlipStateController {
   /// The [TickerProvider] used by the animation controller.
   final TickerProvider vsync;
 
+  Duration _animationDuration;
+
   /// Duration of the flip animation.
-  final Duration animationDuration;
+  Duration get animationDuration => _animationDuration;
 
   /// Callback invoked on every animation update.
   final VoidCallback onUpdate;
@@ -120,11 +153,33 @@ class PageFlipStateController {
   /// Callback invoked when a page change is finalised.
   final ValueChanged<int> onPageFinalized;
 
+  double _cutoffForward;
+
   /// Forward drag threshold [0, 1] for completing a forward flip.
-  final double cutoffForward;
+  double get cutoffForward => _cutoffForward;
+
+  double _cutoffPrevious;
 
   /// Backward drag threshold [0, 1] for completing a backward flip.
-  final double cutoffPrevious;
+  double get cutoffPrevious => _cutoffPrevious;
+
+  /// Applies new timing/threshold settings from an updated config.
+  ///
+  /// Takes effect for the next release or tap flip. A turn that is already
+  /// settling keeps the duration it was started with.
+  void updateSettings({
+    required Duration animationDuration,
+    required double cutoffForward,
+    required double cutoffPrevious,
+  }) {
+    if (_isDisposed) return;
+    _animationDuration = animationDuration;
+    _cutoffForward = cutoffForward;
+    _cutoffPrevious = cutoffPrevious;
+    if (!animationController.isAnimating) {
+      animationController.duration = animationDuration;
+    }
+  }
 
   /// Callback for triggering haptic/sound effects during drag and flip.
   final Function(
@@ -166,6 +221,7 @@ class PageFlipStateController {
   /// wiggles back and forth across the cutoff does not spam the tick.
   bool _hasFiredDetent = false;
   double _cachedWidth = 1;
+  double? _cachedHeight;
   double _lastReleaseVelocity = 0;
   double _smoothedSpeedPxPerSecond = 0;
   double _hapticDistanceRemainder = 0;
@@ -179,6 +235,15 @@ class PageFlipStateController {
   /// External callers (e.g. `PageFlipWidget.goToPage()`) must check this before
   /// initiating programmatic navigation to avoid re-entrant state corruption.
   bool get isPendingFinalize => _isPendingFinalize;
+
+  /// True while a released or programmatic turn is animating to its outcome
+  /// (or waiting for its one-frame finalize).
+  ///
+  /// The outcome of a settling turn was decided at release and must not be
+  /// re-decided by another gesture. A drag is never live while this is true:
+  /// during tracking the animation controller is idle and progress is driven
+  /// directly by pointer deltas.
+  bool get isSettling => animationController.isAnimating || _isPendingFinalize;
   bool _isDisposed = false;
 
   /// The current (leftmost visible) page index.
@@ -242,6 +307,28 @@ class PageFlipStateController {
     _cachedWidth = width;
   }
 
+  /// Updates the viewport height used to place programmatic (tap) flips.
+  ///
+  /// The fold angle is steered by the touch's vertical position relative to
+  /// the page height, so a tap flip must start at the vertical centre to turn
+  /// with a level (zero-angle) fold.
+  void updateCachedHeight(double height) {
+    if (!height.isFinite || height <= 0) return;
+    _cachedHeight = height;
+  }
+
+  /// Cached viewport height, or null before the first layout.
+  double? get cachedHeight => _cachedHeight;
+
+  /// Touch position that yields a level fold for a programmatic flip.
+  @visibleForTesting
+  Offset get neutralTouchPosition {
+    final height = _cachedHeight;
+    // Before the first layout the height is unknown; the layer view maps a
+    // non-finite coordinate to the viewport's vertical centre.
+    return Offset(0, height != null ? height / 2 : double.nan);
+  }
+
   /// Maps accumulated horizontal pointer movement to normalised flip progress.
   @visibleForTesting
   double progressFromHorizontalDelta(double totalDx) {
@@ -268,12 +355,16 @@ class PageFlipStateController {
   /// [accumulatedTotalDx] is horizontal movement already consumed before flip
   /// intent was accepted (touch slop). Crediting it prevents under-counting
   /// progress when the user starts a decisive horizontal swipe.
-  void onDragStart(
+  ///
+  /// Returns false when the gesture is refused because a previous turn is
+  /// still settling ([isSettling]). The caller must then treat the whole
+  /// pointer sequence as foreign: its updates and release belong to no flip.
+  bool onDragStart(
     DragStartDetails details,
     int totalPages, {
     double accumulatedTotalDx = 0,
   }) {
-    if (animationController.isAnimating || _isPendingFinalize) return;
+    if (isSettling) return false;
 
     onFlipStart?.call();
     _touchPosition = details.localPosition;
@@ -290,7 +381,7 @@ class PageFlipStateController {
       if ((_isForward && _currentIndex >= totalPages - 1) ||
           (!_isForward && _currentIndex <= 0)) {
         onUpdate();
-        return;
+        return true;
       }
       _isDragging = true;
       _dragProgress = progressFromHorizontalDelta(accumulatedTotalDx);
@@ -304,11 +395,12 @@ class PageFlipStateController {
     }
 
     onUpdate();
+    return true;
   }
 
   /// Handles a drag update, updating progress and triggering textured haptics.
   void onDragUpdate(DragUpdateDetails details, int totalPages) {
-    if (animationController.isAnimating || _isPendingFinalize) return;
+    if (isSettling) return;
 
     _touchPosition = details.localPosition;
     final delta = details.primaryDelta ?? details.delta.dx;
@@ -391,6 +483,11 @@ class PageFlipStateController {
   /// Handles the end of a drag, animating the flip to completion or snap-back.
   void onDragEnd(DragEndDetails details, int totalPages) {
     if (_isDisposed) return;
+    // A release that arrives while an earlier turn is settling belongs to a
+    // gesture that [onDragStart] refused. It never took control of the page,
+    // so it must neither re-decide that turn's outcome nor restart its
+    // animation (nor fire an unmatched onFlipEnd).
+    if (isSettling) return;
     if (!_isDragging) {
       endPointerCapture();
       onFlipEnd?.call();
@@ -399,10 +496,13 @@ class PageFlipStateController {
 
     final velocity =
         details.primaryVelocity ?? details.velocity.pixelsPerSecond.dx;
-    _lastReleaseVelocity = velocity.abs();
-    final isFastFlip = _lastReleaseVelocity > 300;
-    final threshold = _isForward ? cutoffForward : cutoffPrevious;
-    final isSuccess = isFastFlip || _dragProgress > threshold;
+    _lastReleaseVelocity = velocity.isFinite ? velocity.abs() : 0.0;
+    final isSuccess = shouldCommitFlip(
+      isForward: _isForward,
+      progress: _dragProgress,
+      releaseVelocityPxPerSecond: velocity,
+      threshold: _isForward ? cutoffForward : cutoffPrevious,
+    );
 
     // Friction belongs to the finger, so stop it as soon as contact ends rather
     // than letting a continuous session linger through the settle animation.
@@ -448,6 +548,8 @@ class PageFlipStateController {
   /// Handles cancellation of a drag, snapping the page back.
   void onDragCancel(int totalPages) {
     if (_isDisposed) return;
+    // See [onDragEnd]: a refused gesture cannot cancel a settling turn.
+    if (isSettling) return;
     if (!_isDragging) {
       endPointerCapture();
       onFlipEnd?.call();
@@ -501,8 +603,11 @@ class PageFlipStateController {
     _lastDragTimestamp = null;
     // Tap flips have no drag start, so set touch position to page vertical
     // centre for a neutral (zero) fold angle instead of inheriting stale
-    // coordinates from a previous drag gesture.
-    _touchPosition = Offset(0, _cachedWidth);
+    // coordinates from a previous drag gesture. (This used to be
+    // `Offset(0, _cachedWidth)` — the page WIDTH as a y coordinate — which is
+    // only centred when height == 2 × width, and tilted every tap flip on
+    // landscape, tablet, and desktop viewports.)
+    _touchPosition = neutralTouchPosition;
 
     onFlipStart?.call();
 
