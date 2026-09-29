@@ -320,7 +320,12 @@ class PageFlipConfig {
   /// in both light and dark environments.
   final Color? backgroundColor;
 
-  /// Whether the swipe direction is right-to-left.
+  /// Reserved; currently has **no effect**.
+  ///
+  /// The engine always turns pages left-to-right (forward = swipe leftward).
+  /// This flag was never wired into the gesture or rendering path. It is kept
+  /// for source compatibility and will be replaced by a reading-direction
+  /// option.
   final bool isRightSwipe;
 
   /// Whether to enable swipe gestures.

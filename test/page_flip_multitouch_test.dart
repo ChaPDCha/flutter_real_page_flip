@@ -166,6 +166,10 @@ void main() {
       );
       await gesture1.moveBy(const Offset(-200, 0));
       await gesture1.cancel();
+      // The cancel starts a snap-back. A pointer that arrives while that turn
+      // is settling is deliberately disowned (see `isSettling`), so let the
+      // snap-back finish before the second pointer starts fresh.
+      await tester.pumpAndSettle();
 
       // Second pointer should be able to start fresh
       final gesture2 = await tester.startGesture(

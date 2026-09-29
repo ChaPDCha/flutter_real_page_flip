@@ -1,3 +1,43 @@
+## [2.3.2] - 2026-09-29
+
+### Fixed
+
+- **A reverse flick no longer commits the turn.** Release velocity was
+  compared as an absolute value, so dragging a page 60% forward and then
+  throwing it back to the right still turned it. A fast flick now decides
+  by direction: toward completion commits, away from completion cancels;
+  slower releases still use the distance cutoff (`shouldCommitFlip`).
+- **A touch during the settle animation can no longer re-decide it.** The
+  second gesture's start and updates were ignored, but its release still
+  re-ran the success test with the new velocity and restarted the animation
+  — a snap-back could be turned into a page turn (or vice versa) by a stray
+  touch. `onDragStart` now returns `false` while a turn `isSettling`, the
+  gesture layer disowns that pointer, and `onDragEnd`/`onDragCancel` ignore
+  releases that arrive while settling.
+- **Tap flips start with a level fold on every aspect ratio.** The neutral
+  touch point used the page *width* as its y coordinate, which is only the
+  vertical centre when height = 2 × width; landscape, tablet, and desktop
+  tap flips turned visibly tilted. The controller now tracks the viewport
+  height (`updateCachedHeight`) and uses its centre.
+- **`duration`, `cutoffForward`, and `cutoffPrevious` follow config
+  updates.** They were read only in `initState`; changing them later had no
+  effect. `PageFlipStateController.updateSettings` applies them to the next
+  release or tap flip.
+- **Vertical finger movement mid-turn.** A purely vertical pointer move was
+  forwarded as `primaryDelta = dy` and changed flip progress as if it were
+  horizontal travel, while the fold angle it should steer was not rebuilt
+  (the flip layer listened only to progress). Deltas/velocities are now
+  horizontal-only, and the flip layer also rebuilds on touch movement.
+
+### Changed
+
+- `PageFlipConfig.isRightSwipe` is documented as having no effect (it was
+  never wired in).
+- A pointer that arrives while a cancelled turn is still snapping back is
+  now ignored for its whole sequence, instead of silently inheriting the
+  cancelled drag's leftover state. Start a new gesture once the page has
+  settled (`test/page_flip_multitouch_test.dart` waits for the snap-back).
+
 ## [2.3.1] - 2026-09-11
 
 ### Fixed
