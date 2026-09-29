@@ -470,7 +470,7 @@ class PageFlipLayerView extends StatelessWidget {
               isForward: renderForward,
               isActualForward: isForward,
               devicePixelRatio:
-                  MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0,
+                  MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0,
               stationaryOverlayPainter: stationaryOverlayPainter,
               stationaryOverlayOwnsCenterGutter:
                   stationaryOverlayOwnsCenterGutter,
@@ -673,22 +673,34 @@ class OffscreenPreRenderer extends StatelessWidget {
   /// True to push the child offscreen and isolate it.
   final bool isOffscreen;
 
-  @override
-  Widget build(BuildContext context) {
-    if (!isOffscreen) return child;
+  /// Paint offset that moves an offscreen child out of the viewport while
+  /// keeping it in the paint tree for snapshot capture.
+  static const Offset offscreenOffset = Offset(-20000, -20000);
 
-    return Transform.translate(
-      offset: const Offset(-20000, -20000),
-      child: IgnorePointer(
-        child: TickerMode(
-          enabled: false,
-          child: ExcludeFocus(
-            child: ExcludeSemantics(
-              child: child,
+  @override
+  Widget build(BuildContext context) =>
+      // The wrapper chain is IDENTICAL for both states; only its properties
+      // change. Returning the bare child when onscreen (the old shape) changed
+      // the element tree every time a flip started or ended, so the page
+      // subtree was deactivated and re-parented via its GlobalKey on both
+      // edges of every turn. A zero-offset Transform.translate paints without
+      // a transform layer, and the `excluding: false` / `enabled: true` /
+      // `ignoring: false` forms are pass-throughs (TickerMode still combines
+      // with any disabled ancestor).
+      Transform.translate(
+        offset: isOffscreen ? offscreenOffset : Offset.zero,
+        child: IgnorePointer(
+          ignoring: isOffscreen,
+          child: TickerMode(
+            enabled: !isOffscreen,
+            child: ExcludeFocus(
+              excluding: isOffscreen,
+              child: ExcludeSemantics(
+                excluding: isOffscreen,
+                child: child,
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }

@@ -1,3 +1,46 @@
+## [2.4.0] - 2026-09-29
+
+### Fixed
+
+- **Structural changes no longer restructure under a page in the air.** An
+  `itemCount`, `spreadMode`, or external `initialIndex` change during a drag
+  or settle ran `PreRenderManager.reset()` immediately: it disposed the
+  snapshots the flip was painting (blank flap, and a disposed-image risk for
+  the painter) and moved `currentIndex` mid-turn so the finalize advanced
+  from the wrong page. The change is now deferred, merged with any later
+  one (latest jump wins), and applied when the turn ends. Exception: if the
+  new `itemCount` removes the current page or the turn's destination, the
+  change is still applied immediately, since the turn cannot finish validly.
+- **Resizing no longer flushes the snapshot cache.** A size change (keyboard
+  insets, rotation, window resize) disposed every image at once and left the
+  next flip on blank paper until the recapture landed. The window is now
+  marked dirty; stale images stay until their replacement succeeds.
+- **Device pixel ratio changes recapture.** Moving a window to a monitor with
+  a different scale factor kept the old snapshot resolution until an
+  unrelated refresh.
+- **Instant (`skipTapAnimation`) taps no longer do a synchronous capture.**
+  With the defaults, every edge tap ran `toImageSync` on the current page and
+  an adjacent capture pass for a turn that draws no frames. The host's
+  `onFlipStart`/`onFlipEnd` still fire.
+
+### Changed
+
+- **Appending pages keeps the capture window.** A pure `itemCount` change
+  that leaves the current page in place (lazy loading) now keeps keys and
+  snapshots and marks them dirty instead of resetting. A change that alters
+  which page is current (clamp after shrinking, external jump, spread-mode
+  switch) still resets.
+
+### Performance
+
+- `OffscreenPreRenderer` keeps one wrapper shape for both states and toggles
+  properties only. The old shape change re-parented the page subtree through
+  its `GlobalKey` at the start and end of every turn.
+- The widget and flip layer depend on `MediaQuery` device pixel ratio only,
+  not the whole `MediaQuery` (no rebuilds on insets / text scale changes).
+- `PageFlipConfig.normalized` is memoized per config instance instead of
+  being recomputed on every access.
+
 ## [2.3.2] - 2026-09-29
 
 ### Fixed
