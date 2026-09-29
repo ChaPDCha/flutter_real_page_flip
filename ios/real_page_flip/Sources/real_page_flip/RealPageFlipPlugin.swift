@@ -16,6 +16,16 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
     let instance = RealPageFlipPlugin()
     instance.setupHaptics()
     registrar.addMethodCallDelegate(instance, channel: channel)
+
+    // Default page-turn sound. Separate channel: independent of haptics.
+    let soundChannel = FlutterMethodChannel(
+      name: "com.chapdcha.real_page_flip/sound",
+      binaryMessenger: registrar.messenger()
+    )
+    let sound = PageFlipSoundHandler(registrar: registrar)
+    soundChannel.setMethodCallHandler { call, result in
+      sound.handle(call, result: result)
+    }
   }
 
   private func setupHaptics() {

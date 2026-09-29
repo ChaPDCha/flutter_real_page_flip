@@ -1,3 +1,40 @@
+## [3.0.0] - 2026-09-29
+
+### Breaking
+
+- **`audioplayers` is no longer a dependency.** The default page-turn sound
+  now plays through this package's own plugin: Android `SoundPool`, iOS
+  `AVAudioPlayer`, web `HTMLAudioElement`. Apps no longer inherit an
+  `audioplayers` version constraint (a common pub resolution conflict).
+- **No default sound on desktop (macOS, Windows, Linux).** Sound is an
+  optional extra; desktop apps that want one pass a `PageFlipSoundPlayer`
+  (see README → Custom sound). Haptics are unchanged.
+- **Minimum SDK raised to Dart 3.6 / Flutter 3.27.** The engine already used
+  APIs from that release (`Color.withValues`); the declared floor
+  (Flutter 3.10) could not actually build it.
+- `RealPageFlipWeb.registerWith` now takes a `Registrar` (only called by the
+  generated plugin registrant).
+- `DefaultPageFlipSound` debug getter `debugAllocatedPlayerCount` replaced
+  by `debugLoadStarted`.
+
+### Changed
+
+- The bundled sound loads mp3 first (decodes on every supported platform;
+  `AVAudioPlayer` cannot read Ogg/Opus) and falls back to opus.
+- **iOS audio session:** the page-turn sound no longer risks stopping the
+  user's music. If the host never configured `AVAudioSession` (category still
+  the system default `.soloAmbient`), the first sound switches it to
+  `.ambient` (mixes with other audio, respects the silent switch). A
+  host-configured category is left untouched.
+- **Android:** `SoundPool` with sonification attributes; it does not request
+  audio focus, so other apps' audio keeps playing.
+
+### Migration
+
+- Using the default sound on Android/iOS/web: nothing to do.
+- Custom sound through `audioplayers`: add `audioplayers` to your own pubspec
+  and implement `PageFlipSoundPlayer` (README has a complete example).
+
 ## [2.5.0] - 2026-09-29
 
 ### Added
