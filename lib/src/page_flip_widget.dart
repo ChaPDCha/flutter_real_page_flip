@@ -186,7 +186,21 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   int get _totalPages => widget.itemCount < 0 ? 0 : widget.itemCount;
 
-  PageFlipConfig get _config => widget.config.normalized;
+  PageFlipConfig? _configSource;
+  PageFlipConfig _normalizedConfig = PageFlipConfig.defaultSettings;
+
+  /// Normalized config, memoized per [PageFlipWidget.config] instance.
+  ///
+  /// `normalized` allocates and deep-compares a ~40-field config. It used to
+  /// run on every access — several times per build and per pointer event.
+  PageFlipConfig get _config {
+    final source = widget.config;
+    if (!identical(source, _configSource)) {
+      _configSource = source;
+      _normalizedConfig = source.normalized;
+    }
+    return _normalizedConfig;
+  }
 
   /// Exposes the internal state controller for advanced programmatic interaction.
   PageFlipStateController get controller => _controller;
@@ -295,6 +309,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   void _onFlipEnd() {
     widget.onFlipEnd?.call();
+    final deferred = _deferredStructuralChange;
+    if (deferred != null && mounted && !_isFlipActive) {
+      _deferredStructuralChange = null;
+      _applyStructuralChange(deferred);
+    }
     if (_pendingSnapshotRefresh) {
       _scheduleSnapshotRefresh(immediate: true);
     }
@@ -307,8 +326,31 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     }
     if (_lastConstrainedSize != newSize) {
       _lastConstrainedSize = newSize;
-      _preRenderManager.flushSnapshots();
-      _captureSnapshots();
+      // Mark stale instead of flushing. Flushing disposed every image
+      // immediately — including ones an in-flight flip's painter still
+      // references (keyboard insets and rotation can resize mid-turn) — and
+      // left the next flip with blank paper until the async recapture landed.
+      // Stale images stay until their replacement succeeds, and the refresh
+      // itself waits for any active flip to end.
+      _preRenderManager.markDirtyWindow(_controller.currentIndex, _totalPages);
+      _scheduleSnapshotRefresh(immediate: false);
+    }
+  }
+
+  double? _lastDependencyPixelRatio;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Registers the DPR dependency and recaptures when it changes (e.g. a
+    // desktop window dragged to a monitor with a different scale factor).
+    // Snapshots otherwise kept the old resolution until an unrelated refresh.
+    final pixelRatio = MediaQuery.maybeDevicePixelRatioOf(context);
+    final previous = _lastDependencyPixelRatio;
+    _lastDependencyPixelRatio = pixelRatio;
+    if (previous != null && pixelRatio != previous) {
+      _preRenderManager.markDirtyWindow(_controller.currentIndex, _totalPages);
+      _scheduleSnapshotRefresh(immediate: true);
     }
   }
 
@@ -324,8 +366,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       }
     }
     widget.controller?._state = this;
+    // Read the old memoized value BEFORE `_config` switches to the new source.
+    final oldConfig = identical(oldWidget.config, _configSource)
+        ? _normalizedConfig
+        : oldWidget.config.normalized;
     final config = _config;
-    final oldConfig = oldWidget.config.normalized;
 
     if (config.duration != oldConfig.duration ||
         config.cutoffForward != oldConfig.cutoffForward ||
@@ -411,40 +456,27 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         widget.contentRevision != oldWidget.contentRevision;
     // Do not reset on itemBuilder identity: hosts often pass a new closure each
     // build; snapshots are refreshed on flip start and after page changes.
-    final contentOrCountChanged = widget.itemCount != oldWidget.itemCount ||
-        widget.spreadMode != oldWidget.spreadMode;
+    final itemCountChanged = widget.itemCount != oldWidget.itemCount;
+    final spreadModeChanged = widget.spreadMode != oldWidget.spreadMode;
 
-    // Redraw if content, count, or initialIndex changed externally
-    if (contentOrCountChanged || indexChangedExternally) {
-      final newIndex = indexChangedExternally
-          ? widget.initialIndex
-          : _controller.currentIndex;
-      _controller.setIndex(newIndex, _totalPages);
-
-      // Reset pre-render manager to avoid using stale keys or snapshots
-      _preRenderManager.reset();
-
-      // Repopulate the key window SYNCHRONOUSLY, before this frame builds.
-      // The post-frame callback below is too late on its own: `reset()` empties
-      // `pageKeys`, and `_LivePageCaptureLayer` skips any adjacent index whose
-      // key is missing, so an empty map for even one frame unmounts both
-      // neighbours — and the next frame inflates them from scratch. Restoring
-      // the window here keeps them in the tree across the reset, which also
-      // lets a host that keys its own page subtrees re-parent them instead of
-      // rebuilding. The post-frame call is still needed for the capture pass
-      // and is harmless: `prepareKeys` is `putIfAbsent`-based.
-      _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
-
-      // Schedule a new capture frame
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
-          setState(() {});
-          _captureSnapshots();
-        }
-      });
-
-      setState(() {});
+    if (itemCountChanged || spreadModeChanged || indexChangedExternally) {
+      final change = _StructuralChange(
+        jumpTo: indexChangedExternally ? widget.initialIndex : null,
+        layoutChanged: spreadModeChanged,
+      );
+      if (_isFlipActive && _inFlightTurnStillValid()) {
+        // Never restructure under a page that is in the air: resetting here
+        // disposed the snapshots the flip was painting and moved
+        // `currentIndex` mid-turn, so the finalize then advanced from the
+        // wrong page. Merge and apply once the turn ends (see _onFlipEnd).
+        _deferredStructuralChange =
+            _deferredStructuralChange?.mergedWith(change) ?? change;
+        _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
+      } else {
+        final pending = _deferredStructuralChange;
+        _deferredStructuralChange = null;
+        _applyStructuralChange(pending?.mergedWith(change) ?? change);
+      }
     } else {
       // Update pre-render keys for new structure if necessary (soft update)
       _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
@@ -456,6 +488,71 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         _scheduleSnapshotRefresh(immediate: true);
       }
     }
+  }
+
+  _StructuralChange? _deferredStructuralChange;
+
+  /// Whether both ends of the in-flight turn still exist under the new count.
+  ///
+  /// Deferral is only safe while they do. If the host shrank the book below
+  /// the current page or the turn's destination, the live layer would build
+  /// out-of-range indices for the rest of the turn, so the change is applied
+  /// immediately instead (the pre-2.4 behaviour).
+  bool _inFlightTurnStillValid() {
+    final current = _controller.currentIndex;
+    final destination = _controller.isForward ? current + 1 : current - 1;
+    return current < _totalPages &&
+        destination >= 0 &&
+        destination < _totalPages;
+  }
+
+  /// Applies an item-count / spread-mode / external-index change.
+  ///
+  /// A pure count change that leaves the current page where it was (the
+  /// common lazy-loading append) keeps the key window and stale snapshots
+  /// alive and only marks them dirty — no unmount, no blank flap. Anything
+  /// that changes WHAT the current page is (an external jump, a clamp after
+  /// shrinking, a spread-mode switch) resets the snapshot cache.
+  void _applyStructuralChange(_StructuralChange change) {
+    final previousIndex = _controller.currentIndex;
+    _controller.setIndex(change.jumpTo ?? previousIndex, _totalPages);
+    final pageIdentityChanged = change.layoutChanged ||
+        _controller.currentIndex != previousIndex;
+
+    if (!pageIdentityChanged) {
+      _preRenderManager
+        ..cleanup(_controller.currentIndex, _totalPages)
+        ..prepareKeys(_controller.currentIndex, _totalPages)
+        ..markDirtyWindow(_controller.currentIndex, _totalPages);
+      _scheduleSnapshotRefresh(immediate: true);
+      setState(() {});
+      return;
+    }
+
+    // Reset pre-render manager to avoid using stale keys or snapshots
+    _preRenderManager.reset();
+
+    // Repopulate the key window SYNCHRONOUSLY, before this frame builds.
+    // The post-frame callback below is too late on its own: `reset()` empties
+    // `pageKeys`, and `_LivePageCaptureLayer` skips any adjacent index whose
+    // key is missing, so an empty map for even one frame unmounts both
+    // neighbours — and the next frame inflates them from scratch. Restoring
+    // the window here keeps them in the tree across the reset, which also
+    // lets a host that keys its own page subtrees re-parent them instead of
+    // rebuilding. The post-frame call is still needed for the capture pass
+    // and is harmless: `prepareKeys` is `putIfAbsent`-based.
+    _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
+
+    // Schedule a new capture frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
+        setState(() {});
+        _captureSnapshots();
+      }
+    });
+
+    setState(() {});
   }
 
   @override
@@ -486,8 +583,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   double _capturePixelRatio() => _capturePixelRatioFor(_config);
 
   double _capturePixelRatioFor(PageFlipConfig config) {
-    final mediaQuery = MediaQuery.maybeOf(context);
-    final pixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
+    // Depend on the DPR aspect only: a full MediaQuery dependency rebuilt this
+    // widget for unrelated changes (keyboard insets, text scale, padding).
+    final pixelRatio = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
     final profileRatio = switch (config.effectiveSnapshotPerformanceProfile) {
       DevicePerformanceProfile.low => pixelRatio.clamp(1.0, 1.25),
       DevicePerformanceProfile.medium => pixelRatio.clamp(1.0, 2.0),
@@ -651,13 +749,24 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     debugPrint('PageFlip $source error: $error');
   }
 
+  /// Instant (non-animated) turn that still reports the flip lifecycle.
+  ///
+  /// Fires the HOST's `onFlipStart`, not [_onFlipStart]: the latter prepares
+  /// snapshots for an animated turn (a synchronous `toImageSync` of the
+  /// current page plus an adjacent capture pass), which is pure GPU waste
+  /// when no frame of the turn is ever drawn. `goToPage` schedules the
+  /// post-navigation capture the next turn actually needs.
+  void _jumpWithFlipLifecycle(int target) {
+    widget.onFlipStart?.call();
+    goToPage(target);
+    _onFlipEnd();
+  }
+
   /// Navigates to the next page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
   void nextPage() {
     final config = _config;
     if (config.skipTapAnimation) {
-      _onFlipStart();
-      goToPage(_controller.currentIndex + 1);
-      _onFlipEnd();
+      _jumpWithFlipLifecycle(_controller.currentIndex + 1);
     } else {
       _controller.triggerTapFlip(isNext: true, totalPages: _totalPages);
     }
@@ -667,9 +776,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   void previousPage() {
     final config = _config;
     if (config.skipTapAnimation) {
-      _onFlipStart();
-      goToPage(_controller.currentIndex - 1);
-      _onFlipEnd();
+      _jumpWithFlipLifecycle(_controller.currentIndex - 1);
     } else {
       _controller.triggerTapFlip(isNext: false, totalPages: _totalPages);
     }
@@ -932,4 +1039,25 @@ class _LivePageCaptureLayer extends StatelessWidget {
       children: <Widget>[...backgroundPages, currentPage],
     );
   }
+}
+
+/// A structural input change that arrived while a flip may be in the air.
+@immutable
+class _StructuralChange {
+  const _StructuralChange({
+    required this.jumpTo,
+    required this.layoutChanged,
+  });
+
+  /// Externally requested page (a changed `initialIndex`), if any.
+  final int? jumpTo;
+
+  /// Whether the spread mode changed (page identity changes for every index).
+  final bool layoutChanged;
+
+  /// Combines two pending changes; the most recent jump wins.
+  _StructuralChange mergedWith(_StructuralChange newer) => _StructuralChange(
+        jumpTo: newer.jumpTo ?? jumpTo,
+        layoutChanged: layoutChanged || newer.layoutChanged,
+      );
 }
