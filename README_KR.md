@@ -161,7 +161,11 @@ class MyFlipSound implements PageFlipSoundPlayer {
 - `enableSound: false`면 어떤 플레이어도 로드·재생하지 않습니다.
 - 직접 넘긴 플레이어의 dispose는 앱이 책임집니다. 엔진은 dispose하지 않습니다.
 - 기본 플레이어는 처음 쓸 때 로드됩니다. 사운드를 끄거나 커스텀 플레이어를
-  쓰면 오디오 플레이어를 아예 만들지 않습니다.
+  쓰면 오디오 기능을 아예 건드리지 않습니다.
+- 기본 음향은 이 패키지의 자체 플러그인으로 **Android, iOS, 웹**에서
+  재생됩니다(외부 오디오 의존성 없음). **데스크톱에는 기본 음향이 없습니다.**
+  필요하면 `audioplayers` 등으로 `PageFlipSoundPlayer`를 직접 구현해 넘기세요
+  (예제는 영문 README의 Custom sound 참고).
 
 ## 다크 모드
 

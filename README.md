@@ -183,7 +183,33 @@ class MyFlipSound implements PageFlipSoundPlayer {
 - `enableSound: false` disables any player; nothing is loaded.
 - A player you pass in is yours to dispose — the engine never disposes it.
 - The default player loads lazily: apps with sound off, or with a custom
-  player, never allocate an audio player.
+  player, never touch the audio stack.
+- The default sound plays on **Android, iOS, and web** through this package's
+  own plugin (no third-party audio dependency). **Desktop has no default
+  sound**; pass your own player there, for example with `audioplayers`:
+
+```dart
+import 'package:audioplayers/audioplayers.dart';
+
+class AudioplayersFlipSound implements PageFlipSoundPlayer {
+  final AudioPlayer _player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+
+  @override
+  Future<void> warmUp() => _player.setSource(
+        AssetSource('packages/real_page_flip/assets/sounds/page_flip.mp3'),
+      );
+
+  @override
+  Future<void> play({required double volume}) async {
+    await _player.stop();
+    await _player.setVolume(volume * 0.4);
+    await _player.resume();
+  }
+
+  @override
+  void dispose() => _player.dispose();
+}
+```
 
 ## Flip Sensitivity
 

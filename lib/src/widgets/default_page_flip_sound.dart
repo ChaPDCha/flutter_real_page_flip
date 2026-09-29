@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:real_page_flip/src/models/page_flip_sound_player.dart';
 
 /// Final player-volume guard for the default sound's loudness profile.
@@ -14,98 +14,116 @@ double cappedFlipSoundVolume(double requestedVolume) {
   return (safeVolume.clamp(0.0, 1.0) * 0.4).clamp(0.04, 0.22);
 }
 
+/// Platform channel served by this package's own plugin (Android `SoundPool`,
+/// iOS `AVAudioPlayer`, web `HTMLAudioElement`).
+@visibleForTesting
+const MethodChannel pageFlipSoundChannel =
+    MethodChannel('com.chapdcha.real_page_flip/sound');
+
+/// Whether the package provides a default sound on [platform].
+///
+/// Desktop (macOS, Windows, Linux) has no default sound by design. Supply a
+/// [PageFlipSoundPlayer] there if you want one.
+@visibleForTesting
+bool platformHasDefaultSound({
+  required TargetPlatform platform,
+  required bool isWeb,
+}) =>
+    isWeb ||
+    platform == TargetPlatform.android ||
+    platform == TargetPlatform.iOS;
+
 /// The package's default page-turn sound.
 ///
-/// Plays the bundled paper sound, or [asset] when given. Nothing is allocated
-/// until [warmUp] or the first [play]: an app that disables sound or supplies
-/// its own [PageFlipSoundPlayer] never creates an audio player.
+/// Plays the bundled paper sound, or [asset] when given, through this
+/// package's own plugin — no third-party audio dependency. Available on
+/// Android, iOS, and web; a silent no-op on desktop.
 ///
-/// A [play] that arrives before loading has finished is skipped (and starts
-/// the load) rather than queued, so a late sound never lands after the turn.
+/// Nothing is loaded until [warmUp] or the first [play]: an app that disables
+/// sound or supplies its own [PageFlipSoundPlayer] never touches the audio
+/// stack. A [play] that arrives before loading has finished is skipped (and
+/// starts the load) rather than queued, so a late sound never lands after
+/// the turn.
 class DefaultPageFlipSound implements PageFlipSoundPlayer {
   /// Creates the default sound player.
   ///
   /// [asset] is a full asset key declared in the host's pubspec, e.g.
   /// `'assets/sounds/my_flip.mp3'`. When null, the bundled sound is used.
-  DefaultPageFlipSound({this.asset});
+  ///
+  /// [isSupported] overrides platform detection (for tests); by default the
+  /// sound is available on Android, iOS, and web.
+  DefaultPageFlipSound({this.asset, bool? isSupported})
+      : _isSupported = isSupported ??
+            platformHasDefaultSound(
+              platform: defaultTargetPlatform,
+              isWeb: kIsWeb,
+            ),
+        _id = _nextId++;
+
+  static int _nextId = 1;
+
+  static const String _bundledMp3 =
+      'packages/real_page_flip/assets/sounds/page_flip.mp3';
+  static const String _bundledOpus =
+      'packages/real_page_flip/assets/sounds/page_flip.opus';
 
   /// Host asset key to play instead of the bundled sound.
   final String? asset;
 
-  static const String _bundledOpus =
-      'packages/real_page_flip/assets/sounds/page_flip.opus';
-  static const String _bundledMp3 =
-      'packages/real_page_flip/assets/sounds/page_flip.mp3';
-  static const int _poolSize = 3;
-
-  final List<AudioPlayer> _pool = <AudioPlayer>[];
+  final bool _isSupported;
+  final int _id;
   Future<void>? _loading;
   bool _ready = false;
   bool _disposed = false;
-  int _next = 0;
 
   /// Whether a source has loaded and [play] will produce sound.
   @visibleForTesting
   bool get debugIsReady => _ready;
 
-  /// Number of audio players allocated so far (0 until first use).
+  /// Whether loading has been started.
   @visibleForTesting
-  int get debugAllocatedPlayerCount => _pool.length;
+  bool get debugLoadStarted => _loading != null;
 
   @override
   Future<void> warmUp() => _loading ??= _load();
 
   Future<void> _load() async {
+    if (!_isSupported) return;
+    // mp3 decodes everywhere (AVAudioPlayer cannot read Ogg/Opus); opus is the
+    // smaller fallback for platforms that can.
     final candidates = asset != null
         ? <String>[asset!]
-        : const <String>[_bundledOpus, _bundledMp3];
-    var loadedAny = false;
-    for (var i = 0; i < _poolSize; i++) {
+        : const <String>[_bundledMp3, _bundledOpus];
+    for (final source in candidates) {
       if (_disposed) return;
-      final player = AudioPlayer();
-      _pool.add(player);
-      try {
-        await player.setPlayerMode(PlayerMode.lowLatency);
-      } on Object {
-        // Low-latency mode is an optimisation; keep the default mode.
-      }
-      player.audioCache.prefix = '';
-      for (final source in candidates) {
-        if (_disposed) return;
-        try {
-          await player.setSource(AssetSource(source));
-          await player.setReleaseMode(ReleaseMode.stop);
-          loadedAny = true;
-          break;
-        } on Object {
-          // Try the next format (opus -> mp3).
+      final loaded = await _invoke<bool>(
+        'load',
+        <String, Object>{'id': _id, 'asset': source},
+      );
+      if (loaded ?? false) {
+        if (_disposed) {
+          await _invoke<void>('unload', <String, Object>{'id': _id});
+          return;
         }
+        _ready = true;
+        return;
       }
     }
-    _ready = loadedAny && !_disposed;
   }
 
   @override
   void play({required double volume}) {
-    if (_disposed) return;
+    if (_disposed || !_isSupported) return;
     if (!_ready) {
       unawaited(warmUp());
       return;
     }
-    final player = _pool[_next];
-    _next = (_next + 1) % _pool.length;
-    unawaited(_playOn(player, cappedFlipSoundVolume(volume)));
-  }
-
-  Future<void> _playOn(AudioPlayer player, double volume) async {
-    try {
-      await player.stop();
-      await player.setVolume(volume);
-      await player.seek(Duration.zero);
-      await player.resume();
-    } on Object {
-      // Playback failures must never affect page navigation.
-    }
+    unawaited(
+      _invoke<bool>(
+        'play',
+        <String, Object>{'id': _id, 'volume': cappedFlipSoundVolume(volume)},
+      ),
+    );
   }
 
   @override
@@ -113,9 +131,17 @@ class DefaultPageFlipSound implements PageFlipSoundPlayer {
     if (_disposed) return;
     _disposed = true;
     _ready = false;
-    for (final player in _pool) {
-      unawaited(player.dispose());
+    if (_loading != null && _isSupported) {
+      unawaited(_invoke<void>('unload', <String, Object>{'id': _id}));
     }
-    _pool.clear();
+  }
+
+  /// Channel call that never throws: sound must not affect navigation.
+  static Future<T?> _invoke<T>(String method, Map<String, Object> args) async {
+    try {
+      return await pageFlipSoundChannel.invokeMethod<T>(method, args);
+    } on Object {
+      return null;
+    }
   }
 }
