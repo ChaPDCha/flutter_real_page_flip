@@ -25,6 +25,9 @@ analyzer:
     - "tool/**" # Exclude tool scripts
     - "tmp/**"
     - "packages/hybrid_reader/**" # Deactivated for future development
+    - build/**
+    - android/**
+    - ios/**
   errors:
     # Treat missing required parameters as errors
     missing_required_param: error

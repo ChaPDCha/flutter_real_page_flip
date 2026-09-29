@@ -1,14 +1,13 @@
 import 'dart:async';
 
-import 'package:audioplayers/audioplayers.dart' show AudioPlayer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/real_page_flip.dart';
 
-/// Effect handler that does nothing — avoids creating [AudioPlayer] instances
-/// in the test environment where platform channels are unavailable.
+/// Effect handler that does nothing in the test environment
+/// where platform channels are unavailable.
 class _NoOpEffectHandler implements PageFlipEffectHandler {
   const _NoOpEffectHandler();
 
