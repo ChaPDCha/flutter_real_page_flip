@@ -33,7 +33,10 @@
 
 - `PageFlipConfig.isRightSwipe` is documented as having no effect (it was
   never wired in).
-- New CI workflow runs format, analyze, and tests on every pull request.
+- A pointer that arrives while a cancelled turn is still snapping back is
+  now ignored for its whole sequence, instead of silently inheriting the
+  cancelled drag's leftover state. Start a new gesture once the page has
+  settled (`test/page_flip_multitouch_test.dart` waits for the snap-back).
 
 ## [2.3.1] - 2026-09-11
 
