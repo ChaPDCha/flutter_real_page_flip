@@ -168,7 +168,6 @@ void main() {
       controller.onDragEnd(
         DragEndDetails(
           primaryVelocity: 0,
-          velocity: Velocity.zero,
         ),
         5,
       );
@@ -262,7 +261,7 @@ void main() {
 
       dragForward(-230); // ≈ 0.6: past the old 0.4, short of the new 0.8
       controller.onDragEnd(
-        DragEndDetails(primaryVelocity: 0, velocity: Velocity.zero),
+        DragEndDetails(primaryVelocity: 0),
         5,
       );
       await tester.pumpAndSettle();
