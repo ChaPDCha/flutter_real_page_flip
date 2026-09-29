@@ -57,6 +57,8 @@ internal fun buildTransientEnvelope(
 
 class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
+    private var soundChannel: MethodChannel? = null
+    private var soundHandler: PageFlipSoundHandler? = null
     private var vibrator: Vibrator? = null
     private var isVibratorAvailable = false
     private var hasAmplitudeControl = false
@@ -68,6 +70,14 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         channel.setMethodCallHandler(this)
 
         val context = flutterPluginBinding.applicationContext
+
+        // Sound has its own channel so it is not gated by vibrator availability.
+        val sound = PageFlipSoundHandler(context, flutterPluginBinding.flutterAssets)
+        soundHandler = sound
+        soundChannel = MethodChannel(
+            flutterPluginBinding.binaryMessenger,
+            "com.chapdcha.real_page_flip/sound"
+        ).also { it.setMethodCallHandler(sound) }
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator
@@ -416,6 +426,10 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
+        soundChannel?.setMethodCallHandler(null)
+        soundChannel = null
+        soundHandler?.release()
+        soundHandler = null
     }
 }
 

@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/real_page_flip.dart';
+import 'package:real_page_flip/src/widgets/default_page_flip_sound.dart';
 
 import '../utils/test_helpers.dart';
 
@@ -178,26 +180,108 @@ void main() {
   });
 
   group('DefaultPageFlipSound', () {
-    test('allocates no audio player until first use', () {
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    late List<MethodCall> calls;
+    late bool Function(String asset) canLoad;
+
+    setUp(() {
+      calls = <MethodCall>[];
+      canLoad = (_) => true;
+      messenger.setMockMethodCallHandler(pageFlipSoundChannel, (call) async {
+        calls.add(call);
+        if (call.method == 'load') {
+          final args = call.arguments as Map<Object?, Object?>;
+          return canLoad(args['asset']! as String);
+        }
+        if (call.method == 'play') return true;
+        return null;
+      });
+    });
+
+    tearDown(() {
+      messenger.setMockMethodCallHandler(pageFlipSoundChannel, null);
+    });
+
+    test('touches no channel until first use', () {
       final sound = DefaultPageFlipSound();
-      expect(sound.debugAllocatedPlayerCount, 0);
-      expect(sound.debugIsReady, isFalse);
+      expect(sound.debugLoadStarted, isFalse);
+      expect(calls, isEmpty);
       sound.dispose();
+      expect(calls, isEmpty, reason: 'Nothing to unload when never loaded');
     });
 
-    test('play before loading is skipped and starts the load', () {
+    test('play before loading is skipped and starts the load', () async {
       final sound = DefaultPageFlipSound()..play(volume: 0.5);
-      // The skipped play kicked off loading.
-      expect(sound.debugAllocatedPlayerCount, greaterThan(0));
-      // Do not await the load: audioplayers waits for a native "prepared"
-      // event that the channel mocks never send.
+      expect(sound.debugLoadStarted, isTrue);
+      await sound.warmUp();
+      expect(calls.map((c) => c.method), <String>['load']);
+      expect(sound.debugIsReady, isTrue);
+
+      sound.play(volume: 0.5);
+      await Future<void>.delayed(Duration.zero);
+      final play = calls.last;
+      expect(play.method, 'play');
+      expect(
+        (play.arguments as Map<Object?, Object?>)['volume'],
+        cappedFlipSoundVolume(0.5),
+      );
       sound.dispose();
-      expect(sound.debugAllocatedPlayerCount, 0);
+      await Future<void>.delayed(Duration.zero);
+      expect(calls.last.method, 'unload');
     });
 
-    test('custom asset key is accepted', () {
+    test('bundled sound tries mp3 first, then opus', () async {
+      canLoad = (asset) => asset.endsWith('.opus');
+      final sound = DefaultPageFlipSound();
+      await sound.warmUp();
+      final assets = calls
+          .where((c) => c.method == 'load')
+          .map((c) => (c.arguments as Map<Object?, Object?>)['asset'])
+          .toList();
+      expect(assets, <String>[
+        'packages/real_page_flip/assets/sounds/page_flip.mp3',
+        'packages/real_page_flip/assets/sounds/page_flip.opus',
+      ]);
+      expect(sound.debugIsReady, isTrue);
+      sound.dispose();
+    });
+
+    test('custom asset key is loaded instead of the bundled sound', () async {
       final sound = DefaultPageFlipSound(asset: 'assets/sounds/custom.mp3');
-      expect(sound.asset, 'assets/sounds/custom.mp3');
+      await sound.warmUp();
+      expect(
+        (calls.single.arguments as Map<Object?, Object?>)['asset'],
+        'assets/sounds/custom.mp3',
+      );
+      sound.dispose();
+    });
+
+    test('unsupported platform (desktop) is a silent no-op', () async {
+      final sound = DefaultPageFlipSound(isSupported: false);
+      await sound.warmUp();
+      sound.play(volume: 0.5);
+      sound.dispose();
+      expect(calls, isEmpty);
+    });
+
+    test('platform support matrix: mobile and web only', () {
+      for (final platform in TargetPlatform.values) {
+        expect(
+          platformHasDefaultSound(platform: platform, isWeb: false),
+          platform == TargetPlatform.android || platform == TargetPlatform.iOS,
+          reason: '$platform',
+        );
+        expect(platformHasDefaultSound(platform: platform, isWeb: true), true);
+      }
+    });
+
+    test('a missing plugin never throws', () async {
+      messenger.setMockMethodCallHandler(pageFlipSoundChannel, null);
+      final sound = DefaultPageFlipSound();
+      await sound.warmUp();
+      expect(sound.debugIsReady, isFalse);
+      expect(() => sound.play(volume: 0.5), returnsNormally);
       sound.dispose();
     });
 
