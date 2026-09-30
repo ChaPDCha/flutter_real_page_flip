@@ -69,7 +69,7 @@ class _Model {
       onUpdate: () {},
       onPageFinalized: (index) {
         finalized.add(index);
-        expect(index, controller.currentIndex, reason: trace);
+        expectSync(index, controller.currentIndex, reason: trace);
       },
       onFlipStart: () => starts++,
       onFlipEnd: () => ends++,
@@ -83,9 +83,9 @@ class _Model {
         if (effect == PageFlipEvent.sound) sounds++;
         if (effect == PageFlipEvent.impulseHaptic) impulses++;
         if (volume != null) {
-          expect(volume.isFinite && volume >= 0 && volume <= 1, isTrue);
+          expectSync(volume.isFinite && volume >= 0 && volume <= 1, isTrue);
         }
-        if (intensity != null) expect(intensity, greaterThanOrEqualTo(0));
+        if (intensity != null) expectSync(intensity, greaterThanOrEqualTo(0));
       },
     )
       ..updateCachedWidth(400)

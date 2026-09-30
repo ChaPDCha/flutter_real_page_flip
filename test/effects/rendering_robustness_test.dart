@@ -36,12 +36,12 @@ void main() {
     double.nan,
     double.infinity,
     double.negativeInfinity,
-    -1e9,
+    -1000000000,
     -50,
     0,
     0.5,
     300,
-    1e9,
+    1000000000,
   ];
 
   const edgeProgress = <double>[0, 1e-6, 1 - 1e-6, 1, 1e-4, 1 - 1e-4];
@@ -374,14 +374,15 @@ void main() {
       double.nan,
       double.infinity,
       double.negativeInfinity,
-      -1e12,
+      -1000000000000,
       -1,
+      // ignore: prefer_int_literals
       -0.0,
       0,
       0.3,
       1,
       1.5,
-      1e12,
+      1000000000000,
     ];
 
     test('every numeric field lands finite and in range, idempotently', () {

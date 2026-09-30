@@ -42,8 +42,7 @@ void main() {
         if (event is ObjectDisposed) disposed.add(object);
       }
 
-      final allocations = FlutterMemoryAllocations.instance
-        ..addListener(track);
+      final allocations = FlutterMemoryAllocations.instance..addListener(track);
       addTearDown(() => allocations.removeListener(track));
 
       final seen = Set<ui.Image>.identity();
@@ -131,7 +130,7 @@ void main() {
       void interfere() {
         final roll = random.nextInt(5);
         if (roll == 0) {
-          mgr.refreshIndexSync(randomWindowIndex(), pixelRatio: 1);
+          mgr.refreshIndexSync(randomWindowIndex());
           log.add('  interfere: refreshIndexSync');
         } else if (roll == 1) {
           mgr.markDirty(randomWindowIndex());
