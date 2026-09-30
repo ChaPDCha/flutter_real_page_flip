@@ -1,3 +1,50 @@
+## [3.0.1] - 2026-09-29
+
+### Fixed
+
+- **Shrinking the book under a turn no longer lands out of range.** If
+  `itemCount` dropped below a turn's destination while the page was in the
+  air, the turn still finalized to `currentIndex ± 1`: `onPageChanged`
+  reported a page that no longer existed and `itemBuilder` was asked for it
+  (a `RangeError` in most hosts). The turn is now aborted
+  (`PageFlipStateController.cancelActiveFlip`) and the book stays on a valid
+  page; `onFlipEnd` still fires exactly once.
+- **Disabling swipe mid-drag no longer freezes the page.** When the gesture
+  layer unmounted with a finger down (`enableSwipe: false` during a drag), the
+  release never arrived: the page stayed mid-turn, content stayed
+  pointer-blocked, and every navigation was refused. The drag is now
+  cancelled and the page eases back.
+- **A tap flip can no longer start under a held finger.** With a finger
+  resting on a boundary page (blocked forward swipe on the last page), an
+  edge tap or `controller.previousPage()` started a second turn: two
+  `onFlipStart`s, one `onFlipEnd`. A finger now owns the page until it lifts
+  (`isGestureActive` / `isBusy`).
+- **Refused instant navigation reports no lifecycle.** With
+  `skipTapAnimation: true`, `nextPage()` on the last page (or during a turn)
+  still fired `onFlipStart`/`onFlipEnd` for a turn that never happened. It
+  now refuses silently, like the animated path.
+- **Semantics at book boundaries.** The last page announced an
+  `increasedValue` of "page N+1" and the first page a `decreasedValue` of
+  "page 0". Unreachable values are no longer exposed.
+- `PageFlipGeometry` treats a non-finite touch as a centred finger (level
+  fold) instead of letting `clamp` map NaN to the maximum tilt.
+
+### Changed
+
+- `goToPage` (and `nextPage`/`previousPage`) are refused while a finger owns
+  the page, not only while a page is moving. Retry after `onFlipEnd`.
+
+### Tests
+
+- Seeded model-based tests for the controller and end-to-end widget sessions
+  enforce the engine invariants after every step (index bounds, lifecycle
+  balance, single turn owner, decided outcome, idle reset).
+- Snapshot memory safety: long adversarial sessions assert no disposed image
+  is reachable and no image is leaked.
+- Rendering robustness sweeps: geometry, touch clamping, painting, gesture
+  arbitration, and config normalization over hostile input.
+- Engine quality bar recorded in `.kiro/steering/engine-quality-bar.md`.
+
 ## [3.0.0] - 2026-09-29
 
 ### Breaking

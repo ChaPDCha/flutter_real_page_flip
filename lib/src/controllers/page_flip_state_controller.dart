@@ -244,6 +244,28 @@ class PageFlipStateController {
   /// during tracking the animation controller is idle and progress is driven
   /// directly by pointer deltas.
   bool get isSettling => animationController.isAnimating || _isPendingFinalize;
+
+  /// True from an accepted [onDragStart] until that pointer's [onDragEnd] or
+  /// [onDragCancel]: a finger owns the page, even while it rests at a book
+  /// boundary where nothing is moving ([isDragging] is still false).
+  bool get isGestureActive => _isGestureActive;
+  bool _isGestureActive = false;
+
+  /// Set when [cancelActiveFlip] aborts a turn while its pointer is still
+  /// down. The rest of that pointer sequence belongs to no flip.
+  bool _isGestureDisowned = false;
+
+  /// Identifies the current turn. Deferred completion work (the animation's
+  /// `.then`, the one-frame finalize) of an aborted turn sees a newer token
+  /// and does nothing.
+  int _turnToken = 0;
+
+  /// Whether any flip activity owns the page: a finger, a drag, or a settle.
+  ///
+  /// Programmatic navigation ([triggerTapFlip], `PageFlipWidget.goToPage`)
+  /// is refused while this is true, so exactly one actor drives a turn and
+  /// every `onFlipStart` is matched by exactly one `onFlipEnd`.
+  bool get isBusy => _isGestureActive || _isDragging || isSettling;
   bool _isDisposed = false;
 
   /// The current (leftmost visible) page index.
@@ -364,8 +386,10 @@ class PageFlipStateController {
     int totalPages, {
     double accumulatedTotalDx = 0,
   }) {
-    if (isSettling) return false;
+    if (_isDisposed || isSettling) return false;
 
+    _isGestureActive = true;
+    _isGestureDisowned = false;
     onFlipStart?.call();
     _touchPosition = details.localPosition;
     _isDragging = false;
@@ -400,7 +424,7 @@ class PageFlipStateController {
 
   /// Handles a drag update, updating progress and triggering textured haptics.
   void onDragUpdate(DragUpdateDetails details, int totalPages) {
-    if (isSettling) return;
+    if (_isDisposed || isSettling || _isGestureDisowned) return;
 
     _touchPosition = details.localPosition;
     final delta = details.primaryDelta ?? details.delta.dx;
@@ -487,6 +511,7 @@ class PageFlipStateController {
     // gesture that [onDragStart] refused. It never took control of the page,
     // so it must neither re-decide that turn's outcome nor restart its
     // animation (nor fire an unmatched onFlipEnd).
+    if (_endGestureOwnership()) return;
     if (isSettling) return;
     if (!_isDragging) {
       endPointerCapture();
@@ -518,6 +543,7 @@ class PageFlipStateController {
       _hasPlayedSound = true;
     }
 
+    final token = _turnToken;
     // Sync animation value to current drag progress to prevent jumps
     animationController.value = _dragProgress;
 
@@ -542,19 +568,21 @@ class PageFlipStateController {
           duration: Duration(milliseconds: adaptiveMs),
           curve: const PaperFlipCurve(),
         )
-        .then((_) => _finalizePageChange(isSuccess, totalPages));
+        .then((_) => _finalizeIfCurrent(token, isSuccess, totalPages));
   }
 
   /// Handles cancellation of a drag, snapping the page back.
   void onDragCancel(int totalPages) {
     if (_isDisposed) return;
     // See [onDragEnd]: a refused gesture cannot cancel a settling turn.
+    if (_endGestureOwnership()) return;
     if (isSettling) return;
     if (!_isDragging) {
       endPointerCapture();
       onFlipEnd?.call();
       return;
     }
+    final token = _turnToken;
     animationController.value = _dragProgress;
     onEffectTrigger(PageFlipEvent.stopHaptic);
     // Snap-back: scale duration by remaining progress, floored at
@@ -578,15 +606,12 @@ class PageFlipStateController {
           duration: Duration(milliseconds: cancelMs),
           curve: const PaperFlipCurve(),
         )
-        .then((_) => _finalizePageChange(false, totalPages));
+        .then((_) => _finalizeIfCurrent(token, false, totalPages));
   }
 
   /// Triggers a programmatic page flip (e.g. from edge tap or controller).
   void triggerTapFlip({required bool isNext, required int totalPages}) {
-    if (_isDisposed) return;
-    if (_isDragging || animationController.isAnimating || _isPendingFinalize) {
-      return;
-    }
+    if (_isDisposed || isBusy) return;
 
     if ((isNext && _currentIndex >= totalPages - 1) ||
         (!isNext && _currentIndex <= 0)) {
@@ -616,6 +641,7 @@ class PageFlipStateController {
     onUpdate();
     progressNotifier.value = _dragProgress;
 
+    final token = _turnToken;
     animationController.stop();
     animationController.value = 0.0;
     onEffectTrigger(PageFlipEvent.sound, volume: _kTapFlipSoundVolume);
@@ -626,11 +652,66 @@ class PageFlipStateController {
           duration: animationDuration,
           curve: const TapFlipCurve(),
         )
-        .then((_) => _finalizePageChange(true, totalPages));
+        .then((_) => _finalizeIfCurrent(token, true, totalPages));
+  }
+
+  /// Ends gesture ownership for a release/cancel. Returns true when the
+  /// pointer was disowned by [cancelActiveFlip]: its turn already ended, so
+  /// the caller must not fire lifecycle callbacks a second time (and must not
+  /// touch a turn another actor may have started since).
+  bool _endGestureOwnership() {
+    _isGestureActive = false;
+    if (!_isGestureDisowned) return false;
+    _isGestureDisowned = false;
+    return true;
+  }
+
+  /// Aborts the turn in progress without committing it.
+  ///
+  /// Stops a settle animation, drops a pending finalize, and returns to the
+  /// idle state at [currentIndex]. A pointer that is still down is disowned
+  /// for the rest of its sequence. Fires `onFlipEnd` once when a flip was
+  /// active, so the host's lifecycle stays balanced.
+  ///
+  /// Used when the book changes underneath a turn in a way the turn cannot
+  /// survive, e.g. its current or destination page was removed.
+  void cancelActiveFlip() {
+    if (_isDisposed || !isBusy) return;
+    _turnToken++;
+    if (_isGestureActive) {
+      _isGestureActive = false;
+      _isGestureDisowned = true;
+    }
+    _isPendingFinalize = false;
+    animationController.stop();
+    _resetTurnState();
+    endPointerCapture();
+    onEffectTrigger(PageFlipEvent.stopHaptic);
+    onUpdate();
+    onFlipEnd?.call();
+  }
+
+  void _resetTurnState() {
+    _lastReleaseVelocity = 0.0;
+    _dragProgress = 0.0;
+    animationController.value = 0.0;
+    progressNotifier.value = 0.0;
+    _isDragging = false;
+    _hasPlayedSound = false;
+    _hasFiredDetent = false;
+    _smoothedSpeedPxPerSecond = 0;
+    _hapticDistanceRemainder = 0;
+    _lastDragTimestamp = null;
+  }
+
+  void _finalizeIfCurrent(int token, bool success, int totalPages) {
+    if (token != _turnToken) return;
+    _finalizePageChange(success, totalPages);
   }
 
   void _finalizePageChange(bool success, int totalPages) {
     if (_isDisposed) return;
+    final token = _turnToken;
     if (success) {
       // Save velocity for haptic calculation before resetting state.
       final releaseVelocity = _lastReleaseVelocity;
@@ -660,7 +741,7 @@ class PageFlipStateController {
       // 1-2 frame visual pop ("flicker") from sub-pixel rendering
       // differences between raster snapshots and live widget paint.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_isDisposed) return;
+        if (_isDisposed || token != _turnToken) return;
         _isPendingFinalize = false;
 
         if (_isForward) {
