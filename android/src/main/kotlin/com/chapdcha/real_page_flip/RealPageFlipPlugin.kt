@@ -294,8 +294,10 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
         val shouldEmit = shouldEmitVibration()
         val clampedDuration = durationMs.coerceIn(1, 500)
         val amplitude = (intensity * 255).toInt().coerceIn(1, 255)
-        val route = if (clampedDuration <= 16) "primitive_or_envelope" else "envelope"
-        android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playTransient: intensity=$intensity, sharpness=$sharpness, durationMs=$clampedDuration, amplitude=$amplitude, route=$route, shouldEmit=$shouldEmit")
+        if (isHapticDebugLogging) {
+            val route = if (clampedDuration <= 16) "primitive_or_envelope" else "envelope"
+            android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playTransient: intensity=$intensity, sharpness=$sharpness, durationMs=$clampedDuration, amplitude=$amplitude, route=$route, shouldEmit=$shouldEmit")
+        }
         if (!shouldEmit) return
         if (clampedDuration <= 16 &&
             supportsPrimitives(VibrationEffect.Composition.PRIMITIVE_TICK)) {
@@ -328,7 +330,9 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun playThud(intensity: Double) {
         val shouldEmit = shouldEmitVibration()
-        android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playThud: intensity=$intensity, shouldEmit=$shouldEmit")
+        if (isHapticDebugLogging) {
+            android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playThud: intensity=$intensity, shouldEmit=$shouldEmit")
+        }
         if (!shouldEmit) return
         if (supportsPrimitives(VibrationEffect.Composition.PRIMITIVE_THUD)) {
             val scale = (intensity * 0.55).toFloat().coerceIn(0.08f, 0.5f)
@@ -349,7 +353,9 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun playSlipBurst(intensity: Double) {
         val shouldEmit = shouldEmitVibration(force = true)
-        android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playSlipBurst: intensity=$intensity, shouldEmit=$shouldEmit")
+        if (isHapticDebugLogging) {
+            android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playSlipBurst: intensity=$intensity, shouldEmit=$shouldEmit")
+        }
         if (!shouldEmit) return
         if (supportsPrimitives(
                 VibrationEffect.Composition.PRIMITIVE_CLICK,
@@ -387,7 +393,9 @@ class RealPageFlipPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun playSettleThud(intensity: Double) {
         val shouldEmit = shouldEmitVibration(force = true)
-        android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playSettleThud: intensity=$intensity, shouldEmit=$shouldEmit")
+        if (isHapticDebugLogging) {
+            android.util.Log.d("HAPTIC_DIAGNOSTIC", "Android playSettleThud: intensity=$intensity, shouldEmit=$shouldEmit")
+        }
         if (!shouldEmit) return
         if (supportsPrimitives(
                 VibrationEffect.Composition.PRIMITIVE_THUD,

@@ -221,6 +221,28 @@ void main() {
       },
     );
 
+    test('copyWith respectReducedMotion', () {
+      expect(base.respectReducedMotion, isTrue);
+      final copy = base.copyWith(respectReducedMotion: false);
+      expect(copy.respectReducedMotion, isFalse);
+      expect(copy, isNot(equals(base)));
+    });
+
+    test('copyWith enableKeyboardNavigation and enableWheelNavigation', () {
+      expect(base.enableKeyboardNavigation, isFalse);
+      expect(base.enableWheelNavigation, isFalse);
+
+      final keyboard = base.copyWith(enableKeyboardNavigation: true);
+      expect(keyboard.enableKeyboardNavigation, isTrue);
+      expect(keyboard.enableWheelNavigation, isFalse);
+      expect(keyboard, isNot(equals(base)));
+
+      final wheel = base.copyWith(enableWheelNavigation: true);
+      expect(wheel.enableWheelNavigation, isTrue);
+      expect(wheel.enableKeyboardNavigation, isFalse);
+      expect(wheel, isNot(equals(base)));
+    });
+
     test('copyWith preserves unmodified fields', () {
       final copy = base.copyWith(duration: const Duration(milliseconds: 200));
       // All other fields should match base

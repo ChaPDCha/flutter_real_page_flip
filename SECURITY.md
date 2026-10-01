@@ -2,12 +2,8 @@
 
 ## Supported Versions
 
-We currently support the following versions with security updates:
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.1.x   | Yes |
-| < 1.1.0 | No  |
+Only the latest published release receives security fixes. Please upgrade to
+it before reporting an issue you found in an older version.
 
 ## Reporting a Vulnerability
 

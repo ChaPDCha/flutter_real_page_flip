@@ -26,6 +26,7 @@ extension PageFlipSpreadModeCompat on PageFlipSpreadMode {
   bool get isDoubleSpread => this == PageFlipSpreadMode.doubleSpread;
 
   /// Converts the historical boolean API to [PageFlipSpreadMode].
+  @Deprecated('Use PageFlipSpreadMode directly.')
   static PageFlipSpreadMode fromIsDoubleSpread({
     required bool isDoubleSpread,
   }) =>
@@ -99,11 +100,15 @@ class PageFlipConfig {
     this.cutoffForward = 0.4,
     this.cutoffPrevious = 0.4,
     this.backgroundColor,
+    @Deprecated('Has no effect. A reading-direction option will replace it.')
     this.isRightSwipe = false,
     this.enableSwipe = true,
     this.sensitivity = 0.5,
     this.edgeTapWidthRatio = 0.1,
     this.skipTapAnimation = true,
+    this.respectReducedMotion = true,
+    this.enableKeyboardNavigation = false,
+    this.enableWheelNavigation = false,
     this.semanticBuilder,
     this.edgeTapPreviousLabel,
     this.edgeTapNextLabel,
@@ -119,7 +124,9 @@ class PageFlipConfig {
     this.flapContentFadeOutEnd = 0.20,
     this.flapContentRevealStart = 0.85,
     this.flapContentRevealEnd = 0.95,
+    @Deprecated('Has no effect: double-spread turns draw the real verso.')
     this.flapBackStrength = 0.0,
+    @Deprecated('Has no effect: the real verso is always visible.')
     this.doubleSpreadMidFoldBleed = 0.15,
     this.singlePageBackContentOpacity = 0.35,
     this.enableSinglePageSettleReveal = true,
@@ -238,10 +245,12 @@ class PageFlipConfig {
 
   /// Retained for source compatibility. No-op since double-spread rendering
   /// maps the real verso directly instead of drawing a mirrored ghost mesh.
+  @Deprecated('Has no effect: double-spread turns draw the real verso.')
   final double flapBackStrength;
 
   /// Retained for source compatibility. No-op since the real verso stays fully
   /// visible throughout a double-spread turn.
+  @Deprecated('Has no effect: the real verso is always visible.')
   final double doubleSpreadMidFoldBleed;
 
   /// Single-page only: opacity of the flipping page's own content while it is
@@ -340,6 +349,7 @@ class PageFlipConfig {
   /// This flag was never wired into the gesture or rendering path. It is kept
   /// for source compatibility and will be replaced by a reading-direction
   /// option.
+  @Deprecated('Has no effect. A reading-direction option will replace it.')
   final bool isRightSwipe;
 
   /// Whether to enable swipe gestures.
@@ -353,6 +363,36 @@ class PageFlipConfig {
 
   /// Whether to skip animation on tap (instant flip).
   final bool skipTapAnimation;
+
+  /// Whether the engine follows the platform's "reduce motion" setting
+  /// (`MediaQueryData.disableAnimations`: iOS Reduce Motion, Android "Remove
+  /// animations", the browser's `prefers-reduced-motion`).
+  ///
+  /// While that setting is on, turns started by an edge tap, `nextPage` or
+  /// `previousPage` change page instantly, and a released drag snaps to its
+  /// destination without the settle animation. The finger still moves the page
+  /// directly while dragging. Defaults to `true`; set it to `false` to always
+  /// animate.
+  final bool respectReducedMotion;
+
+  /// Whether the arrow, page, space, home and end keys turn pages.
+  ///
+  /// Right arrow, Page Down and Space go forward; Left arrow, Page Up and
+  /// Shift+Space go back; Home and End jump to the first and last page.
+  /// Combinations with Ctrl, Alt or Meta are left to the host. The book asks
+  /// for focus when it is built and nothing else holds it; key events from
+  /// focusable page content (a text field, say) reach the book only when that
+  /// content does not use them. Off by default so existing hosts keep their own
+  /// shortcuts.
+  final bool enableKeyboardNavigation;
+
+  /// Whether the mouse wheel and a trackpad's scrolling turn pages.
+  ///
+  /// Scrolling down (or right) goes forward and up (or left) goes back, one page
+  /// per burst of events, so a trackpad fling does not skip several pages.
+  /// Ctrl and Meta are left alone so wheel zoom keeps working. While this is on
+  /// the wheel no longer scrolls content inside a page. Off by default.
+  final bool enableWheelNavigation;
 
   /// Builder for semantic labels (i18n support).
   final String Function(int index, int total)? semanticBuilder;
@@ -375,11 +415,15 @@ class PageFlipConfig {
     double? cutoffForward,
     double? cutoffPrevious,
     Color? backgroundColor,
+    @Deprecated('Has no effect. A reading-direction option will replace it.')
     bool? isRightSwipe,
     bool? enableSwipe,
     double? sensitivity,
     double? edgeTapWidthRatio,
     bool? skipTapAnimation,
+    bool? respectReducedMotion,
+    bool? enableKeyboardNavigation,
+    bool? enableWheelNavigation,
     String Function(int index, int total)? semanticBuilder,
     String? edgeTapPreviousLabel,
     String? edgeTapNextLabel,
@@ -395,7 +439,9 @@ class PageFlipConfig {
     double? flapContentFadeOutEnd,
     double? flapContentRevealStart,
     double? flapContentRevealEnd,
+    @Deprecated('Has no effect: double-spread turns draw the real verso.')
     double? flapBackStrength,
+    @Deprecated('Has no effect: the real verso is always visible.')
     double? doubleSpreadMidFoldBleed,
     double? singlePageBackContentOpacity,
     bool? enableSinglePageSettleReveal,
@@ -428,6 +474,11 @@ class PageFlipConfig {
         sensitivity: sensitivity ?? this.sensitivity,
         edgeTapWidthRatio: edgeTapWidthRatio ?? this.edgeTapWidthRatio,
         skipTapAnimation: skipTapAnimation ?? this.skipTapAnimation,
+        respectReducedMotion: respectReducedMotion ?? this.respectReducedMotion,
+        enableKeyboardNavigation:
+            enableKeyboardNavigation ?? this.enableKeyboardNavigation,
+        enableWheelNavigation:
+            enableWheelNavigation ?? this.enableWheelNavigation,
         semanticBuilder: clearSemanticBuilder
             ? null
             : (semanticBuilder ?? this.semanticBuilder),
@@ -524,6 +575,9 @@ class PageFlipConfig {
         defaultSettings.edgeTapWidthRatio,
       ),
       skipTapAnimation: skipTapAnimation,
+      respectReducedMotion: respectReducedMotion,
+      enableKeyboardNavigation: enableKeyboardNavigation,
+      enableWheelNavigation: enableWheelNavigation,
       semanticBuilder: semanticBuilder,
       edgeTapPreviousLabel: edgeTapPreviousLabel,
       edgeTapNextLabel: edgeTapNextLabel,
@@ -618,6 +672,9 @@ class PageFlipConfig {
           sensitivity == other.sensitivity &&
           edgeTapWidthRatio == other.edgeTapWidthRatio &&
           skipTapAnimation == other.skipTapAnimation &&
+          respectReducedMotion == other.respectReducedMotion &&
+          enableKeyboardNavigation == other.enableKeyboardNavigation &&
+          enableWheelNavigation == other.enableWheelNavigation &&
           semanticBuilder == other.semanticBuilder &&
           enableHaptics == other.enableHaptics &&
           enableSound == other.enableSound &&
@@ -659,6 +716,9 @@ class PageFlipConfig {
         sensitivity,
         edgeTapWidthRatio,
         skipTapAnimation,
+        respectReducedMotion,
+        enableKeyboardNavigation,
+        enableWheelNavigation,
         semanticBuilder,
         enableHaptics,
         enableSound,

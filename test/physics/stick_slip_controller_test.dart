@@ -184,4 +184,51 @@ void main() {
       expect(mod.amplitudeBoost, greaterThan(0.0));
     });
   });
+  group('slip-release tail', () {
+    // The tail after a slip release is a property of elapsed time: it must fade
+    // over the same ~100 ms whether touch events arrive at 60, 120 or 240 Hz.
+    // Decaying once per update made it last half as long on a 120 Hz screen.
+    double tailBoostAfter(Duration total, Duration step) {
+      var fakeNow = DateTime(2024);
+      final ctrl = StickSlipController(
+        stationaryThresholdMs: 1,
+        now: () => fakeNow,
+      );
+      ctrl.update(0); // init
+      for (var i = 0; i < 5; i++) {
+        fakeNow = fakeNow.add(const Duration(milliseconds: 20));
+        ctrl.update(0); // builds stick energy
+      }
+      fakeNow = fakeNow.add(const Duration(milliseconds: 1));
+      ctrl.update(0.5); // slip release starts the tail
+
+      // Whole steps, so every rate covers (almost exactly) the same time.
+      final steps = (total.inMicroseconds / step.inMicroseconds).round();
+      var boost = 0.0;
+      for (var i = 0; i < steps; i++) {
+        fakeNow = fakeNow.add(step);
+        boost = ctrl.update(0.5).amplitudeBoost; // steady motion, no accel
+      }
+      return boost;
+    }
+
+    test('fades by elapsed time, not by the number of updates', () {
+      const total = Duration(milliseconds: 100);
+      final at60 = tailBoostAfter(total, const Duration(microseconds: 16667));
+      final at120 = tailBoostAfter(total, const Duration(microseconds: 8333));
+      final at240 = tailBoostAfter(total, const Duration(microseconds: 4167));
+
+      expect(at60, greaterThan(0.0), reason: 'the tail has not vanished yet');
+      expect(at120, closeTo(at60, at60 * 0.02));
+      expect(at240, closeTo(at60, at60 * 0.02));
+    });
+
+    test('keeps fading as time passes', () {
+      const step = Duration(microseconds: 8333);
+      final early = tailBoostAfter(const Duration(milliseconds: 50), step);
+      final late = tailBoostAfter(const Duration(milliseconds: 200), step);
+
+      expect(late, lessThan(early));
+    });
+  });
 }

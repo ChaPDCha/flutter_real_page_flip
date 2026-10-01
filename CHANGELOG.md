@@ -1,3 +1,55 @@
+## [3.1.0] - 2026-10-02
+
+### Added
+
+- **Reduced motion.** The engine now follows the platform's "reduce motion"
+  setting (iOS Reduce Motion, Android "Remove animations", the browser's
+  `prefers-reduced-motion`). While it is on, edge taps, `nextPage` and
+  `previousPage` change page at once and a released drag snaps to its
+  destination; the finger still moves the page directly while dragging. Set
+  `PageFlipConfig.respectReducedMotion: false` to always animate.
+- **Keyboard navigation** (opt-in), `PageFlipConfig.enableKeyboardNavigation`:
+  Right arrow, Page Down and Space go forward; Left arrow, Page Up and
+  Shift+Space go back; Home and End jump to the ends. Ctrl, Alt and Meta
+  combinations are left to the host.
+- **Mouse wheel and trackpad navigation** (opt-in),
+  `PageFlipConfig.enableWheelNavigation`: one page per scroll gesture. A
+  scrollable page keeps the wheel until it reaches its end, and Ctrl/Meta stay
+  free for zoom.
+
+### Fixed
+
+- **The haptic tail no longer depends on the input rate.** The short vibration
+  tail after a slip release decayed once per update, tuned for 60 Hz, so it
+  lasted half as long on 120 Hz screens. It now fades by elapsed time.
+- **Release builds no longer write development diagnostics.** Android logged one
+  `HAPTIC_DIAGNOSTIC` line per haptic tick, a snapshot capture that failed
+  before the first paint printed a stack trace, and every effect error was
+  printed to the console even though the host already receives it through
+  `onEffectError`. All three are debug-only now.
+- The example app builds for Android on the latest Flutter again (Flutter 3.47
+  needs Kotlin 2.2.20 or newer) and no longer carries a Kotlin 1.8 workaround
+  for a plugin it stopped using.
+
+### Deprecated
+
+- `PageFlipConfig.isRightSwipe` (never wired in; a reading-direction option is
+  planned), `flapBackStrength` and `doubleSpreadMidFoldBleed` (no effect, since
+  double-spread turns draw the real verso), `PageFlipWidget.isDoubleSpread`
+  (use `spreadMode`), `PageFlipWidget.onPageFlipped` (use `onPageChanged`) and
+  `PageFlipSpreadModeCompat.fromIsDoubleSpread`. Everything keeps working; the
+  analyzer now points at the replacement.
+
+### Changed
+
+- The example app no longer offers a "Right-to-Left (RTL) Swipe" switch. It was
+  wired to the no-op `isRightSwipe` and suggested a feature the engine does not
+  have: right-to-left reading direction is not supported yet.
+- README: corrected claims that were out of date (test and source-file counts;
+  performance profiles are chosen by the host, not picked automatically) and
+  documented accessibility and input. SECURITY.md no longer lists versions that
+  were never published as supported.
+
 ## [3.0.1] - 2026-09-29
 
 ### Fixed

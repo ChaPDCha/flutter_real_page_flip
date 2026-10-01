@@ -11,8 +11,6 @@ const int _warmupFlips = int.fromEnvironment('WARMUP_FLIPS', defaultValue: 8);
 const int _flipIntervalMs =
     int.fromEnvironment('INTERVAL_MS', defaultValue: 520);
 const bool _doubleSpread = bool.fromEnvironment('DOUBLE_SPREAD');
-const String _flapBackStrengthValue =
-    String.fromEnvironment('FLAP_BACK_STRENGTH', defaultValue: '0.0');
 const String _profileName =
     String.fromEnvironment('PERFORMANCE_PROFILE', defaultValue: 'medium');
 const String _snapshotPolicyName = String.fromEnvironment(
@@ -25,8 +23,6 @@ const String _maxSnapshotPixelRatioValue = String.fromEnvironment(
 );
 const MethodChannel _benchmarkChannel =
     MethodChannel('real_page_flip/performance_benchmark');
-
-double get _flapBackStrength => double.tryParse(_flapBackStrengthValue) ?? 0.0;
 
 DevicePerformanceProfile get _performanceProfile => switch (_profileName) {
       'low' => DevicePerformanceProfile.low,
@@ -295,7 +291,6 @@ class _BenchmarkScreenState extends State<_BenchmarkScreen> {
         'warmup=$_warmupFlips intervalMs=$_flipIntervalMs '
         'snapshotPolicy=$_snapshotPolicyName '
         'maxSnapshotPixelRatio=${_maxSnapshotPixelRatio ?? 'none'} '
-        'flapBackStrength=$_flapBackStrength '
         'failure=${_failure ?? 'none'}');
     debugPrint(frameSummary.format());
     debugPrint(latencySummary.format(prefix: 'requestToPageChange'));
@@ -320,7 +315,6 @@ class _BenchmarkScreenState extends State<_BenchmarkScreen> {
                   performanceProfile: _performanceProfile,
                   snapshotRefreshPolicy: _snapshotRefreshPolicy,
                   maxSnapshotPixelRatio: _maxSnapshotPixelRatio,
-                  flapBackStrength: _flapBackStrength,
                   backgroundColor: const Color(0xFFF6F0E3),
                 ),
                 onPageChanged: _onPageChanged,

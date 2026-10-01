@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -670,7 +671,11 @@ class PreRenderManager {
       _clearDirtyIfUnchanged(index, dirtyEpochAtStart);
       successfulSyncCaptureCount++;
     } on Object catch (e, st) {
-      debugPrint('refreshIndexSync failed for index $index: $e\n$st');
+      // Expected when a pointer arrives before the first paint: the capture is
+      // skipped and the next refresh recovers. Diagnostics only in debug.
+      if (kDebugMode) {
+        debugPrint('refreshIndexSync failed for index $index: $e\n$st');
+      }
       return;
     }
   }
