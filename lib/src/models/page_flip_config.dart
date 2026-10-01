@@ -26,6 +26,7 @@ extension PageFlipSpreadModeCompat on PageFlipSpreadMode {
   bool get isDoubleSpread => this == PageFlipSpreadMode.doubleSpread;
 
   /// Converts the historical boolean API to [PageFlipSpreadMode].
+  @Deprecated('Use PageFlipSpreadMode directly.')
   static PageFlipSpreadMode fromIsDoubleSpread({
     required bool isDoubleSpread,
   }) =>
@@ -99,6 +100,7 @@ class PageFlipConfig {
     this.cutoffForward = 0.4,
     this.cutoffPrevious = 0.4,
     this.backgroundColor,
+    @Deprecated('Has no effect. A reading-direction option will replace it.')
     this.isRightSwipe = false,
     this.enableSwipe = true,
     this.sensitivity = 0.5,
@@ -122,7 +124,9 @@ class PageFlipConfig {
     this.flapContentFadeOutEnd = 0.20,
     this.flapContentRevealStart = 0.85,
     this.flapContentRevealEnd = 0.95,
+    @Deprecated('Has no effect: double-spread turns draw the real verso.')
     this.flapBackStrength = 0.0,
+    @Deprecated('Has no effect: the real verso is always visible.')
     this.doubleSpreadMidFoldBleed = 0.15,
     this.singlePageBackContentOpacity = 0.35,
     this.enableSinglePageSettleReveal = true,
@@ -241,10 +245,12 @@ class PageFlipConfig {
 
   /// Retained for source compatibility. No-op since double-spread rendering
   /// maps the real verso directly instead of drawing a mirrored ghost mesh.
+  @Deprecated('Has no effect: double-spread turns draw the real verso.')
   final double flapBackStrength;
 
   /// Retained for source compatibility. No-op since the real verso stays fully
   /// visible throughout a double-spread turn.
+  @Deprecated('Has no effect: the real verso is always visible.')
   final double doubleSpreadMidFoldBleed;
 
   /// Single-page only: opacity of the flipping page's own content while it is
@@ -343,6 +349,7 @@ class PageFlipConfig {
   /// This flag was never wired into the gesture or rendering path. It is kept
   /// for source compatibility and will be replaced by a reading-direction
   /// option.
+  @Deprecated('Has no effect. A reading-direction option will replace it.')
   final bool isRightSwipe;
 
   /// Whether to enable swipe gestures.
@@ -408,6 +415,7 @@ class PageFlipConfig {
     double? cutoffForward,
     double? cutoffPrevious,
     Color? backgroundColor,
+    @Deprecated('Has no effect. A reading-direction option will replace it.')
     bool? isRightSwipe,
     bool? enableSwipe,
     double? sensitivity,
@@ -431,7 +439,9 @@ class PageFlipConfig {
     double? flapContentFadeOutEnd,
     double? flapContentRevealStart,
     double? flapContentRevealEnd,
+    @Deprecated('Has no effect: double-spread turns draw the real verso.')
     double? flapBackStrength,
+    @Deprecated('Has no effect: the real verso is always visible.')
     double? doubleSpreadMidFoldBleed,
     double? singlePageBackContentOpacity,
     bool? enableSinglePageSettleReveal,

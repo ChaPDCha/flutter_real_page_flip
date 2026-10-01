@@ -73,8 +73,10 @@ class PageFlipWidget extends StatefulWidget {
     this.contentRevision,
     this.config = PageFlipConfig.defaultSettings,
     this.initialIndex = 0,
+    @Deprecated('Use spreadMode: PageFlipSpreadMode.doubleSpread.')
     this.isDoubleSpread = false,
     PageFlipSpreadMode? spreadMode,
+    @Deprecated('Use onPageChanged, which fires at the same moment.')
     this.onPageFlipped,
     this.onFlipStart,
     this.onFlipEnd,
@@ -121,6 +123,7 @@ class PageFlipWidget extends StatefulWidget {
   final int initialIndex;
 
   /// True if rendering for a dual spread book (legacy; prefer [spreadMode]).
+  @Deprecated('Use spreadMode: PageFlipSpreadMode.doubleSpread.')
   final bool isDoubleSpread;
 
   /// Spread layout mode (defaults from [isDoubleSpread] when omitted).
@@ -133,6 +136,7 @@ class PageFlipWidget extends StatefulWidget {
   /// This fires at the same time as [onPageChanged]. Prefer [onPageChanged]
   /// for reacting to page transitions; [onPageFlipped] is kept for
   /// backward compatibility.
+  @Deprecated('Use onPageChanged, which fires at the same moment.')
   final void Function(int pageNumber)? onPageFlipped;
 
   /// Called when a flip gesture starts (drag or tap).

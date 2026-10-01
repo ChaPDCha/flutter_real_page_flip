@@ -244,9 +244,6 @@ PageFlipWidget(
 PageFlipWidget(
   spreadMode: PageFlipSpreadMode.doubleSpread,
   itemCount: spreadCount,
-  config: PageFlipConfig(
-    flapBackStrength: 0.0, // mirrored back text disabled by default
-  ),
   itemBuilder: (context, spreadIndex) => MyTwoPageSpread(spreadIndex),
 )
 ```

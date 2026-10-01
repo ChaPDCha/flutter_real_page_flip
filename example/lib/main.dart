@@ -52,7 +52,6 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
   bool _enableHaptics = !_isCaptureRun;
   bool _enableSound = !_isCaptureRun;
   bool _isDoubleSpread = _captureMode == 'double';
-  bool _isRightSwipe = false;
   bool _enableSwipe = true;
   DevicePerformanceProfile _performanceProfile = _isCaptureRun
       ? DevicePerformanceProfile.high
@@ -568,7 +567,9 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
       key: _flipKey,
       controller: _controller,
       itemCount: 6,
-      isDoubleSpread: _isDoubleSpread,
+      spreadMode: _isDoubleSpread
+          ? PageFlipSpreadMode.doubleSpread
+          : PageFlipSpreadMode.single,
       initialIndex: _currentPage,
       onPageChanged: (index) {
         setState(() {
@@ -596,7 +597,6 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
         flapContentRevealEnd: _flapContentRevealEnd,
         enableHaptics: _enableHaptics,
         enableSound: _enableSound,
-        isRightSwipe: _isRightSwipe,
         enableSwipe: _enableSwipe,
         performanceProfile: _performanceProfile,
         hapticTexturePreset: _hapticPreset,
@@ -1394,11 +1394,6 @@ class _PremiumDemoScreenState extends State<PremiumDemoScreen>
                     'Sound FX (Paper Friction)',
                     _enableSound,
                     (v) => setState(() => _enableSound = v),
-                  ),
-                  _buildToggle(
-                    'Right-to-Left (RTL) Swipe',
-                    _isRightSwipe,
-                    (v) => setState(() => _isRightSwipe = v),
                   ),
                   _buildToggle(
                     'Enable Gesture Swipe',
