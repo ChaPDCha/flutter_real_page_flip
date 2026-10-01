@@ -829,7 +829,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     String source,
   ) {
     widget.onEffectError?.call(effect, error, stackTrace);
-    debugPrint('PageFlip $source error: $error');
+    // Hosts get the error through onEffectError; the console copy is for
+    // development only so a failing effect cannot flood release logs.
+    if (kDebugMode) debugPrint('PageFlip $source error: $error');
   }
 
   /// Instant (non-animated) turn that still reports the flip lifecycle.
