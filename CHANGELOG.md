@@ -58,8 +58,10 @@
   `RealPageFlipMacos` and `RealPageFlipLinux` registration classes are
   exported from `real_page_flip.dart`, which is the library Flutter's
   generated registrant imports. A fresh app that depends on the package now
-  builds for Windows, Android and web (WASM) on Flutter 3.47.5 and on the new
-  floor, Flutter 3.44.2.
+  builds for Android, iOS (debug, unsigned), web (WASM), Windows, macOS and
+  Linux on the latest stable Flutter, and for Android, web, Windows and Linux
+  on the new floor, Flutter 3.44. These are build checks; haptics and sound
+  still need a device.
 
 ### Migration
 
