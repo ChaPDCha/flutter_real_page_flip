@@ -294,6 +294,18 @@ void main() {
       expect(a == b, isFalse);
     });
 
+    test('equality and hashCode respect respectReducedMotion', () {
+      const a = PageFlipConfig();
+      const b = PageFlipConfig(respectReducedMotion: false);
+      expect(a == b, isFalse);
+      expect(a.hashCode == b.hashCode, isFalse);
+    });
+
+    test('normalization keeps respectReducedMotion', () {
+      const config = PageFlipConfig(respectReducedMotion: false);
+      expect(config.normalized.respectReducedMotion, isFalse);
+    });
+
     test('all configurable fields produce distinct configs', () {
       // Verify that changing any single field from defaults produces inequality
       const base = PageFlipConfig();
@@ -327,6 +339,7 @@ void main() {
         ),
         const PageFlipConfig(hapticQuality: HapticQuality.basic),
         const PageFlipConfig(stationaryOverlayOwnsCenterGutter: true),
+        const PageFlipConfig(respectReducedMotion: false),
       ];
       for (final v in variants) {
         expect(

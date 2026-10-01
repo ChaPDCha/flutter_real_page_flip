@@ -387,6 +387,39 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   double? _lastDependencyPixelRatio;
 
+  /// The platform's "reduce motion" setting, as last read from [MediaQuery].
+  bool _systemReducesMotion = false;
+
+  /// Whether turns are currently shortened: the platform setting is on and the
+  /// host has not opted out through [PageFlipConfig.respectReducedMotion].
+  bool _reducedMotion = false;
+
+  /// Settle duration while motion is reduced: effectively instant.
+  static const Duration _reducedMotionDuration = Duration(milliseconds: 1);
+
+  Duration get _effectiveDuration =>
+      _reducedMotion ? _reducedMotionDuration : _config.duration;
+
+  /// Whether programmatic turns skip the animation: by choice
+  /// ([PageFlipConfig.skipTapAnimation]) or because motion is reduced.
+  bool get _instantTurns => _config.skipTapAnimation || _reducedMotion;
+
+  void _syncReducedMotion() {
+    final reduce = _config.respectReducedMotion && _systemReducesMotion;
+    if (reduce == _reducedMotion) return;
+    _reducedMotion = reduce;
+    _applyTimingSettings();
+  }
+
+  void _applyTimingSettings() {
+    final config = _config;
+    _controller.updateSettings(
+      animationDuration: _effectiveDuration,
+      cutoffForward: config.cutoffForward,
+      cutoffPrevious: config.cutoffPrevious,
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -400,6 +433,10 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       _preRenderManager.markDirtyWindow(_controller.currentIndex, _totalPages);
       _scheduleSnapshotRefresh(immediate: true);
     }
+    // Follows the system "reduce motion" setting, including live changes.
+    _systemReducesMotion =
+        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    _syncReducedMotion();
   }
 
   late PageFlipEffectHandler _effectHandler;
@@ -420,14 +457,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         : oldWidget.config.normalized;
     final config = _config;
 
+    final wasReduced = _reducedMotion;
+    _reducedMotion = config.respectReducedMotion && _systemReducesMotion;
     if (config.duration != oldConfig.duration ||
         config.cutoffForward != oldConfig.cutoffForward ||
-        config.cutoffPrevious != oldConfig.cutoffPrevious) {
-      _controller.updateSettings(
-        animationDuration: config.duration,
-        cutoffForward: config.cutoffForward,
-        cutoffPrevious: config.cutoffPrevious,
-      );
+        config.cutoffPrevious != oldConfig.cutoffPrevious ||
+        _reducedMotion != wasReduced) {
+      _applyTimingSettings();
     }
 
     // Update effect handler if changed in config, or if we are using the default
@@ -873,20 +909,20 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     callback();
   }
 
-  /// Navigates to the next page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
+  /// Navigates to the next page, animating the flip unless
+  /// [PageFlipConfig.skipTapAnimation] is set or the system reduces motion
+  /// (see [PageFlipConfig.respectReducedMotion]).
   void nextPage() {
-    final config = _config;
-    if (config.skipTapAnimation) {
+    if (_instantTurns) {
       _jumpWithFlipLifecycle(_controller.currentIndex + 1);
     } else {
       _controller.triggerTapFlip(isNext: true, totalPages: _totalPages);
     }
   }
 
-  /// Navigates to the previous page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
+  /// Navigates to the previous page. See [nextPage] for when it animates.
   void previousPage() {
-    final config = _config;
-    if (config.skipTapAnimation) {
+    if (_instantTurns) {
       _jumpWithFlipLifecycle(_controller.currentIndex - 1);
     } else {
       _controller.triggerTapFlip(isNext: false, totalPages: _totalPages);

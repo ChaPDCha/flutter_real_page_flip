@@ -221,6 +221,13 @@ void main() {
       },
     );
 
+    test('copyWith respectReducedMotion', () {
+      expect(base.respectReducedMotion, isTrue);
+      final copy = base.copyWith(respectReducedMotion: false);
+      expect(copy.respectReducedMotion, isFalse);
+      expect(copy, isNot(equals(base)));
+    });
+
     test('copyWith preserves unmodified fields', () {
       final copy = base.copyWith(duration: const Duration(milliseconds: 200));
       // All other fields should match base

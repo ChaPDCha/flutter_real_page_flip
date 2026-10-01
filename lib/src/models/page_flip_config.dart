@@ -104,6 +104,7 @@ class PageFlipConfig {
     this.sensitivity = 0.5,
     this.edgeTapWidthRatio = 0.1,
     this.skipTapAnimation = true,
+    this.respectReducedMotion = true,
     this.semanticBuilder,
     this.edgeTapPreviousLabel,
     this.edgeTapNextLabel,
@@ -354,6 +355,17 @@ class PageFlipConfig {
   /// Whether to skip animation on tap (instant flip).
   final bool skipTapAnimation;
 
+  /// Whether the engine follows the platform's "reduce motion" setting
+  /// (`MediaQueryData.disableAnimations`: iOS Reduce Motion, Android "Remove
+  /// animations", the browser's `prefers-reduced-motion`).
+  ///
+  /// While that setting is on, turns started by an edge tap, `nextPage` or
+  /// `previousPage` change page instantly, and a released drag snaps to its
+  /// destination without the settle animation. The finger still moves the page
+  /// directly while dragging. Defaults to `true`; set it to `false` to always
+  /// animate.
+  final bool respectReducedMotion;
+
   /// Builder for semantic labels (i18n support).
   final String Function(int index, int total)? semanticBuilder;
 
@@ -380,6 +392,7 @@ class PageFlipConfig {
     double? sensitivity,
     double? edgeTapWidthRatio,
     bool? skipTapAnimation,
+    bool? respectReducedMotion,
     String Function(int index, int total)? semanticBuilder,
     String? edgeTapPreviousLabel,
     String? edgeTapNextLabel,
@@ -428,6 +441,7 @@ class PageFlipConfig {
         sensitivity: sensitivity ?? this.sensitivity,
         edgeTapWidthRatio: edgeTapWidthRatio ?? this.edgeTapWidthRatio,
         skipTapAnimation: skipTapAnimation ?? this.skipTapAnimation,
+        respectReducedMotion: respectReducedMotion ?? this.respectReducedMotion,
         semanticBuilder: clearSemanticBuilder
             ? null
             : (semanticBuilder ?? this.semanticBuilder),
@@ -524,6 +538,7 @@ class PageFlipConfig {
         defaultSettings.edgeTapWidthRatio,
       ),
       skipTapAnimation: skipTapAnimation,
+      respectReducedMotion: respectReducedMotion,
       semanticBuilder: semanticBuilder,
       edgeTapPreviousLabel: edgeTapPreviousLabel,
       edgeTapNextLabel: edgeTapNextLabel,
@@ -618,6 +633,7 @@ class PageFlipConfig {
           sensitivity == other.sensitivity &&
           edgeTapWidthRatio == other.edgeTapWidthRatio &&
           skipTapAnimation == other.skipTapAnimation &&
+          respectReducedMotion == other.respectReducedMotion &&
           semanticBuilder == other.semanticBuilder &&
           enableHaptics == other.enableHaptics &&
           enableSound == other.enableSound &&
@@ -659,6 +675,7 @@ class PageFlipConfig {
         sensitivity,
         edgeTapWidthRatio,
         skipTapAnimation,
+        respectReducedMotion,
         semanticBuilder,
         enableHaptics,
         enableSound,
