@@ -1,7 +1,7 @@
 # Real Page Flip Engine for Flutter
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![tests](https://img.shields.io/badge/tests-1266%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
+[![tests](https://img.shields.io/badge/tests-1400%2B%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -31,7 +31,7 @@ device, reported by a real user, and fixed:
 | Extreme vertical drag causing layer seams | Fixed |
 | GPU memory leak from static shader cache | Fixed |
 
-1,233 tests. 0 analyzer issues. Free (MIT) for any project, commercial or personal.
+1,400+ tests. 0 analyzer issues. Free (MIT) for any project, commercial or personal.
 
 **This engine is different because it has already solved edge cases that only
 surface after thousands of real-world page turns.**
@@ -41,11 +41,11 @@ English | [한국어](README_KR.md)
 ## What Sets This Engine Apart
 
 - **Real-device verified**: Tested on budget iPhone SE and low-end Android devices — every listed bug was reported by an actual user and fixed.
-- **1,233 tests, 0 analyzer issues**: Covers gesture arbitration, geometry invariants, memory lifecycle, accessibility, and stress scenarios.
-- **Adaptive performance**: Three rendering profiles (low/medium/high) automatically scale to device capability.
+- **1,400+ tests, 0 analyzer issues**: Covers gesture arbitration, geometry invariants, memory lifecycle, accessibility, and stress scenarios.
+- **Tunable performance**: Three rendering profiles (low/medium/high) trade fidelity for speed. Pick one per device tier; the default is medium.
 - **Physics-modeled visuals**: Crease shadows, paper curl shading, and dark-paper moonlight tones derived from physical paper behavior.
 - **Complete sensory feedback**: Continuous haptic waveform pipeline synchronized with speed-varying page-rustle audio.
-- **Production architecture**: 31 focused source files with documented structure.
+- **Production architecture**: small, focused source files with documented structure.
 
 ## Demos
 
@@ -238,6 +238,25 @@ PageFlipWidget(
 )
 ```
 
+## Accessibility and input
+
+- **Reduce motion**: when the system setting is on (iOS Reduce Motion, Android
+  "Remove animations", the browser's `prefers-reduced-motion`), edge taps,
+  `nextPage` and `previousPage` change page at once and a released drag snaps
+  to its destination. The finger still moves the page directly while dragging.
+  Opt out with `PageFlipConfig(respectReducedMotion: false)`.
+- **Screen readers**: the book announces "Page N of M" and supports the
+  increase, decrease and scroll actions. Change the text with `semanticBuilder`.
+- **Keyboard** (opt-in): `PageFlipConfig(enableKeyboardNavigation: true)` turns
+  pages with Right/Left arrows, Page Down/Up and Space (Shift+Space goes back);
+  Home and End jump to the first and last page.
+- **Mouse wheel and trackpad** (opt-in):
+  `PageFlipConfig(enableWheelNavigation: true)` turns one page per scroll
+  gesture. A scrollable page keeps the wheel until it reaches its end.
+
+Not supported yet: right-to-left reading direction. The engine always turns
+pages like a left-to-right book.
+
 ## Double-spread (two-page) mode
 
 ```dart
@@ -300,7 +319,7 @@ computation, and shader performance before they reach users.
 ## Support the Project
 
 Real Page Flip is free (MIT) and always will be. Maintaining a production-grade
-engine — running 1,233 tests, verifying fixes across real devices, and keeping
+engine — running 1,400+ tests, verifying fixes across real devices, and keeping
 pace with Flutter releases — requires sustained investment.
 
 [Sponsor on GitHub →](https://github.com/sponsors/ChaPDCha)
