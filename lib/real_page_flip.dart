@@ -5,6 +5,11 @@
 
 export 'src/controllers/page_flip_state_controller.dart' show PageFlipEvent;
 export 'src/effects/page_flip_engine.dart' show clipSpreadPageHalf;
+// Dart-only plugin registration hook (pubspec.yaml `dartPluginClass`). Flutter's
+// generated registrant imports this library to find it; apps never call it.
+export 'src/linux/real_page_flip_linux.dart' show RealPageFlipLinux;
+// Dart-only plugin registration hook (see the Linux export above).
+export 'src/macos/real_page_flip_macos.dart' show RealPageFlipMacos;
 export 'src/models/haptic_quality.dart' show HapticQuality;
 export 'src/models/haptic_strength.dart' show HapticStrength;
 export 'src/models/page_flip_config.dart'
@@ -25,3 +30,5 @@ export 'src/physics/paper_physics_frame.dart' show PaperPhysicsFrame;
 export 'src/widgets/default_page_flip_effect_handler.dart'
     show DefaultPageFlipEffectHandler;
 export 'src/widgets/default_page_flip_sound.dart' show DefaultPageFlipSound;
+// Dart-only plugin registration hook (see the Linux export above).
+export 'src/windows/real_page_flip_windows.dart' show RealPageFlipWindows;

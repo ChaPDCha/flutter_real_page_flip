@@ -56,13 +56,30 @@
 - **No default sound on desktop (macOS, Windows, Linux).** Sound is an
   optional extra; desktop apps that want one pass a `PageFlipSoundPlayer`
   (see README → Custom sound). Haptics are unchanged.
-- **Minimum SDK raised to Dart 3.6 / Flutter 3.27.** The engine already used
-  APIs from that release (`Color.withValues`); the declared floor
-  (Flutter 3.10) could not actually build it.
+- **Minimum Flutter raised to 3.44.** The Android plugin uses AGP 9 built-in
+  Kotlin, which Flutter supports from 3.44; Flutter's migration guide for
+  plugin authors requires the plugin to declare that floor, so older Flutter
+  now fails at `pub get` instead of in the app's Android build. (The floor
+  declared by 2.x, Flutter 3.10, could not actually build the engine either.)
+  The Dart bound stays `>=3.6.0`: Flutter 3.44 already bundles Dart 3.12.
 - `RealPageFlipWeb.registerWith` now takes a `Registrar` (only called by the
   generated plugin registrant).
 - `DefaultPageFlipSound` debug getter `debugAllocatedPlayerCount` replaced
   by `debugLoadStarted`.
+
+### Added
+
+- **`tool/verify_consumer.dart`** builds a fresh Flutter app that depends on
+  this package, per platform. `dart tool/verify.dart --consumer` runs it after
+  the usual gates, and the on-demand Verify workflow (`platforms=true`) runs it
+  where a Windows dev machine cannot: Linux, macOS and iOS, and Android on the
+  declared Flutter floor. It exists because analyze, tests and
+  `pub publish --dry-run` cannot see packaging mistakes like the desktop one
+  under Fixed.
+- **Packaging contract tests** (`test/packaging/`): a platform without native
+  code may not declare a native `pluginClass`; every `dartPluginClass` must be
+  exported from `real_page_flip.dart`; the Flutter floor must match the
+  Android build.
 
 ### Changed
 
@@ -76,8 +93,26 @@
 - **Android:** `SoundPool` with sonification attributes; it does not request
   audio focus, so other apps' audio keeps playing.
 
+### Fixed
+
+- **Apps targeting Windows, macOS or Linux could not build.** pubspec.yaml
+  declared the desktop platforms as native plugins (`pluginClass`), but the
+  package has no native code for them. On Windows the app's CMake step failed
+  on the missing `windows/` directory (verified with a fresh app); Linux and
+  macOS use the same registration mechanism. Present in every release since
+  2.1.3. The desktop platforms are now Dart-only plugin platforms
+  (`dartPluginClass`), and the no-op `RealPageFlipWindows`,
+  `RealPageFlipMacos` and `RealPageFlipLinux` registration classes are
+  exported from `real_page_flip.dart`, which is the library Flutter's
+  generated registrant imports. A fresh app that depends on the package now
+  builds for Android, iOS (debug, unsigned), web (WASM), Windows, macOS and
+  Linux on the latest stable Flutter, and for Android, web, Windows and Linux
+  on the new floor, Flutter 3.44. These are build checks; haptics and sound
+  still need a device.
+
 ### Migration
 
+- Apps on Flutter older than 3.44 cannot use 3.x; upgrade Flutter first.
 - Using the default sound on Android/iOS/web: nothing to do.
 - Custom sound through `audioplayers`: add `audioplayers` to your own pubspec
   and implement `PageFlipSoundPlayer` (README has a complete example).

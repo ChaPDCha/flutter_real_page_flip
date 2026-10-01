@@ -1,5 +1,9 @@
 // Light local gate for vibe coding. Mirrors the manual "Verify" workflow.
-// Usage: dart tool/verify.dart
+// Usage: dart tool/verify.dart [--consumer[=windows,web,android]]
+//
+// --consumer also builds a fresh app that depends on this package (see
+// tool/verify_consumer.dart). It takes minutes, so it is opt-in: run it before
+// publishing, or after touching pubspec.yaml or the native plugin code.
 import 'dart:io';
 
 Future<int> _run(String exe, List<String> args, {String? cwd}) async {
@@ -101,8 +105,11 @@ Future<int> _publishDryRunFromCleanClone(String root) async {
   }
 }
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   final root = Directory.current.path;
+  final consumer = args
+      .where((a) => a == '--consumer' || a.startsWith('--consumer='))
+      .firstOrNull;
 
   // Check the developer's input before Flutter can refresh generated files
   // such as example/pubspec.lock. The release dry-run below always uses a
@@ -138,6 +145,17 @@ Future<void> main() async {
     'publish dry-run (clean committed package)',
     () => _publishDryRunFromCleanClone(root),
   );
+
+  if (consumer != null) {
+    final platforms = consumer.contains('=') ? consumer.split('=').last : null;
+    await _step(
+      'consumer app builds',
+      () => _run('dart', [
+        'tool/verify_consumer.dart',
+        if (platforms != null) '--platforms=$platforms',
+      ]),
+    );
+  }
 
   stdout.writeln('\nALL GATES PASSED');
 }

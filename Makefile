@@ -1,7 +1,7 @@
 # Flutter Real Page Flip - Makefile
 # Compatible with Linux, macOS, and Windows (Git Bash)
 
-.PHONY: test analyze check test-watch coverage format
+.PHONY: test analyze check test-watch coverage format consumer
 
 test:
 	flutter test
@@ -19,3 +19,7 @@ coverage:
 
 format:
 	dart format .
+
+# Builds a fresh app that depends on this package (host desktop + web).
+consumer:
+	dart tool/verify_consumer.dart

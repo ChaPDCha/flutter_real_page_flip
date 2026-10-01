@@ -20,8 +20,12 @@ screenshots:
     path: doc/screenshots/mobile_double_spread_demo.webp
 
 environment:
+  # The Android plugin uses AGP 9 built-in Kotlin, which Flutter supports from
+  # 3.44; Flutter's guide for plugin authors requires declaring that floor.
+  # Flutter 3.44 bundles Dart 3.12, so the Dart bound is implied. Raising it
+  # here would also switch `dart format` to the 3.7+ style for the whole tree.
   sdk: '>=3.6.0 <4.0.0'
-  flutter: ">=3.27.0"
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:
@@ -36,6 +40,7 @@ dev_dependencies:
   flutter_lints: ">=5.0.0 <7.0.0"
   path: ^1.8.3
   http: ^1.2.1
+  yaml: ^3.1.4
 
 false_secrets:
   - example/lib/shared/firebase/firebase_options.dart
@@ -51,15 +56,16 @@ flutter:
       web:
         pluginClass: RealPageFlipWeb
         fileName: src/web/real_page_flip_web.dart
+      # Desktop has no native code: Dart-only plugin classes, exported from
+      # lib/real_page_flip.dart (the generated registrant imports it). A native
+      # `pluginClass` here breaks every desktop build; see
+      # test/packaging/plugin_declaration_contract_test.dart.
       macos:
-        pluginClass: RealPageFlipMacos
-        fileName: src/macos/real_page_flip_macos.dart
+        dartPluginClass: RealPageFlipMacos
       windows:
-        pluginClass: RealPageFlipWindows
-        fileName: src/windows/real_page_flip_windows.dart
+        dartPluginClass: RealPageFlipWindows
       linux:
-        pluginClass: RealPageFlipLinux
-        fileName: src/linux/real_page_flip_linux.dart
+        dartPluginClass: RealPageFlipLinux
 
   assets:
     - assets/sounds/page_flip.mp3

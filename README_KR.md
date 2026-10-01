@@ -89,6 +89,17 @@ Real Page Flip은 현재 Google Play에 출시된 두 개의 앱에서 사용되
 flutter pub add real_page_flip
 ```
 
+Flutter 3.44 이상이 필요합니다.
+
+## 플랫폼 지원
+
+| 플랫폼 | 페이지 넘김·제스처 | 햅틱 | 기본 페이지 넘김 소리 |
+|--------|--------------------|------|------------------------|
+| Android | 지원 | 네이티브 진동 (모터가 지원하면 진폭·컴포지션 효과) | 지원 (`SoundPool`) |
+| iOS | 지원 | 네이티브 Core Haptics, 실패 시 UIKit 피드백 | 지원 (`AVAudioPlayer`) |
+| Web (CanvasKit + WASM) | 지원 | 브라우저가 진동을 지원하면 Flutter `HapticFeedback` | 지원 (`HTMLAudioElement`) |
+| Windows, macOS, Linux | 지원 (순수 Dart, 네이티브 코드 없음) | 없음 (Flutter `HapticFeedback`으로 폴백) | 없음 — `PageFlipSoundPlayer`를 직접 전달 |
+
 ## 빠른 시작
 
 ```dart
