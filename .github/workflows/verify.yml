@@ -4,8 +4,9 @@ name: Verify
 # - Daily work: local `dart tool/verify.dart` (no push/PR CI — saves minutes)
 # - Weekly safety net: cheap package gate on ubuntu (SDK/dep drift)
 # - On demand: workflow_dispatch; platforms only when explicitly enabled
-#   (example builds plus a fresh consumer app on each OS and on the declared
-#   Flutter floor)
+#   (example builds, plus a fresh consumer app only where a Windows dev machine
+#   cannot build: Linux, macOS and iOS, and Android on the declared Flutter
+#   floor). Run it deliberately and rarely; every job is capped by a timeout.
 #
 #   gh workflow run "Verify"
 #   gh workflow run "Verify" -f platforms=true
@@ -27,6 +28,7 @@ concurrency:
 jobs:
   package:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -54,6 +56,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.platforms }}
     needs: package
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
 
@@ -74,31 +77,31 @@ jobs:
         working-directory: example
         run: flutter build apk --debug --no-pub
 
-  # A fresh app that depends on this package, built on each OS and on the
-  # declared Flutter floor. This catches packaging mistakes (desktop declared
-  # as native, SDK floor, registrant exports) that analyze, test and
-  # `pub publish --dry-run` cannot see. Keep the floor entry in sync with
-  # `environment.flutter` in pubspec.yaml.
+  # A fresh app that depends on this package. This catches packaging mistakes
+  # (desktop declared as native, SDK floor, registrant exports) that analyze,
+  # test and `pub publish --dry-run` cannot see. Only what a Windows dev
+  # machine cannot check is built here; Windows, web and Android on the latest
+  # stable are covered locally by `dart tool/verify_consumer.dart`. Keep the
+  # floor entry in sync with `environment.flutter` in pubspec.yaml.
   consumer:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.platforms }}
     needs: package
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             flutter-version: ''
-            platforms: linux,web,android
-          - os: windows-latest
-            flutter-version: ''
-            platforms: windows,web
+            platforms: linux
           - os: macos-latest
             flutter-version: ''
-            platforms: macos,ios,web
+            platforms: macos,ios
+          # The build the floor exists for: Android's built-in Kotlin setup.
           - os: ubuntu-latest
             flutter-version: '3.44.0'
-            platforms: linux,web,android
+            platforms: android
     steps:
       - uses: actions/checkout@v7
 
@@ -109,7 +112,7 @@ jobs:
           cache: true
 
       - name: Linux desktop build tools
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ contains(matrix.platforms, 'linux') }}
         run: >
           sudo apt-get update &&
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev

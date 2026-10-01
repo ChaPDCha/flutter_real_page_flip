@@ -25,9 +25,10 @@
 - **`tool/verify_consumer.dart`** builds a fresh Flutter app that depends on
   this package, per platform. `dart tool/verify.dart --consumer` runs it after
   the usual gates, and the on-demand Verify workflow (`platforms=true`) runs it
-  on Linux, Windows and macOS and on the declared Flutter floor. It exists
-  because analyze, tests and `pub publish --dry-run` cannot see packaging
-  mistakes like the desktop one under Fixed.
+  where a Windows dev machine cannot: Linux, macOS and iOS, and Android on the
+  declared Flutter floor. It exists because analyze, tests and
+  `pub publish --dry-run` cannot see packaging mistakes like the desktop one
+  under Fixed.
 - **Packaging contract tests** (`test/packaging/`): a platform without native
   code may not declare a native `pluginClass`; every `dartPluginClass` must be
   exported from `real_page_flip.dart`; the Flutter floor must match the
