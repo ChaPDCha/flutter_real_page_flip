@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 // LAYOUT GATE: Single constraint gate (LayoutBuilder + needBounded -> SizedBox, constrainedSize to layer view).
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
 
@@ -909,6 +911,97 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     callback();
   }
 
+  // -- Keyboard and mouse wheel (both opt-in) ------------------------------
+
+  /// Events closer together than this belong to one wheel gesture.
+  static const Duration _wheelBurstGap = Duration(milliseconds: 250);
+
+  /// Scrolled distance (logical pixels) within one wheel gesture that turns a
+  /// page. Small enough for one mouse notch, large enough to ignore a graze.
+  static const double _wheelTurnDistance = 20;
+
+  Duration? _lastWheelEventTime;
+  double _wheelDelta = 0;
+  bool _wheelTurned = false;
+
+  Widget _withKeyboard(PageFlipConfig config, Widget child) =>
+      config.enableKeyboardNavigation
+          ? Focus(autofocus: true, onKeyEvent: _onKeyEvent, child: child)
+          : child;
+
+  Widget _withWheel(PageFlipConfig config, Widget child) =>
+      config.enableWheelNavigation
+          ? Listener(onPointerSignal: _onPointerSignal, child: child)
+          : child;
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final keyboard = HardwareKeyboard.instance;
+    // Shortcuts such as Ctrl+Home belong to the host.
+    if (keyboard.isControlPressed ||
+        keyboard.isAltPressed ||
+        keyboard.isMetaPressed) {
+      return KeyEventResult.ignored;
+    }
+
+    final key = event.logicalKey;
+    final shift = keyboard.isShiftPressed;
+    if (key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.pageDown ||
+        (key == LogicalKeyboardKey.space && !shift)) {
+      nextPage();
+    } else if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.pageUp ||
+        (key == LogicalKeyboardKey.space && shift)) {
+      previousPage();
+    } else if (key == LogicalKeyboardKey.home) {
+      _jumpWithFlipLifecycle(0);
+    } else if (key == LogicalKeyboardKey.end) {
+      _jumpWithFlipLifecycle(_totalPages - 1);
+    } else {
+      return KeyEventResult.ignored;
+    }
+    return KeyEventResult.handled;
+  }
+
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    // Ctrl or Cmd with the wheel is zoom in browsers and many desktop apps.
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isControlPressed || keyboard.isMetaPressed) return;
+    // Only the first registered handler acts on a signal. Content deeper in the
+    // tree registers first, so a scrollable page that can still scroll keeps
+    // its wheel; at its end, or on a page that does not scroll, the book turns.
+    GestureBinding.instance.pointerSignalResolver
+        .register(event, _turnFromWheel);
+  }
+
+  void _turnFromWheel(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    final scroll = event.scrollDelta;
+    final delta = scroll.dy.abs() >= scroll.dx.abs() ? scroll.dy : scroll.dx;
+    if (delta == 0) return;
+
+    // One turn per burst of events: a mouse notch, or the long tail of a
+    // trackpad fling, must not skip several pages.
+    final previous = _lastWheelEventTime;
+    _lastWheelEventTime = event.timeStamp;
+    if (previous == null || event.timeStamp - previous > _wheelBurstGap) {
+      _wheelDelta = 0;
+      _wheelTurned = false;
+    }
+    if (_wheelTurned) return;
+
+    _wheelDelta += delta;
+    if (_wheelDelta.abs() < _wheelTurnDistance) return;
+    _wheelTurned = true;
+    if (_wheelDelta > 0) {
+      nextPage();
+    } else {
+      previousPage();
+    }
+  }
+
   /// Navigates to the next page, animating the flip unless
   /// [PageFlipConfig.skipTapAnimation] is set or the system reduces motion
   /// (see [PageFlipConfig.respectReducedMotion]).
@@ -1108,7 +1201,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
             onScrollLeft:
                 _controller.currentIndex < _totalPages - 1 ? nextPage : null,
             onScrollRight: _controller.currentIndex > 0 ? previousPage : null,
-            child: mainContent,
+            child: _withKeyboard(config, _withWheel(config, mainContent)),
           );
           if (needBounded) {
             return SizedBox(width: maxW, height: maxH, child: semantics);

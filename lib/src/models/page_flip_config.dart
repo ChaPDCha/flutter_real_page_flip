@@ -105,6 +105,8 @@ class PageFlipConfig {
     this.edgeTapWidthRatio = 0.1,
     this.skipTapAnimation = true,
     this.respectReducedMotion = true,
+    this.enableKeyboardNavigation = false,
+    this.enableWheelNavigation = false,
     this.semanticBuilder,
     this.edgeTapPreviousLabel,
     this.edgeTapNextLabel,
@@ -366,6 +368,25 @@ class PageFlipConfig {
   /// animate.
   final bool respectReducedMotion;
 
+  /// Whether the arrow, page, space, home and end keys turn pages.
+  ///
+  /// Right arrow, Page Down and Space go forward; Left arrow, Page Up and
+  /// Shift+Space go back; Home and End jump to the first and last page.
+  /// Combinations with Ctrl, Alt or Meta are left to the host. The book asks
+  /// for focus when it is built and nothing else holds it; key events from
+  /// focusable page content (a text field, say) reach the book only when that
+  /// content does not use them. Off by default so existing hosts keep their own
+  /// shortcuts.
+  final bool enableKeyboardNavigation;
+
+  /// Whether the mouse wheel and a trackpad's scrolling turn pages.
+  ///
+  /// Scrolling down (or right) goes forward and up (or left) goes back, one page
+  /// per burst of events, so a trackpad fling does not skip several pages.
+  /// Ctrl and Meta are left alone so wheel zoom keeps working. While this is on
+  /// the wheel no longer scrolls content inside a page. Off by default.
+  final bool enableWheelNavigation;
+
   /// Builder for semantic labels (i18n support).
   final String Function(int index, int total)? semanticBuilder;
 
@@ -393,6 +414,8 @@ class PageFlipConfig {
     double? edgeTapWidthRatio,
     bool? skipTapAnimation,
     bool? respectReducedMotion,
+    bool? enableKeyboardNavigation,
+    bool? enableWheelNavigation,
     String Function(int index, int total)? semanticBuilder,
     String? edgeTapPreviousLabel,
     String? edgeTapNextLabel,
@@ -442,6 +465,10 @@ class PageFlipConfig {
         edgeTapWidthRatio: edgeTapWidthRatio ?? this.edgeTapWidthRatio,
         skipTapAnimation: skipTapAnimation ?? this.skipTapAnimation,
         respectReducedMotion: respectReducedMotion ?? this.respectReducedMotion,
+        enableKeyboardNavigation:
+            enableKeyboardNavigation ?? this.enableKeyboardNavigation,
+        enableWheelNavigation:
+            enableWheelNavigation ?? this.enableWheelNavigation,
         semanticBuilder: clearSemanticBuilder
             ? null
             : (semanticBuilder ?? this.semanticBuilder),
@@ -539,6 +566,8 @@ class PageFlipConfig {
       ),
       skipTapAnimation: skipTapAnimation,
       respectReducedMotion: respectReducedMotion,
+      enableKeyboardNavigation: enableKeyboardNavigation,
+      enableWheelNavigation: enableWheelNavigation,
       semanticBuilder: semanticBuilder,
       edgeTapPreviousLabel: edgeTapPreviousLabel,
       edgeTapNextLabel: edgeTapNextLabel,
@@ -634,6 +663,8 @@ class PageFlipConfig {
           edgeTapWidthRatio == other.edgeTapWidthRatio &&
           skipTapAnimation == other.skipTapAnimation &&
           respectReducedMotion == other.respectReducedMotion &&
+          enableKeyboardNavigation == other.enableKeyboardNavigation &&
+          enableWheelNavigation == other.enableWheelNavigation &&
           semanticBuilder == other.semanticBuilder &&
           enableHaptics == other.enableHaptics &&
           enableSound == other.enableSound &&
@@ -676,6 +707,8 @@ class PageFlipConfig {
         edgeTapWidthRatio,
         skipTapAnimation,
         respectReducedMotion,
+        enableKeyboardNavigation,
+        enableWheelNavigation,
         semanticBuilder,
         enableHaptics,
         enableSound,
