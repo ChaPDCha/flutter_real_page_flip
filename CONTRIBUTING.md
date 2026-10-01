@@ -28,6 +28,9 @@ Please be respectful and professional in all interactions.
 2. Run `flutter pub get` in the package root.
 3. Use the `example/` project to test your changes.
 4. Run existing tests with `flutter test`.
+5. After changing `pubspec.yaml` or the native plugin code, run
+   `dart tool/verify.dart --consumer`. It builds a fresh app that depends on
+   the package, which catches packaging mistakes that tests cannot see.
 
 ---
 

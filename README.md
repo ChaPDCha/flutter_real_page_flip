@@ -102,6 +102,17 @@ Internal constraint gate prevents "unbounded height" errors in common `Stack`,
 flutter pub add real_page_flip
 ```
 
+Requires Flutter 3.44 or newer.
+
+## Platform support
+
+| Platform | Page flip and gestures | Haptics | Default page-turn sound |
+|----------|------------------------|---------|-------------------------|
+| Android | Yes | Native vibration, with amplitude and composition effects where the motor supports them | Yes (`SoundPool`) |
+| iOS | Yes | Native Core Haptics, UIKit feedback as a fallback | Yes (`AVAudioPlayer`) |
+| Web (CanvasKit + WASM) | Yes | Flutter's `HapticFeedback`, where the browser supports vibration | Yes (`HTMLAudioElement`) |
+| Windows, macOS, Linux | Yes (pure Dart, no native code) | None; calls fall back to Flutter's `HapticFeedback` | None; pass a `PageFlipSoundPlayer` |
+
 ## Quick Start
 
 ```dart
