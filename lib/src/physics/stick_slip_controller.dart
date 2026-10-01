@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 /// Continuous modulation output from the stick-slip controller.
@@ -69,6 +71,15 @@ class StickSlipController {
         _now = now,
         _lastUpdateTime = now();
 
+  /// Slip-tail decay factor per reference frame.
+  static const double _decayPerFrame = 0.85;
+
+  /// Duration of the reference frame (60 Hz) the decay factor is defined for.
+  static const double _referenceFrameMicros = 1000000 / 60;
+
+  /// Longest gap (in reference frames) a single update may account for.
+  static const double _maxDecayFrames = 60;
+
   final DateTime Function() _now;
   int _stationaryThresholdMs;
   double _slipVelocityThreshold;
@@ -99,7 +110,8 @@ class StickSlipController {
   /// so the caller's tick stream is never interrupted.
   StickSlipModulation update(double velocity) {
     final now = _now();
-    final dt = now.difference(_lastUpdateTime).inMilliseconds.toDouble();
+    final elapsed = now.difference(_lastUpdateTime);
+    final dt = elapsed.inMilliseconds.toDouble();
 
     if (!_initialized) {
       _initialized = true;
@@ -175,9 +187,15 @@ class StickSlipController {
     var amplitudeBoost = 0.0;
     var sharpnessShift = 0.0;
 
-    // Decaying tail from the last slip release.
+    // Decaying tail from the last slip release. It fades by elapsed time
+    // (0.85 per 60 Hz frame), not once per update: touch events arrive at
+    // 90/120/240 Hz on current devices, and a per-update decay made the tail
+    // last half as long at 120 Hz. A clock that steps back never grows it.
     if (_decayAccumulator > 0.001) {
-      _decayAccumulator *= 0.85; // exponential decay per frame (~60 fps)
+      final frames = (elapsed.inMicroseconds / _referenceFrameMicros)
+          .clamp(0.0, _maxDecayFrames)
+          .toDouble();
+      _decayAccumulator *= math.pow(_decayPerFrame, frames);
       amplitudeBoost += _decayAccumulator * 0.3;
       sharpnessShift += _decayAccumulator * 0.15;
     } else {
