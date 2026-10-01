@@ -238,7 +238,10 @@ class PageFlipGeometry {
 
     final angleT = math.pow(clampedProgress, 0.82).toDouble();
     final angleProfile = math.sin(angleT * math.pi);
-    final normalizedTouchY = height <= 0
+    // A non-finite touch (a pointer reported before layout, or a caller that
+    // skipped `clampFlipTouchPosition`) steers like a centred finger: a level
+    // fold. `clamp` alone would silently turn NaN into the maximum tilt.
+    final normalizedTouchY = height <= 0 || !touchOffset.dy.isFinite
         ? 0.5
         : (touchOffset.dy / height).clamp(0.0, 1.0).toDouble();
     final baseAngle = (normalizedTouchY - 0.5) * kAngleScale * angleProfile;

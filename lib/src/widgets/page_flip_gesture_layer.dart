@@ -40,6 +40,26 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
   VelocityTracker? _velocityTracker;
 
   @override
+  void dispose() {
+    // The layer can unmount while a finger still owns a turn (e.g. the host
+    // sets `enableSwipe: false` mid-drag). Its release would never arrive, so
+    // the page stayed frozen mid-turn with content hit-testing blocked and
+    // all navigation refused. End the gesture as a cancel instead — after the
+    // frame, because the controller notifies the (currently building) parent.
+    if (_flipActive) {
+      final controller = widget.controller;
+      final totalPages = widget.totalPages;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller
+          ..onDragCancel(totalPages)
+          ..endPointerCapture();
+      });
+      WidgetsBinding.instance.scheduleFrame();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => Listener(
         behavior: HitTestBehavior.translucent,
         onPointerDown: _onPointerDown,

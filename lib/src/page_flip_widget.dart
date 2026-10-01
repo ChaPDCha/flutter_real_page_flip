@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 // LAYOUT GATE: Single constraint gate (LayoutBuilder + needBounded -> SizedBox, constrainedSize to layer view).
 // Do not remove. See README_LAYOUT_CONSTRAINTS.md in package root and docs/flutter_layout_constraints_guide.md.
 
@@ -26,16 +27,20 @@ class PageFlipController {
   bool get isAttached => _state != null;
 
   /// Navigates to the next page.
+  ///
+  /// Like every navigation call, ignored at the book boundary and while a
+  /// finger or another turn owns the page; a refused call reports no
+  /// `onFlipStart` / `onFlipEnd`.
   void nextPage() {
     _state?.nextPage();
   }
 
-  /// Navigates to the previous page.
+  /// Navigates to the previous page. See [nextPage] for refusal rules.
   void previousPage() {
     _state?.previousPage();
   }
 
-  /// Navigates to the specified page index.
+  /// Navigates to the specified page index. See [nextPage] for refusal rules.
   Future<void> goToPage(int index) => _state?.goToPage(index) ?? Future.value();
 
   /// Marks one page's live content as changed.
@@ -351,7 +356,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   }
 
   void _onFlipEnd() {
-    widget.onFlipEnd?.call();
+    _notifyHost(widget.onFlipEnd);
     final deferred = _deferredStructuralChange;
     if (deferred != null && mounted && !_isFlipActive) {
       _deferredStructuralChange = null;
@@ -527,6 +532,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       } else {
         final pending = _deferredStructuralChange;
         _deferredStructuralChange = null;
+        if (_isFlipActive) {
+          // The turn cannot finish validly under the new count (its current
+          // or destination page is gone). Letting it run on used to finalize
+          // `currentIndex ± 1` past the new last page: the host's
+          // `itemBuilder` was then asked for an index it no longer has.
+          _controller.cancelActiveFlip();
+        }
         _applyStructuralChange(pending?.mergedWith(change) ?? change);
       }
     } else {
@@ -828,9 +840,35 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   /// when no frame of the turn is ever drawn. `goToPage` schedules the
   /// post-navigation capture the next turn actually needs.
   void _jumpWithFlipLifecycle(int target) {
+    // A refused jump (book boundary, or a gesture/turn already owns the page)
+    // is not a turn: report no lifecycle for it, exactly like the animated
+    // path, whose `triggerTapFlip` refuses silently.
+    if (!_canJumpTo(target)) return;
     widget.onFlipStart?.call();
     goToPage(target);
     _onFlipEnd();
+  }
+
+  /// Whether [goToPage] would navigate to [index] right now.
+  bool _canJumpTo(int index) =>
+      index >= 0 &&
+      index < _totalPages &&
+      index != _controller.currentIndex &&
+      !_controller.isBusy;
+
+  /// Calls a host lifecycle callback, deferring it past the current build.
+  ///
+  /// A turn can be aborted from `didUpdateWidget` (the host shrank the book
+  /// under it). Host callbacks commonly call `setState`, which is illegal on
+  /// an ancestor while the framework is building, so they run after the frame.
+  void _notifyHost(VoidCallback? callback) {
+    if (callback == null) return;
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => callback());
+      return;
+    }
+    callback();
   }
 
   /// Navigates to the next page, animating the flip if [PageFlipConfig.skipTapAnimation] is false.
@@ -859,15 +897,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   /// does NOT fire `onFlipStart` / `onFlipEnd` callbacks. It is intended for
   /// programmatic navigation where gesture lifecycle callbacks are not desired.
   /// The `onPageChanged` callback still fires so consumers can update UI state.
+  ///
+  /// Ignored for an out-of-range or current [index], and while a finger or a
+  /// turn owns the page (`PageFlipStateController.isBusy`).
   Future<void> goToPage(int index) async {
-    if (index < 0 || index >= _totalPages) return;
-    if (index == _controller.currentIndex) return;
-    // Prevent re-entrance during active drag, animation, or pending finalize.
-    if (_controller.isDragging ||
-        _controller.animationController.isAnimating ||
-        _controller.isPendingFinalize) {
-      return;
-    }
+    // Refused while a finger, drag, settle, or pending finalize owns the page:
+    // a jump under an owned turn would let two actors drive one page.
+    if (!_canJumpTo(index)) return;
 
     setState(() {
       _controller.setIndex(index, _totalPages);
@@ -1020,8 +1056,14 @@ class PageFlipWidgetState extends State<PageFlipWidget>
                 ) ??
                 'Page ${_controller.currentIndex + 1} of $_totalPages',
             value: '${_controller.currentIndex + 1}',
-            increasedValue: '${_controller.currentIndex + 2}',
-            decreasedValue: '${_controller.currentIndex}',
+            // Only announce values the matching action can reach: at the last
+            // page there is no "page N+1", at the first no "page 0".
+            increasedValue: _controller.currentIndex < _totalPages - 1
+                ? '${_controller.currentIndex + 2}'
+                : null,
+            decreasedValue: _controller.currentIndex > 0
+                ? '${_controller.currentIndex}'
+                : null,
             onIncrease:
                 _controller.currentIndex < _totalPages - 1 ? nextPage : null,
             onDecrease: _controller.currentIndex > 0 ? previousPage : null,
