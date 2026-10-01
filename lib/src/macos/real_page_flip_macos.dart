@@ -1,5 +1,16 @@
-/// No-op macOS platform stub.
+/// Registration hook for macOS, which has no native code.
 ///
-/// All haptic calls throw MissingPluginException and fall back to Flutter's
-/// built-in HapticFeedback API (light/medium/heavy impact).
-class RealPageFlipMacos {}
+/// The engine is pure Dart on desktop, so `pubspec.yaml` declares macOS as a
+/// Dart-only plugin platform (`dartPluginClass`). Flutter's generated plugin
+/// registrant calls [registerWith] at startup; it intentionally does nothing.
+///
+/// Haptic calls have no native counterpart here and fall back to Flutter's
+/// built-in `HapticFeedback`. The default page-turn sound is not available on
+/// desktop: pass a `PageFlipSoundPlayer`.
+// ignore: avoid_classes_with_only_static_members
+class RealPageFlipMacos {
+  RealPageFlipMacos._();
+
+  /// Called by Flutter's generated plugin registrant; intentionally empty.
+  static void registerWith() {}
+}
