@@ -1,3 +1,57 @@
+## [3.1.1] - 2026-10-02
+
+### Fixed
+
+- **A page turned right after a fold, unfold or rotation is stretched for a
+  frame or two, no longer for a third of a second.** After a resize the
+  snapshots were replaced only once a 300 ms debounce, meant for continuous
+  resizes, had run. For that long the page revealed behind the fold was an
+  image of the *old* proportions squeezed into the new ones: unfolding a
+  Galaxy Z Fold8 from its cover (10:16) to the inner display (4:3) stretched a
+  circle into an ellipse 2.1x wide. A change of shape beyond 10% in one step
+  (fold, unfold, rotation, entering split screen) now recaptures on the next
+  frame, one frame after the new layout instead of about 350 ms. A pure scale
+  change and the small per-frame steps of a window drag keep the debounce. A
+  keyboard animation does too, unless a single frame changes the shape by more
+  than 10% (a short landscape viewport can), which recaptures once per such
+  frame.
+- **Switching between single page and spread while a page is in the air now
+  ends that turn.** The turn used to be deferred and finish under the new
+  layout, delivering `onPageChanged` with an index of the old numbering (page
+  8) to a host that already counted spreads. A host that mapped it as a spread
+  index (8 becomes page 16) lost the reader's place. The turn is now cancelled
+  like one whose pages were removed: `onFlipEnd` fires once, `onPageChanged`
+  does not, and the book lands on the `initialIndex` the host passes.
+- **A spread-mode switch recaptures at once.** The switch empties the snapshot
+  cache, and the capture that followed waited out the debounce: the book had no
+  snapshots for 300 ms, and an immediate capture already in flight (a shape
+  jump one frame earlier) was discarded.
+- **An immediate snapshot refresh is no longer downgraded.** A request that
+  could not wait was dropped to the debounced path when a debounced request
+  was already queued for the same frame (for example a pixel-ratio change one
+  frame after a small resize).
+
+### Documentation
+
+- README: *Foldables, dual-screen devices and window resizing* covers choosing
+  single page or spread from the window shape, carrying the reader's page
+  across the switch, the fold and hinge (`MediaQuery.displayFeatures` is filled
+  only on Android, so iPhone Duo is shape-based), and the Android
+  `configChanges` a foldable needs.
+
+### Tests
+
+- `page_flip_foldable_test.dart` and `page_flip_foldable_mode_switch_test.dart`
+  replay folds, unfolds and rotations between the display shapes of the Galaxy
+  Z Fold8 and Fold8 Ultra (and assumed 4:3 and 3:4 shapes for the iPhone Duo)
+  in both modes: the capture window follows the new shape within a few frames,
+  a turn after the jump draws no stretched page, replacing never leaves blank
+  paper, a resize leaves a turn in the air its images, a mode switch ends such a
+  turn, and the README host pattern keeps the reader on the same page. A seeded
+  90-step soak of folds, rotations, mode switches and turns keeps the index in
+  range, the flip lifecycle balanced and the final capture window fresh.
+  `snapshot_resize_policy_test.dart` covers the shape-change rule itself.
+
 ## [3.1.0] - 2026-10-02
 
 ### Added

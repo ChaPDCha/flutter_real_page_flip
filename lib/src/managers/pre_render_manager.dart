@@ -263,6 +263,46 @@ class PreRenderManager {
     return math.max(_minSnapshotPixelRatio, cappedRatio);
   }
 
+  /// How far the viewport's width-to-height ratio may drift before a snapshot
+  /// taken at the old shape looks stretched in the new one.
+  ///
+  /// Snapshots are drawn with `BoxFit.fill`, so a stale image is stretched by
+  /// exactly the change of shape. Around 10% a circle starts to read as an
+  /// ellipse; below that the error hides in motion.
+  static const double snapshotShapeTolerance = 0.1;
+
+  /// Whether snapshots captured at viewport [from] would be visibly stretched
+  /// once drawn into viewport [to].
+  ///
+  /// True for the jumps a foldable or a rotation makes in one step (cover to
+  /// inner display, portrait to landscape): their stale snapshots must be
+  /// replaced at once. False for a pure scale change, where the same shape is
+  /// merely a little soft until the recapture, and for the small per-frame
+  /// steps of a window drag, which stay on the debounced path so they do not
+  /// trigger a capture per frame.
+  ///
+  /// It compares consecutive sizes, not the shape of the images held. A slow
+  /// change that adds up to more than 10% in many small steps therefore gets
+  /// one recapture when it stops, and an animation whose single steps exceed
+  /// 10% (a keyboard rising over a short landscape viewport can) recaptures at
+  /// each such step.
+  ///
+  /// A collapsed or non-finite [from] holds no usable snapshot, so any usable
+  /// [to] counts as a jump. An unusable [to] never does: nothing is visible.
+  static bool resizeDistortsSnapshots(Size from, Size to) {
+    bool usable(Size size) =>
+        size.width.isFinite &&
+        size.height.isFinite &&
+        size.width > 0 &&
+        size.height > 0;
+
+    if (!usable(to)) return false;
+    if (!usable(from)) return true;
+    final ratio = (to.width / to.height) / (from.width / from.height);
+    final stretch = ratio >= 1 ? ratio : 1 / ratio;
+    return stretch - 1 > snapshotShapeTolerance;
+  }
+
   /// True when [index] is queued or actively being captured.
   @visibleForTesting
   bool isCapturePending(int index) =>

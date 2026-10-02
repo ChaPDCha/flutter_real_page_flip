@@ -195,6 +195,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   bool _pendingLayoutCallback = false;
   bool _pendingSnapshotRefresh = false;
   bool _snapshotRefreshScheduled = false;
+  bool _snapshotRefreshImmediate = false;
 
   int get _totalPages => widget.itemCount < 0 ? 0 : widget.itemCount;
 
@@ -374,21 +375,28 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   }
 
   void _handleSizeChange(Size newSize) {
-    if (_lastConstrainedSize == null) {
+    final previous = _lastConstrainedSize;
+    if (previous == null) {
       _lastConstrainedSize = newSize;
       return;
     }
-    if (_lastConstrainedSize != newSize) {
-      _lastConstrainedSize = newSize;
-      // Mark stale instead of flushing. Flushing disposed every image
-      // immediately — including ones an in-flight flip's painter still
-      // references (keyboard insets and rotation can resize mid-turn) — and
-      // left the next flip with blank paper until the async recapture landed.
-      // Stale images stay until their replacement succeeds, and the refresh
-      // itself waits for any active flip to end.
-      _preRenderManager.markDirtyWindow(_controller.currentIndex, _totalPages);
-      _scheduleSnapshotRefresh(immediate: false);
-    }
+    if (previous == newSize) return;
+    _lastConstrainedSize = newSize;
+    // Mark stale instead of flushing. Flushing disposed every image
+    // immediately — including ones an in-flight flip's painter still
+    // references (keyboard insets and rotation can resize mid-turn) — and
+    // left the next flip with blank paper until the async recapture landed.
+    // Stale images stay until their replacement succeeds, and the refresh
+    // itself waits for any active flip to end.
+    _preRenderManager.markDirtyWindow(_controller.currentIndex, _totalPages);
+    // A fold, an unfold or a rotation changes the page's shape in one step,
+    // and until the recapture lands every stale snapshot is drawn stretched
+    // into the new viewport. Replace those at once. The small per-frame steps
+    // of a window drag or a typical keyboard animation keep the debounce, so
+    // they do not capture on every frame.
+    _scheduleSnapshotRefresh(
+      immediate: PreRenderManager.resizeDistortsSnapshots(previous, newSize),
+    );
   }
 
   double? _lastDependencyPixelRatio;
@@ -563,7 +571,12 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         jumpTo: indexChangedExternally ? widget.initialIndex : null,
         layoutChanged: spreadModeChanged,
       );
-      if (_isFlipActive && _inFlightTurnStillValid()) {
+      // A spread-mode switch gives every index a new meaning (page 7 becomes
+      // spread 3), so a turn in the air can never finish validly under it: its
+      // destination would reach the host as an index of the OLD numbering,
+      // after the host already counts in the new one. Such a turn is ended,
+      // like one whose pages were removed.
+      if (_isFlipActive && !spreadModeChanged && _inFlightTurnStillValid()) {
         // Never restructure under a page that is in the air: resetting here
         // disposed the snapshots the flip was painting and moved
         // `currentIndex` mid-turn, so the finalize then advanced from the
@@ -575,10 +588,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         final pending = _deferredStructuralChange;
         _deferredStructuralChange = null;
         if (_isFlipActive) {
-          // The turn cannot finish validly under the new count (its current
-          // or destination page is gone). Letting it run on used to finalize
-          // `currentIndex ± 1` past the new last page: the host's
-          // `itemBuilder` was then asked for an index it no longer has.
+          // The turn cannot finish validly under the new structure: its
+          // current or destination page is gone, or every index now means a
+          // different page. Letting it run on used to finalize
+          // `currentIndex ± 1` past the new last page (the host's
+          // `itemBuilder` was asked for an index it no longer has) or report
+          // an index of the old numbering. `onFlipEnd` still fires once;
+          // `onPageChanged` does not.
           _controller.cancelActiveFlip();
         }
         _applyStructuralChange(pending?.mergedWith(change) ?? change);
@@ -649,12 +665,16 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // and is harmless: `prepareKeys` is `putIfAbsent`-based.
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
 
-    // Schedule a new capture frame
+    // Schedule a new capture frame. The cache was just emptied, so there is
+    // nothing stale to protect and nothing to debounce: wait only for the
+    // frame that mounts the new pages. A debounced capture here would also
+    // supersede an immediate one already in flight (a shape jump a frame
+    // earlier) and leave the book without snapshots for 300 ms.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
         setState(() {});
-        _captureSnapshots();
+        _captureSnapshots(immediate: true);
       }
     });
 
@@ -742,6 +762,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   void _scheduleSnapshotRefresh({required bool immediate}) {
     _pendingSnapshotRefresh = true;
+    // A request that cannot wait must not be downgraded by an earlier,
+    // debounced one whose post-frame callback has not run yet.
+    _snapshotRefreshImmediate = _snapshotRefreshImmediate || immediate;
     if (_snapshotRefreshScheduled || _isFlipActive) return;
 
     _snapshotRefreshScheduled = true;
@@ -751,7 +774,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       if (_isFlipActive) return;
 
       _pendingSnapshotRefresh = false;
-      _captureSnapshots(immediate: immediate);
+      final captureNow = _snapshotRefreshImmediate;
+      _snapshotRefreshImmediate = false;
+      _captureSnapshots(immediate: captureNow);
     });
     // addPostFrameCallback does not itself request a frame when this API is
     // called from an idle host controller.
