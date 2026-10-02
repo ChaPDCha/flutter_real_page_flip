@@ -273,6 +273,62 @@ PageFlipWidget(
 | `itemCount` | Number of spreads (e.g. `ceil(pageCount / 2)`). |
 | Spine reveal | Forward reveals the left half of the next spread; backward the right half of the previous. |
 
+## Foldables, dual-screen devices and window resizing
+
+The engine fills whatever box it is given and adapts to any shape, so it needs
+no foldable-specific setup. Folding, unfolding, rotating and entering split
+screen all just change that box. When the shape changes by more than about
+10% in one step, the page snapshots are recaptured on the very next frame
+instead of after a 300 ms wait, so a page turned right after unfolding is
+stretched for a frame or two at most. The test suite replays folds, unfolds and
+rotations between the display shapes of the Galaxy Z Fold8 and Fold8 Ultra (and
+a 4:3 and a 3:4 shape standing in for the iPhone Duo, whose ratio Apple does
+not state), in both single-page and double-spread mode. It has not run on the
+devices.
+
+**You choose single page or two-page spread.** The engine does not switch by
+itself. A shape-based rule works on every platform. A Galaxy Z Fold8 opened
+like a book (a 4:3 inner display, folded down the middle) is the natural fit for
+a spread, and the iPhone Duo is a book-style foldable too:
+
+```dart
+LayoutBuilder(
+  builder: (context, constraints) {
+    final spread = constraints.maxWidth >= constraints.maxHeight * 1.2;
+    return PageFlipWidget(
+      spreadMode:
+          spread ? PageFlipSpreadMode.doubleSpread : PageFlipSpreadMode.single,
+      // Carry the reader's place across the switch: one spread holds two pages.
+      itemCount: spread ? (pageCount + 1) ~/ 2 : pageCount,
+      initialIndex: spread ? page ~/ 2 : page,
+      onPageChanged: (index) => setState(() => page = spread ? index * 2 : index),
+      itemBuilder: (context, index) =>
+          spread ? MyTwoPageSpread(index) : MyPage(index),
+    );
+  },
+)
+```
+
+Switching mode while a page is in the air ends that turn: `onFlipEnd` fires
+once, `onPageChanged` does not (the turn was counted in the old numbering), and
+the book lands on the `initialIndex` you pass.
+
+**The fold and the hinge.** In double-spread mode the spine is the middle of the
+widget, which is where these devices fold when the book fills the display. The
+engine itself does not read `MediaQuery.displayFeatures`, and Flutter fills that
+list **only on Android**, so on iOS (iPhone Duo) decide from the window shape as
+above. On Android, `MediaQuery.displayFeaturesOf(context)` reports a `fold`
+(a crease that does not hide pixels, like the Galaxy Z Fold) or a `hinge` (a
+gap that hides part of the screen, like a dual-screen device), with the posture
+(`postureFlat`, `postureHalfOpened`). If a hinge hides pixels, leave a gutter in
+your spread content, or wrap the book in `DisplayFeatureSubScreen` to keep it on
+one screen.
+
+**Android manifest.** Keep `orientation|screenSize|smallestScreenSize|screenLayout|density`
+in the activity's `android:configChanges` (Flutter's default template does).
+Without them Android restarts the activity at every fold, and your app has to
+restore the reading position.
+
 ## Dark Mode
 
 Theme-aware by default. Shadows, highlights, and edge masks adapt automatically
