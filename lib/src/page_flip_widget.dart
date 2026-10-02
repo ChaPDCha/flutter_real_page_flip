@@ -195,6 +195,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   bool _pendingLayoutCallback = false;
   bool _pendingSnapshotRefresh = false;
   bool _snapshotRefreshScheduled = false;
+  bool _snapshotRefreshImmediate = false;
 
   int get _totalPages => widget.itemCount < 0 ? 0 : widget.itemCount;
 
@@ -374,21 +375,28 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   }
 
   void _handleSizeChange(Size newSize) {
-    if (_lastConstrainedSize == null) {
+    final previous = _lastConstrainedSize;
+    if (previous == null) {
       _lastConstrainedSize = newSize;
       return;
     }
-    if (_lastConstrainedSize != newSize) {
-      _lastConstrainedSize = newSize;
-      // Mark stale instead of flushing. Flushing disposed every image
-      // immediately — including ones an in-flight flip's painter still
-      // references (keyboard insets and rotation can resize mid-turn) — and
-      // left the next flip with blank paper until the async recapture landed.
-      // Stale images stay until their replacement succeeds, and the refresh
-      // itself waits for any active flip to end.
-      _preRenderManager.markDirtyWindow(_controller.currentIndex, _totalPages);
-      _scheduleSnapshotRefresh(immediate: false);
-    }
+    if (previous == newSize) return;
+    _lastConstrainedSize = newSize;
+    // Mark stale instead of flushing. Flushing disposed every image
+    // immediately — including ones an in-flight flip's painter still
+    // references (keyboard insets and rotation can resize mid-turn) — and
+    // left the next flip with blank paper until the async recapture landed.
+    // Stale images stay until their replacement succeeds, and the refresh
+    // itself waits for any active flip to end.
+    _preRenderManager.markDirtyWindow(_controller.currentIndex, _totalPages);
+    // A fold, an unfold or a rotation changes the page's shape in one step,
+    // and until the recapture lands every stale snapshot is drawn stretched
+    // into the new viewport. Replace those at once. The small per-frame steps
+    // of a window drag or a typical keyboard animation keep the debounce, so
+    // they do not capture on every frame.
+    _scheduleSnapshotRefresh(
+      immediate: PreRenderManager.resizeDistortsSnapshots(previous, newSize),
+    );
   }
 
   double? _lastDependencyPixelRatio;
@@ -742,6 +750,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
   void _scheduleSnapshotRefresh({required bool immediate}) {
     _pendingSnapshotRefresh = true;
+    // A request that cannot wait must not be downgraded by an earlier,
+    // debounced one whose post-frame callback has not run yet.
+    _snapshotRefreshImmediate = _snapshotRefreshImmediate || immediate;
     if (_snapshotRefreshScheduled || _isFlipActive) return;
 
     _snapshotRefreshScheduled = true;
@@ -751,7 +762,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       if (_isFlipActive) return;
 
       _pendingSnapshotRefresh = false;
-      _captureSnapshots(immediate: immediate);
+      final captureNow = _snapshotRefreshImmediate;
+      _snapshotRefreshImmediate = false;
+      _captureSnapshots(immediate: captureNow);
     });
     // addPostFrameCallback does not itself request a frame when this API is
     // called from an idle host controller.

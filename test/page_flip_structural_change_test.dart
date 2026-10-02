@@ -132,7 +132,11 @@ void main() {
     final before = state.debugSnapshotPixelSize(3);
     expect(before, isNotNull);
 
-    await tester.pumpWidget(buildFlip(size: const Size(400, 480)));
+    // A small step (5% wider): the shape barely changes, so the replacement
+    // waits out the debounce meant for continuous resizes. A change of shape
+    // (fold, unfold, rotation) is replaced at once instead; that path is
+    // covered by page_flip_foldable_test.dart.
+    await tester.pumpWidget(buildFlip(size: const Size(336, 480)));
     await tester.pump();
     await tester.pump();
 
@@ -166,6 +170,37 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(state.debugSnapshotPixelSize(3)!.width, 640);
+    expect(state.debugDirtySnapshotIndices, isEmpty);
+  });
+
+  testWidgets(
+      'a refresh that cannot wait is not downgraded by one already queued',
+      (tester) async {
+    addTearDown(tester.view.reset);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(buildFlip());
+    await tester.pumpAndSettle();
+    final state = stateOf(tester);
+    expect(state.debugSnapshotPixelSize(3)!.width, 320);
+
+    // Frame N: a small step (2.5% wider) queues a debounced refresh. Its
+    // post-frame callback is still pending when the next frame starts.
+    await tester.pumpWidget(buildFlip(size: const Size(328, 480)));
+    // Frame N+1: the pixel ratio doubles while that callback is pending. The
+    // new refresh cannot wait for the debounce, and must not be folded into
+    // the queued one.
+    tester.view.devicePixelRatio = 2;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 16));
+
+    expect(
+      state.debugSnapshotPixelSize(3)!.width,
+      656,
+      reason: 'The window is recaptured at the new pixel ratio within a few '
+          'frames, not after the 300 ms debounce',
+    );
     expect(state.debugDirtySnapshotIndices, isEmpty);
   });
 
