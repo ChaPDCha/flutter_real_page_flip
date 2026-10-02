@@ -156,9 +156,9 @@ void main() {
     });
 
     testWidgets('tall narrow aspect ratio flip completes', (tester) async {
+      addTearDown(tester.view.reset);
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
 
       var changedSpread = -1;
       await tester.pumpWidget(
@@ -191,9 +191,9 @@ void main() {
     testWidgets('forward half-width drag completes in tall narrow viewport', (
       tester,
     ) async {
+      addTearDown(tester.view.reset);
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
 
       var changedSpread = -1;
       await tester.pumpWidget(
@@ -238,15 +238,15 @@ void main() {
 
       expect(find.byKey(const ValueKey('spread_0')), findsOneWidget);
 
-      // isRightSwipe inverts: leftward drag = backward, stays on same spread.
+      // Note: isRightSwipe is deprecated and has no effect on drag direction
+      // (the engine always flips forward on leftward drag).
       // Drag from center-right of spread, enough to trigger threshold.
       final start = Offset(centerDx + 500, centerDy + viewSize.height / 2);
       await tester.dragFrom(start, const Offset(-250, 0));
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
-      // With isRightSwipe, leftward drag is "backward" so it stays (no change).
-      expect(changedSpread, -1);
-      expect(find.byKey(const ValueKey('spread_0')), findsOneWidget);
+      expect(changedSpread, 1);
+      expect(find.byKey(const ValueKey('spread_1')), findsOneWidget);
     });
   });
 }

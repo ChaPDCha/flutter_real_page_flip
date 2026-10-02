@@ -5,10 +5,9 @@ import 'package:real_page_flip/page_flip.dart';
 void main() {
   testWidgets('PageFlipWidget Stress Test: Rapid sequential taps',
       (tester) async {
-    // Set fixed size for predictable edge tap areas
+    addTearDown(tester.view.reset);
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
 
     var pageFlippedCount = 0;
     var lastPage = 0;
@@ -100,9 +99,9 @@ void main() {
 
   testWidgets('PageFlipWidget Stress: Forward-backward direction switch',
       (tester) async {
+    addTearDown(tester.view.reset);
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
 
     var currentIndex = 0;
     await tester.pumpWidget(
@@ -135,9 +134,9 @@ void main() {
 
   testWidgets('PageFlipWidget Stress: Parent setState during drag',
       (tester) async {
+    addTearDown(tester.view.reset);
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
 
     var flipCount = 0;
     await tester.pumpWidget(
@@ -174,9 +173,9 @@ void main() {
 
   testWidgets('PageFlipWidget Stress: Rapid single-tap edge navigation',
       (tester) async {
+    addTearDown(tester.view.reset);
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
 
     var lastIndex = 0;
     await tester.pumpWidget(
