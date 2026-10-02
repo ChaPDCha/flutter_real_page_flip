@@ -56,9 +56,9 @@ void main() {
   testWidgets(
     'horizontal drag flips page when child uses SelectableText',
     (tester) async {
+      addTearDown(tester.view.reset);
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
 
       var currentPage = 0;
 
@@ -110,9 +110,9 @@ void main() {
   testWidgets(
     'letterbox band horizontal swipe completes flip in double spread',
     (tester) async {
+      addTearDown(tester.view.reset);
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
 
       var currentPage = 0;
 
@@ -137,9 +137,9 @@ void main() {
   testWidgets(
     'horizontal drag flips with reader-like nested GestureDetector + SelectableText.rich',
     (tester) async {
+      addTearDown(tester.view.reset);
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
 
       var currentPage = 0;
 
@@ -175,9 +175,9 @@ void main() {
   testWidgets(
     'predominantly vertical drag does not flip page over SelectableText',
     (tester) async {
+      addTearDown(tester.view.reset);
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
 
       var currentPage = 0;
 
@@ -203,9 +203,9 @@ void main() {
   testWidgets(
     'long press on SelectableText does not trigger page flip',
     (tester) async {
+      addTearDown(tester.view.reset);
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
 
       var currentPage = 0;
 
@@ -233,9 +233,9 @@ void main() {
   testWidgets(
     'horizontal drag after failed long press still flips',
     (tester) async {
+      addTearDown(tester.view.reset);
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
 
       var currentPage = 0;
 
