@@ -571,7 +571,12 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         jumpTo: indexChangedExternally ? widget.initialIndex : null,
         layoutChanged: spreadModeChanged,
       );
-      if (_isFlipActive && _inFlightTurnStillValid()) {
+      // A spread-mode switch gives every index a new meaning (page 7 becomes
+      // spread 3), so a turn in the air can never finish validly under it: its
+      // destination would reach the host as an index of the OLD numbering,
+      // after the host already counts in the new one. Such a turn is ended,
+      // like one whose pages were removed.
+      if (_isFlipActive && !spreadModeChanged && _inFlightTurnStillValid()) {
         // Never restructure under a page that is in the air: resetting here
         // disposed the snapshots the flip was painting and moved
         // `currentIndex` mid-turn, so the finalize then advanced from the
@@ -583,10 +588,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         final pending = _deferredStructuralChange;
         _deferredStructuralChange = null;
         if (_isFlipActive) {
-          // The turn cannot finish validly under the new count (its current
-          // or destination page is gone). Letting it run on used to finalize
-          // `currentIndex ± 1` past the new last page: the host's
-          // `itemBuilder` was then asked for an index it no longer has.
+          // The turn cannot finish validly under the new structure: its
+          // current or destination page is gone, or every index now means a
+          // different page. Letting it run on used to finalize
+          // `currentIndex ± 1` past the new last page (the host's
+          // `itemBuilder` was asked for an index it no longer has) or report
+          // an index of the old numbering. `onFlipEnd` still fires once;
+          // `onPageChanged` does not.
           _controller.cancelActiveFlip();
         }
         _applyStructuralChange(pending?.mergedWith(change) ?? change);
@@ -657,12 +665,16 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // and is harmless: `prepareKeys` is `putIfAbsent`-based.
     _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
 
-    // Schedule a new capture frame
+    // Schedule a new capture frame. The cache was just emptied, so there is
+    // nothing stale to protect and nothing to debounce: wait only for the
+    // frame that mounts the new pages. A debounced capture here would also
+    // supersede an immediate one already in flight (a shape jump a frame
+    // earlier) and leave the book without snapshots for 300 ms.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _preRenderManager.prepareKeys(_controller.currentIndex, _totalPages);
         setState(() {});
-        _captureSnapshots();
+        _captureSnapshots(immediate: true);
       }
     });
 
