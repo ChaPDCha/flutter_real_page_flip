@@ -371,6 +371,14 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       }
     }
 
+    // A synchronous retake cancels the pending debounced one. If the window
+    // still holds stale pages, retake them when the turn ends: a turn that
+    // snaps back changes no page, so nothing else would.
+    final current = _controller.currentIndex;
+    if (_preRenderManager.dirtyIndices.any((i) => (i - current).abs() <= 1)) {
+      _pendingSnapshotRefresh = true;
+    }
+
     if (!_preRenderManager.hasAdjacentSnapshots(
       _controller.currentIndex,
       _totalPages,

@@ -204,6 +204,48 @@ void main() {
     expect(state.debugDirtySnapshotIndices, isEmpty);
   });
 
+  testWidgets(
+      'a turn that snaps back during the debounce still gets the window '
+      'retaken', (tester) async {
+    addTearDown(tester.view.reset);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(buildFlip());
+    await tester.pumpAndSettle();
+    final state = stateOf(tester);
+
+    // A small step (2.5% wider) arms the debounced retake.
+    await tester.pumpWidget(buildFlip(size: const Size(328, 480)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    // A turn starts inside the debounce (its synchronous retake of the
+    // current page cancels the pending one) and then snaps back.
+    final gesture = await tester.startGesture(const Offset(316, 240));
+    await gesture.moveBy(const Offset(-40, 0));
+    await tester.pump(const Duration(milliseconds: 16));
+    await gesture.moveBy(const Offset(25, 0));
+    await tester.pump(const Duration(milliseconds: 16));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(state.controller.currentIndex, 2, reason: 'the turn snapped back');
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(
+      state.debugDirtySnapshotIndices,
+      isEmpty,
+      reason: 'The neighbours must not stay stale until some unrelated event',
+    );
+    for (final index in <int>[1, 2, 3]) {
+      expect(
+        state.debugSnapshotPixelSize(index)!.width,
+        328,
+        reason: 'page $index',
+      );
+    }
+  });
+
   testWidgets('instant tap navigation performs no synchronous capture',
       (tester) async {
     final controller = PageFlipController();
