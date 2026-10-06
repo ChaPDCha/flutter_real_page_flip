@@ -357,32 +357,36 @@ class PreRenderManager {
     double pixelRatio = 1.0,
   }) async {
     _debounceTimer?.cancel();
-    _captureGeneration++;
-    _pendingRetryIndices.clear();
-    _captureRetryCounts.clear();
-    final currentGen = _captureGeneration;
 
     if (immediate) {
+      final generation = _startCaptureGeneration();
       await _enqueueCapture(
         () => _doCaptureSnapshots(
           currentIndex,
           totalPages,
           onSnapshotCaptured,
-          currentGen,
+          generation,
           includeCurrentSpread: includeCurrentSpread,
           capturePageSnapshotClones: capturePageSnapshotClones,
           pixelRatio: pixelRatio,
         ),
       );
     } else {
+      // A debounced request starts its generation only when its timer fires.
+      // Starting it now would discard a readback that is already in flight,
+      // and on a device that readback takes frames: a small resize right after
+      // a shape jump threw away the jump's immediate recapture and brought the
+      // old, stretched snapshot back for the whole debounce. The readback in
+      // flight lands; the debounced capture refines it afterwards.
       _debounceTimer = Timer(delay, () {
+        final generation = _startCaptureGeneration();
         unawaited(
           _enqueueCapture(
             () => _doCaptureSnapshots(
               currentIndex,
               totalPages,
               onSnapshotCaptured,
-              currentGen,
+              generation,
               includeCurrentSpread: includeCurrentSpread,
               capturePageSnapshotClones: capturePageSnapshotClones,
               pixelRatio: pixelRatio,
@@ -391,6 +395,15 @@ class PreRenderManager {
         );
       });
     }
+  }
+
+  /// Starts a capture generation: results of every older capture still in
+  /// flight are discarded (and disposed) when they land.
+  int _startCaptureGeneration() {
+    _captureGeneration++;
+    _pendingRetryIndices.clear();
+    _captureRetryCounts.clear();
+    return _captureGeneration;
   }
 
   Future<void> _enqueueCapture(Future<void> Function() operation) {
