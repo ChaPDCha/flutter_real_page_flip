@@ -267,8 +267,9 @@ class PreRenderManager {
   /// taken at the old shape looks stretched in the new one.
   ///
   /// Snapshots are drawn with `BoxFit.fill`, so a stale image is stretched by
-  /// exactly the change of shape. Around 10% a circle starts to read as an
-  /// ellipse; below that the error hides in motion.
+  /// exactly the change of shape. The value is a heuristic, not a measured
+  /// threshold: large enough that one frame of a window drag stays below it,
+  /// small enough that a fold, an unfold or a rotation is always above it.
   static const double snapshotShapeTolerance = 0.1;
 
   /// Whether snapshots captured at viewport [from] would be visibly stretched

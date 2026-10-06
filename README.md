@@ -278,13 +278,18 @@ PageFlipWidget(
 The engine fills whatever box it is given and adapts to any shape, so it needs
 no foldable-specific setup. Folding, unfolding, rotating and entering split
 screen all just change that box. When the shape changes by more than about
-10% in one step, the page snapshots are recaptured on the very next frame
-instead of after a 300 ms wait, so a page turned right after unfolding is
-stretched for a frame or two at most. The test suite replays folds, unfolds and
-rotations between the display shapes of the Galaxy Z Fold8 and Fold8 Ultra (and
-a 4:3 and a 3:4 shape standing in for the iPhone Duo, whose ratio Apple does
-not state), in both single-page and double-spread mode. It has not run on the
-devices.
+10% in one step, the page snapshots are retaken right away instead of after a
+300 ms wait. On a device that retake needs a GPU readback, so a turn that starts
+before it lands retakes the pages it needs synchronously as it starts. A turn
+that starts after a fold, an unfold or a rotation therefore never draws the old
+proportions. Two limits remain: a turn that is already in the air when the shape
+changes keeps its old snapshots until it ends, and the small steps of a window
+drag can leave a page off by a few percent until the debounced retake. The test
+suite replays folds, unfolds and rotations between the display shapes of the
+Galaxy Z Fold8 and Fold8 Ultra (and a 4:3 and a 3:4 shape standing in for the
+iPhone Duo, whose ratio Apple does not state), in both single-page and
+double-spread mode, including readbacks that take several frames. It has not
+run on the devices.
 
 **You choose single page or two-page spread.** The engine does not switch by
 itself. A shape-based rule works on every platform. A Galaxy Z Fold8 opened

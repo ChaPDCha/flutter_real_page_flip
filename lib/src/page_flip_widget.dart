@@ -33,6 +33,11 @@ class PageFlipController {
   /// Like every navigation call, ignored at the book boundary and while a
   /// finger or another turn owns the page; a refused call reports no
   /// `onFlipStart` / `onFlipEnd`.
+  ///
+  /// A turn that has started can still end without landing: when the host
+  /// changes [PageFlipWidget.spreadMode] or removes the turn's destination
+  /// page, the turn is cancelled and reports `onFlipEnd` without
+  /// `onPageChanged`.
   void nextPage() {
     _state?.nextPage();
   }
@@ -127,6 +132,11 @@ class PageFlipWidget extends StatefulWidget {
   final bool isDoubleSpread;
 
   /// Spread layout mode (defaults from [isDoubleSpread] when omitted).
+  ///
+  /// Changing it gives every index a new meaning, so a turn that is in the
+  /// air at that moment is cancelled: `onFlipEnd` fires once and
+  /// `onPageChanged` does not. Carry the reader's page across the switch
+  /// through [initialIndex] (see the README section on foldables).
   final PageFlipSpreadMode spreadMode;
 
   /// Called when a page flip animation completes successfully.
