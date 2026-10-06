@@ -33,6 +33,11 @@ class PageFlipController {
   /// Like every navigation call, ignored at the book boundary and while a
   /// finger or another turn owns the page; a refused call reports no
   /// `onFlipStart` / `onFlipEnd`.
+  ///
+  /// A turn that has started can still end without landing: when the host
+  /// changes [PageFlipWidget.spreadMode] or removes the turn's destination
+  /// page, the turn is cancelled and reports `onFlipEnd` without
+  /// `onPageChanged`.
   void nextPage() {
     _state?.nextPage();
   }
@@ -127,6 +132,11 @@ class PageFlipWidget extends StatefulWidget {
   final bool isDoubleSpread;
 
   /// Spread layout mode (defaults from [isDoubleSpread] when omitted).
+  ///
+  /// Changing it gives every index a new meaning, so a turn that is in the
+  /// air at that moment is cancelled: `onFlipEnd` fires once and
+  /// `onPageChanged` does not. Carry the reader's page across the switch
+  /// through [initialIndex] (see the README section on foldables).
   final PageFlipSpreadMode spreadMode;
 
   /// Called when a page flip animation completes successfully.
@@ -341,6 +351,32 @@ class PageFlipWidgetState extends State<PageFlipWidget>
         _controller.currentIndex,
         pixelRatio: _capturePixelRatio(),
       );
+    }
+
+    // A turn that starts before the recapture for a new viewport shape has
+    // landed would draw the old proportions for its whole length: the
+    // background refresh waits for the turn to end. Retake those pages now,
+    // synchronously like the current page above (no GPU readback).
+    final viewport = _lastConstrainedSize;
+    if (mounted && viewport != null) {
+      for (final index in _preRenderManager.indicesOutOfShape(
+        _controller.currentIndex,
+        _totalPages,
+        viewport,
+      )) {
+        _preRenderManager.refreshIndexSync(
+          index,
+          pixelRatio: _capturePixelRatio(),
+        );
+      }
+    }
+
+    // A synchronous retake cancels the pending debounced one. If the window
+    // still holds stale pages, retake them when the turn ends: a turn that
+    // snaps back changes no page, so nothing else would.
+    final current = _controller.currentIndex;
+    if (_preRenderManager.dirtyIndices.any((i) => (i - current).abs() <= 1)) {
+      _pendingSnapshotRefresh = true;
     }
 
     if (!_preRenderManager.hasAdjacentSnapshots(

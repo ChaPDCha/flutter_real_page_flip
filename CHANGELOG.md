@@ -1,3 +1,52 @@
+## [3.1.2] - 2026-10-06
+
+### Fixed
+
+- **A turn that starts right after a fold, unfold or rotation no longer draws
+  the old proportions.** 3.1.1 retook the snapshots on the next frame, but on a
+  device that retake needs a GPU readback that lasts frames, and a turn that
+  started before it landed blocked the background refresh, so the whole turn
+  drew its pages stretched (up to 2.1x). A turn now retakes, as it starts and
+  without a readback, every page of its window whose snapshot no longer has the
+  viewport's shape, as it already did for the current page.
+- **A small resize right after a shape jump no longer throws the jump's retake
+  away.** Every capture request started a new generation at once, so a
+  debounced request (insets settling, one frame of a window drag) discarded the
+  immediate readback still in flight and left the old snapshots in place for
+  the whole 300 ms debounce. A debounced request now starts its generation only
+  when its timer fires: the readback in flight lands and the debounced capture
+  refines it afterwards. An immediate request still supersedes older readbacks.
+- **A turn that snaps back during the 300 ms debounce no longer leaves the
+  neighbouring snapshots stale.** A synchronous retake at turn start cancels the
+  pending debounced retake, and only a committed turn scheduled a new capture
+  (through the page change), so after a small resize the neighbours could stay
+  out of date until some unrelated event. The turn now leaves a refresh pending
+  while its window holds stale pages. This predates 3.1.1.
+
+### Documentation
+
+- The 3.1.1 notes said a page turned right after a fold is stretched "for a
+  frame or two" at most. That figure came from the test environment, where the
+  GPU readback finishes at once. README, README_KR and the 3.1.1 release notes
+  are corrected.
+- `PageFlipWidget.spreadMode` and `PageFlipController.nextPage` document that a
+  spread-mode switch cancels a turn in the air (`onFlipEnd` once, no
+  `onPageChanged`), the behaviour change made in 3.1.1.
+
+### Tests
+
+- `pre_render_manager_readback_test.dart` drives captures through a repaint
+  boundary whose readback finishes only when the test says so, the way a
+  device's takes frames.
+- `page_flip_foldable_test.dart`: a turn that starts before the retake lands
+  draws no stretched page, for every fold transition in both modes.
+- `page_flip_structural_change_test.dart`: a turn that snaps back during the
+  debounce still gets the window retaken.
+- The seeded session suite (14 seeds) now also resizes the book, between
+  foldable shapes and in small steps, checks that every kept snapshot has the
+  book's final shape, and counts every snapshot image a session creates: none
+  may outlive the book. The foldable soak counts images the same way.
+
 ## [3.1.1] - 2026-10-02
 
 ### Fixed

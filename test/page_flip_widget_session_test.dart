@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/real_page_flip.dart';
@@ -9,9 +11,10 @@ import 'utils/test_helpers.dart';
 /// Randomised end-to-end sessions against the real [PageFlipWidget].
 ///
 /// Real pointer gestures (with timestamps, so flings carry velocity), edge
-/// taps, controller navigation, and host rebuilds that change the book under
-/// the reader (item count, initial index, spread mode, tap animation, swipe
-/// on/off) are interleaved at random. After every step:
+/// taps, controller navigation, host rebuilds that change the book under the
+/// reader (item count, initial index, spread mode, tap animation, swipe
+/// on/off), and resizes (foldable and rotation jumps, small window-drag steps)
+/// are interleaved at random. After every step:
 ///
 /// - the framework reported no error (duplicate keys, layout, build throws);
 /// - `itemBuilder` was never asked for an index outside the book (it throws);
@@ -22,13 +25,27 @@ import 'utils/test_helpers.dart';
 /// - with no finger down, page content is never left pointer-blocked.
 ///
 /// Each session ends by lifting the finger and settling: the book must come
-/// to rest idle, balanced, and showing its current page.
+/// to rest idle, balanced, and showing its current page, every snapshot it
+/// keeps must have the book's final shape, and once the book is gone every
+/// snapshot image the session created must have been disposed.
 void main() {
   const seeds = 14;
   const stepsPerSeed = 110;
 
   for (var seed = 0; seed < seeds; seed++) {
     testWidgets('widget session #$seed survives random use', (tester) async {
+      final created = Set<ui.Image>.identity();
+      final disposed = Set<ui.Image>.identity();
+      void track(ObjectEvent event) {
+        final object = event.object;
+        if (object is! ui.Image) return;
+        if (event is ObjectCreated) created.add(object);
+        if (event is ObjectDisposed) disposed.add(object);
+      }
+
+      final allocations = FlutterMemoryAllocations.instance..addListener(track);
+      addTearDown(() => allocations.removeListener(track));
+
       final session = _Session(tester, math.Random(1000 + seed));
       await session.start();
 
@@ -48,10 +65,25 @@ void main() {
           findsWidgets,
           reason: session.trace,
         );
+        // Every snapshot the next turn can draw has the book's final shape.
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pumpAndSettle();
+        session.checkSnapshotsFitTheBook('seed $seed, final');
       }
 
-      // Dispose the book so no capture timer outlives the test.
+      // Dispose the book so no capture timer outlives the test, then let any
+      // readback still in flight land and be disposed.
       await tester.pumpWidget(const SizedBox.shrink());
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(created, isNotEmpty, reason: 'leak tracking saw no images');
+      final leaked = created.difference(disposed);
+      expect(
+        leaked,
+        isEmpty,
+        reason: '${leaked.length} snapshot image(s) leaked\n${session.trace}',
+      );
     });
   }
 }
@@ -65,6 +97,7 @@ class _Session {
 
   int count = 6;
   int initialIndex = 0;
+  Size bookSize = const Size(400, 600);
   bool skipTapAnimation = false;
   bool enableSwipe = true;
   bool doubleSpread = false;
@@ -119,8 +152,8 @@ class _Session {
         home: Align(
           alignment: Alignment.topLeft,
           child: SizedBox(
-            width: 400,
-            height: 600,
+            width: bookSize.width,
+            height: bookSize.height,
             child: PageFlipWidget(
               key: const ValueKey<String>('book'),
               controller: controller,
@@ -161,6 +194,8 @@ class _Session {
       await _goToPage();
     } else if (roll < 0.56) {
       await _rebuild();
+    } else if (roll < 0.63) {
+      await _resize();
     } else {
       final ms = const <int>[0, 16, 16, 50, 120, 300][random.nextInt(6)];
       await tester.pump(Duration(milliseconds: ms));
@@ -172,8 +207,8 @@ class _Session {
     final active = gesture;
     if (active == null) {
       final start = Offset(
-        5 + random.nextDouble() * 390,
-        5 + random.nextDouble() * 590,
+        5 + random.nextDouble() * (bookSize.width - 10),
+        5 + random.nextDouble() * (bookSize.height - 10),
       );
       gesture = await tester.startGesture(start, pointer: nextPointer++);
       gestureClock = Duration.zero;
@@ -247,6 +282,52 @@ class _Session {
     initialIndex = count == 0 ? 0 : math.min(initialIndex, count - 1);
     await tester.pumpWidget(_app());
     _record('rebuild ${changes.join(' ')}');
+  }
+
+  /// Shapes the book jumps between (foldable cover and inner displays, a
+  /// rotation, a wide spread), all inside the 800x600 test window.
+  static const List<Size> _shapes = <Size>[
+    Size(400, 600),
+    Size(600, 450),
+    Size(380, 600),
+    Size(560, 560),
+    Size(250, 584),
+    Size(780, 590),
+    Size(300, 400),
+  ];
+
+  Future<void> _resize() async {
+    if (random.nextDouble() < 0.6) {
+      bookSize = _shapes[random.nextInt(_shapes.length)];
+    } else {
+      // A small step, like one frame of a window drag.
+      final step = 1 + (random.nextDouble() * 2 - 1) * 0.04;
+      bookSize = random.nextBool()
+          ? Size((bookSize.width * step).clamp(120, 790), bookSize.height)
+          : Size(bookSize.width, (bookSize.height * step).clamp(160, 595));
+    }
+    await tester.pumpWidget(_app());
+    _record('resize ${bookSize.width.round()}x${bookSize.height.round()}');
+  }
+
+  /// Every snapshot kept for the window around the current page has the
+  /// book's shape (a stretched snapshot is what a turn would draw).
+  void checkSnapshotsFitTheBook(String where) {
+    final c = state.controller;
+    final aspect = bookSize.width / bookSize.height;
+    for (var index = c.currentIndex - 1; index <= c.currentIndex + 1; index++) {
+      if (index < 0 || index >= count) continue;
+      final pixels = state.debugSnapshotPixelSize(index);
+      if (pixels == null) continue;
+      expect(
+        ((pixels.width / pixels.height) / aspect - 1).abs(),
+        lessThan(0.02),
+        reason: '$where: snapshot $index is ${pixels.width}x${pixels.height} '
+            'for a ${bookSize.width.round()}x${bookSize.height.round()} book\n'
+            '$trace',
+      );
+    }
+    expect(state.debugDirtySnapshotIndices, isEmpty, reason: '$where\n$trace');
   }
 
   Future<void> finish() async {

@@ -267,8 +267,9 @@ class PreRenderManager {
   /// taken at the old shape looks stretched in the new one.
   ///
   /// Snapshots are drawn with `BoxFit.fill`, so a stale image is stretched by
-  /// exactly the change of shape. Around 10% a circle starts to read as an
-  /// ellipse; below that the error hides in motion.
+  /// exactly the change of shape. The value is a heuristic, not a measured
+  /// threshold: large enough that one frame of a window drag stays below it,
+  /// small enough that a fold, an unfold or a rotation is always above it.
   static const double snapshotShapeTolerance = 0.1;
 
   /// Whether snapshots captured at viewport [from] would be visibly stretched
@@ -357,32 +358,36 @@ class PreRenderManager {
     double pixelRatio = 1.0,
   }) async {
     _debounceTimer?.cancel();
-    _captureGeneration++;
-    _pendingRetryIndices.clear();
-    _captureRetryCounts.clear();
-    final currentGen = _captureGeneration;
 
     if (immediate) {
+      final generation = _startCaptureGeneration();
       await _enqueueCapture(
         () => _doCaptureSnapshots(
           currentIndex,
           totalPages,
           onSnapshotCaptured,
-          currentGen,
+          generation,
           includeCurrentSpread: includeCurrentSpread,
           capturePageSnapshotClones: capturePageSnapshotClones,
           pixelRatio: pixelRatio,
         ),
       );
     } else {
+      // A debounced request starts its generation only when its timer fires.
+      // Starting it now would discard a readback that is already in flight,
+      // and on a device that readback takes frames: a small resize right after
+      // a shape jump threw away the jump's immediate recapture and brought the
+      // old, stretched snapshot back for the whole debounce. The readback in
+      // flight lands; the debounced capture refines it afterwards.
       _debounceTimer = Timer(delay, () {
+        final generation = _startCaptureGeneration();
         unawaited(
           _enqueueCapture(
             () => _doCaptureSnapshots(
               currentIndex,
               totalPages,
               onSnapshotCaptured,
-              currentGen,
+              generation,
               includeCurrentSpread: includeCurrentSpread,
               capturePageSnapshotClones: capturePageSnapshotClones,
               pixelRatio: pixelRatio,
@@ -391,6 +396,35 @@ class PreRenderManager {
         );
       });
     }
+  }
+
+  /// Starts a capture generation: results of every older capture still in
+  /// flight are discarded (and disposed) when they land.
+  int _startCaptureGeneration() {
+    _captureGeneration++;
+    _pendingRetryIndices.clear();
+    _captureRetryCounts.clear();
+    return _captureGeneration;
+  }
+
+  /// Pages of the capture window whose kept snapshot no longer has the shape
+  /// of [viewport], so a turn would draw it visibly stretched.
+  ///
+  /// Uses the same rule as [resizeDistortsSnapshots], comparing the image's
+  /// own proportions with the viewport's.
+  List<int> indicesOutOfShape(int currentIndex, int totalPages, Size viewport) {
+    final outOfShape = <int>[];
+    for (final index in getCaptureIndices(
+      currentIndex,
+      totalPages,
+      includeCurrent: true,
+    )) {
+      final image = spreadSnapshots[index] ?? pageSnapshots[index];
+      if (image == null) continue;
+      final imageSize = Size(image.width.toDouble(), image.height.toDouble());
+      if (resizeDistortsSnapshots(imageSize, viewport)) outOfShape.add(index);
+    }
+    return outOfShape;
   }
 
   Future<void> _enqueueCapture(Future<void> Function() operation) {
