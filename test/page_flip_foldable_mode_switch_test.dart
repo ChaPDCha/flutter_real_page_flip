@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:real_page_flip/real_page_flip.dart';
@@ -251,6 +253,17 @@ void main() {
       (tester) async {
     addTearDown(tester.view.reset);
     tester.view.devicePixelRatio = 1;
+    final created = Set<ui.Image>.identity();
+    final disposed = Set<ui.Image>.identity();
+    void track(ObjectEvent event) {
+      final object = event.object;
+      if (object is! ui.Image) return;
+      if (event is ObjectCreated) created.add(object);
+      if (event is ObjectDisposed) disposed.add(object);
+    }
+
+    final allocations = FlutterMemoryAllocations.instance..addListener(track);
+    addTearDown(() => allocations.removeListener(track));
     final random = math.Random(20261002);
     const shapes = <FoldShape>[
       cover10x16,
@@ -372,5 +385,12 @@ void main() {
       );
     }
     expect(state.debugDirtySnapshotIndices, isEmpty);
+
+    // Folds, mode switches (which reset the cache) and cancelled turns leave
+    // no snapshot image behind once the book is gone.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await pumpFrames(tester, 4);
+    expect(created, isNotEmpty, reason: 'leak tracking saw no images');
+    expect(created.difference(disposed), isEmpty, reason: 'leaked images');
   });
 }
