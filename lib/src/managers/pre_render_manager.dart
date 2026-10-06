@@ -406,6 +406,26 @@ class PreRenderManager {
     return _captureGeneration;
   }
 
+  /// Pages of the capture window whose kept snapshot no longer has the shape
+  /// of [viewport], so a turn would draw it visibly stretched.
+  ///
+  /// Uses the same rule as [resizeDistortsSnapshots], comparing the image's
+  /// own proportions with the viewport's.
+  List<int> indicesOutOfShape(int currentIndex, int totalPages, Size viewport) {
+    final outOfShape = <int>[];
+    for (final index in getCaptureIndices(
+      currentIndex,
+      totalPages,
+      includeCurrent: true,
+    )) {
+      final image = spreadSnapshots[index] ?? pageSnapshots[index];
+      if (image == null) continue;
+      final imageSize = Size(image.width.toDouble(), image.height.toDouble());
+      if (resizeDistortsSnapshots(imageSize, viewport)) outOfShape.add(index);
+    }
+    return outOfShape;
+  }
+
   Future<void> _enqueueCapture(Future<void> Function() operation) {
     final queued = _captureQueue.then((_) => operation());
     _captureQueue = queued;

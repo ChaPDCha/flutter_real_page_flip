@@ -343,6 +343,24 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       );
     }
 
+    // A turn that starts before the recapture for a new viewport shape has
+    // landed would draw the old proportions for its whole length: the
+    // background refresh waits for the turn to end. Retake those pages now,
+    // synchronously like the current page above (no GPU readback).
+    final viewport = _lastConstrainedSize;
+    if (mounted && viewport != null) {
+      for (final index in _preRenderManager.indicesOutOfShape(
+        _controller.currentIndex,
+        _totalPages,
+        viewport,
+      )) {
+        _preRenderManager.refreshIndexSync(
+          index,
+          pixelRatio: _capturePixelRatio(),
+        );
+      }
+    }
+
     if (!_preRenderManager.hasAdjacentSnapshots(
       _controller.currentIndex,
       _totalPages,

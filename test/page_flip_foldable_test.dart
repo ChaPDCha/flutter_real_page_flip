@@ -71,6 +71,41 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
         });
+
+        testWidgets(
+            '${from.name} -> ${to.name}: a turn that starts before the '
+            'recapture lands draws no stretched page', (tester) async {
+          addTearDown(tester.view.reset);
+          final state = await openFoldBook(tester, from.size, mode: mode);
+
+          // Only the layout frame of the new shape has run: the recapture is
+          // queued for the next frame, and a turn started now blocks it.
+          resizeViewTo(tester, to.size);
+          await tester.pump();
+
+          final width = to.size.width;
+          final extent =
+              mode == PageFlipSpreadMode.doubleSpread ? width / 2 : width;
+          final gesture = await tester.startGesture(
+            Offset(width - 12, to.size.height * 0.5),
+          );
+          await gesture.moveBy(Offset(-extent * 0.15, 0));
+          await tester.pump(const Duration(milliseconds: 16));
+          await gesture.moveBy(Offset(-extent * 0.15, 0));
+          await tester.pump(const Duration(milliseconds: 16));
+
+          expect(state.controller.isDragging, isTrue);
+          expect(
+            worstDrawnDistortion(tester),
+            lessThan(1.02),
+            reason: 'A turn that starts before the background recapture lands '
+                'must not draw the old proportions for its whole length',
+          );
+
+          await gesture.up();
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        });
       }
     });
   }
