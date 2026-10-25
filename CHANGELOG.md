@@ -39,6 +39,12 @@
 - README and README_KR: new right-to-left section, and the benchmark table is
   labelled as targets. The repository publishes no measurements from a named
   device yet, and the text now says so.
+- Claims the repository cannot back are gone: "thousands of readers",
+  "real-device verified", "production-hardened" and "ultra-smooth". What remains
+  is what the repository shows: the two apps that use the engine, the test and
+  analyzer results (the test count is now "1,500+"), and a short "what is and
+  is not verified" note that names the 2.5D approximation and the missing
+  device measurements. The pub.dev description no longer says "3D-like".
 
 ### Tests
 
