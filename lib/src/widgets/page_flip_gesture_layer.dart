@@ -88,16 +88,20 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
     _totalDy = 0;
     _flipActive = false;
     _velocityTracker = VelocityTracker.withKind(event.kind);
-    _velocityTracker!.addPosition(event.timeStamp, event.position);
+    _velocityTracker!.addPosition(event.timeStamp, event.localPosition);
   }
 
   void _onPointerMove(PointerMoveEvent event) {
     if (!mounted) return;
     if (event.pointer != _activePointer) return;
 
-    _totalDx += event.delta.dx;
-    _totalDy += event.delta.dy;
-    _velocityTracker?.addPosition(event.timeStamp, event.position);
+    // `localDelta`, not `delta`: `delta` stays in screen space, while a mirrored
+    // (right-to-left) book flips the x axis for everything under the layer.
+    _totalDx += event.localDelta.dx;
+    _totalDy += event.localDelta.dy;
+    // Velocity from local positions for the same reason: a global velocity
+    // would point against the drag at release and undo the turn.
+    _velocityTracker?.addPosition(event.timeStamp, event.localPosition);
     final local = _localPosition(event.position);
 
     if (!_flipActive) {
@@ -148,8 +152,8 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
     widget.controller.onDragUpdate(
       DragUpdateDetails(
         sourceTimeStamp: event.timeStamp,
-        delta: event.delta,
-        primaryDelta: horizontalPrimaryDelta(event.delta),
+        delta: event.localDelta,
+        primaryDelta: horizontalPrimaryDelta(event.localDelta),
         globalPosition: event.position,
         localPosition: local,
       ),

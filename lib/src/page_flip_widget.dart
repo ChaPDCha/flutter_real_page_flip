@@ -81,6 +81,7 @@ class PageFlipWidget extends StatefulWidget {
     @Deprecated('Use spreadMode: PageFlipSpreadMode.doubleSpread.')
     this.isDoubleSpread = false,
     PageFlipSpreadMode? spreadMode,
+    this.readingDirection = PageFlipReadingDirection.ltr,
     @Deprecated('Use onPageChanged, which fires at the same moment.')
     this.onPageFlipped,
     this.onFlipStart,
@@ -138,6 +139,17 @@ class PageFlipWidget extends StatefulWidget {
   /// `onPageChanged` does not. Carry the reader's page across the switch
   /// through [initialIndex] (see the README section on foldables).
   final PageFlipSpreadMode spreadMode;
+
+  /// Which way the book is read. Defaults to
+  /// [PageFlipReadingDirection.ltr], so existing books are unchanged even in a
+  /// right-to-left locale; pass [PageFlipReadingDirection.rtl] or
+  /// [PageFlipReadingDirection.auto] to opt in.
+  ///
+  /// Page `0` is the first page in reading order either way. In a spread, the
+  /// host lays out each spread as it should look on screen. Changing the
+  /// resolved direction ends a turn that is in the air, like a [spreadMode]
+  /// switch.
+  final PageFlipReadingDirection readingDirection;
 
   /// Called when a page flip animation completes successfully.
   ///
@@ -483,6 +495,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
       _preRenderManager.markDirtyWindow(_controller.currentIndex, _totalPages);
       _scheduleSnapshotRefresh(immediate: true);
     }
+    // An `auto` book follows the ambient Directionality, which can change here.
+    final rtl = _resolveRtl();
+    if (_rtl != null && rtl != _rtl) {
+      _rtl = rtl;
+      _applyReadingDirectionChange();
+    }
+    _rtl = rtl;
     // Follows the system "reduce motion" setting, including live changes.
     _systemReducesMotion =
         MediaQuery.maybeDisableAnimationsOf(context) ?? false;
@@ -490,6 +509,22 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   }
 
   late PageFlipEffectHandler _effectHandler;
+
+  /// Whether the book currently reads right-to-left (see
+  /// [PageFlipWidget.readingDirection]); null until the first resolve.
+  bool? _rtl;
+
+  bool _resolveRtl() => switch (widget.readingDirection) {
+        PageFlipReadingDirection.ltr => false,
+        PageFlipReadingDirection.rtl => true,
+        PageFlipReadingDirection.auto =>
+          Directionality.maybeOf(context) == TextDirection.rtl,
+      };
+
+  /// Mirrors [child] horizontally for a right-to-left book; identity otherwise,
+  /// so a left-to-right book builds exactly the tree it always did.
+  Widget _mirrored(Widget child) =>
+      _rtl ?? false ? Transform.flip(flipX: true, child: child) : child;
 
   @override
   void didUpdateWidget(PageFlipWidget oldWidget) {
@@ -600,7 +635,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     // Do not reset on itemBuilder identity: hosts often pass a new closure each
     // build; snapshots are refreshed on flip start and after page changes.
     final itemCountChanged = widget.itemCount != oldWidget.itemCount;
-    final spreadModeChanged = widget.spreadMode != oldWidget.spreadMode;
+    final rtl = _resolveRtl();
+    final directionChanged = _rtl != null && rtl != _rtl;
+    _rtl = rtl;
+    // Page identity does not change with direction, but every snapshot was
+    // captured with (or without) the page mirror, so they all go stale at once.
+    final spreadModeChanged =
+        widget.spreadMode != oldWidget.spreadMode || directionChanged;
 
     if (itemCountChanged || spreadModeChanged || indexChangedExternally) {
       final change = _StructuralChange(
@@ -649,6 +690,16 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   }
 
   _StructuralChange? _deferredStructuralChange;
+
+  /// A resolved reading-direction change that did not come from a widget
+  /// update (an `auto` book whose ambient [Directionality] changed).
+  void _applyReadingDirectionChange() {
+    if (_isFlipActive) _controller.cancelActiveFlip();
+    final pending = _deferredStructuralChange;
+    _deferredStructuralChange = null;
+    const change = _StructuralChange(jumpTo: null, layoutChanged: true);
+    _applyStructuralChange(pending?.mergedWith(change) ?? change);
+  }
 
   /// Whether both ends of the in-flight turn still exist under the new count.
   ///
@@ -1011,11 +1062,18 @@ class PageFlipWidgetState extends State<PageFlipWidget>
 
     final key = event.logicalKey;
     final shift = keyboard.isShiftPressed;
-    if (key == LogicalKeyboardKey.arrowRight ||
+    // The arrows point at the side the pages come from, so they swap in an
+    // RTL book; Page Down/Up and Space keep their meaning.
+    final rtl = _rtl ?? false;
+    final arrowNext =
+        rtl ? LogicalKeyboardKey.arrowLeft : LogicalKeyboardKey.arrowRight;
+    final arrowPrevious =
+        rtl ? LogicalKeyboardKey.arrowRight : LogicalKeyboardKey.arrowLeft;
+    if (key == arrowNext ||
         key == LogicalKeyboardKey.pageDown ||
         (key == LogicalKeyboardKey.space && !shift)) {
       nextPage();
-    } else if (key == LogicalKeyboardKey.arrowLeft ||
+    } else if (key == arrowPrevious ||
         key == LogicalKeyboardKey.pageUp ||
         (key == LogicalKeyboardKey.space && shift)) {
       previousPage();
@@ -1044,7 +1102,11 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   void _turnFromWheel(PointerSignalEvent event) {
     if (event is! PointerScrollEvent) return;
     final scroll = event.scrollDelta;
-    final delta = scroll.dy.abs() >= scroll.dx.abs() ? scroll.dy : scroll.dx;
+    // A sideways wheel or trackpad swipe follows the reading direction; the
+    // vertical wheel always reads downward as "next".
+    final delta = scroll.dy.abs() >= scroll.dx.abs()
+        ? scroll.dy
+        : ((_rtl ?? false) ? -scroll.dx : scroll.dx);
     if (delta == 0) return;
 
     // One turn per burst of events: a mouse notch, or the long tail of a
@@ -1111,6 +1173,16 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
           final config = _config;
+          _rtl = _resolveRtl();
+          final rtl = _rtl!;
+          // Mirrored books run the same engine in its left-to-right space; the
+          // page builder mirrors each page back so content reads normally.
+          Widget mirroredPage(BuildContext context, int index) =>
+              Transform.flip(
+                flipX: true,
+                child: widget.itemBuilder(context, index),
+              );
+          final pageBuilder = rtl ? mirroredPage : widget.itemBuilder;
           // Single constraint gate: prevent unbounded height/width from propagating
           // (e.g. Scaffold body first frame, Stack without bounded parent).
           // All descendants (including Offstage pages) then receive finite constraints.
@@ -1153,7 +1225,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           // progressNotifier fires every animation tick; isDragging/touch/forward
           // are read from the controller getters (always current in memory).
           final livePageLayer = _LivePageCaptureLayer(
-            itemBuilder: widget.itemBuilder,
+            itemBuilder: pageBuilder,
             itemCount: _totalPages,
             currentIndex: _controller.currentIndex,
             pageKeys: _preRenderManager.pageKeys,
@@ -1169,7 +1241,7 @@ class PageFlipWidgetState extends State<PageFlipWidget>
             animation: _flipFrameListenable,
             child: livePageLayer,
             builder: (context, livePages) => PageFlipLayerView(
-              itemBuilder: widget.itemBuilder,
+              itemBuilder: pageBuilder,
               itemCount: _totalPages,
               currentIndex: _controller.currentIndex,
               dragProgress: _controller.progressNotifier.value,
@@ -1263,10 +1335,18 @@ class PageFlipWidgetState extends State<PageFlipWidget>
             onIncrease:
                 _controller.currentIndex < _totalPages - 1 ? nextPage : null,
             onDecrease: _controller.currentIndex > 0 ? previousPage : null,
-            onScrollLeft:
-                _controller.currentIndex < _totalPages - 1 ? nextPage : null,
-            onScrollRight: _controller.currentIndex > 0 ? previousPage : null,
-            child: _withKeyboard(config, _withWheel(config, mainContent)),
+            onScrollLeft: rtl
+                ? (_controller.currentIndex > 0 ? previousPage : null)
+                : (_controller.currentIndex < _totalPages - 1
+                    ? nextPage
+                    : null),
+            onScrollRight: rtl
+                ? (_controller.currentIndex < _totalPages - 1 ? nextPage : null)
+                : (_controller.currentIndex > 0 ? previousPage : null),
+            child: _withKeyboard(
+              config,
+              _withWheel(config, _mirrored(mainContent)),
+            ),
           );
           if (needBounded) {
             return SizedBox(width: maxW, height: maxH, child: semantics);

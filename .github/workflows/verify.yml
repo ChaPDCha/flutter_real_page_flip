@@ -1,8 +1,11 @@
 name: Verify
 
-# Hybrid (solo + multi-machine AI):
-# - Daily work: local `dart tool/verify.dart` (no push/PR CI — saves minutes)
-# - Weekly safety net: cheap package gate on ubuntu (SDK/dep drift)
+# Minutes are spent only where they catch something:
+# - Daily work: local `dart tool/verify.dart` (no push trigger at all)
+# - Pull requests: one package gate, only when the PR changes code, tests,
+#   package config or native code (docs-only PRs and drafts cost nothing), and a
+#   new commit cancels the previous run of the same PR
+# - Weekly safety net: the same gate on ubuntu (SDK/dep drift)
 # - On demand: workflow_dispatch; platforms only when explicitly enabled
 #   (example builds, plus a fresh consumer app only where a Windows dev machine
 #   cannot build: Linux, macOS and iOS, and Android on the declared Flutter
@@ -11,6 +14,18 @@ name: Verify
 #   gh workflow run "Verify"
 #   gh workflow run "Verify" -f platforms=true
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'tool/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'analysis_options.yaml'
+      - '.github/workflows/verify.yml'
   schedule:
     # Weekly Mon 00:00 KST (Sun 15:00 UTC) — package job only
     - cron: '0 15 * * 0'
@@ -27,6 +42,8 @@ concurrency:
 
 jobs:
   package:
+    # A draft PR is not ready to be judged; mark it ready for review to run.
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

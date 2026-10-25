@@ -1,51 +1,55 @@
 # Real Page Flip Engine for Flutter
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![tests](https://img.shields.io/badge/tests-1400%2B%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
+[![tests](https://img.shields.io/badge/tests-1500%2B%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-live%20web%20preview-6C63FF?logo=flutter)](https://chapdcha.github.io/flutter_real_page_flip/)
 [![platforms](https://img.shields.io/badge/platforms-6%2F6-blue)](https://pub.dev/packages/real_page_flip)
 
-A production-hardened page flip engine for Flutter. Single-page and double-spread.
+A heavily tested page flip engine for Flutter. Single-page and double-spread.
 Physics-based paper fold, adaptive haptics, sound, dark mode. Runs on Android, iOS,
 Web (CanvasKit + WASM), Windows, macOS, and Linux — all 6 Flutter platforms.
 
-## Built for RealBible. Running in Production.
+## Built for RealBible
 
-Real Page Flip is the rendering engine behind two live Google Play apps:
+Real Page Flip is the rendering engine of two apps on Google Play:
 
 - [**RealBible**](https://play.google.com/store/apps/details?id=com.jinproduction.realbible&pcampaignid=web_share)
 - [**The King's Way (왕의 길)**](https://play.google.com/store/apps/details?id=kr.chapdcha.thekingsway&pcampaignid=web_share)
 
-This is not a weekend prototype. It is the engine that thousands of readers use
-every time they turn a page. Every edge case below was encountered on a real
-device, reported by a real user, and fixed:
+Problems found while using it in those apps, and fixed (details in the
+[CHANGELOG](CHANGELOG.md)):
 
-| Real-world issue | Resolved |
-|------------------|----------|
+| Issue | Status |
+|-------|--------|
 | iPhone SE haptic motor buzz | Fixed |
 | Dark-paper shadow blade artifacts | Fixed |
 | Single-page flap splitting into stacked sheets | Fixed |
 | Extreme vertical drag causing layer seams | Fixed |
 | GPU memory leak from static shader cache | Fixed |
 
-1,400+ tests. 0 analyzer issues. Free (MIT) for any project, commercial or personal.
+1,500+ tests. 0 analyzer issues. Free (MIT) for any project, commercial or personal.
 
-**This engine is different because it has already solved edge cases that only
-surface after thousands of real-world page turns.**
+**What is and is not verified.** The behaviour is covered by the automated
+tests (geometry invariants, gesture arbitration, memory lifecycle, goldens).
+Frame-time targets and the foldable handling are *not* yet backed by published
+measurements from named devices, and the render is a 2.5D approximation of a
+page turn (path clipping plus a textured mesh), not a 3D paper simulation. See
+[Performance Benchmark](#performance-benchmark) and
+[Foldables](#foldables-dual-screen-devices-and-window-resizing).
 
 English | [한국어](README_KR.md)
 
 ## What Sets This Engine Apart
 
-- **Real-device verified**: Tested on budget iPhone SE and low-end Android devices — every listed bug was reported by an actual user and fixed.
-- **1,400+ tests, 0 analyzer issues**: Covers gesture arbitration, geometry invariants, memory lifecycle, accessibility, and stress scenarios.
+- **Used in shipping apps**: the engine of the two Google Play apps above; the issues found there are fixed and covered by regression tests.
+- **1,500+ tests, 0 analyzer issues**: Covers gesture arbitration, geometry invariants, memory lifecycle, accessibility, and stress scenarios.
 - **Tunable performance**: Three rendering profiles (low/medium/high) trade fidelity for speed. Pick one per device tier; the default is medium.
 - **Physics-modeled visuals**: Crease shadows, paper curl shading, and dark-paper moonlight tones derived from physical paper behavior.
 - **Complete sensory feedback**: Continuous haptic waveform pipeline synchronized with speed-varying page-rustle audio.
-- **Production architecture**: small, focused source files with documented structure.
+- **Small, focused source files** with documented structure.
 
 ## Demos
 
@@ -84,7 +88,7 @@ has 10 pages or 10,000, memory footprint stays constant.
 Curved clips, dynamic shadows, and highlights are calculated with a custom
 math-based Path Clipping engine — no heavy 3D perspective transforms.
 
-### Production-Hardened Layouts
+### Bounded Layouts
 Internal constraint gate prevents "unbounded height" errors in common `Stack`,
 `Column`, and `Scaffold` compositions.
 
@@ -254,8 +258,34 @@ PageFlipWidget(
   `PageFlipConfig(enableWheelNavigation: true)` turns one page per scroll
   gesture. A scrollable page keeps the wheel until it reaches its end.
 
-Not supported yet: right-to-left reading direction. The engine always turns
-pages like a left-to-right book.
+## Right-to-left books
+
+For Arabic, Hebrew, Persian, Urdu, or a vertically bound Japanese book, mirror
+the whole book. The spine moves to the right, the next page comes from a swipe
+toward the right, the arrow keys and the accessibility scroll actions swap
+sides, and a horizontal wheel swipe follows the reading direction:
+
+```dart
+PageFlipWidget(
+  readingDirection: PageFlipReadingDirection.rtl, // or .auto
+  itemCount: pages.length,
+  itemBuilder: (context, index) => MyPage(index),
+)
+```
+
+- `ltr` (default) keeps today's behaviour, **even under a right-to-left
+  `Directionality`**, so no existing book changes when you upgrade.
+- `auto` follows the ambient `Directionality`, including live changes.
+- Page `0` is the first page in reading order. Page content is never mirrored:
+  text and images keep their own direction, and in a spread you lay out each
+  spread the way it should look on screen.
+- The edge-tap zones keep their roles (the zone on the side the pages come
+  from goes back), so in an RTL book the left edge turns forward.
+- Changing the resolved direction ends a turn that is in the air, like a
+  `spreadMode` switch (`onFlipEnd` fires once, `onPageChanged` does not).
+
+The mirror is applied to the whole engine rather than rewriting its geometry, so
+the shadows and the fold are the same ones the left-to-right book has, reflected.
 
 ## Double-spread (two-page) mode
 
@@ -373,15 +403,19 @@ The benchmark runs 80 consecutive page flips on a real device and reports:
 | Max frame time | < 18 ms |
 | Jank count (80 flips) | 0 |
 
+These are the targets the benchmark checks against, not published measurements:
+this repository does not yet include results from a named device. Run it on the
+devices you support before relying on any of the numbers.
+
 Run across low/medium/high profiles to validate your target device tier. The
 benchmark is designed to catch regressions in snapshot capture, geometry
 computation, and shader performance before they reach users.
 
 ## Support the Project
 
-Real Page Flip is free (MIT) and always will be. Maintaining a production-grade
-engine — running 1,400+ tests, verifying fixes across real devices, and keeping
-pace with Flutter releases — requires sustained investment.
+Real Page Flip is free (MIT) and always will be. Maintaining the
+engine — running 1,500+ tests, fixing what apps report, and keeping pace with
+Flutter releases — requires sustained investment.
 
 [Sponsor on GitHub →](https://github.com/sponsors/ChaPDCha)
 

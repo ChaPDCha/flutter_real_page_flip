@@ -1,52 +1,53 @@
 # Flutter 실시간 페이지 플립 엔진 (Real Page Flip)
 
 [![pub package](https://img.shields.io/pub/v/real_page_flip.svg)](https://pub.dev/packages/real_page_flip)
-[![tests](https://img.shields.io/badge/tests-1400%2B%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
+[![tests](https://img.shields.io/badge/tests-1500%2B%20passing-brightgreen)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![analysis](https://img.shields.io/badge/analyzer-0%20issues-success)](https://github.com/ChaPDCha/flutter_real_page_flip)
 [![후원](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ChaPDCha)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-라이브%20웹%20미리보기-6C63FF?logo=flutter)](https://chapdcha.github.io/flutter_real_page_flip/)
 [![platforms](https://img.shields.io/badge/platforms-6%2F6-blue)](https://pub.dev/packages/real_page_flip)
 
-실제 서비스에서 검증된 Flutter 페이지 플립 엔진입니다. 단면 보기와 양면 보기를
+테스트를 두텁게 갖춘 Flutter 페이지 플립 엔진입니다. 단면 보기와 양면 보기를
 모두 지원하며, 물리 기반 종이 접힘, 적응형 햅틱, 사운드, 다크 모드를 제공합니다.
-Android, iOS, Web (CanvasKit + WASM), Windows, macOS, Linux — Flutter 6개 플랫폼
-전부에서 저사양 기기까지 끊김 없이 작동합니다.
+Android, iOS, Web (CanvasKit + WASM), Windows, macOS, Linux — Flutter 6개 플랫폼을
+지원합니다.
 
-## RealBible를 위해 개발되어, 실제 서비스에서 검증됨
+## RealBible를 위해 개발됨
 
-Real Page Flip은 현재 Google Play에 출시된 두 개의 앱에서 사용되고 있습니다:
+Real Page Flip은 Google Play에 출시된 두 개의 앱의 렌더링 엔진입니다:
 
 - [**RealBible (리얼바이블)**](https://play.google.com/store/apps/details?id=com.jinproduction.realbible&pcampaignid=web_share)
 - [**왕의 길 (The King's Way)**](https://play.google.com/store/apps/details?id=kr.chapdcha.thekingsway&pcampaignid=web_share)
 
-이 엔진은 주말 프로토타입이 아닙니다. 수천 명의 독자가 페이지를 넘길 때마다
-사용하는 렌더링 엔진입니다. 아래 모든 엣지 케이스는 실제 기기에서 실제 사용자가
-발견하고 수정된 항목들입니다:
+이 앱들에서 사용하며 발견해 수정한 문제입니다(자세한 내용은
+[CHANGELOG](CHANGELOG.md)):
 
-| 실제 발생 문제 | 해결 |
-|--------------|------|
+| 문제 | 상태 |
+|------|------|
 | iPhone SE 진동 모터 버즈 노이즈 | 수정 완료 |
 | 다크 모드에서 그림자 칼날 현상 | 수정 완료 |
 | 단면 넘김에서 3겹으로 갈라지는 레이어 | 수정 완료 |
 | 극단적 수직 드래그 시 레이어 경계 불일치 | 수정 완료 |
 | 정적 셰이더 캐시로 인한 GPU 메모리 누수 | 수정 완료 |
 
-1,400개 이상의 테스트. 분석기 0 이슈. MIT 라이선스로 상업적/비상업적 모든 프로젝트에서 무료.
+1,500개 이상의 테스트. 분석기 0 이슈. MIT 라이선스로 상업적/비상업적 모든 프로젝트에서 무료.
 
-**이 엔진은 수천 번의 실제 페이지 넘김에서만 드러나는 엣지 케이스를
-이미 해결했다는 점에서 다릅니다.**
+**무엇이 검증되었고 무엇이 아닌가.** 동작은 자동화 테스트(기하학 불변속성, 제스처
+중재, 메모리 생명주기, 골든)로 검증됩니다. 프레임 시간 목표와 폴더블 대응은 아직
+특정 기기에서 측정해 공개한 결과가 없습니다. 또한 렌더링은 3D 종이 시뮬레이션이
+아니라 페이지 넘김의 2.5D 근사(경로 클리핑 + 텍스처 메시)입니다.
 
 [English](README.md) | 한국어
 
 ## 이 엔진의 차별점
 
-- **실제 기기 검증**: 저가형 iPhone SE와 보급형 Android 기기에서 테스트 — 아래 모든 버그는 실제 사용자가 신고하고 수정한 항목입니다.
-- **1,400개 이상의 테스트, 0 analyzer 이슈**: 제스처 중재, 기하학 불변속성, 메모리 생명주기, 접근성, 스트레스 시나리오까지 포괄.
+- **실제 앱에서 사용**: 위 두 Google Play 앱의 엔진입니다. 거기서 발견된 문제는 수정되어 회귀 테스트로 보호됩니다.
+- **1,500개 이상의 테스트, 0 analyzer 이슈**: 제스처 중재, 기하학 불변속성, 메모리 생명주기, 접근성, 스트레스 시나리오까지 포괄.
 - **조절 가능한 성능**: 저/중/고 세 가지 렌더링 프로필로 품질과 속도를 맞바꿉니다. 기기 등급에 맞게 직접 고르세요(기본값: 중).
 - **물리 기반 비주얼**: 실제 종이 동작에서 유도된 접힘 그림자, 종이 컬 셰이딩, 다크 페이퍼 문라이트 톤.
 - **완전한 감각 피드백**: 속도에 따라 변화하는 페이지 넘김 사운드와 연속 햅틱 파형 파이프라인이 동기화됩니다.
-- **프로덕션 아키텍처**: 문서화된 구조의 작고 집중된 소스 파일.
+- **작고 집중된 소스 파일**: 문서화된 구조.
 
 ## 데모
 
@@ -211,8 +212,34 @@ MaterialApp(
 - **마우스 휠·트랙패드** (선택): `PageFlipConfig(enableWheelNavigation: true)` —
   스크롤 한 번에 한 페이지. 스크롤되는 페이지는 끝에 닿기 전까지 휠을 그대로 씁니다.
 
-아직 지원하지 않는 것: 오른쪽→왼쪽 읽기 방향. 엔진은 항상 왼쪽→오른쪽 책처럼
-넘깁니다.
+## 오른쪽→왼쪽 책 (RTL)
+
+아랍어·히브리어·페르시아어·우르두어, 또는 세로 제본 일본어 책은 책 전체를 좌우
+반전합니다. 제본선이 오른쪽으로 가고, 다음 페이지는 오른쪽으로 쓸어서 넘기며,
+화살표 키와 접근성 스크롤 동작의 좌우가 바뀌고, 가로 휠 스와이프도 읽기 방향을
+따릅니다:
+
+```dart
+PageFlipWidget(
+  readingDirection: PageFlipReadingDirection.rtl, // 또는 .auto
+  itemCount: pages.length,
+  itemBuilder: (context, index) => MyPage(index),
+)
+```
+
+- `ltr`(기본값)은 기존 동작을 그대로 유지하며, **RTL `Directionality` 아래에서도**
+  바뀌지 않습니다. 업그레이드해도 기존 책은 달라지지 않습니다.
+- `auto`는 주변 `Directionality`를 따르고, 실행 중 변경도 반영합니다.
+- 페이지 `0`은 읽기 순서상 첫 페이지입니다. 페이지 내용은 절대 반전되지 않습니다.
+  텍스트와 이미지는 자기 방향을 유지하고, 2면 보기에서는 화면에 보일 모양대로
+  각 면을 구성하면 됩니다.
+- 가장자리 탭 영역의 역할은 그대로입니다(페이지가 오는 쪽 영역이 이전으로
+  이동). 그래서 RTL 책에서는 왼쪽 가장자리가 다음 페이지입니다.
+- 읽기 방향이 바뀌면 공중에 떠 있는 넘김은 `spreadMode` 전환처럼 종료됩니다
+  (`onFlipEnd`는 한 번, `onPageChanged`는 호출되지 않음).
+
+엔진의 지오메트리를 다시 쓰는 대신 엔진 전체를 반사합니다. 그림자와 접힘선은
+왼쪽→오른쪽 책의 것을 좌우로 뒤집은 것과 같습니다.
 
 ## 2면 보기 (Double-Spread)
 
@@ -279,13 +306,17 @@ flutter run --profile -t lib/performance_benchmark.dart \
 | 최대 프레임 시간 | < 18 ms |
 | Jank 횟수 (80회) | 0 |
 
+위 수치는 벤치마크가 비교하는 목표값이며 공개된 측정 결과가 아닙니다. 이 저장소에는
+아직 특정 기기에서 측정한 결과가 없습니다. 수치를 신뢰하기 전에 지원 대상 기기에서
+직접 실행하세요.
+
 저/중/고 프로필에서 각각 실행하여 대상 기기 티어를 검증하세요. 스냅샷 캡처,
 지오메트리 연산, 셰이더 성능의 회귀를 사용자 도달 전에 감지할 수 있습니다.
 
 ## 프로젝트 후원
 
-Real Page Flip은 MIT 라이선스로 영원히 무료입니다. 그러나 프로덕션급 엔진 유지 —
-1,400개 이상의 테스트 실행, 실제 기기 검증, Flutter 업데이트 대응 — 에는 지속적인
+Real Page Flip은 MIT 라이선스로 영원히 무료입니다. 그러나 엔진 유지 —
+1,500개 이상의 테스트 실행, 앱에서 보고된 문제 수정, Flutter 업데이트 대응 — 에는 지속적인
 투자가 필요합니다.
 
 [GitHub Sponsors에서 후원하기 →](https://github.com/sponsors/ChaPDCha)

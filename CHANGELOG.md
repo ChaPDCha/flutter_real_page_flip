@@ -1,3 +1,58 @@
+## [3.2.0] - 2026-10-25
+
+### Added
+
+- **Right-to-left books.** `PageFlipWidget(readingDirection: ...)` takes
+  `PageFlipReadingDirection.ltr` (default), `rtl` or `auto` (follows the ambient
+  `Directionality`, live changes included). An RTL book is the same engine
+  mirrored as a whole: the spine is on the right, the next page comes from a
+  swipe toward the right, the edge-tap zones keep their roles (so the left edge
+  turns forward), the arrow keys, the accessibility scroll actions and a
+  horizontal wheel swipe follow the reading direction, and page content is
+  mirrored back so it reads normally. The left-to-right path builds exactly the
+  tree it did before. The default stays `ltr` even under a right-to-left
+  `Directionality`, so no existing book changes. Changing the resolved direction
+  ends a turn in the air, like a `spreadMode` switch.
+
+### Fixed
+
+- **The gesture layer measured drags in screen space.** It summed
+  `PointerEvent.delta` and fed `position` to the velocity tracker; both stay in
+  screen coordinates while everything beneath a transform (a mirrored book, or a
+  host that flips or rotates the book) lives in local ones. In such a tree the
+  drag moved the wrong way and the release velocity pointed against it, so a
+  swipe could never complete. It now uses `localDelta` and `localPosition`.
+  Untransformed books are unaffected: local and screen values differ by a
+  translation only.
+
+### CI
+
+- The `Verify` workflow now also runs on pull requests, but only when the PR
+  changes code, tests, package or native configuration (`lib/`, `test/`,
+  `tool/`, `android/`, `ios/`, `assets/`, `pubspec.yaml`,
+  `analysis_options.yaml` or the workflow itself). Documentation-only and draft
+  pull requests cost nothing, a new commit cancels the previous run of the same
+  PR, and there is still no push trigger. Platform builds stay manual.
+
+### Documentation
+
+- README and README_KR: new right-to-left section, and the benchmark table is
+  labelled as targets. The repository publishes no measurements from a named
+  device yet, and the text now says so.
+- Claims the repository cannot back are gone: "thousands of readers",
+  "real-device verified", "production-hardened" and "ultra-smooth". What remains
+  is what the repository shows: the two apps that use the engine, the test and
+  analyzer results (the test count is now "1,500+"), and a short "what is and
+  is not verified" note that names the 2.5D approximation and the missing
+  device measurements. The pub.dev description no longer says "3D-like".
+
+### Tests
+
+- `page_flip_reading_direction_test.dart`: swipe, edge taps, keyboard,
+  accessibility actions and content orientation in single and spread mode,
+  `auto` against `Directionality` including a live change, and a direction
+  change with a turn in the air.
+
 ## [3.1.2] - 2026-10-06
 
 ### Fixed
