@@ -20,6 +20,26 @@ enum PageFlipSpreadMode {
   doubleSpread,
 }
 
+/// Which way the book is read, and so which way its pages turn.
+///
+/// [PageFlipReadingDirection.ltr] is a book bound on the left: the next page
+/// comes from a swipe toward the left. [PageFlipReadingDirection.rtl] mirrors
+/// the whole book for Arabic, Hebrew, Persian, Urdu and vertical-binding
+/// Japanese: the spine is on the right, the next page comes from a swipe toward
+/// the right, and the arrow keys and the "scroll" accessibility actions swap
+/// sides. Page content itself is never mirrored; text keeps its own direction.
+enum PageFlipReadingDirection {
+  /// Bound on the left; the next page is a swipe toward the left.
+  ltr,
+
+  /// Bound on the right; the next page is a swipe toward the right.
+  rtl,
+
+  /// Follows the ambient [Directionality]: [TextDirection.rtl] reads
+  /// right-to-left, anything else left-to-right.
+  auto,
+}
+
 /// Maps legacy `isDoubleSpread` flags to [PageFlipSpreadMode].
 extension PageFlipSpreadModeCompat on PageFlipSpreadMode {
   /// Whether this mode uses a center spine and half-width page geometry.

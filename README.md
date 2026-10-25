@@ -254,8 +254,34 @@ PageFlipWidget(
   `PageFlipConfig(enableWheelNavigation: true)` turns one page per scroll
   gesture. A scrollable page keeps the wheel until it reaches its end.
 
-Not supported yet: right-to-left reading direction. The engine always turns
-pages like a left-to-right book.
+## Right-to-left books
+
+For Arabic, Hebrew, Persian, Urdu, or a vertically bound Japanese book, mirror
+the whole book. The spine moves to the right, the next page comes from a swipe
+toward the right, the arrow keys and the accessibility scroll actions swap
+sides, and a horizontal wheel swipe follows the reading direction:
+
+```dart
+PageFlipWidget(
+  readingDirection: PageFlipReadingDirection.rtl, // or .auto
+  itemCount: pages.length,
+  itemBuilder: (context, index) => MyPage(index),
+)
+```
+
+- `ltr` (default) keeps today's behaviour, **even under a right-to-left
+  `Directionality`**, so no existing book changes when you upgrade.
+- `auto` follows the ambient `Directionality`, including live changes.
+- Page `0` is the first page in reading order. Page content is never mirrored:
+  text and images keep their own direction, and in a spread you lay out each
+  spread the way it should look on screen.
+- The edge-tap zones keep their roles (the zone on the side the pages come
+  from goes back), so in an RTL book the left edge turns forward.
+- Changing the resolved direction ends a turn that is in the air, like a
+  `spreadMode` switch (`onFlipEnd` fires once, `onPageChanged` does not).
+
+The mirror is applied to the whole engine rather than rewriting its geometry, so
+the shadows and the fold are the same ones the left-to-right book has, reflected.
 
 ## Double-spread (two-page) mode
 
@@ -372,6 +398,10 @@ The benchmark runs 80 consecutive page flips on a real device and reports:
 | P99 frame time | < 12 ms |
 | Max frame time | < 18 ms |
 | Jank count (80 flips) | 0 |
+
+These are the targets the benchmark checks against, not published measurements:
+this repository does not yet include results from a named device. Run it on the
+devices you support before relying on any of the numbers.
 
 Run across low/medium/high profiles to validate your target device tier. The
 benchmark is designed to catch regressions in snapshot capture, geometry

@@ -16,6 +16,7 @@ export 'src/models/page_flip_config.dart'
     show
         DevicePerformanceProfile,
         PageFlipConfig,
+        PageFlipReadingDirection,
         PageFlipSnapshotRefreshPolicy,
         PageFlipSpreadMode,
         PageFlipSpreadModeCompat;
