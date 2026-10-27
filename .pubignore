@@ -9,6 +9,7 @@ analyze_output.txt
 
 # Development configs & hooks
 .cursor/
+.kiro/
 .vscode/
 .githooks/
 .idea/
