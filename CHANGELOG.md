@@ -1,3 +1,8 @@
+# Changelog
+
+All notable changes to the `real_page_flip` **package** will be documented here.
+For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
+
 ## [3.2.0] - 2026-10-25
 
 ### Added
@@ -24,6 +29,17 @@
   swipe could never complete. It now uses `localDelta` and `localPosition`.
   Untransformed books are unaffected: local and screen values differ by a
   translation only.
+- **Gated iOS haptic diagnostics in release builds.** Wrapped `[HAPTIC_DIAGNOSTIC]`
+  print statements in `RealPageFlipPlugin.swift` under `isHapticDebugLogging`
+  and gated setup error logging under `#if DEBUG`, eliminating console output
+  on iOS production runs and matching Android's logging policy.
+- Fixed a typo in `CONTRIBUTING.md`.
+
+### Packaging
+
+- Added `.kiro/` steering directory to `.pubignore` to keep release tarballs
+  lean and focused.
+- Aligned `ios/real_page_flip.podspec` version to `3.2.0`.
 
 ### CI
 
@@ -804,10 +820,10 @@
 ### Tests
 - Adaptive→premium continuous routing, soft-settle (no thud), and stop/flush race regressions.
 
-# Changelog
 
-All notable changes to the `real_page_flip` **package** will be documented here.
-For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
+
+
+
 
 ## [2.1.6] - 2026-07-29
 

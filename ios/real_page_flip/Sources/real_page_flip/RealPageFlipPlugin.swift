@@ -39,9 +39,14 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
         self?._continuousStarted = false
       }
     } catch {
+      #if DEBUG
       print("Failed to start CoreHaptics engine: \(error)")
+      #endif
     }
   }
+
+  // Whether to emit diagnostic log output.
+  private static let isHapticDebugLogging = false
 
   /// Compact iPhones where continuous Core Haptics reads as a phone-call buzz.
   /// SE + mini form factors share a small chassis / less refined continuous feel.
@@ -314,7 +319,9 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   private func playTransient(intensity: Float, sharpness: Float, durationMs: Int) {
     let clampedDurationMs = min(max(durationMs, 1), 500)
     let route = clampedDurationMs <= 25 ? "transient" : "weighted_transient"
-    print("[HAPTIC_DIAGNOSTIC] iOS playTransient: intensity=\(intensity), sharpness=\(sharpness), durationMs=\(clampedDurationMs), route=\(route)")
+    if isHapticDebugLogging {
+      print("[HAPTIC_DIAGNOSTIC] iOS playTransient: intensity=\(intensity), sharpness=\(sharpness), durationMs=\(clampedDurationMs), route=\(route)")
+    }
     guard let engine = hapticEngine else {
       playLegacyPaperTick(intensity: intensity)
       return
@@ -375,7 +382,9 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   private func playThud(intensity: Float) {
-    print("[HAPTIC_DIAGNOSTIC] iOS playThud: intensity=\(intensity)")
+    if isHapticDebugLogging {
+      print("[HAPTIC_DIAGNOSTIC] iOS playThud: intensity=\(intensity)")
+    }
     guard let engine = hapticEngine else {
       UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
       return
@@ -395,7 +404,9 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   private func playSlipBurst(intensity: Float) {
-    print("[HAPTIC_DIAGNOSTIC] iOS playSlipBurst: intensity=\(intensity)")
+    if isHapticDebugLogging {
+      print("[HAPTIC_DIAGNOSTIC] iOS playSlipBurst: intensity=\(intensity)")
+    }
     guard let engine = hapticEngine else {
       UIImpactFeedbackGenerator(style: .medium).impactOccurred()
       return
@@ -424,7 +435,9 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   private func playSettleThud(intensity: Float) {
-    print("[HAPTIC_DIAGNOSTIC] iOS playSettleThud: intensity=\(intensity)")
+    if isHapticDebugLogging {
+      print("[HAPTIC_DIAGNOSTIC] iOS playSettleThud: intensity=\(intensity)")
+    }
     guard let engine = hapticEngine else {
       UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
       return

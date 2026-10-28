@@ -7,7 +7,7 @@ Please be respectful and professional in all interactions.
 
 ## How Can I Contribute?
 
-### Reporting Burgs
+### Reporting Bugs
 - Use the GitHub Issue Tracker.
 - Describe the bug in detail and provide steps to reproduce.
 - Include your Flutter version and target platform (iOS/Android/Web).
