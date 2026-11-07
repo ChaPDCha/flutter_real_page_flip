@@ -727,34 +727,51 @@ void main() {
       // At progress=0.999: flapOpacityModulator(0.999) = 1.0 (p >= 1 early exit)
     });
 
-    // ── Stationary page shadow (double-spread only) ───────────
+    // ── Unified double-spread crease ──────────────────────────
 
-    test('stationary shadow drawn in double-spread forward mode', () {
-      final canvas = RecordingCanvas();
+    for (final isForward in [true, false]) {
+      for (final profile in DevicePerformanceProfile.values) {
+        for (final paperColor in [Colors.white, Colors.black]) {
+          final direction = isForward ? 'forward' : 'backward';
+          final isDark = paperColor == Colors.black;
+          test('double-spread $direction $profile dark=$isDark uses one crease',
+              () {
+            final canvas = RecordingCanvas();
 
-      PageFlipPainter(
-        progress: 0.5,
-        isRightToLeft: true,
-        touchOffset: Offset.zero,
-        paperBackColor: Colors.white,
-        isDoubleSpread: true,
-      ).paint(canvas, size);
+            PageFlipPainter(
+              progress: 0.5,
+              isRightToLeft: true,
+              touchOffset: Offset.zero,
+              paperBackColor: paperColor,
+              isDoubleSpread: true,
+              isForward: isForward,
+              performanceProfile: profile,
+            ).paint(canvas, size);
 
-      // Revealed + stationary shadows use curved clipPath; spine uses clipRect.
-      expect(
-        canvas.clipPathCount,
-        greaterThanOrEqualTo(3),
-        reason: 'Flap + revealed + stationary shadow clipPaths',
-      );
-      expect(
-        canvas.clipRectCount,
-        greaterThanOrEqualTo(1),
-        reason: 'Spine groove still uses clipRect',
-      );
-    });
+            expect(
+              canvas.creaseMeshCount,
+              equals(1),
+              reason: 'Both sides of the fold must share one continuous valley '
+                  'across directions, profiles, and paper themes.',
+            );
+            final crease = canvas.records.singleWhere(
+              (r) =>
+                  r.method == 'drawVertices' &&
+                  r.args[1] == BlendMode.dst &&
+                  (r.args[2]! as Paint).shader == null,
+            );
+            expect(
+              (crease.args[2]! as Paint).blendMode,
+              isDark ? BlendMode.screen : BlendMode.multiply,
+            );
+            expect(canvas.saveCount, equals(canvas.restoreCount));
+          });
+        }
+      }
+    }
 
     test(
-        'stationary shadow uses fold-aligned clipPath at extreme vertical touch',
+        'double-spread crease follows the fold transform at extreme vertical touch',
         () {
       final canvas = RecordingCanvas();
       PageFlipPainter(
@@ -765,15 +782,36 @@ void main() {
         isDoubleSpread: true,
       ).paint(canvas, size);
 
-      // Revealed + stationary + contact: clipPath before transform; spine: clipRect.
-      expect(canvas.clipPathCount, greaterThanOrEqualTo(4));
+      // Flap, contact, and inverse-flap gutter clip. The shared crease uses a
+      // viewport clipRect so neither side is cut off by an independent clip.
+      expect(canvas.clipPathCount, equals(3));
+      expect(canvas.creaseMeshCount, equals(1));
+      final creaseIndex = canvas.records.indexWhere(
+        (r) =>
+            r.method == 'drawVertices' &&
+            r.args[1] == BlendMode.dst &&
+            (r.args[2]! as Paint).shader == null,
+      );
+      expect(canvas.records[creaseIndex - 2].method, equals('clipRect'));
+      expect(canvas.records[creaseIndex - 1].method, equals('transform'));
+      final geometry = PageFlipGeometry(
+        progress: 0.5,
+        isRightToLeft: true,
+        touchOffset: const Offset(400, -300),
+        size: size,
+        isDoubleSpread: true,
+      );
+      expect(
+        canvas.records[creaseIndex - 1].args.single,
+        orderedEquals(geometry.transform.storage),
+      );
       final transformCount =
           canvas.records.where((r) => r.method == 'transform').length;
       expect(
         transformCount,
-        equals(4),
-        reason: 'Flap + revealed + stationary + free-edge contact shadow each '
-            'use one transform',
+        equals(3),
+        reason: 'Flap, unified crease, and free-edge contact shadow each use '
+            'one fold transform',
       );
     });
 
@@ -1151,11 +1189,10 @@ void main() {
         isForward: false,
       ).paint(canvas, size);
 
-      // isRightToLeft = false → stationary shadow skipped (requires true).
-      // Spine: isDoubleSpread && progress > 0 → true, but NOT gated on isRightToLeft.
-      // clipPaths: flap + revealed crease + free-edge contact + the inverse
-      // flap clip that keeps the centre gutter behind the turning sheet = 4.
-      expect(canvas.clipPathCount, equals(4));
+      // Flap + free-edge contact + inverse-flap centre gutter. The unified
+      // crease paints across both sides without a separate revealed clip.
+      expect(canvas.clipPathCount, equals(3));
+      expect(canvas.creaseMeshCount, equals(1));
       // save/restore balanced
       expect(canvas.saveCount, equals(canvas.restoreCount));
       // Spine uses BlendMode.multiply
@@ -1180,10 +1217,10 @@ void main() {
         isForward: false,
       ).paint(canvas, size);
 
-      // isRightToLeft && isDoubleSpread → stationary shadow IS drawn.
-      // clipPaths: flap + revealed crease + free-edge contact + stationary +
-      // the inverse flap clip for the centre gutter = 5.
-      expect(canvas.clipPathCount, equals(5));
+      // RTL uses the same shared crease instead of adding another independently
+      // clipped stationary shadow.
+      expect(canvas.clipPathCount, equals(3));
+      expect(canvas.creaseMeshCount, equals(1));
       expect(canvas.saveCount, equals(canvas.restoreCount));
       expect(
         canvas.hasDrawRectWith(blendMode: BlendMode.multiply, hasShader: true),
@@ -1213,7 +1250,8 @@ void main() {
       );
     });
 
-    test('backward double-spread stationary shadow drawn with RTL', () {
+    test('backward double-spread crease has bounded paint coverage with RTL',
+        () {
       final canvas = RecordingCanvas();
 
       PageFlipPainter(
@@ -1225,7 +1263,18 @@ void main() {
         isForward: false,
       ).paint(canvas, size);
 
-      expect(canvas.clipRectCount, greaterThan(0));
+      expect(canvas.creaseMeshCount, equals(1));
+      expect(
+        canvas.records.any(
+          (r) =>
+              r.method == 'clipRect' &&
+              r.args.first ==
+                  Rect.fromLTRB(0, -size.height, size.width, size.height * 2),
+        ),
+        isTrue,
+        reason: 'The shared crease remains horizontally bounded while its '
+            'vertical bleed follows an angled fold.',
+      );
     });
 
     test('backward double-spread uses one verso mesh at late progress', () {

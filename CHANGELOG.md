@@ -3,6 +3,41 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [3.2.1] - 2026-11-07
+
+### Fixed
+
+- Keep the curved fold boundary and its shading attached to the moving sheet
+  in single-page and spread layouts, removing the detached shadow and abrupt
+  brightness seam that made the page appear cut off.
+- Preserve the moving sheet after a swipe is released or canceled until its
+  completion or return animation reaches the endpoint. Release motion starts
+  from the last drag position, uses a monotone curve with bounded initial
+  velocity, and retains ownership while settling, including rapid reversals.
+- Count the movement that first crosses the horizontal gesture threshold once,
+  and update content hit testing without rebuilding the live flip layers.
+- Keep swipe completion and return animations visible by default when system
+  animations are disabled. Edge taps and programmatic turns still respect
+  reduced motion. Set
+  `PageFlipConfig(preserveSwipeSettleOnReducedMotion: false)` to retain instant
+  swipe settling under reduced motion.
+
+### Validation
+
+- Added fold attachment and rapid-swipe regression coverage, and updated
+  rendering goldens for the shared curved crease.
+- Verified forward/backward completion and return on a Samsung SM-S948N running
+  Android 17, in single-page mode with the default medium profile and system
+  animations disabled. The moving sheet remained active through all 135
+  sampled settle frames. See
+  [the device validation record](example/device-validation-2026-11-07.md).
+- Added a separate example fixture for observing pointer release and settle
+  frames on physical devices.
+
+### Packaging
+
+- Aligned the iOS podspec version to `3.2.1`.
+
 ## [3.2.0] - 2026-10-25
 
 ### Added

@@ -124,13 +124,22 @@ void main() {
           expect(pixels, isNotNull);
 
           final flapClip = buildFlapScreenClipPath(geo);
+          final inverseTransform = Matrix4.inverted(geo.transform);
+          const maskAntialiasMargin = 1.0;
+          final foldMaskBand =
+              foldMaskWidth(isPaperDark: false) + maskAntialiasMargin;
+          final freeEdgeMaskBand =
+              edgeMaskWidth(isPaperDark: false) + maskAntialiasMargin;
           var flapSamples = 0;
           var textureSamples = 0;
+          var interiorSamples = 0;
+          var interiorTextureSamples = 0;
           var exposedUnderlaySamples = 0;
           const stride = 800 * 4;
           for (var y = 2; y < 598; y += 3) {
             for (var x = 2; x < 798; x += 3) {
-              if (!flapClip.contains(Offset(x + 0.5, y + 0.5))) continue;
+              final sample = Offset(x + 0.5, y + 0.5);
+              if (!flapClip.contains(sample)) continue;
               final offset = y * stride + x * 4;
               final r = pixels!.getUint8(offset);
               final g = pixels.getUint8(offset + 1);
@@ -139,11 +148,29 @@ void main() {
               if (a < 200) continue;
               flapSamples++;
               if (r > g + 30 && b > g + 30) textureSamples++;
+
+              // The painter deliberately blends paper colour over crushed
+              // texture at both curved boundaries. Measure unintended underlay
+              // exposure only beyond those masks, in the flap's local space.
+              final local =
+                  MatrixUtils.transformPoint(inverseTransform, sample);
+              final fromFold = (local.dx - foldCurveXAt(geo, local.dy)) *
+                  (geo.flapRightOfFold ? 1 : -1);
+              final fromFreeEdge =
+                  (local.dx - flapEdgeCurveXAt(geo, local.dy)) *
+                      (geo.flapRightOfFold ? -1 : 1);
+              if (fromFold <= foldMaskBand ||
+                  fromFreeEdge <= freeEdgeMaskBand) {
+                continue;
+              }
+              interiorSamples++;
+              if (r > g + 30 && b > g + 30) interiorTextureSamples++;
               if (g > r + 40 && g > b + 40) exposedUnderlaySamples++;
             }
           }
 
           expect(flapSamples, greaterThan(100));
+          expect(interiorSamples, greaterThan(100));
           expect(
             textureSamples / flapSamples,
             greaterThan(0.70),
@@ -151,7 +178,13 @@ void main() {
                 'for forward=$isForward touchY=$touchY',
           );
           expect(
-            exposedUnderlaySamples / flapSamples,
+            interiorTextureSamples / interiorSamples,
+            greaterThan(0.98),
+            reason: 'The flap interior beyond intentional paper-colour masks '
+                'must retain its texture for forward=$isForward touchY=$touchY',
+          );
+          expect(
+            exposedUnderlaySamples / interiorSamples,
             lessThan(0.02),
             reason: 'The green paper underlay is exposed where the rotated '
                 'texture mesh should cover it for forward=$isForward '

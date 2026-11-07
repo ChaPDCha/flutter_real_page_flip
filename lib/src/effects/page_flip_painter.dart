@@ -345,13 +345,6 @@ class PageFlipPainter extends CustomPainter {
 
     _drawFreeEdgeHighlight(canvas, g, isPaperDark);
 
-    _drawFoldAccent(
-      canvas,
-      g,
-      isPaperDark,
-      g.shadowIntensity * movingFoldShadowOpacity(g),
-    );
-
     if (didSaveLayer) canvas.restore();
 
     canvas.restore();
@@ -359,15 +352,6 @@ class PageFlipPainter extends CustomPainter {
     _drawCreaseShadow(canvas, g, size, isPaperDark, shadowOnset);
 
     _drawContactShadow(canvas, g, size, isPaperDark, shadowOnset);
-
-    _drawStationaryShadow(
-      canvas,
-      g,
-      size,
-      isPaperDark,
-      shadowOnset,
-      verticalPaintBleed,
-    );
 
     _drawCenterGutter(canvas, g, size, isPaperDark, shadowOnset);
 
@@ -606,58 +590,6 @@ class PageFlipPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _drawFoldAccent(
-    Canvas canvas,
-    PageFlipGeometry g,
-    bool isPaperDark,
-    double bendStrength,
-  ) {
-    if (!isDoubleSpread ||
-        bendStrength <= 0.005 ||
-        performanceProfile == DevicePerformanceProfile.low) {
-      return;
-    }
-    final foldDarkenAlign =
-        g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
-    final freeDarkenAlign =
-        g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-    final foldDarkenBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
-    final foldDarkenColor = isPaperDark ? Colors.white : Colors.black;
-    final foldShadow = (isPaperDark ? 0.02 : 0.05) * bendStrength;
-    final foldFadeWidth = foldMaskWidth(
-      isPaperDark: isPaperDark,
-      devicePixelRatio: devicePixelRatio,
-    );
-    final foldDarkenWidth = math
-        .min(
-          g.flapVisibleWidth,
-          math.max(foldFadeWidth * 1.5, g.flapVisibleWidth * 0.28),
-        )
-        .toDouble();
-    final foldDarkenPath = buildCurvedFlapBoundaryStripPath(
-      g,
-      atFold: true,
-      width: foldDarkenWidth,
-    );
-    final foldDarkenBounds = foldDarkenPath.getBounds();
-    if (!foldDarkenBounds.isEmpty) {
-      canvas.drawPath(
-        foldDarkenPath,
-        Paint()
-          ..blendMode = foldDarkenBlend
-          ..shader = LinearGradient(
-            begin: foldDarkenAlign,
-            end: freeDarkenAlign,
-            colors: [
-              foldDarkenColor.withValues(alpha: foldShadow),
-              foldDarkenColor.withValues(alpha: 0),
-            ],
-            stops: const [0.0, 1.0],
-          ).createShader(foldDarkenBounds),
-      );
-    }
-  }
-
   void _drawContactShadow(
     Canvas canvas,
     PageFlipGeometry g,
@@ -728,78 +660,6 @@ class PageFlipPainter extends CustomPainter {
     }
   }
 
-  void _drawStationaryShadow(
-    Canvas canvas,
-    PageFlipGeometry g,
-    Size size,
-    bool isPaperDark,
-    double shadowOnset,
-    double verticalPaintBleed,
-  ) {
-    if (!isRightToLeft || !isDoubleSpread) return;
-
-    canvas.save();
-    final stationaryShadowClip = isForward
-        ? buildStationaryPageClipPath(size, g)
-        : buildOpenPageClipPath(size, g);
-    canvas.clipPath(stationaryShadowClip);
-    canvas.transform(g.transform.storage);
-
-    final stationaryWidth = kStationaryShadowWidth *
-        glowBandWidthScale(isPaperDark: isPaperDark) *
-        g.shadowIntensity;
-    final stationaryAlpha = (isPaperDark ? 0.045 : 0.06) *
-        g.shadowIntensity *
-        shadowOnset *
-        movingFoldShadowOpacity(g);
-    if (stationaryAlpha > 0.01 && stationaryWidth > 1) {
-      final stationaryRect = g.flapRightOfFold
-          ? Rect.fromLTWH(
-              g.foldX,
-              -verticalPaintBleed,
-              stationaryWidth,
-              size.height + verticalPaintBleed * 2,
-            )
-          : Rect.fromLTWH(
-              g.foldX - stationaryWidth,
-              -verticalPaintBleed,
-              stationaryWidth,
-              size.height + verticalPaintBleed * 2,
-            );
-      final stationaryBegin =
-          g.flapRightOfFold ? Alignment.centerLeft : Alignment.centerRight;
-      final stationaryEnd =
-          g.flapRightOfFold ? Alignment.centerRight : Alignment.centerLeft;
-
-      final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
-      final shadowBlend = isPaperDark ? BlendMode.screen : BlendMode.multiply;
-
-      if (performanceProfile == DevicePerformanceProfile.low) {
-        canvas.drawRect(
-          stationaryRect,
-          Paint()
-            ..blendMode = shadowBlend
-            ..color = shadowColor.withValues(alpha: stationaryAlpha * 0.42),
-        );
-      } else {
-        canvas.drawRect(
-          stationaryRect,
-          Paint()
-            ..blendMode = shadowBlend
-            ..shader = LinearGradient(
-              begin: stationaryBegin,
-              end: stationaryEnd,
-              colors: [
-                shadowColor.withValues(alpha: stationaryAlpha),
-                shadowColor.withValues(alpha: 0),
-              ],
-            ).createShader(stationaryRect),
-        );
-      }
-    }
-    canvas.restore();
-  }
-
   void _drawBendShading(
     Canvas canvas,
     PageFlipGeometry g,
@@ -868,7 +728,10 @@ class PageFlipPainter extends CustomPainter {
             colors: <Color>[
               for (final u in bendStops)
                 bendColor.withValues(
-                  alpha: bendPeak * flapBendShadowAlphaAt(u),
+                  // The shared curved crease carries the fold-side ramp
+                  // across the hinge. Let the body gradient hand over to it
+                  // instead of ending at full opacity on the flap clip.
+                  alpha: bendPeak * flapBendShadowAlphaAt(u) * (1 - u),
                 ),
             ],
             stops: bendStops,
@@ -885,131 +748,68 @@ class PageFlipPainter extends CustomPainter {
     double shadowOnset,
   ) {
     canvas.save();
+    final bleed = size.height;
+    canvas.clipRect(Rect.fromLTRB(0, -bleed, size.width, size.height + bleed));
+    canvas.transform(g.transform.storage);
 
-    if (!isDoubleSpread) {
-      final bleed = size.height;
-      canvas
-          .clipRect(Rect.fromLTRB(0, -bleed, size.width, size.height + bleed));
-      canvas.transform(g.transform.storage);
-
-      final creaseFoldFadeWidth = foldMaskWidth(
-        isPaperDark: isPaperDark,
-        devicePixelRatio: devicePixelRatio,
-      );
-      final revealedWidth = kCreaseShadowWidth * 1.8 * g.shadowIntensity;
-      final flapWidth = math.min(
-        g.flapVisibleWidth,
-        math.max(creaseFoldFadeWidth, kCreaseFlapSideWidth) * g.shadowIntensity,
-      );
-      final peakOpacity =
-          (isPaperDark ? 0.055 : 0.13) * g.shadowIntensity * shadowOnset;
-      if (peakOpacity > 0.008 && revealedWidth > 1 && flapWidth > 0.5) {
-        final density = flapMeshDensityForPerformance(performanceProfile);
-        final creaseMesh = buildCurvedCreaseValleyMesh(
-          g,
-          flapSideWidth: flapWidth,
-          revealedSideWidth: revealedWidth,
-          color: discreteShadowTone(isPaperDark: isPaperDark),
-          peakOpacity: peakOpacity,
-          segments: density.segments,
-        );
-        try {
-          canvas.drawVertices(
-            creaseMesh,
-            BlendMode.dst,
-            Paint()
-              ..blendMode = isPaperDark ? BlendMode.screen : BlendMode.multiply,
-          );
-        } finally {
-          creaseMesh.dispose();
-        }
-      }
-
-      canvas.restore();
+    // One curved valley owns both sides of the hinge. Independent clipped
+    // gradients leave a hard brightness step at the sheet edge; a straight
+    // foldX shadow also drifts away as the curved sheet gets wider.
+    final widthScale =
+        isDoubleSpread ? glowBandWidthScale(isPaperDark: isPaperDark) : 1.0;
+    final revealedWidth = kCreaseShadowWidth *
+        (isDoubleSpread ? widthScale : 1.8) *
+        g.shadowIntensity;
+    final double flapSideWidth;
+    if (isDoubleSpread) {
+      // The broad fold-side bend belongs to this same valley so its darkest
+      // point touches the hinge instead of stopping on a separate clip edge.
+      flapSideWidth = performanceProfile == DevicePerformanceProfile.low
+          ? kStationaryShadowWidth * widthScale * g.shadowIntensity
+          : g.flapVisibleWidth;
     } else {
-      final shadowClipPath = isForward
-          ? buildOpenPageClipPath(size, g)
-          : buildStationaryPageClipPath(size, g);
-      canvas.clipPath(shadowClipPath);
-      canvas.transform(g.transform.storage);
-
-      final shadowWidth = kCreaseShadowWidth *
-          glowBandWidthScale(isPaperDark: isPaperDark) *
+      flapSideWidth = math.max(
+            foldMaskWidth(
+              isPaperDark: isPaperDark,
+              devicePixelRatio: devicePixelRatio,
+            ),
+            kCreaseFlapSideWidth,
+          ) *
           g.shadowIntensity;
-      final foldHandoff = movingFoldShadowOpacity(g);
-      final revealedAlpha = (isPaperDark ? 0.055 : 0.15) *
-          g.shadowIntensity *
-          shadowOnset *
-          foldHandoff;
-      if (revealedAlpha > 0.01 && shadowWidth > 1) {
-        final shadowPath = buildCurvedFoldShadowPath(
-          g,
-          isForward: isForward,
-          shadowWidth: shadowWidth,
-        );
-        final shadowBounds = shadowPath.getBounds();
-
-        final beginAlign =
-            isForward ? Alignment.centerLeft : Alignment.centerRight;
-        final endAlign =
-            isForward ? Alignment.centerRight : Alignment.centerLeft;
-
-        final shadowColor = discreteShadowTone(isPaperDark: isPaperDark);
-        final shadowBlend = isPaperDark ? BlendMode.screen : BlendMode.srcOver;
-
-        if (performanceProfile == DevicePerformanceProfile.low) {
-          canvas.drawPath(
-            shadowPath,
-            Paint()
-              ..blendMode = shadowBlend
-              ..color = shadowColor.withValues(alpha: revealedAlpha * 0.42),
-          );
-        } else {
-          canvas.drawPath(
-            shadowPath,
-            Paint()
-              ..blendMode = shadowBlend
-              ..shader = LinearGradient(
-                begin: beginAlign,
-                end: endAlign,
-                colors: [
-                  shadowColor.withValues(alpha: revealedAlpha),
-                  shadowColor.withValues(alpha: revealedAlpha * 0.45),
-                  shadowColor.withValues(alpha: 0),
-                ],
-                stops: kCreaseValleyStops,
-              ).createShader(shadowBounds),
-          );
-
-          final ambientWidth = shadowWidth * 1.8;
-          final ambientPath = buildCurvedFoldShadowPath(
-            g,
-            isForward: isForward,
-            shadowWidth: ambientWidth,
-          );
-          final ambientAlpha = (isPaperDark ? 0.015 : 0.035) *
-              g.shadowIntensity *
-              shadowOnset *
-              foldHandoff;
-          canvas.drawPath(
-            ambientPath,
-            Paint()
-              ..blendMode = shadowBlend
-              ..shader = LinearGradient(
-                begin: beginAlign,
-                end: endAlign,
-                colors: [
-                  shadowColor.withValues(alpha: ambientAlpha),
-                  shadowColor.withValues(alpha: 0),
-                ],
-                stops: const [0.0, 1.0],
-              ).createShader(ambientPath.getBounds()),
-          );
-        }
-      }
-
-      canvas.restore();
     }
+    final flapWidth = math.min(g.flapVisibleWidth, flapSideWidth);
+    final peakBase = isPaperDark ? 0.055 : (isDoubleSpread ? 0.15 : 0.13);
+    final profileGain =
+        isDoubleSpread && performanceProfile == DevicePerformanceProfile.low
+            ? 0.42
+            : 1.0;
+    final peakOpacity = peakBase *
+        g.shadowIntensity *
+        shadowOnset *
+        profileGain *
+        (isDoubleSpread ? movingFoldShadowOpacity(g) : 1.0);
+    if (peakOpacity > 0.008 && revealedWidth > 1 && flapWidth > 0.5) {
+      final density = flapMeshDensityForPerformance(performanceProfile);
+      final creaseMesh = buildCurvedCreaseValleyMesh(
+        g,
+        flapSideWidth: flapWidth,
+        revealedSideWidth: revealedWidth,
+        color: discreteShadowTone(isPaperDark: isPaperDark),
+        peakOpacity: peakOpacity,
+        segments: density.segments,
+      );
+      try {
+        canvas.drawVertices(
+          creaseMesh,
+          BlendMode.dst,
+          Paint()
+            ..blendMode = isPaperDark ? BlendMode.screen : BlendMode.multiply,
+        );
+      } finally {
+        creaseMesh.dispose();
+      }
+    }
+    canvas.restore();
   }
 
   void _drawFlapContentMesh(

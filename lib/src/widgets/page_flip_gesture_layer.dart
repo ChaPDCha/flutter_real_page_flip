@@ -133,8 +133,10 @@ class _PageFlipGestureLayerState extends State<PageFlipGestureLayer> {
       if (!accepted) {
         widget.controller.endPointerCapture();
         _resetPointer();
-        return;
       }
+      // onDragStart has already credited all accumulated movement, including
+      // this event. Subsequent updates apply only new pointer deltas.
+      return;
     }
 
     // After flip is active, continuously monitor whether the gesture has
