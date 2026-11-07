@@ -319,7 +319,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   private func playTransient(intensity: Float, sharpness: Float, durationMs: Int) {
     let clampedDurationMs = min(max(durationMs, 1), 500)
     let route = clampedDurationMs <= 25 ? "transient" : "weighted_transient"
-    if isHapticDebugLogging {
+    if Self.isHapticDebugLogging {
       print("[HAPTIC_DIAGNOSTIC] iOS playTransient: intensity=\(intensity), sharpness=\(sharpness), durationMs=\(clampedDurationMs), route=\(route)")
     }
     guard let engine = hapticEngine else {
@@ -382,7 +382,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   private func playThud(intensity: Float) {
-    if isHapticDebugLogging {
+    if Self.isHapticDebugLogging {
       print("[HAPTIC_DIAGNOSTIC] iOS playThud: intensity=\(intensity)")
     }
     guard let engine = hapticEngine else {
@@ -404,7 +404,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   private func playSlipBurst(intensity: Float) {
-    if isHapticDebugLogging {
+    if Self.isHapticDebugLogging {
       print("[HAPTIC_DIAGNOSTIC] iOS playSlipBurst: intensity=\(intensity)")
     }
     guard let engine = hapticEngine else {
@@ -435,7 +435,7 @@ public class RealPageFlipPlugin: NSObject, FlutterPlugin {
   }
 
   private func playSettleThud(intensity: Float) {
-    if isHapticDebugLogging {
+    if Self.isHapticDebugLogging {
       print("[HAPTIC_DIAGNOSTIC] iOS playSettleThud: intensity=\(intensity)")
     }
     guard let engine = hapticEngine else {
