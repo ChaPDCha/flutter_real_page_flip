@@ -23,8 +23,9 @@ void main() {
   Future<_Book> pumpBook(
     WidgetTester tester, {
     PageFlipConfig config = quiet,
+    _Book? existingBook,
   }) async {
-    final book = _Book();
+    final book = existingBook ?? _Book();
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -45,15 +46,17 @@ void main() {
     return book;
   }
 
-  /// A drag past the middle of the page, released.
-  Future<void> dragAndRelease(WidgetTester tester) async {
+  Future<void> dragAndRelease(
+    WidgetTester tester, {
+    double dragFraction = 0.5,
+  }) async {
     final size = tester.view.physicalSize / tester.view.devicePixelRatio;
     final gesture = await tester.startGesture(
       Offset(size.width * 0.8, size.height / 2),
     );
     await gesture.moveBy(const Offset(-40, 0));
     await tester.pump();
-    await gesture.moveBy(Offset(-size.width * 0.5, 0));
+    await gesture.moveBy(Offset(-size.width * dragFraction, 0));
     await tester.pump();
     await gesture.up();
     // A short animation needs a frame to start its clock and another to end:
@@ -136,10 +139,14 @@ void main() {
       expect(book.lifecycle, ['start', 'end']);
     });
 
-    testWidgets('a released drag snaps to its destination quickly',
+    testWidgets(
+        'explicit instant swipe policy snaps to its destination quickly',
         (tester) async {
       setReduceMotion(tester, value: true);
-      final book = await pumpBook(tester);
+      final book = await pumpBook(
+        tester,
+        config: quiet.copyWith(preserveSwipeSettleOnReducedMotion: false),
+      );
 
       await dragAndRelease(tester);
 
@@ -160,6 +167,59 @@ void main() {
 
       await tester.pumpAndSettle();
       expect(book.changes, [1]);
+    });
+
+    for (final commits in [true, false]) {
+      testWidgets(
+        'default swipe policy preserves ${commits ? 'completion' : 'snap-back'} '
+        'while tap turns stay instant',
+        (tester) async {
+          setReduceMotion(tester, value: true);
+          final book = await pumpBook(tester);
+
+          await dragAndRelease(tester, dragFraction: commits ? 0.5 : 0.1);
+          expect(book.lifecycle, ['start']);
+          expect(tester.hasRunningAnimations, isTrue);
+          expect(book.changes, isEmpty);
+
+          await tester.pumpAndSettle();
+          expect(book.lifecycle, ['start', 'end']);
+          expect(book.changes, commits ? [1] : <int>[]);
+
+          book.controller.nextPage();
+          await tester.pump();
+          expect(book.changes.last, commits ? 2 : 1);
+          expect(tester.hasRunningAnimations, isFalse);
+        },
+      );
+    }
+
+    testWidgets('changing the swipe option affects the next turn only',
+        (tester) async {
+      setReduceMotion(tester, value: true);
+      final book = await pumpBook(
+        tester,
+        config: quiet.copyWith(preserveSwipeSettleOnReducedMotion: true),
+      );
+
+      await dragAndRelease(tester);
+      expect(book.lifecycle, ['start']);
+      await pumpBook(
+        tester,
+        existingBook: book,
+        config: quiet.copyWith(preserveSwipeSettleOnReducedMotion: false),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(book.lifecycle, ['start']);
+
+      await tester.pumpAndSettle();
+      expect(book.changes, [1]);
+      expect(book.lifecycle, ['start', 'end']);
+
+      // Reduced motion now shortens the new release to a single-frame settle.
+      await dragAndRelease(tester);
+      expect(book.changes, [1, 2]);
+      expect(book.lifecycle, ['start', 'end', 'start', 'end']);
     });
   });
 

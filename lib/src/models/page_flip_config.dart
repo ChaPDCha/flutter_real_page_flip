@@ -127,6 +127,7 @@ class PageFlipConfig {
     this.edgeTapWidthRatio = 0.1,
     this.skipTapAnimation = true,
     this.respectReducedMotion = true,
+    this.preserveSwipeSettleOnReducedMotion = true,
     this.enableKeyboardNavigation = false,
     this.enableWheelNavigation = false,
     this.semanticBuilder,
@@ -390,10 +391,17 @@ class PageFlipConfig {
   ///
   /// While that setting is on, turns started by an edge tap, `nextPage` or
   /// `previousPage` change page instantly, and a released drag snaps to its
-  /// destination without the settle animation. The finger still moves the page
-  /// directly while dragging. Defaults to `true`; set it to `false` to always
-  /// animate.
+  /// destination unless [preserveSwipeSettleOnReducedMotion] is enabled.
+  /// The finger still moves the page directly while dragging. Defaults to
+  /// `true`. Set it to `false` to ignore the system setting for all turns.
   final bool respectReducedMotion;
+
+  /// Keeps the settle animation for a released or cancelled swipe when the
+  /// platform reduces motion. Tap and programmatic turns still follow
+  /// [respectReducedMotion]. Defaults to `true`: a sheet already under the
+  /// finger must finish or return continuously rather than disappear on release.
+  /// Set to `false` to make released swipes instant under reduced motion too.
+  final bool preserveSwipeSettleOnReducedMotion;
 
   /// Whether the arrow, page, space, home and end keys turn pages.
   ///
@@ -442,6 +450,7 @@ class PageFlipConfig {
     double? edgeTapWidthRatio,
     bool? skipTapAnimation,
     bool? respectReducedMotion,
+    bool? preserveSwipeSettleOnReducedMotion,
     bool? enableKeyboardNavigation,
     bool? enableWheelNavigation,
     String Function(int index, int total)? semanticBuilder,
@@ -495,6 +504,9 @@ class PageFlipConfig {
         edgeTapWidthRatio: edgeTapWidthRatio ?? this.edgeTapWidthRatio,
         skipTapAnimation: skipTapAnimation ?? this.skipTapAnimation,
         respectReducedMotion: respectReducedMotion ?? this.respectReducedMotion,
+        preserveSwipeSettleOnReducedMotion:
+            preserveSwipeSettleOnReducedMotion ??
+                this.preserveSwipeSettleOnReducedMotion,
         enableKeyboardNavigation:
             enableKeyboardNavigation ?? this.enableKeyboardNavigation,
         enableWheelNavigation:
@@ -596,6 +608,7 @@ class PageFlipConfig {
       ),
       skipTapAnimation: skipTapAnimation,
       respectReducedMotion: respectReducedMotion,
+      preserveSwipeSettleOnReducedMotion: preserveSwipeSettleOnReducedMotion,
       enableKeyboardNavigation: enableKeyboardNavigation,
       enableWheelNavigation: enableWheelNavigation,
       semanticBuilder: semanticBuilder,
@@ -693,6 +706,8 @@ class PageFlipConfig {
           edgeTapWidthRatio == other.edgeTapWidthRatio &&
           skipTapAnimation == other.skipTapAnimation &&
           respectReducedMotion == other.respectReducedMotion &&
+          preserveSwipeSettleOnReducedMotion ==
+              other.preserveSwipeSettleOnReducedMotion &&
           enableKeyboardNavigation == other.enableKeyboardNavigation &&
           enableWheelNavigation == other.enableWheelNavigation &&
           semanticBuilder == other.semanticBuilder &&
@@ -737,6 +752,7 @@ class PageFlipConfig {
         edgeTapWidthRatio,
         skipTapAnimation,
         respectReducedMotion,
+        preserveSwipeSettleOnReducedMotion,
         enableKeyboardNavigation,
         enableWheelNavigation,
         semanticBuilder,

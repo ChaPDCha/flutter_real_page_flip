@@ -162,6 +162,49 @@ void main() {
       expect(controller.isDragging, isFalse);
     });
 
+    for (final (configuredMs, settleMs) in [(300, 120), (100, 100)]) {
+      testWidgets(
+          'fast release eases through the remaining fold with a '
+          '${configuredMs}ms duration setting', (tester) async {
+        controller.updateSettings(
+          animationDuration: Duration(milliseconds: configuredMs),
+          cutoffForward: 0.4,
+          cutoffPrevious: 0.4,
+        );
+        dragForward(-330); // Only the last 15% of the turn remains.
+        final held = controller.dragProgress;
+        final remaining = 1.0 - held;
+        controller.onDragEnd(
+          DragEndDetails(
+            primaryVelocity: -4000,
+            velocity: const Velocity(pixelsPerSecond: Offset(-4000, 0)),
+          ),
+          5,
+        );
+        await tester.pump();
+        expect(controller.dragProgress, held);
+
+        await tester.pump(const Duration(milliseconds: 16));
+        final firstFrame = controller.dragProgress;
+        expect(firstFrame, inExclusiveRange(held, held + remaining / 3));
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(
+          controller.dragProgress,
+          inExclusiveRange(firstFrame, held + remaining * 0.6),
+        );
+
+        await tester.pump(const Duration(milliseconds: 48));
+        expect(controller.animationController.isAnimating, isTrue);
+        expect(finalized, isEmpty);
+
+        await tester.pump(Duration(milliseconds: settleMs - 80 + 1));
+        expect(controller.animationController.isAnimating, isFalse);
+        await tester.pumpAndSettle();
+        expect(finalized, <int>[1]);
+        expect(flipEnds, 1);
+      });
+    }
+
     testWidgets('a gesture during a snap-back cannot commit the turn',
         (tester) async {
       dragForward(-40); // progress 0.125

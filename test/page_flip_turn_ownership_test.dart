@@ -146,6 +146,29 @@ void main() {
       expect(ends, 1);
     });
 
+    testWidgets('aborting an endpoint release cannot finalize a newer turn',
+        (tester) async {
+      controller.setIndex(1, 5);
+      expect(startDrag(-450), isTrue);
+      controller.onDragEnd(DragEndDetails(primaryVelocity: 0), 5);
+      expect(controller.isSettling, isTrue);
+      expect(controller.animationController.isAnimating, isFalse);
+
+      // Abort before the completed ticker's callback runs. The next turn
+      // must own its own completion, even if both Futures are already queued.
+      controller.cancelActiveFlip();
+      expect(controller.isBusy, isFalse);
+      expect(startDrag(450), isTrue);
+      controller.onDragEnd(DragEndDetails(primaryVelocity: 0), 5);
+      await tester.pumpAndSettle();
+
+      expect(finalized, [0]);
+      expect(controller.currentIndex, 0);
+      expect(controller.isBusy, isFalse);
+      expect(starts, 2);
+      expect(ends, 2);
+    });
+
     test('cancelActiveFlip while idle is a no-op', () {
       controller.cancelActiveFlip();
       expect(ends, 0);

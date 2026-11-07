@@ -289,7 +289,7 @@ Path buildCurvedFoldShadowPath(
   return path;
 }
 
-/// Builds one color-interpolated mesh for the complete single-page crease.
+/// Builds one color-interpolated mesh for the complete page crease.
 ///
 /// A regular [LinearGradient] is straight in shader space even when its clip
 /// path is curved. That leaves the darkest part of the shadow axis-aligned while

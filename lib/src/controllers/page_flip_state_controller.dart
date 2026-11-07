@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:real_page_flip/src/effects/page_flip_engine.dart';
 
@@ -30,15 +31,10 @@ enum PageFlipEvent {
   sound
 }
 
-/// Minimum duration (ms) for a snap-back (cancelled/failed) flip animation.
-///
-/// Real paper still takes a visible moment to settle even when barely
-/// lifted. The old code shared an 80ms floor with the fast-completion path,
-/// so a small aborted drag (the common case: user changes their mind after a
-/// short swipe) snapped back almost instantly — reading as an abrupt
-/// "flicker" rather than a smooth paper return. Kept well below the default
-/// [PageFlipStateController.animationDuration] (450ms) so it still feels
-/// responsive, not sluggish.
+/// A fast release still needs several frames to show the remaining fold.
+const int _kMinCompletionMs = 120;
+
+/// Give even a small, cancelled fold time to visibly return.
 const int _kMinSnapBackMs = 180;
 
 /// Physical travel required before another paper-texture sample may be emitted.
@@ -135,6 +131,8 @@ class PageFlipStateController {
     animationController = AnimationController(
       vsync: vsync,
       duration: animationDuration,
+      // The widget applies its own reduced-motion timing policy.
+      animationBehavior: AnimationBehavior.preserve,
     );
     animationController.addListener(_onAnimationTick);
   }
@@ -213,7 +211,7 @@ class PageFlipStateController {
   Offset _touchPosition = Offset.zero;
   bool _isForward = true;
   bool _isDragging = false;
-  bool _blocksContentPointers = false;
+  final _blocksContentPointers = ValueNotifier<bool>(false);
   bool _hasPlayedSound = false;
 
   /// Whether the detent micro-tick has already fired for the current drag.
@@ -226,6 +224,10 @@ class PageFlipStateController {
   double _smoothedSpeedPxPerSecond = 0;
   double _hapticDistanceRemainder = 0;
   Duration? _lastDragTimestamp;
+
+  // The ticker can complete immediately at an endpoint. Retain ownership
+  // until the completion callback runs, even with no ticker left to observe.
+  bool _isSettleInProgress = false;
 
   /// True while the 1-frame visual transition is pending after a successful flip.
   /// Blocks new drag/tap gestures during this window to prevent re-entrant state.
@@ -243,7 +245,7 @@ class PageFlipStateController {
   /// re-decided by another gesture. A drag is never live while this is true:
   /// during tracking the animation controller is idle and progress is driven
   /// directly by pointer deltas.
-  bool get isSettling => animationController.isAnimating || _isPendingFinalize;
+  bool get isSettling => _isSettleInProgress || _isPendingFinalize;
 
   /// True from an accepted [onDragStart] until that pointer's [onDragEnd] or
   /// [onDragCancel]: a finger owns the page, even while it rests at a book
@@ -284,20 +286,22 @@ class PageFlipStateController {
   bool get isDragging => _isDragging;
 
   /// True while a horizontal flip drag blocks hits to page content.
-  bool get blocksContentPointers => _blocksContentPointers;
+  bool get blocksContentPointers => _blocksContentPointers.value;
+
+  /// Updates hit testing independently of the live page and flip layers.
+  ValueListenable<bool> get contentPointerBlockListenable =>
+      _blocksContentPointers;
 
   /// Called when horizontal flip intent is detected (before [onDragStart]).
   void beginPointerCapture() {
-    if (_blocksContentPointers) return;
-    _blocksContentPointers = true;
-    onUpdate();
+    if (_isDisposed) return;
+    _blocksContentPointers.value = true;
   }
 
   /// Releases content hit blocking after flip drag ends or is canceled.
   void endPointerCapture() {
-    if (!_blocksContentPointers) return;
-    _blocksContentPointers = false;
-    onUpdate();
+    if (_isDisposed) return;
+    _blocksContentPointers.value = false;
   }
 
   /// Whether the page-flip sound has already been played for this drag.
@@ -418,6 +422,8 @@ class PageFlipStateController {
       _maybeFireDetent();
     }
 
+    progressNotifier.value = _dragProgress;
+    touchNotifier.value = _touchPosition;
     onUpdate();
     return true;
   }
@@ -519,9 +525,10 @@ class PageFlipStateController {
       return;
     }
 
-    final velocity =
+    final rawVelocity =
         details.primaryVelocity ?? details.velocity.pixelsPerSecond.dx;
-    _lastReleaseVelocity = velocity.isFinite ? velocity.abs() : 0.0;
+    final velocity = rawVelocity.isFinite ? rawVelocity : 0.0;
+    _lastReleaseVelocity = velocity.abs();
     final isSuccess = shouldCommitFlip(
       isForward: _isForward,
       progress: _dragProgress,
@@ -543,32 +550,13 @@ class PageFlipStateController {
       _hasPlayedSound = true;
     }
 
-    final token = _turnToken;
-    // Sync animation value to current drag progress to prevent jumps
-    animationController.value = _dragProgress;
-
-    // Adaptive duration: scale inversely with release velocity so fast flicks
-    // complete quickly (80-150ms) while slow releases use full duration (450ms).
-    // Only the remaining progress distance is animated, keeping velocity smooth.
-    // The floor differs by outcome: a successful fast flick benefits from a
-    // snappy 80ms finish, but a snap-back (isSuccess=false) uses the higher
-    // [_kMinSnapBackMs] floor so small aborted drags still visibly ease back
-    // like real paper instead of vanishing almost instantly.
-    final remainingProgress = isSuccess ? (1.0 - _dragProgress) : _dragProgress;
-    final velocityScale = (_lastReleaseVelocity / 1000.0).clamp(0.5, 3.0);
-    final maxMs = animationDuration.inMilliseconds;
-    final minMs =
-        isSuccess ? math.min(80, maxMs) : math.min(_kMinSnapBackMs, maxMs);
-    final adaptiveMs =
-        (maxMs * remainingProgress / velocityScale).clamp(minMs, maxMs).toInt();
-
-    animationController
-        .animateTo(
-          isSuccess ? 1 : 0,
-          duration: Duration(milliseconds: adaptiveMs),
-          curve: const PaperFlipCurve(),
-        )
-        .then((_) => _finalizeIfCurrent(token, isSuccess, totalPages));
+    final towardCompletion = _isForward ? -velocity : velocity;
+    _settleDrag(
+      success: isSuccess,
+      totalPages: totalPages,
+      speedScale: (_lastReleaseVelocity / 1000.0).clamp(0.5, 3.0),
+      velocityTowardTarget: isSuccess ? towardCompletion : -towardCompletion,
+    );
   }
 
   /// Handles cancellation of a drag, snapping the page back.
@@ -582,31 +570,45 @@ class PageFlipStateController {
       onFlipEnd?.call();
       return;
     }
-    final token = _turnToken;
-    animationController.value = _dragProgress;
     onEffectTrigger(PageFlipEvent.stopHaptic);
-    // Snap-back: scale duration by remaining progress, floored at
-    // [_kMinSnapBackMs] so small aborted drags still ease back visibly
-    // instead of snapping almost instantly.
-    final cancelMaxMs = animationDuration.inMilliseconds;
-    final cancelMs = (cancelMaxMs * _dragProgress)
-        .clamp(math.min(_kMinSnapBackMs, cancelMaxMs), cancelMaxMs)
-        .toInt();
-    // Defer finalize until the snap-back animation actually completes —
-    // mirrors onDragEnd's `.then()`. Calling `_finalizePageChange` right here
-    // (the old behaviour) reset `isDragging`/`dragProgress` to their idle
-    // values on the SAME frame the animation started, so the flip layers were
-    // torn down immediately regardless of the animation in flight: a hard
-    // visual cut ("flicker") instead of the intended smooth return. This path
-    // fires whenever the gesture is cancelled mid-drag (e.g. the arbitration
-    // logic yields to vertical scrolling), not just on an explicit release.
+    _settleDrag(success: false, totalPages: totalPages);
+  }
+
+  void _settleDrag({
+    required bool success,
+    required int totalPages,
+    double speedScale = 1,
+    double velocityTowardTarget = 0,
+  }) {
+    final target = success ? 1.0 : 0.0;
+    final remainingProgress = (target - _dragProgress).abs();
+    final maxUs = animationDuration.inMicroseconds;
+    final floorMs = success ? _kMinCompletionMs : _kMinSnapBackMs;
+    final minUs =
+        math.min(floorMs * Duration.microsecondsPerMillisecond, maxUs);
+    final durationUs =
+        (maxUs * remainingProgress / speedScale).clamp(minUs, maxUs).round();
+
+    // Convert the finger's release velocity to the curve's unit interval.
+    // Bound it so the first frames cannot consume most of the remaining fold.
+    final durationSeconds = durationUs / Duration.microsecondsPerSecond;
+    final progressPerSecond = velocityTowardTarget / _cachedWidth;
+    final initialSlope = remainingProgress > 0 && velocityTowardTarget > 0
+        ? (progressPerSecond * durationSeconds / remainingProgress)
+            .clamp(0.0, 2.0)
+        : 0.0;
+
+    final token = _turnToken;
+    _isSettleInProgress = true;
+    // Start from the last rendered drag position.
+    animationController.value = _dragProgress;
     animationController
         .animateTo(
-          0,
-          duration: Duration(milliseconds: cancelMs),
-          curve: const PaperFlipCurve(),
+          target,
+          duration: Duration(microseconds: durationUs),
+          curve: _DragSettleCurve(initialSlope),
         )
-        .then((_) => _finalizeIfCurrent(token, false, totalPages));
+        .then((_) => _finalizeIfCurrent(token, success, totalPages));
   }
 
   /// Triggers a programmatic page flip (e.g. from edge tap or controller).
@@ -642,6 +644,7 @@ class PageFlipStateController {
     progressNotifier.value = _dragProgress;
 
     final token = _turnToken;
+    _isSettleInProgress = true;
     animationController.stop();
     animationController.value = 0.0;
     onEffectTrigger(PageFlipEvent.sound, volume: _kTapFlipSoundVolume);
@@ -682,6 +685,7 @@ class PageFlipStateController {
       _isGestureActive = false;
       _isGestureDisowned = true;
     }
+    _isSettleInProgress = false;
     _isPendingFinalize = false;
     animationController.stop();
     _resetTurnState();
@@ -705,7 +709,8 @@ class PageFlipStateController {
   }
 
   void _finalizeIfCurrent(int token, bool success, int totalPages) {
-    if (token != _turnToken) return;
+    if (_isDisposed || token != _turnToken) return;
+    _isSettleInProgress = false;
     _finalizePageChange(success, totalPages);
   }
 
@@ -795,10 +800,27 @@ class PageFlipStateController {
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
+    _isSettleInProgress = false;
     _isPendingFinalize = false;
     animationController.removeListener(_onAnimationTick);
     animationController.dispose();
     progressNotifier.dispose();
     touchNotifier.dispose();
+    _blocksContentPointers.dispose();
+  }
+}
+
+/// A monotone cubic Hermite curve with a bounded initial slope and a stop at
+/// the target. Evaluates directly on the existing animation ticker.
+class _DragSettleCurve extends Curve {
+  const _DragSettleCurve(this.initialSlope);
+
+  final double initialSlope;
+
+  @override
+  double transformInternal(double t) {
+    final remainingTime = 1.0 - t;
+    return t *
+        (t * (3.0 - 2.0 * t) + initialSlope * remainingTime * remainingTime);
   }
 }

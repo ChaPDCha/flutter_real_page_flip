@@ -34,6 +34,9 @@ Problems found while using it in those apps, and fixed (details in the
 
 **What is and is not verified.** The behaviour is covered by the automated
 tests (geometry invariants, gesture arbitration, memory lifecycle, goldens).
+Single-page swipe completion and return after release were also checked on a
+Samsung SM-S948N with system animations disabled; see the
+[device validation record](example/device-validation-2026-11-07.md).
 Frame-time targets and the foldable handling are *not* yet backed by published
 measurements from named devices, and the render is a 2.5D approximation of a
 page turn (path clipping plus a textured mesh), not a 3D paper simulation. See
@@ -246,8 +249,10 @@ PageFlipWidget(
 
 - **Reduce motion**: when the system setting is on (iOS Reduce Motion, Android
   "Remove animations", the browser's `prefers-reduced-motion`), edge taps,
-  `nextPage` and `previousPage` change page at once and a released drag snaps
-  to its destination. The finger still moves the page directly while dragging.
+  `nextPage` and `previousPage` change page at once. A released or canceled
+  swipe keeps its settle animation so the moving sheet finishes or returns
+  continuously. Set `preserveSwipeSettleOnReducedMotion: false` to make swipe
+  settling instant too. The finger moves the page directly while dragging.
   Opt out with `PageFlipConfig(respectReducedMotion: false)`.
 - **Screen readers**: the book announces "Page N of M" and supports the
   increase, decrease and scroll actions. Change the text with `semanticBuilder`.
@@ -404,7 +409,7 @@ The benchmark runs 80 consecutive page flips on a real device and reports:
 | Jank count (80 flips) | 0 |
 
 These are the targets the benchmark checks against, not published measurements:
-this repository does not yet include results from a named device. Run it on the
+this repository does not yet include benchmark results from a named device. Run it on the
 devices you support before relying on any of the numbers.
 
 Run across low/medium/high profiles to validate your target device tier. The

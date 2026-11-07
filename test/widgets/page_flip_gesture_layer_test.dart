@@ -150,7 +150,7 @@ void main() {
 
       final gesture = await tester.startGesture(const Offset(350, 300));
       await gesture.moveBy(const Offset(-30, -8));
-      await gesture.moveBy(const Offset(-120, -4));
+      await gesture.moveBy(const Offset(-140, -4));
       await gesture.up();
       await tester.pumpAndSettle(const Duration(seconds: 2));
 
@@ -230,7 +230,7 @@ void main() {
       expect(controller.currentIndex, 1);
     });
 
-    testWidgets('high sensitivity flip completes with small delta',
+    testWidgets('high sensitivity starts tracking below default touch slop',
         (tester) async {
       controller.updateCachedWidth(400);
 
@@ -249,11 +249,45 @@ void main() {
       );
 
       final gesture = await tester.startGesture(const Offset(350, 300));
-      await gesture.moveBy(const Offset(-100, 0));
+      await gesture.moveBy(const Offset(-5, 0));
+      expect(controller.isDragging, isTrue);
+      expect(controller.dragProgress, closeTo(5 / 400, 1e-9));
       await gesture.up();
       await tester.pumpAndSettle();
 
-      expect(controller.currentIndex, 1);
+      expect(controller.currentIndex, 0);
+    });
+
+    testWidgets('event batching does not change drag distance or release',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PageFlipGestureLayer(
+            controller: controller,
+            sensitivity: 0.5,
+            totalPages: 3,
+          ),
+        ),
+      );
+
+      // Both gestures travel 100px, below the 40% cutoff for a 400px page.
+      // The move that activates the flip may arrive alone or with prior slop.
+      for (final deltas in [
+        <double>[-100],
+        List<double>.filled(20, -5),
+      ]) {
+        final gesture = await tester.startGesture(const Offset(350, 300));
+        for (final dx in deltas) {
+          await gesture.moveBy(Offset(dx, 0));
+        }
+        expect(controller.dragProgress, closeTo(0.25, 1e-9));
+        expect(controller.progressNotifier.value, closeTo(0.25, 1e-9));
+
+        await tester.pump(const Duration(milliseconds: 80));
+        await gesture.up();
+        await tester.pumpAndSettle();
+        expect(controller.currentIndex, 0);
+      }
     });
 
     testWidgets('low sensitivity requires larger drag to trigger flip',

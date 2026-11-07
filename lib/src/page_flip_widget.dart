@@ -460,7 +460,9 @@ class PageFlipWidgetState extends State<PageFlipWidget>
   static const Duration _reducedMotionDuration = Duration(milliseconds: 1);
 
   Duration get _effectiveDuration =>
-      _reducedMotion ? _reducedMotionDuration : _config.duration;
+      _reducedMotion && !_config.preserveSwipeSettleOnReducedMotion
+          ? _reducedMotionDuration
+          : _config.duration;
 
   /// Whether programmatic turns skip the animation: by choice
   /// ([PageFlipConfig.skipTapAnimation]) or because motion is reduced.
@@ -545,6 +547,8 @@ class PageFlipWidgetState extends State<PageFlipWidget>
     final wasReduced = _reducedMotion;
     _reducedMotion = config.respectReducedMotion && _systemReducesMotion;
     if (config.duration != oldConfig.duration ||
+        config.preserveSwipeSettleOnReducedMotion !=
+            oldConfig.preserveSwipeSettleOnReducedMotion ||
         config.cutoffForward != oldConfig.cutoffForward ||
         config.cutoffPrevious != oldConfig.cutoffPrevious ||
         _reducedMotion != wasReduced) {
@@ -1276,9 +1280,13 @@ class PageFlipWidgetState extends State<PageFlipWidget>
           final mainContent = Stack(
             fit: StackFit.expand,
             children: [
-              IgnorePointer(
-                ignoring: _controller.blocksContentPointers,
+              ValueListenableBuilder<bool>(
+                valueListenable: _controller.contentPointerBlockListenable,
                 child: animatedFlipLayer,
+                builder: (context, ignoring, child) => IgnorePointer(
+                  ignoring: ignoring,
+                  child: child,
+                ),
               ),
               // Left Edge Tap (Previous Page)
               if (config.edgeTapWidthRatio > 0 && config.enableSwipe)

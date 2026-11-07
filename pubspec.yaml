@@ -2,7 +2,7 @@ name: real_page_flip
 description: >
   A 2.5D page flip engine for Flutter with a physics-based paper fold, shadows,
   sound and haptic feedback. Single page, two-page spread and right-to-left.
-version: 3.2.0
+version: 3.2.1
 repository: https://github.com/ChaPDCha/flutter_real_page_flip.git
 homepage: https://github.com/ChaPDCha/flutter_real_page_flip
 topics:
