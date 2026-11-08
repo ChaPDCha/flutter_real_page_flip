@@ -427,7 +427,7 @@ void main() {
       expect(canvas.didDrawRect, isTrue);
     });
 
-    test('single-page medium mid fold keeps the back-facing flap blank', () {
+    test('single-page medium mid fold draws the printed texture', () {
       final canvas = MockCanvas();
 
       PageFlipPainter(
@@ -439,9 +439,8 @@ void main() {
         flapFrontSrcRect: const Rect.fromLTWH(0, 0, 100, 100),
       ).paint(canvas, const Size(800, 600));
 
-      // Medium is the default lightweight profile: the back-facing flap should
-      // be blank paper through the main fold, not a textured page back.
-      expect(canvas.didDrawVertices, isFalse);
+      // Medium reduces mesh density while retaining the printed sheet.
+      expect(canvas.didDrawVertices, isTrue);
       expect(canvas.didDrawRect, isTrue);
     });
 
