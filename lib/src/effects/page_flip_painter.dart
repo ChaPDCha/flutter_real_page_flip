@@ -172,7 +172,7 @@ class PageFlipPainter extends CustomPainter {
   ///
   /// Real thin Bible (India) paper shows the printed text only faintly from the
   /// reverse side. Single-page mode keeps the flipping page's content fully
-  /// visible the whole turn (it has no blank back), so at the default `1.0` the
+  /// visible the whole turn (it has no blank back), so at `1.0` the
   /// peeled side reads as crisp, fully-printed text. Lowering this dims the
   /// peeled content toward the paper colour during the peel (NOT during the
   /// late settle reveal of the destination page), simulating a sheet of paper
@@ -300,9 +300,8 @@ class PageFlipPainter extends CustomPainter {
     // through in place. The result is three hard vertical bands — full-bright
     // middle | washed flap | crisp revealed page — that read as three stacked
     // sheets of glass instead of one turning page. Worst on medium/low
-    // profiles, whose flap shows no mesh content mid-flip, so the "wash" is a
-    // naked paper veil over the middle layer. Thin-paper feel in single mode
-    // is already conveyed by [singlePageBackContentOpacity] (the flap's OWN
+    // profiles. Thin-paper feel in single mode is already conveyed by
+    // [singlePageBackContentOpacity] (the flap's OWN
     // mirrored back-bleed); the sheet itself must stay opaque.
     final isLowProfile = performanceProfile == DevicePerformanceProfile.low;
     final suppressTranslucency = isLowProfile || !isDoubleSpread;
@@ -827,11 +826,6 @@ class PageFlipPainter extends CustomPainter {
           isForward: isActualForward,
           revealStart: flapContentRevealStart,
         );
-    final usesLightweightBackFace =
-        performanceProfile != DevicePerformanceProfile.high;
-    final skipBackFacingMesh =
-        !isDoubleSpread && usesLightweightBackFace && !isSettlePhase;
-
     final hasFlapTexture = flapFrontImage != null && flapFrontSrcRect != null;
     if (!hasFlapTexture) return;
 
@@ -842,8 +836,6 @@ class PageFlipPainter extends CustomPainter {
       revealEnd: flapContentRevealEnd,
       isForward: isActualForward,
       isDoubleSpread: isDoubleSpread,
-      keepSinglePageContentVisible:
-          performanceProfile == DevicePerformanceProfile.high,
       enableSinglePageSettleReveal: enableSinglePageSettleReveal,
       doubleSpreadMidFoldBleed: doubleSpreadMidFoldBleed,
     );
@@ -855,8 +847,10 @@ class PageFlipPainter extends CustomPainter {
     final srcImage = useSettle ? flapFrontSettleImage! : flapFrontImage!;
     final srcRect = useSettle ? flapFrontSettleSrcRect! : flapFrontSrcRect!;
 
-    if (g.flapVisibleWidth < 12.0 || skipBackFacingMesh) return;
+    if (g.flapVisibleWidth < 12.0) return;
 
+    // Every profile retains printed content throughout a single-page turn.
+    // Lower tiers reduce tessellation here rather than dropping the texture.
     final density = flapMeshDensityForPerformance(performanceProfile);
 
     final mesh = buildFlapContentMesh(

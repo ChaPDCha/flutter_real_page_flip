@@ -37,6 +37,9 @@ tests (geometry invariants, gesture arbitration, memory lifecycle, goldens).
 Single-page swipe completion and return after release were also checked on a
 Samsung SM-S948N with system animations disabled; see the
 [device validation record](example/device-validation-2026-11-07.md).
+Printed content through intermediate single-page frames was checked on an
+SM-A505N with medium and low profiles; see the
+[content validation record](example/device-validation-2026-11-08.md).
 Frame-time targets and the foldable handling are *not* yet backed by published
 measurements from named devices, and the render is a 2.5D approximation of a
 page turn (path clipping plus a textured mesh), not a 3D paper simulation. See

@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:real_page_flip/src/models/page_flip_config.dart';
 import 'package:real_page_flip/src/page_flip_layer_view.dart';
 
 // ⚠️ PROVISIONAL BASELINES — read before trusting these goldens.
@@ -138,6 +139,7 @@ void main() {
       required bool isForward,
       required int currentIndex,
       required Map<int, ui.Image> pageSnapshots,
+      DevicePerformanceProfile profile = DevicePerformanceProfile.medium,
     }) =>
         MaterialApp(
           theme: ThemeData(useMaterial3: true),
@@ -156,7 +158,10 @@ void main() {
                       ? const Offset(350, 150)
                       : const Offset(50, 150),
                   pageSnapshots: pageSnapshots,
-                  spreadSnapshots: const {},
+                  // The moving sheet reads spreadSnapshots even in single
+                  // mode. Omitting them silently tested an empty paper flap.
+                  spreadSnapshots: pageSnapshots,
+                  performanceProfile: profile,
                   pageKeys: {
                     for (var i = 0; i < 3; i++) i: GlobalKey(),
                   },
@@ -170,6 +175,27 @@ void main() {
             ),
           ),
         );
+
+    for (final forward in [true, false]) {
+      testWidgets('low profile, forward=$forward, progress 0.50',
+          (tester) async {
+        await tester.pumpWidget(
+          goldenSinglePageView(
+            dragProgress: 0.5,
+            isForward: forward,
+            currentIndex: 1,
+            pageSnapshots: {0: previousPage, 1: currentPage, 2: nextPage},
+            profile: DevicePerformanceProfile.low,
+          ),
+        );
+        await tester.pump();
+        await expectLater(
+          find.byType(PageFlipLayerView),
+          matchesGoldenFile('goldens/single_page_low_'
+              '${forward ? 'forward' : 'backward'}_050.png'),
+        );
+      });
+    }
 
     testWidgets('forward progress 0.50', (tester) async {
       await tester.pumpWidget(
