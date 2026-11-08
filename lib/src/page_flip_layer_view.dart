@@ -109,7 +109,7 @@ class PageFlipLayerView extends StatelessWidget {
     this.singlePageBackContentOpacity = 0.35,
 
     /// Allows the destination texture to fade in before a single-page turn
-    /// finalizes. Disable to keep lightweight turns blank until handoff.
+    /// finalizes. Disable to hold the printed back face at its dim opacity.
     this.enableSinglePageSettleReveal = true,
 
     /// True if rendering for a dual spread book

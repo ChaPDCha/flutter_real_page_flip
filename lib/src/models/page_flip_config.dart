@@ -278,12 +278,10 @@ class PageFlipConfig {
   /// the back-facing side mid-flip (0.0–1.0).
   ///
   /// In single-page mode each page is single-sided, so the engine keeps the
-  /// flipping page's content visible across the fold only on the high-fidelity
-  /// profile. Medium/low profiles render the back-facing flap as blank paper
-  /// through the main fold for lower GPU cost and to avoid reverse-text
-  /// exposure.
+  /// flipping page's content visible across the fold on every performance
+  /// profile. Medium/low reduce mesh density while retaining the printed page.
   ///
-  /// On the high profile, lowering this dims the peeled content toward the
+  /// Lowering this dims the peeled content toward the
   /// paper colour during the peel (but NOT during the late settle reveal of the
   /// destination page), simulating thin Bible (India) paper where the reverse
   /// text bleeds through only faintly — as if a sheet of paper were laid over
@@ -297,7 +295,7 @@ class PageFlipConfig {
   ///
   /// The default keeps the existing 85–95% settle cross-fade. Set this to
   /// false to keep the moving back face visually stable until the final live
-  /// page handoff: medium/low profiles remain blank, while high holds
+  /// page handoff: every performance profile holds
   /// [singlePageBackContentOpacity] instead of brightening it back to 1.0.
   /// Double-spread turns always render their physical verso and are unaffected.
   final bool enableSinglePageSettleReveal;

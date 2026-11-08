@@ -1,13 +1,17 @@
 // Physical-device fixture: real pointer releases, no autoplay or timing overrides.
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:real_page_flip/real_page_flip.dart';
 
 const _high = bool.fromEnvironment('HIGH_PROFILE');
+const _requestedProfile = String.fromEnvironment(
+  'PERFORMANCE_PROFILE',
+  defaultValue: _high ? 'high' : 'medium',
+);
 const _paper = Color(0xFFF7F1E3);
-DevicePerformanceProfile get _profile =>
-    _high ? DevicePerformanceProfile.high : DevicePerformanceProfile.medium;
+const _ink = Color(0xFF8A1234);
 
 void main() => runApp(const MaterialApp(home: _ReleaseValidation()));
 
@@ -26,6 +30,8 @@ class _ReleaseValidationState extends State<_ReleaseValidation> {
   int _sequence = 0;
   int _releaseTime = 0;
   int _pageAtRelease = 0;
+  DevicePerformanceProfile _profile =
+      DevicePerformanceProfile.values.byName(_requestedProfile);
 
   @override
   void initState() {
@@ -58,6 +64,39 @@ class _ReleaseValidationState extends State<_ReleaseValidation> {
     });
   }
 
+  void _dragged(PointerEvent event) {
+    scheduleMicrotask(() {
+      if (!mounted) return;
+      final state = _bookKey.currentState!;
+      final c = state.controller;
+      final box = _bookKey.currentContext!.findRenderObject()! as RenderBox;
+      final origin = box.localToGlobal(Offset.zero);
+      _status.value = '${_profile.name.toUpperCase()} / FINGER DOWN\n'
+          'progress ${c.dragProgress.toStringAsFixed(3)}';
+      debugPrint('[CONTENT_FRAME] ${jsonEncode({
+            'profile': _profile.name,
+            't': _clock.elapsedMilliseconds,
+            'progress': c.dragProgress,
+            'forward': c.isForward,
+            'layer': c.isDragging,
+            'x': origin.dx,
+            'y': origin.dy,
+            'width': box.size.width,
+            'height': box.size.height,
+            'touchX': c.touchPosition.dx,
+            'touchY': c.touchPosition.dy,
+            'dpr': MediaQuery.devicePixelRatioOf(context),
+          })}');
+    });
+  }
+
+  void _selectProfile(DevicePerformanceProfile profile) {
+    if (_bookKey.currentState?.controller.isSettling ?? false) return;
+    setState(() => _profile = profile);
+    _status.value = '${profile.name.toUpperCase()} / Ready';
+    debugPrint('[VALIDATION_PROFILE] ${profile.name}');
+  }
+
   void _observeRelease(int sequence) {
     if (!mounted || sequence != _sequence) return;
     final c = _bookKey.currentState!.controller;
@@ -88,16 +127,38 @@ class _ReleaseValidationState extends State<_ReleaseValidation> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(8),
-                child: Text(
-                  'SINGLE / ${_high ? 'HIGH' : 'MEDIUM'} / '
-                  'system reduced motion: '
-                  '${MediaQuery.disableAnimationsOf(context)}',
-                  style: const TextStyle(color: Colors.white),
+                child: Column(
+                  children: [
+                    Text(
+                      'SINGLE / ${_profile.name.toUpperCase()} / '
+                      'system reduced motion: '
+                      '${MediaQuery.disableAnimationsOf(context)}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (final profile in DevicePerformanceProfile.values)
+                          TextButton(
+                            onPressed: () => _selectProfile(profile),
+                            child: Text(
+                              profile.name.toUpperCase(),
+                              style: TextStyle(
+                                color: profile == _profile
+                                    ? Colors.amber
+                                    : Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               Expanded(
                 child: Listener(
                   onPointerDown: (_) => _status.value = 'FINGER DOWN',
+                  onPointerMove: _dragged,
                   onPointerUp: _released,
                   onPointerCancel: _released,
                   child: PageFlipWidget(
@@ -111,33 +172,35 @@ class _ReleaseValidationState extends State<_ReleaseValidation> {
                       edgeTapWidthRatio: 0,
                       performanceProfile: _profile,
                     ),
-                    itemBuilder: (context, index) => ColoredBox(
-                      color: _paper,
-                      child: Padding(
-                        padding: const EdgeInsets.all(28),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'PAGE ${index + 1}',
-                              style: const TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
+                    itemBuilder: (context, index) => DefaultTextStyle.merge(
+                      style: const TextStyle(color: _ink),
+                      child: ColoredBox(
+                        color: _paper,
+                        child: Padding(
+                          padding: const EdgeInsets.all(28),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'PAGE ${index + 1}',
+                                style: const TextStyle(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            const Text(
-                              'Drag partway, then lift your finger.\n\n'
-                              'The same sheet must stay visible while it '
-                              'finishes turning or returns to this page.',
-                              style: TextStyle(fontSize: 20, height: 1.6),
-                            ),
-                            const SizedBox(height: 24),
-                            for (var line = 0; line < 7; line++) ...[
-                              const Divider(color: Colors.brown),
-                              Text('${index + 1} — line ${line + 1}'),
+                              const SizedBox(height: 24),
+                              const Text(
+                                'Printed text stays visible while you drag, '
+                                'release, complete, or return.',
+                                style: TextStyle(fontSize: 20, height: 1.6),
+                              ),
+                              const SizedBox(height: 24),
+                              for (var line = 0; line < 5; line++) ...[
+                                const Divider(color: Colors.brown),
+                                Text('${index + 1} — line ${line + 1}'),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),

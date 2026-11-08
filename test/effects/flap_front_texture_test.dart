@@ -105,13 +105,13 @@ void main() {
   });
 
   group('flapFrontContentRevealOpacity', () {
-    test('single-page high-fidelity path keeps content visible', () {
+    test('single-page default keeps content visible', () {
       for (final p in <double>[0.1, 0.25, 0.5, 0.84, 0.9]) {
         expect(flapFrontContentRevealOpacity(p), equals(1.0));
       }
     });
 
-    test('single-page lightweight path uses blank paper during mid fold', () {
+    test('explicit legacy fade can use blank paper during mid fold', () {
       expect(
         flapFrontContentRevealOpacity(
           0.5,
@@ -121,8 +121,7 @@ void main() {
       );
     });
 
-    test('single-page lightweight path can keep the flap blank until settled',
-        () {
+    test('explicit legacy fade can keep the flap blank until settled', () {
       for (final p in <double>[0.5, 0.85, 0.9, 0.95, 0.99]) {
         expect(
           flapFrontContentRevealOpacity(

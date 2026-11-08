@@ -154,7 +154,9 @@ double freeEdgeContactLiftGain({
 
 /// Opacity of flap-front page content (0 = paper back only, 1 = full texture).
 ///
-/// Three-phase curve to hide distorted text during the bend:
+/// Single-page and spread painters retain content throughout the turn.
+/// Callers explicitly setting [keepSinglePageContentVisible] to false can
+/// still use the legacy three-phase fade:
 /// 1. Early drag (0 → [fadeOutEnd]): brief visibility, fast fade-out.
 /// 2. Mid fold ([fadeOutEnd] → [revealStart]): paper back only.
 /// 3. Late settle ([revealStart] → [revealEnd]): gentle content reveal.
@@ -172,14 +174,11 @@ double flapFrontContentRevealOpacity(
   // Double-spread maps the actual verso, so it stays fully visible throughout.
   if (isDoubleSpread) return 1;
 
-  // Single-page mode: pages are single-sided, so the flipping page shows its
-  // own content curling with the paper for the entire turn only when the
-  // high-fidelity path opts into it. Medium/low profiles intentionally use the
-  // same paper-back reveal curve as double-spread so the back-facing flap stays
-  // blank during the main fold and avoids extra mesh work.
+  // Single-page content curls with the sheet throughout the turn. Performance
+  // tiers control mesh density in the painter, not whether text is present.
   if (!isDoubleSpread && keepSinglePageContentVisible) return 1;
 
-  // Lightweight single-page readers can deliberately keep the flap blank
+  // Explicit legacy callers can deliberately keep the flap blank
   // until PageFlipWidget commits the destination page.
   if (!enableSinglePageSettleReveal) return 0;
 

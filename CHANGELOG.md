@@ -3,6 +3,37 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [3.2.2] - 2026-11-08
+
+### Fixed
+
+- Keep printed content on the moving sheet throughout single-page turns on
+  `medium` and `low`, including the middle of a drag and its completion or
+  return. These profiles previously skipped the content mesh until the late
+  settle phase, making the sheet look blank before text appeared near the end.
+  Their existing sparse mesh densities are retained.
+- Apply `singlePageBackContentOpacity` and `enableSinglePageSettleReveal`
+  consistently across performance profiles. Disabling the late settle reveal
+  keeps the printed back face at its configured opacity instead of blanking it.
+
+### Validation
+
+- Added raster tests that detect printed glyphs on the moving sheet across
+  intermediate progress values, both directions, light/dark paper, all three
+  profiles, and both settle-reveal settings.
+- Fixed single-page golden fixtures to provide the moving sheet's snapshot;
+  the previous fixtures exercised an empty flap. Added low-profile middle-frame
+  goldens alongside the default medium profile.
+- Extended the physical-device fixture with profile selection, drag frame
+  metadata, and an optional Android validation application ID.
+- Verified 16 intermediate screenshots and eight completion/return cases on
+  SM-A505N / Android 11 with medium and low profiles. See the
+  [physical-device validation record](example/device-validation-2026-11-08.md).
+
+### Packaging
+
+- Aligned the iOS podspec version to `3.2.2`.
+
 ## [3.2.1] - 2026-11-07
 
 ### Fixed
