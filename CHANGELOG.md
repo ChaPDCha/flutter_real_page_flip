@@ -12,6 +12,9 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
   per-page snapshot taken while it was adjacent, and the pre-warm after a
   scroll replaced only its spread snapshot, so the stationary side of the next
   single-page turn showed the page as it was before the scroll.
+- Compile the iOS plugin again. `RealPageFlipPlugin.swift` read its static
+  `isHapticDebugLogging` flag from instance methods without `Self.`, which
+  Swift rejects, so iOS builds failed on 3.2.0 through 3.2.2.
 
 ## [3.2.2] - 2026-11-08
 
