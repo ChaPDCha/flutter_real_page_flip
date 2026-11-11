@@ -267,6 +267,84 @@ void main() {
     },
   );
 
+  testWidgets(
+    'scroll pre-warm refreshes a page reached by turning before it turns',
+    (tester) async {
+      // Page 1 is red at the top and green one page further down.
+      const red = [255, 0, 0];
+      const green = [0, 255, 0];
+      final controller = PageFlipController();
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 320,
+              height: 480,
+              child: PageFlipWidget(
+                controller: controller,
+                itemCount: 3,
+                config: const PageFlipConfig(
+                  duration: Duration(milliseconds: 120),
+                  enableHaptics: false,
+                  enableSound: false,
+                  skipTapAnimation: false,
+                  snapshotRefreshPolicy:
+                      PageFlipSnapshotRefreshPolicy.whenDirty,
+                ),
+                itemBuilder: (context, index) => ListView(
+                  controller: index == 1 ? scrollController : null,
+                  children: [
+                    for (final colour in index == 1
+                        ? const [Color(0xFFFF0000), Color(0xFF00FF00)]
+                        : const [Color(0xFF0000FF), Color(0xFF0000FF)])
+                      SizedBox(height: 480, child: ColoredBox(color: colour)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // Page 1 is captured while adjacent, then becomes the current page.
+      controller.nextPage();
+      await tester.pumpAndSettle();
+
+      scrollController.jumpTo(480);
+      await tester.pumpAndSettle();
+      final state = tester.state<PageFlipWidgetState>(
+        find.byType(PageFlipWidget),
+      );
+      expect(state.debugDirtySnapshotIndices, isEmpty);
+
+      final gesture = await tester.startGesture(const Offset(300, 240));
+      await gesture.moveBy(const Offset(-60, 0));
+      await tester.pump();
+      await gesture.moveBy(const Offset(-60, 0));
+      await tester.pump();
+
+      final shown = <List<int>>[];
+      for (final raw in tester.widgetList<RawImage>(find.byType(RawImage))) {
+        final image = raw.image;
+        if (image == null) continue;
+        await tester.runAsync(() async {
+          final bytes = (await image.toByteData())!.buffer.asUint8List();
+          final i = ((image.height ~/ 2) * image.width + image.width ~/ 2) * 4;
+          shown.add(bytes.sublist(i, i + 3));
+        });
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(shown, anyElement(equals(green)), reason: '$shown');
+      expect(shown, isNot(anyElement(equals(red))), reason: '$shown');
+    },
+  );
+
   test('snapshot refresh config is copied and normalized', () {
     const config = PageFlipConfig(
       performanceProfile: DevicePerformanceProfile.low,

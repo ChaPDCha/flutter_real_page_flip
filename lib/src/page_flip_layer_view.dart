@@ -560,8 +560,8 @@ class PageFlipLayerView extends StatelessWidget {
       return _wrapWithConstraints(_buildSnapshotImage(snapshot));
     }
 
-    // Single-mode fallback: currentIndex is stored only in spreadSnapshots
-    // (PreRenderManager._doCaptureSnapshots skips pageSnapshots for currentIndex).
+    // Single-mode fallback: a page first captured as the current page has no
+    // page clone (PreRenderManager keeps any clone it does have up to date).
     // Check spreadSnapshots before falling through to opaque paper.
     if (!isDoubleSpread) {
       final spreadFallback = spreadSnapshots[index];
