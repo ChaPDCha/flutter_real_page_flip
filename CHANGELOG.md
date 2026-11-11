@@ -3,7 +3,7 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
-## [Unreleased]
+## [3.2.3] - 2026-11-11
 
 ### Fixed
 
@@ -15,6 +15,10 @@ For the example application (Realbook app), see [example/CHANGELOG.md](example/C
 - Compile the iOS plugin again. `RealPageFlipPlugin.swift` read its static
   `isHapticDebugLogging` flag from instance methods without `Self.`, which
   Swift rejects, so iOS builds failed on 3.2.0 through 3.2.2.
+
+### Packaging
+
+- Aligned the iOS podspec version to `3.2.3`.
 
 ## [3.2.2] - 2026-11-08
 
