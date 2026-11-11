@@ -3,6 +3,16 @@
 All notable changes to the `real_page_flip` **package** will be documented here.
 For the example application (Realbook app), see [example/CHANGELOG.md](example/CHANGELOG.md).
 
+## [Unreleased]
+
+### Fixed
+
+- Turn a scrolled page with its scrolled content under
+  `PageFlipSnapshotRefreshPolicy.whenDirty`. A page reached by a turn kept the
+  per-page snapshot taken while it was adjacent, and the pre-warm after a
+  scroll replaced only its spread snapshot, so the stationary side of the next
+  single-page turn showed the page as it was before the scroll.
+
 ## [3.2.2] - 2026-11-08
 
 ### Fixed
