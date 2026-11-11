@@ -529,7 +529,11 @@ class PreRenderManager {
           spreadSnapshots[index] = image;
           if (oldImage != null) toDispose.add(oldImage);
 
-          if (capturePageSnapshotClones && index != currentIndex) {
+          // A page reached by a turn keeps the clone taken while it was
+          // adjacent, and single-page layers read that clone first: refresh it
+          // too, as refreshIndexSync does, or a turn shows the old content.
+          if (capturePageSnapshotClones &&
+              (index != currentIndex || pageSnapshots.containsKey(index))) {
             final oldImage = pageSnapshots[index];
             // Clone only when the snapshot must reside in both page and spread maps
             pageSnapshots[index] = image.clone();
